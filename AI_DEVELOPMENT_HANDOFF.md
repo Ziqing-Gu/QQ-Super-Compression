@@ -204,8 +204,8 @@
 
 ## vX.X.X — 版本名称
 
-**日期：** YYYY-MM-DD  
-**状态：** Candidate / Stable / Test  
+**日期：** YYYY-MM-DD
+**状态：** Candidate / Stable / Test
 **基于：** vX.X.X
 
 ### 用户需求
@@ -421,8 +421,8 @@ Project Root/
 
 ## v0.1.0 — Prototype
 
-**日期：** 2026-08-25  
-**状态：** Test  
+**日期：** 2026-08-25
+**状态：** Test
 **基于：** 初始版本
 
 ### 用户需求
@@ -455,8 +455,8 @@ Project Root/
 
 ## v0.1.1 — Ratio Engine Fix / Meter & UI Pass
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.0
 
 ### 用户需求
@@ -496,8 +496,8 @@ Project Root/
 
 ## v0.1.2 — ST/MS/LR Modes / Zero Latency / Dual Meter Rework
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.1
 
 ### 用户需求
@@ -577,8 +577,8 @@ Project Root/
 
 ## v0.1.3 — Workflow / A-B / Match / Independent Makeup
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.2
 
 ### 用户需求
@@ -684,8 +684,8 @@ Codex 首次编译应优先处理任何 JUCE API 差异，不要趁机重构 DSP
 
 ## v0.1.4 — Variable Lookahead Peak Experiment
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.3
 
 ### 用户需求
@@ -786,8 +786,8 @@ sample -> square -> 20 ms moving mean -> sqrt -> Ratio gain -> multiply audio
 
 ## v0.1.5 — Fixed Lookahead Presets / Last-Choice Memory
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.4
 
 ### 用户需求
@@ -856,8 +856,8 @@ sample -> square -> 20 ms moving mean -> sqrt -> Ratio gain -> multiply audio
 
 ## v0.1.6 — Strict Integrated LUFS Match
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.5
 
 ### 用户需求
@@ -914,8 +914,8 @@ sample -> square -> 20 ms moving mean -> sqrt -> Ratio gain -> multiply audio
 
 ## v0.1.7 — Auto GR Peak Hold / Version Tag / playHead Warning Cleanup
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.6
 
 ### 用户需求
@@ -957,8 +957,8 @@ Hold 计时按 audio callback samples 推进；宿主停止并停止 callback �
 
 ## v0.1.8 — GR Hold Readability / Uniform 1:1 UI Scaling
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.7
 
 ### 用户需求
@@ -1001,8 +1001,8 @@ Hold 计时按 audio callback samples 推进；宿主停止并停止 callback �
 
 ## v0.1.8 - Open-source release / Plan D build infrastructure
 
-**Date:** 2026-08-26  
-**Status:** Candidate / Test  
+**Date:** 2026-08-26
+**Status:** Candidate / Test
 **Based on:** v0.1.8 validated Windows source
 
 ### Changes
@@ -1018,3 +1018,73 @@ Hold 计时按 audio callback samples 推进；宿主停止并停止 callback �
 - The pre-release Windows 0.1.8 build, LUFS self-test and VST3 factory-load smoke test passed before these packaging-only changes.
 - Rebuild Windows after the CMake change and record GitHub Actions results before calling Plan D complete.
 - The product remains Candidate / Test until the user explicitly confirms Stable.
+
+---
+
+# Development Entry — 0.1.8 Plan ABCDEF Bilingual Release Compliance Correction
+# 开发记录——0.1.8 Plan ABCDEF 中英双语发布规范纠正
+
+Date / 日期: 2026-08-26
+Status / 状态: Candidate / Test; not user-confirmed Stable / 尚未由用户确认 Stable
+
+## Request / 用户要求
+
+中文：用户要求严格按项目的 Plan ABCDEF 正式规范纠正公开仓库和 Plan D 交付，并要求中英双语。公开 README 必须直接覆盖上一个完整记录到目标版本之间的每一个真实版本；安装说明必须足以让 Windows/macOS 用户安全完成架构选择、覆盖、扫描和未公证插件处理。
+
+English: The user required the public repository and Plan D delivery to be corrected against the project's formal Plan ABCDEF specification, with bilingual Chinese and English content. The public README must directly cover every real version from the previous complete record through the target, and the installation guides must safely cover architecture choice, overwrite, rescan, and non-notarized macOS handling.
+
+## Problem and root cause / 问题与根因
+
+中文：先前 0.1.8 的开源和 Plan D 文档只满足了简化流程：README 主要为英文且中文段落发生乱码；CHANGELOG 和构建说明没有完整双语；两份安装说明缺少正式规范要求的产品/系统/架构映射、关闭 DAW、管理员覆盖、旧副本处理、Mac VST3 二选一、AU 独立格式、精确 xattr 命令与安全警告；桌面正式用户包尚未按规定结构生成。根因是执行时没有以完整 Plan ABCDEF 文档作为唯一口径。
+
+English: The earlier 0.1.8 open-source and Plan D documentation followed only a simplified flow. README was mostly English and its Chinese paragraph was mojibake; CHANGELOG and the build guide were not fully bilingual; both installation guides lacked the required product/OS/architecture mapping, DAW shutdown, administrator overwrite, old-copy handling, one-of-two Mac VST3 choice, independent AU explanation, exact xattr commands, and safety warning; and the formal desktop package had not been created in the required structure. The root cause was failure to use the complete Plan ABCDEF document as the single source of truth.
+
+## Changes / 本次修改
+
+中文：
+
+- 完整重写 README 为 UTF-8 中英双语，保留产品原理、Ratio 公式、Lookahead/PDC、ST/LR/MS、严格 Integrated LUFS Match、A/B、动态显示、GR Hold、平台与构建信息。
+- README 直接列出 0.1.0–0.1.8 全部真实版本，并明确“上一个完整公开双语记录：无；目标：0.1.8；遗漏：无”。
+- 将 CHANGELOG 重写为 0.1.0–0.1.8 完整、逐版本中英语义一致的历史。
+- 将 CODEX_BUILD 改为中英双语，记录固定 JUCE 8.0.15、Windows/macOS 构建、BS.1770 自测、CI 四包路线、验证要求和非致命 constrainer 名称遮蔽警告。
+- 完整重写中文和英文安装说明，补齐 Windows、Mac VST3、Universal 2 AU、升级、重复项、重扫、xattr 与安全说明。
+- 本次只改文档和发布元数据，不改 Source、tests、DSP、界面逻辑、参数 ID、状态结构、Lookahead/PDC 或音频输出。
+
+English:
+
+- Rewrote README as valid UTF-8 bilingual content while preserving the product model, Ratio law, Lookahead/PDC, ST/LR/MS, strict Integrated LUFS Match, A/B, Dynamic Display, GR Hold, platform, and build information.
+- Made every real version 0.1.0–0.1.8 directly visible in README and declared “previous complete public bilingual record: none; target: 0.1.8; omissions: none.”
+- Rewrote CHANGELOG as a complete per-version, semantically equivalent bilingual history for 0.1.0–0.1.8.
+- Rewrote CODEX_BUILD bilingually with pinned JUCE 8.0.15, Windows/macOS builds, BS.1770 self-test, the four-package CI route, validation requirements, and the non-fatal constrainer shadow warning.
+- Rewrote the Chinese and English installation guides with complete Windows, Mac VST3, Universal 2 AU, upgrade, duplicate, rescan, xattr, and safety instructions.
+- This change touches documentation and release metadata only. It does not alter Source, tests, DSP, UI logic, parameter IDs, state schema, Lookahead/PDC, or audio output.
+
+## Compatibility and rollback / 兼容性与回退
+
+中文：二进制行为与 0.1.8 先前公开 commit `0b63eecf341f30be9e80a1f57eb5c564403d8248` 相同。若只需回退文档，可恢复该 commit 的文档；不得将其旧的简化 Plan D 说明视为正式合规交付。
+
+English: Binary behaviour remains identical to prior public 0.1.8 commit `0b63eecf341f30be9e80a1f57eb5c564403d8248`. To roll back documentation only, restore the documents from that commit; its simplified Plan D description must not be treated as formally compliant delivery.
+
+## Validation plan / 验证计划
+
+中文：
+
+1. 检查 README 和 CHANGELOG 的 0.1.0–0.1.8 连续覆盖与中英条目。
+2. 检查两份安装说明的包名、平台/架构、系统路径、关闭 DAW、管理员覆盖、重扫、AU 独立、xattr 与安全警告。
+3. 重新生成并验证 SOURCE_MANIFEST.sha256。
+4. 使用正式 GitHub 身份链提交并验证远端 commit。
+5. 从同一新 commit 重新运行 Windows VST3、macOS arm64 VST3、macOS x86_64 VST3 和 Universal 2 AU；记录哈希、架构、bundle、版本和验证结果。
+6. 刷新正式 Plan B 源码备份。
+7. 在内部验证目录保存证据，并按规定把仅含两份安装说明、Win/一个 zip、Mac/三个 zip 的正式包复制到桌面。
+8. Cubase GUI、听感和最终用户确认仍由用户完成；在此之前保持 Candidate/Test。
+
+English:
+
+1. Check continuous 0.1.0–0.1.8 coverage and Chinese/English entries in README and CHANGELOG.
+2. Check package names, platform/architecture mapping, system paths, DAW shutdown, administrator overwrite, rescan, independent AU, xattr, and safety warning in both installation guides.
+3. Regenerate and verify SOURCE_MANIFEST.sha256.
+4. Commit through the formal GitHub identity chain and verify the remote commit.
+5. Re-run Windows VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU from the same new commit; record hashes, architectures, bundles, versions, and validation results.
+6. Refresh the formal Plan B source backup.
+7. Preserve evidence in the internal verification directory and copy the formal desktop package containing only two installation guides, one zip under Win/, and three zips under Mac/.
+8. Cubase GUI, listening, and final user acceptance remain for the user; status stays Candidate/Test until then.

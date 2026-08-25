@@ -1,54 +1,195 @@
-QQ Super Compression 0.1.8
-Windows and macOS installation guide
+QQ Super Compression 0.1.8 Installation and Usage Guide (English)
+==================================================================
 
+1. Product and release information
+----------------------------------
+
+Product: QQ Super Compression
+Vendor: Qing Audio
+Version: 0.1.8
 Status: Candidate / Test (not yet user-confirmed Stable)
-Developer: Qing Audio
+Release date: 2026-08-26
 License: MIT
+Public source: https://github.com/Ziqing-Gu/QQ-Super-Compression
 
-WINDOWS x64 / VST3
+This is the user-binary package for an open-source project. The desktop Plan D package does not contain source code. Complete source, build instructions, version history, and the license are available in the public repository above.
 
-1. Extract QQ-Super-Compression-0.1.8-Windows-x64.zip.
-2. Copy the complete "QQ Super Compression.vst3" bundle to:
+The release contains one plug-in:
+- VST3 bundle: QQ Super Compression.vst3
+- AU bundle: QQ Super Compression.component
+
+2. Choose the correct archive
+-----------------------------
+
+1. Windows 64-bit VST3
+   QQ-Super-Compression-0.1.8-Windows-x64.zip
+
+2. Native macOS Apple Silicon VST3 (M1/M2/M3/M4 and later)
+   QQ-Super-Compression-0.1.8-macOS-Apple-Silicon-VST3.zip
+
+3. Native macOS Intel VST3
+   QQ-Super-Compression-0.1.8-macOS-Intel-VST3.zip
+
+4. macOS Universal 2 AU (contains both arm64 and x86_64)
+   QQ-Super-Compression-0.1.8-macOS-Universal-AU.zip
+
+The Windows package was built and validated on GitHub Actions windows-2022 and is intended for 64-bit Windows 10/11 VST3 hosts. Older Windows versions are unverified.
+
+The Apple Silicon VST3 was built and validated on macOS 14 arm64. The Intel VST3 was built and validated on macos-15-intel x86_64. The Universal 2 AU was verified to contain both arm64 and x86_64 and passed auval. The Info.plist does not declare a minimum macOS version, so untested earlier systems must not be treated as supported.
+
+macOS packages are ad-hoc signed. They are not Apple Developer ID signed and are not Apple-notarized.
+
+3. Required preparation
+-----------------------
+
+1. Save your projects.
+2. Fully quit Cubase, Nuendo, Studio One, REAPER, Logic Pro, every other DAW, and all plug-in scanners.
+3. If an older version is installed, back up its bundle if you may need to roll back.
+4. Find and remove old duplicate bundles so the host cannot scan multiple locations, show duplicates, or keep loading an old cache.
+5. Preserve each complete .vst3 or .component bundle while extracting. These bundles appear as folders in the file system; do not copy only the internal binary.
+
+4. Windows 64-bit VST3 installation
+-----------------------------------
+
+1. Extract:
+   QQ-Super-Compression-0.1.8-Windows-x64.zip
+
+2. Confirm that the complete bundle exists:
+   QQ Super Compression.vst3
+
+3. With administrator permission, copy it to the system VST3 directory:
    C:\Program Files\Common Files\VST3\
-3. Restart Cubase or another VST3 host and rescan plug-ins.
 
-macOS / VST3
+4. The final path should be:
+   C:\Program Files\Common Files\VST3\QQ Super Compression.vst3
 
-- Use the Apple Silicon archive for a native Apple Silicon host.
-- Use the Intel archive on an Intel Mac.
+5. If Windows asks to merge or overwrite, first confirm that every DAW is fully closed, then overwrite the old bundle. If overwrite fails, move the old bundle out first and copy the new one. Do not keep “QQ Super Compression.vst3”, a version-suffixed copy, and another duplicate in a different scan path.
 
-Extract the archive and copy the complete "QQ Super Compression.vst3" bundle to:
+6. Start the DAW and perform a full VST3 rescan. In Cubase, use Plug-in Manager. If the old version still appears, close Cubase, clear that host's plug-in blacklist/cache, restart, and scan again.
 
-  Current user: ~/Library/Audio/Plug-Ins/VST3/
-  All users:    /Library/Audio/Plug-Ins/VST3/
+7. Confirm version 0.1.8 in the plug-in information or small UI version label.
 
-Restart the host and rescan plug-ins.
+5. macOS VST3 installation
+--------------------------
 
-macOS / AUDIO UNIT
+Important: the Apple Silicon and Intel VST3 archives are two architecture builds of the same format. Install only one; do not install both.
 
-The Universal AU contains both arm64 and x86_64. Extract the archive and copy
-the complete "QQ Super Compression.component" bundle to:
+- On an Apple Silicon Mac running the DAW natively, prefer the Apple Silicon VST3.
+- On an Intel Mac, install the Intel VST3.
+- On Apple Silicon, consider the Intel VST3 only when you intentionally run an Intel DAW under Rosetta. DAW and plug-in architectures must match.
+- AU is an independent format and may be installed alongside the one selected VST3.
 
-  Current user: ~/Library/Audio/Plug-Ins/Components/
-  All users:    /Library/Audio/Plug-Ins/Components/
+1. Extract the selected VST3 archive to obtain:
+   QQ Super Compression.vst3
 
-Restart Logic Pro. If necessary, restart macOS before scanning again.
+2. In Finder, hold Option while opening the Go menu to reveal the user Library. You may also use Go to Folder.
 
-macOS SECURITY NOTE
+3. Choose one installation location:
 
-This open-source test build is not notarized with an Apple Developer ID. If
-macOS blocks it, first confirm that it came from the public project repository,
-then allow it in System Settings > Privacy & Security or remove the quarantine
-attribute only from this specific plug-in bundle. Do not weaken security for the
-entire plug-in directory.
+   Current user (normally no administrator password):
+   ~/Library/Audio/Plug-Ins/VST3/
 
-CONTROLS
+   All users (normally requires an administrator password):
+   /Library/Audio/Plug-Ins/VST3/
 
-- Ratio: threshold-free compression amount.
-- Lookahead: 0 / 10 / 26 / 40 / 80 / 100 ms; changes reported PDC latency.
-- Makeup: post-compression gain.
-- Match: strict Integrated LUFS matching between dry and compressed wet audio.
-- Mix: Dry/Wet blend.
-- Mode: ST / MS / LR.
+4. Example final paths:
 
-The 0 ms Lookahead setting is an intentionally retained distortion/flavour mode.
+   ~/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3
+
+   or:
+
+   /Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3
+
+5. Before installing, remove or move old same-name bundles from both locations and check custom VST3 folders. Keep only one VST3 with the required architecture.
+
+6. Restart the DAW and perform a full VST3 rescan. If using Rosetta, confirm that the DAW's “Open using Rosetta” setting matches the installed VST3 architecture.
+
+6. macOS Universal 2 AU installation
+------------------------------------
+
+AU and VST3 are independent formats. Logic Pro primarily uses AU. Installing AU does not replace VST3.
+
+1. Extract:
+   QQ-Super-Compression-0.1.8-macOS-Universal-AU.zip
+
+2. Confirm:
+   QQ Super Compression.component
+
+3. Copy it to one location:
+
+   Current user:
+   ~/Library/Audio/Plug-Ins/Components/
+
+   All users (normally requires an administrator password):
+   /Library/Audio/Plug-Ins/Components/
+
+4. Remove old same-name components, then restart Logic Pro or another AU host.
+
+5. In Logic Pro, open Plug-in Manager, locate Qing Audio / QQ Super Compression, and reset/rescan it if required. The AU identity is:
+   Type: aufx
+   Subtype: Qscp
+   Manufacturer: Qing
+
+7. macOS quarantine and notarization notice
+-------------------------------------------
+
+Because the packages are not Apple-notarized, macOS may block the plug-in on first load. If macOS explicitly says that the developer cannot be verified, and you have confirmed that the archive comes from this project's trusted public release/delivery, remove quarantine only from this plug-in bundle.
+
+Current-user VST3:
+
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+
+System VST3:
+
+sudo xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+
+Current-user AU:
+
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+System AU:
+
+sudo xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+Safety warning:
+- Run these commands only after confirming the file source and SHA-256.
+- The path must point exactly to the single QQ Super Compression bundle.
+- Never recursively remove quarantine from the entire Downloads, Library, VST3, or Components directory.
+- Do not disable Gatekeeper or use broader system-security bypasses.
+- Restart the DAW and rescan after running the command.
+
+8. Upgrade, duplicates, and compatibility
+-----------------------------------------
+
+- You may overwrite the same-name bundle when upgrading. Parameter IDs and state compatibility remain unchanged.
+- Arbitrary Lookahead values saved by 0.1.4 migrate to the nearest 0/10/26/40/80/100 ms preset, choosing the longer preset on an exact tie.
+- A new instance remembers the user's last Lookahead choice; the fallback is 26 ms when no history exists.
+- Do not keep one copy in the user VST3 directory and another in the system directory. Do not install both arm64 and x86_64 VST3.
+- If the DAW still displays an old version, close it, remove duplicate bundles, clear the host cache/blacklist, and rescan.
+- The measurable harmonic distortion at 0 ms Lookahead is an intentional flavour, not a hidden fault.
+- Changing Lookahead changes reported latency, so the host may perform a one-time PDC realignment during playback.
+- Bypass uses the same delayed path and does not silently become zero latency.
+- Version 0.1.8 remains Candidate/Test. It must not be marked Stable until Cubase GUI, listening, automation, project restore, and final user acceptance are complete.
+
+9. Recommended first validation
+-------------------------------
+
+1. Confirm that the host displays QQ Super Compression 0.1.8.
+2. Test ST, LR, and MS modes.
+3. Switch through 0/10/26/40/80/100 ms and observe host delay compensation.
+4. Confirm that increasing Ratio increases Gain Reduction and that Makeup, Mix, and Bypass work.
+5. Confirm that Integrated LUFS Match becomes available after at least one complete 400 ms measurement block.
+6. Check the 2-second GR Peak Hold and verify that changing Mode/Lookahead clears stale markers.
+7. Resize the editor and confirm that the complete UI keeps the original 1020x670 aspect ratio.
+8. Save and reopen a project, then verify parameters, A/B, Mode, Lookahead, and editor-size restore.
+9. Make a copy before testing old production projects.
+
+10. Troubleshooting
+-------------------
+
+- Not scanned: verify the directory, match the bundle architecture to the DAW, confirm that the complete bundle was copied, and perform a full rescan.
+- Blacklisted: close the DAW, clear that host's blacklist/cache, then scan again.
+- Blocked by macOS: confirm source and hash first, then use the xattr command only on the single bundle.
+- Duplicate entries: remove duplicate bundles from user, system, or custom scan paths and keep one VST3 architecture.
+- Old version remains: close the DAW, remove the old bundle and cache, copy 0.1.8, restart, and rescan.
+- Unexpected sound or behaviour: record the DAW, OS, architecture, sample rate, buffer, Mode, Lookahead, reproduction steps, and a minimal project excerpt, then submit an issue in the public repository.
