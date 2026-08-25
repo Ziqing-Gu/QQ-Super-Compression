@@ -1,0 +1,52 @@
+QQ Super Compression 0.1.8
+Windows 与 macOS 安装使用说明
+
+版本状态：Candidate / Test（尚未由用户确认 Stable）
+开发者：Qing Audio
+开源许可：MIT
+
+一、Windows x64 / VST3
+
+1. 解压 QQ-Super-Compression-0.1.8-Windows-x64.zip。
+2. 把完整的“QQ Super Compression.vst3”文件夹复制到：
+   C:\Program Files\Common Files\VST3\
+3. 重新打开 Cubase 或其他 VST3 宿主，并执行插件重新扫描。
+
+二、macOS / VST3
+
+- Apple Silicon（M1/M2/M3/M4 等）原生宿主使用 Apple-Silicon-VST3 压缩包。
+- Intel Mac 使用 Intel-VST3 压缩包。
+
+解压后，把完整的“QQ Super Compression.vst3”复制到以下任一路径：
+
+  当前用户：~/Library/Audio/Plug-Ins/VST3/
+  所有用户：/Library/Audio/Plug-Ins/VST3/
+
+随后重新打开宿主并重新扫描插件。
+
+三、macOS / Audio Unit（Logic Pro 等）
+
+Universal AU 同时包含 arm64 与 x86_64。解压后，把完整的
+“QQ Super Compression.component”复制到以下任一路径：
+
+  当前用户：~/Library/Audio/Plug-Ins/Components/
+  所有用户：/Library/Audio/Plug-Ins/Components/
+
+重新打开 Logic Pro；必要时重新启动 Mac 后再扫描。
+
+四、macOS 安全提示
+
+本开源测试版未使用 Apple Developer ID 公证。如果 macOS 阻止加载，请先确认文件
+来源为本项目公开仓库，然后在“系统设置 > 隐私与安全性”中允许；或对具体插件包
+移除下载隔离标记后重新扫描。不要对整个系统插件目录批量执行安全属性修改。
+
+五、主要操作
+
+- Ratio：调整无阈值的压缩强度。
+- Lookahead：0 / 10 / 26 / 40 / 80 / 100 ms；会改变宿主 PDC 延迟。
+- Makeup：压缩后的补偿增益。
+- Match：以严格 Integrated LUFS 测量匹配压缩前后响度。
+- Mix：Dry/Wet 混合。
+- Mode：ST / MS / LR。
+
+0 ms Lookahead 是刻意保留的有失真风味档，并非无失真模式。

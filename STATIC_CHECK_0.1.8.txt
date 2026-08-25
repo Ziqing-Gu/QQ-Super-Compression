@@ -1,0 +1,24 @@
+QQ Super Compression 0.1.8 — static validation
+Date: 2026-08-25
+Status: source/static only; NOT a full JUCE/VST3 build or Cubase validation.
+
+PASS  CMake/JUCE product version is 0.1.8.
+PASS  GR Hold numeric readout no longer emits the "H " prefix.
+PASS  GR Hold numeric font changed from 7.5 px to 8.5 px.
+PASS  White GR Hold marker path and processor-side 2 s Hold algorithm are unchanged.
+PASS  All editor widgets are children of one fixed 1020x670 contentRoot.
+PASS  Editor uses one AffineTransform::scale(uiScale), with equal X/Y scale.
+PASS  Editor constrainer uses fixed aspect ratio 1020/670.
+PASS  Layout calculations use the fixed 1020x670 design coordinate space rather than current independent width/height.
+PASS  Old 922x670 malformed saved-size example migrates to approximately 922x606, preserving the design aspect rather than horizontal squash.
+PASS  PluginProcessor.cpp/.h, StaticCompressionEngine.h, BS1770LoudnessMatch.h, MeterState.h, Parameters.h, DynamicDisplay.cpp/.h, LevelMeters.h and UTF8LookAndFeel.h are byte-identical to 0.1.7.
+PASS  JUCE-free BS.1770 self-test: 1 kHz 0 dBFS mono = -3.0036 LUFS; fixed 6 dB difference = +6 dB Match.
+PASS  CMake syntax reaches the intentional JUCE-not-found guard when QQSC_FETCH_JUCE=OFF.
+
+Not validated here:
+- Full JUCE/VST3 compile.
+- Windows/Codex Release build.
+- Cubase aspect-ratio resize behaviour.
+- Mouse hit-testing after transformed scaling.
+- Reopen/migrate saved editor size in the host.
+- User confirmation.

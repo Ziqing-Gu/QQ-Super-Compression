@@ -1,0 +1,54 @@
+QQ Super Compression 0.1.8
+Windows and macOS installation guide
+
+Status: Candidate / Test (not yet user-confirmed Stable)
+Developer: Qing Audio
+License: MIT
+
+WINDOWS x64 / VST3
+
+1. Extract QQ-Super-Compression-0.1.8-Windows-x64.zip.
+2. Copy the complete "QQ Super Compression.vst3" bundle to:
+   C:\Program Files\Common Files\VST3\
+3. Restart Cubase or another VST3 host and rescan plug-ins.
+
+macOS / VST3
+
+- Use the Apple Silicon archive for a native Apple Silicon host.
+- Use the Intel archive on an Intel Mac.
+
+Extract the archive and copy the complete "QQ Super Compression.vst3" bundle to:
+
+  Current user: ~/Library/Audio/Plug-Ins/VST3/
+  All users:    /Library/Audio/Plug-Ins/VST3/
+
+Restart the host and rescan plug-ins.
+
+macOS / AUDIO UNIT
+
+The Universal AU contains both arm64 and x86_64. Extract the archive and copy
+the complete "QQ Super Compression.component" bundle to:
+
+  Current user: ~/Library/Audio/Plug-Ins/Components/
+  All users:    /Library/Audio/Plug-Ins/Components/
+
+Restart Logic Pro. If necessary, restart macOS before scanning again.
+
+macOS SECURITY NOTE
+
+This open-source test build is not notarized with an Apple Developer ID. If
+macOS blocks it, first confirm that it came from the public project repository,
+then allow it in System Settings > Privacy & Security or remove the quarantine
+attribute only from this specific plug-in bundle. Do not weaken security for the
+entire plug-in directory.
+
+CONTROLS
+
+- Ratio: threshold-free compression amount.
+- Lookahead: 0 / 10 / 26 / 40 / 80 / 100 ms; changes reported PDC latency.
+- Makeup: post-compression gain.
+- Match: strict Integrated LUFS matching between dry and compressed wet audio.
+- Mix: Dry/Wet blend.
+- Mode: ST / MS / LR.
+
+The 0 ms Lookahead setting is an intentionally retained distortion/flavour mode.

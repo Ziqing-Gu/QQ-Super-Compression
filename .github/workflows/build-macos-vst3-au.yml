@@ -1,0 +1,106 @@
+name: Build macOS VST3 and AU 0.1.8
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-vst3:
+    name: VST3 ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Apple Silicon (arm64)
+            runner: macos-14
+            expected_arch: arm64
+            artifact_name: QQ-Super-Compression-0.1.8-macOS-Apple-Silicon-VST3
+          - name: Intel (x86_64)
+            runner: macos-15-intel
+            expected_arch: x86_64
+            artifact_name: QQ-Super-Compression-0.1.8-macOS-Intel-VST3
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: >
+          cmake -S .
+          -B build-macos
+          -DQQSC_FETCH_JUCE=ON
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_ARCHITECTURES=${{ matrix.expected_arch }}
+
+      - name: Build VST3
+        run: cmake --build build-macos --target QQSuperCompression_VST3 --config Release --parallel 3
+
+      - name: Verify architecture and package VST3
+        shell: bash
+        run: |
+          vst3='build-macos/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3'
+          vst3_binary=$(find "$vst3/Contents/MacOS" -type f -print -quit)
+          test -n "$vst3_binary"
+          lipo -archs "$vst3_binary" | tr ' ' '\n' | grep -Fx '${{ matrix.expected_arch }}'
+          ditto -c -k --keepParent "$vst3" '${{ matrix.artifact_name }}.zip'
+
+      - name: Upload packaged VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  build-au:
+    name: AU Universal 2 (arm64 + x86_64)
+    runs-on: macos-14
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Configure Universal 2
+        run: >
+          cmake -S .
+          -B build-macos-au
+          -DQQSC_FETCH_JUCE=ON
+          -DCMAKE_BUILD_TYPE=Release
+          '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64'
+
+      - name: Build Universal 2 AU
+        run: cmake --build build-macos-au --target QQSuperCompression_AU --config Release --parallel 3
+
+      - name: Validate AU for Logic
+        shell: bash
+        run: |
+          au='build-macos-au/QQSuperCompression_artefacts/Release/AU/QQ Super Compression.component'
+          mkdir -p "$HOME/Library/Audio/Plug-Ins/Components"
+          ditto "$au" "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+          killall -9 AudioComponentRegistrar || true
+          auval -v aufx Qscp Qing
+
+      - name: Verify both architectures and package AU
+        shell: bash
+        run: |
+          au='build-macos-au/QQSuperCompression_artefacts/Release/AU/QQ Super Compression.component'
+          au_binary=$(find "$au/Contents/MacOS" -type f -print -quit)
+          test -n "$au_binary"
+          archs=$(lipo -archs "$au_binary")
+          printf '%s\n' "$archs"
+          printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx arm64
+          printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx x86_64
+          ditto -c -k --keepParent "$au" 'QQ-Super-Compression-0.1.8-macOS-Universal-AU.zip'
+
+      - name: Upload packaged AU
+        uses: actions/upload-artifact@v4
+        with:
+          name: QQ-Super-Compression-0.1.8-macOS-Universal-AU
+          path: QQ-Super-Compression-0.1.8-macOS-Universal-AU.zip
+          if-no-files-found: error
+          retention-days: 7
