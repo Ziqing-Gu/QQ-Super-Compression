@@ -15,6 +15,14 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | MIT |
 
+## 界面预览 / Interface preview
+
+![QQ Super Compression 0.1.10 在 Cubase 中处理人声 / processing a vocal track in Cubase](docs/images/qq-super-compression-0.1.10-mixing.png)
+
+图中是一个有代表性的正常混音状态：ST 模式、26 ms Lookahead、8:1 Ratio 与并行 Mix，同时显示动态历史、输入/输出电平和 Gain Reduction。图中数值用于展示工作流，并非固定推荐设置。
+
+This is a representative mixing state: ST mode, 26 ms Lookahead, an 8:1 Ratio, and parallel Mix, with dynamic history plus input, output, and Gain Reduction metering. The displayed values demonstrate the workflow rather than prescribe fixed settings.
+
 ## 为什么设计它 / Why it exists
 
 传统压缩器的 Attack 和 Release 不只是控制“压多少”，也会改变增益开始下降和恢复的时间。慢 Attack 可能让音头穿过，快 Attack 可能更明显地削弱音头，Release 又会改变事件之后的恢复形状。这些都是很有价值的声音设计手段，但并不适合所有任务。
@@ -35,6 +43,12 @@ The design target is:
 | 人声 / Vocals | 辅音、爆破音与字头 / consonants, plosives, and word onsets |
 | 钢琴 / Piano | 琴槌敲击和起音辨识度 / hammer strike and onset identity |
 | 贝斯 / Bass | 指弹或拨片的清晰度与律动 / finger or pick articulation and groove |
+
+### 母带与 Mix Bus / Mastering and mix-bus use
+
+QQ Super Compression 同样适用于母带链路和 Mix Bus。它可以作为传统 G Bus 类压缩器的一种替代选择，提供更稳定、连续的 Glue，同时减少对鼓和其他打击乐音头过分明显的改变。
+
+QQ Super Compression is also suited to mastering chains and mix-bus processing. It can serve as an alternative to a conventional G Bus-style compressor, providing a more stable, continuous sense of glue while reducing overly obvious changes to drum and percussion onsets.
 
 这不是在否定传统压缩器，也不是声称能够在所有信号上“完美保留瞬态”。它提供的是另一种工作方向：当动态控制是必要的，而 Attack / Release 式瞬态塑形不是目标时，使用未来窗口预读来减少对传统时间包络的依赖。
 
@@ -76,11 +90,15 @@ This is not a conventional “4:1 above Threshold” dB slope. The plug-in has n
 
 ## 快速开始 / Quick start
 
+**中文步骤**
+
 1. 先选 Lookahead。26/40/80/100 ms 更接近插件主要的“动态控制但减少瞬态重塑”方向；0 ms 是额外保留的非线性色彩模式。
 2. 调整 Ratio，观察 Gain Reduction 和听感变化。
 3. 选择 ST、LR 或 MS 工作域。
 4. 播放一段有代表性的素材后使用 Match，消除响度偏差。
 5. 用 Makeup 做必要修正，再用 Mix 混合补偿延迟后的 Dry 与 Wet。
+
+**English steps**
 
 1. Choose Lookahead first. The 26/40/80/100 ms settings are closer to the main “dynamic control with less transient reshaping” direction; 0 ms is an additional nonlinear colour mode.
 2. Adjust Ratio while watching Gain Reduction and listening to the result.
