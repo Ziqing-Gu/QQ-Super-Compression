@@ -15,6 +15,22 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | MIT |
 
+## 下载 / Download
+
+- [最新 Release / Latest Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
+- [QQ Super Compression 0.1.10 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.1.10)
+- [直接下载 0.1.10 完整包 / Direct download of the 0.1.10 umbrella package](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.1.10/QQ.Super.Compression.0.1.10.zip)
+
+正式 Release 只提供一个完整 ZIP：`QQ.Super.Compression.0.1.10.zip`。它包含 Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3、macOS Universal 2 AU，以及中英文安装说明。Windows 用户使用 Windows x64 包；Mac 用户只安装与机器架构匹配的一份 VST3（Apple Silicon/M 系列或 Intel），AU 是供 Logic Pro 等 AU 宿主使用的独立选择。
+
+The formal Release contains one umbrella ZIP, `QQ.Super.Compression.0.1.10.zip`. It includes Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, macOS Universal 2 AU, and both installation guides. Windows users should choose the Windows x64 package. Mac users should install only the VST3 matching their machine (Apple Silicon/M-series or Intel); the AU is a separate option for AU hosts such as Logic Pro.
+
+- [中文安装与使用说明 / Chinese installation guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.1.10/docs/QQ%20Super%20Compression%200.1.10%20Windows%E4%B8%8EmacOS%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+- [English installation and usage guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.1.10/docs/QQ-Super-Compression-0.1.10-Windows-macOS-INSTALL.txt)
+
+> **注意 / Important:** GitHub 自动生成的 **Source code (zip)** 和 **Source code (tar.gz)** 只是源码快照，不是可安装插件。请下载上面的 `QQ.Super.Compression.0.1.10.zip`。  
+> GitHub's automatically generated **Source code (zip)** and **Source code (tar.gz)** files are source snapshots, not installable plug-ins. Download `QQ.Super.Compression.0.1.10.zip` above.
+
 ## 界面预览 / Interface preview
 
 ![QQ Super Compression 0.1.10 在 Cubase 中处理人声 / processing a vocal track in Cubase](docs/images/qq-super-compression-0.1.10-mixing.png)
@@ -206,7 +222,7 @@ Match compares delayed Dry with compressed Wet before Makeup and Mix, then write
 - Leaving 0 ms does not overwrite the remembered choice; returning restores it.
 - A/B, Undo/Redo, and project state all include the remembered choice.
 
-## 下载包 / Packages
+## 完整包内的插件文件 / Plug-in files inside the umbrella package
 
 | 包 / Package | 内容 / Contents |
 |---|---|
@@ -215,9 +231,9 @@ Match compares delayed Dry with compressed Wet before Makeup and Mix, then write
 | `QQ-Super-Compression-0.1.10-macOS-Intel-VST3.zip` | macOS x86_64 VST3 |
 | `QQ-Super-Compression-0.1.10-macOS-Universal-AU.zip` | macOS Universal 2 AU, arm64 + x86_64 |
 
-macOS 包使用 ad-hoc 签名，没有 Apple Developer ID 公证。安装与 quarantine 处理见下方说明。
+这些是完整 Release ZIP 内的四个插件子包，并不是四个独立的 Release 资产。macOS 包使用 ad-hoc 签名，没有 Apple Developer ID 公证。安装与 quarantine 处理见下方说明。
 
-macOS bundles are ad-hoc signed and are not Apple Developer ID notarized. See the installation guides for installation and quarantine handling.
+These are the four plug-in subpackages inside the complete Release ZIP, not four separate Release assets. macOS bundles are ad-hoc signed and are not Apple Developer ID notarized. See the installation guides for installation and quarantine handling.
 
 ## 安装说明 / Installation guides
 
@@ -233,6 +249,67 @@ The 0.1.10 Windows x64 Release was built with JUCE 8.0.15. Source-manifest verif
 Cubase 的 0 ms 1x/8x/16x 听感、CPU、PDC、50% Mix、Bypass、自动化、状态迁移与最终用户确认仍需手动完成，因此本版本保持 Candidate/Test。
 
 Manual Cubase validation of 0 ms 1x/8x/16x sound, CPU, PDC, 50% Mix, Bypass, automation, state migration, and final user acceptance is still required, so this release remains Candidate/Test.
+
+## 完整版本历史 / Complete version history
+
+下面记录从首个原型到当前版本的全部真实版本。所有版本均为 Candidate/Test；用户尚未确认任何版本为 Stable。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
+
+Every real version from the first prototype through the current build is recorded below. All versions remain Candidate/Test; none has been user-confirmed Stable. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+
+### 0.1.10 — 2026-08-27 — Candidate / Test
+
+- 中文：Oversampling 收敛为仅在 0 ms 显示的 `1x/8x/16x` 循环按钮，默认记忆 8x；10/26/40/80/100 ms 强制 1x，但保留上次 0 ms 选择。新增 16x 线性相位 FIR、整数延迟补偿，以及产品与 Oversampling 设计说明。0.1.8 或更早状态迁移到 8x；0.1.9 的 1x 保持 1x、2x/4x/8x 迁移到 8x。Windows 自动验证已通过；Cubase/PluginDoctor 的听感、CPU、PDC、Mix/Bypass、自动化与最终用户确认仍待人工完成。
+- English: Oversampling was narrowed to a `1x/8x/16x` cycle button shown only at 0 ms, remembering 8x by default. The 10/26/40/80/100 ms modes force 1x while preserving the previous 0 ms choice. Added a 16x linear-phase FIR path, integer latency compensation, and dedicated product/Oversampling design notes. States from 0.1.8 or earlier migrate to 8x; 0.1.9 1x remains 1x while old 2x/4x/8x migrate to 8x. Windows automated validation passed; manual Cubase/PluginDoctor sound, CPU, PDC, Mix/Bypass, automation, and final user acceptance remain pending.
+
+### 0.1.9 — 2026-08-27 — Candidate / Test
+
+- 中文：首次加入实验性 `1x/2x/4x/8x` maximum-quality 线性相位 FIR Oversampling，并让 detector、future-window peak、Ratio smoothing/gain 在内部采样域运行；PDC、Dry、Mix 与 Bypass 使用 Lookahead + FIR 总延迟。Oversampling 进入状态、A/B、复制与 Undo/Redo。清理 `constrainer` 名称遮蔽警告。该通用菜单已由 0.1.10 的实测结论取代。
+- English: Introduced experimental `1x/2x/4x/8x` maximum-quality linear-phase FIR Oversampling, moving detector, future-window peak, Ratio smoothing/gain into the internal sample domain. PDC, Dry, Mix, and Bypass used Lookahead plus FIR latency. Oversampling entered project state, A/B, copy, and Undo/Redo. The `constrainer` shadow warning was removed. This general-purpose menu was superseded by the measured 0.1.10 design.
+
+### 0.1.8 — 2026-08-25（发布文档纠正：2026-08-26）— Candidate / Test
+
+- 中文：改善 GR Hold 可读性，并以 1020x670 为根尺寸统一缩放整个 UI、锁定原始宽高比；旧非等比窗口尺寸会迁移到可容纳的最大等比尺寸。Ratio、检测、PDC、LUFS Match、A/B、参数 ID 与状态结构不变。随后补齐 MIT、公开 CI、四平台交付路线和双语文档；文档纠正未改 DSP。
+- English: Improved GR Hold readability and uniformly scaled the full UI around a 1020x670 root while preserving its aspect ratio. Old non-proportional window sizes migrate to the largest proportional fit. Ratio, detection, PDC, LUFS Match, A/B, parameter IDs, and state structure were unchanged. MIT licensing, public CI, four-platform delivery, and bilingual documentation followed without changing DSP.
+
+### 0.1.7 — 2026-08-25 — Candidate / Test
+
+- 中文：为活动 GR 通道/分量加入 2 秒自动 Peak Hold；ST 联动，LR 的 L/R 独立，MS 的 M/S 独立，切换 Mode 或 Lookahead 会清除旧值。Hold 只影响显示。将局部 `playHead` 改名为 `hostPlayHead` 以清理遮蔽警告，并加入小型版本标签。
+- English: Added a display-only two-second automatic Peak Hold to active GR channels/components: linked in ST, independent L/R in LR, and independent M/S in MS, with stale values cleared by Mode or Lookahead changes. Renamed local `playHead` to `hostPlayHead` to remove a shadow warning and added a small version label.
+
+### 0.1.6 — 2026-08-25 — Candidate / Test
+
+- 中文：用严格 BS.1770 / EBU R128 Integrated Loudness Match 取代 RMS/能量原型，采用 K-weighting、400 ms blocks、75% overlap、-70 LUFS 绝对门限与 -10 LU 相对门限。ST 写共同 Makeup，LR 与 MS 分别写各自分量；无有效门限数据时保持原值。未来峰值核心和 Lookahead 预设不变。
+- English: Replaced the RMS/energy prototype with strict BS.1770 / EBU R128 Integrated Loudness Match using K-weighting, 400 ms blocks, 75% overlap, a -70 LUFS absolute gate, and a -10 LU relative gate. ST writes shared Makeup while LR and MS write their components independently; invalid gated data leaves the previous value unchanged. The future-peak core and Lookahead presets were unchanged.
+
+### 0.1.5 — 2026-08-25 — Candidate / Test
+
+- 中文：把 0–100 ms 任意输入收敛为 `0/10/26/40/80/100 ms` 六档，保留 `lookaheadMs` 参数 ID；旧值迁移到最近预设，等距选更长值。现有实例恢复工程值，新实例记住上次手动选择，无记录时默认 26 ms。Bypass 与 PDC 继续严格跟随 Lookahead；Match 当时仍是 RMS 原型。
+- English: Replaced arbitrary 0–100 ms entry with `0/10/26/40/80/100 ms` presets while retaining the `lookaheadMs` parameter ID. Legacy values migrate to the nearest preset, choosing the longer value on ties. Existing instances restore project state; new instances remember the last manual choice or default to 26 ms. Bypass and PDC still follow Lookahead exactly; Match was still the RMS prototype.
+
+### 0.1.4 — 2026-08-25 — Candidate / Test
+
+- 中文：PluginDoctor 检查否定旧 20 ms rolling-RMS detector 后，加入可编辑 0–100 ms future-window Lookahead（初始 5 ms）。Lookahead 同时控制未来分析、实际音频延迟和宿主 PDC；Bypass 使用相同延迟 Dry。新增 L/R/M/S 无分配滑动未来峰值分析；0 ms 有意保留容易失真的色彩。
+- English: After PluginDoctor testing rejected the old 20 ms rolling-RMS detector, added editable 0–100 ms future-window Lookahead (initially 5 ms). Lookahead controlled future analysis, real audio delay, and host PDC, while Bypass used the same delayed Dry path. Added allocation-free sliding future-peak analysis for L/R/M/S and deliberately retained the distortion-prone 0 ms colour.
+
+### 0.1.3 — 2026-08-25 — Candidate / Test
+
+- 中文：加入 A/B、A→B/B→A、Undo/Redo、Shift 精调、Alt 复位和窗口尺寸记忆；ST 使用共享 Makeup，LR 使用独立 L/R Makeup，MS 使用独立 M/S Makeup。加入能量式 Match 原型，但尚非严格 LUFS；保持 20 ms 检测和零对外延迟。
+- English: Added A/B, A→B/B→A, Undo/Redo, Shift fine adjustment, Alt reset, and editor-size memory. ST used shared Makeup, LR independent L/R Makeup, and MS independent M/S Makeup. Added an energy Match prototype, not yet strict LUFS, while retaining 20 ms detection and zero externally reported latency.
+
+### 0.1.2 — 2026-08-25 — Candidate / Test
+
+- 中文：移除固定 10 ms 延迟并报告零样本延迟，移除 Makeup Gate，加入 ST/MS/LR 模式与双通道 Input/Output/GR 表。ST 联动、LR 独立、MS 独立，并保留 0.1.1 的无阈值电平域 Ratio。
+- English: Removed the fixed 10 ms latency and reported zero samples, removed Makeup Gate, and added ST/MS/LR modes plus dual-channel Input/Output/GR meters. ST is linked, LR independent, and MS independent, retaining the 0.1.1 threshold-free level-domain Ratio.
+
+### 0.1.1 — 2026-08-25 — Candidate / Test
+
+- 中文：淘汰会随 Ratio 抬高电平并严重失真的 0.1.0 样本域 waveshaper，改为 Ratio 越大 Gain Reduction 越多的无阈值电平域增益控制。新增 Input、Output、Gain Reduction 表、Dynamic Display 和 UTF-8/CJK 字体回退。
+- English: Rejected the 0.1.0 sample-domain waveshaper that raised level and caused severe distortion, replacing it with threshold-free level-domain gain control where higher Ratio produces more Gain Reduction. Added Input, Output, and Gain Reduction meters, Dynamic Display, and UTF-8/CJK font fallback.
+
+### 0.1.0 — 2026-08-25 — Candidate / Test
+
+- 中文：首个包含 Ratio、Makeup、Makeup Gate、Mix 和 0/10 ms 选项的原型。其样本域 waveshaper 后来被实测否定，因此该版只证明产品方向，不可作为 Stable 或兼容基线。
+- English: Initial prototype with Ratio, Makeup, Makeup Gate, Mix, and 0/10 ms options. Its sample-domain waveshaper was later rejected by testing, so this build established direction only and must not be treated as a Stable or compatibility baseline.
 
 ## 构建 / Build
 

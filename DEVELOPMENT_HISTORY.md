@@ -699,3 +699,26 @@ Codex 首先完成 Windows Release 编译并看 warning；随后在 Cubase 测 c
 ### 状态边界
 
 Plan B/C/D 的备份、GitHub/CI 和最终桌面交付证据由独立 release verification 报告记录。本次发布准备不把 0.1.10 擅自标记为 Stable。
+---
+
+## v0.1.10 — Plan B/C/D/G Compliance Completion
+
+**日期：** 2026-08-27  
+**状态：** Candidate / Test
+
+### 目的
+
+依据项目外部的 Plan A–G 完整执行规范，补齐公开下载入口、README 内逐版本双语历史、正式源码备份、最新 CI 产物验证、桌面交付结构与首个 GitHub Release 的发布资料。
+
+### 文档与发布行为
+
+- README 顶部加入 Latest、固定版本与实际资产直链，说明单一完整 ZIP 的四个平台/格式子包与两份安装说明，并警告 Source code archives 不可安装。
+- README 直接记录 0.1.0–0.1.10 全部版本；没有用 `CHANGELOG.md` 链接代替公开首页的版本覆盖。
+- GitHub 首个 Release 的公开正文必须标明首个 Release、日期、Candidate/Test、用户提供资产且本轮未重建、平台/格式、安装安全、限制、实际远端资产名、字节数与 SHA-256。
+- Plan D 的内部 Actions 证据与公开桌面安装包分离；校验文件、架构证据和流水线日志只保留在 D 盘验证目录，不放入面向用户的桌面目录。
+
+### 不变项与回滚
+
+- 本次没有修改 DSP、参数 ID、状态 schema、Ratio law、Lookahead、Oversampling、LUFS Match、ST/MS/LR、Makeup/Mix、PDC 或 UI 行为。
+- 版本仍为 Candidate/Test，最终 Cubase/PluginDoctor 与用户确认未被自动化验证替代。
+- 若发布资料需要回滚，只回退本次文档/Release metadata；若音频实现失败，继续使用既有 v0.1.10 -> v0.1.9 -> v0.1.8 Candidate 回滚顺序。

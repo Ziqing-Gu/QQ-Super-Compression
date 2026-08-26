@@ -1160,3 +1160,13 @@ Codex 编译前必须读两个 Design Notes；如果未来写 GitHub 产品介�
 - 编译仍有一个非致命 C4459：`Parameters.h` 的局部 `lookaheadMs` 隐藏 `qqsc::params::lookaheadMs`；它是命名可读性警告，未导致构建/validator 失败，可在未来聚焦版本清理。
 - 发布仓库恢复 Apple-only AU target，CI/安装说明/Plan D checklist 更新到 0.1.10；本次没有改变 DSP 或参数行为。
 - 0.1.10 继续保持 Candidate/Test；Cubase/PluginDoctor 的 16x CPU、PDC、Mix/Bypass、state migration 和用户确认仍属于人工验收。
+---
+
+## v0.1.10 Plan B/C/D/G Compliance Addendum — 2026-08-27
+
+- README 顶部新增 Latest Release、固定 v0.1.10 Release、唯一完整资产的直接下载入口，以及中英文安装说明链接；明确 GitHub 自动生成的 Source code archives 不是可安装插件。
+- README 本体直接补齐 0.1.0–0.1.10 全部真实版本的中英双语日期、状态、主要新增/修正、行为/兼容变化和适用的已知边界；`CHANGELOG.md` 继续保留更展开的技术记录。
+- Plan G 的唯一公开资产为用户指定的 `QQ.Super.Compression.0.1.10.zip`；该上传物由用户提供/选择，本轮不重新构建或替换，也不额外上传未获授权的文件。
+- 本轮只补齐发布资料、备份、CI 证据与交付结构，不修改 DSP、参数 ID、状态迁移逻辑、插件 identity 或音频行为。
+- 0.1.10 仍为 Candidate/Test。Cubase/PluginDoctor 的听感、CPU、PDC、50% Mix、Bypass、自动化、状态迁移和用户最终确认仍是人工验收门槛。
+- 回滚：公开文档可回退到本 addendum 之前的 v0.1.10 文档提交；音频实现仍按前述 v0.1.10 -> v0.1.9 -> v0.1.8 Candidate 分层回滚，不得回退 strict LUFS Match、GR Hold、uniform UI 或 future-window peak。
