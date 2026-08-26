@@ -1,17 +1,68 @@
 # QQ Super Compression 版本记录 / Changelog
 
-本文档记录所有真实版本 0.1.0–0.1.8。每条记录均提供语义一致的中文和英文摘要。所有版本当前均为 Candidate/Test；没有任何版本已由用户确认 Stable。
+本文档记录所有真实版本 0.1.0–0.1.10。每条记录均提供语义一致的中文和英文摘要。所有版本当前均为 Candidate/Test；没有任何版本已由用户确认 Stable。
 
-This document records every real version from 0.1.0 through 0.1.8. Every entry includes semantically equivalent Chinese and English summaries. All versions currently remain Candidate/Test; no version has been user-confirmed Stable.
+This document records every real version from 0.1.0 through 0.1.10. Every entry includes semantically equivalent Chinese and English summaries. All versions currently remain Candidate/Test; no version has been user-confirmed Stable.
 
 ## 版本覆盖审计 / Version coverage audit
 
-- 上一个完整公开中英双语记录 / Previous complete public bilingual record: 无，属于首次纠正 / none; this is the initial correction.
-- 本次目标 / Target: 0.1.8.
-- 实际连续版本 / Actual continuous versions: 0.1.0–0.1.8.
-- README 覆盖 / README coverage: 0.1.0–0.1.8.
-- CHANGELOG 覆盖 / CHANGELOG coverage: 0.1.0–0.1.8.
+- 当前目标 / Current target: 0.1.10.
+- 实际连续版本 / Actual continuous versions: 0.1.0–0.1.10.
+- README 覆盖 / README coverage: current product design plus links to complete history.
+- CHANGELOG 覆盖 / CHANGELOG coverage: 0.1.0–0.1.10.
 - 遗漏 / Omissions: 无 / none.
+
+## 0.1.10 — 0 ms 专用 1x/8x/16x Oversampling 与产品设计文档 / 0 ms-Only 1x/8x/16x Oversampling and Product Design Documentation
+
+- 日期 / Date: 2026-08-27
+- 状态 / Status: Candidate / Test
+
+中文：
+
+- 根据用户 PluginDoctor/宿主实测，把 Oversampling 从所有 Lookahead 的通用品质菜单收敛为只服务 0 ms 非线性色彩。
+- Lookahead=0 ms 时显示单个按钮，循环 `1x -> 8x -> 16x -> 1x`；新实例的记忆默认值为 8x。
+- Lookahead=10/26/40/80/100 ms 时隐藏 Oversampling 并强制 DSP 使用 1x，但保留用户上一次 0 ms 选择。
+- 有意移除 2x/4x：用户实测两者在 0 ms 下仍有严重混叠，而 8x/16x 增加的延迟较小。
+- 1x 保留最原始的 0 ms 色彩；8x 为默认实用平衡；16x 进一步降低 alias fold-back。Oversampling 不负责消灭 0 ms 本身的谐波染色。
+- 新增 16x maximum-quality linear-phase FIR 路径与整数延迟补偿；PDC、Dry、Mix、Bypass 使用相同总延迟。
+- 状态迁移：0.1.8 或更早无 OS -> 8x；0.1.9 old 1x -> 1x，old 2x/4x/8x -> 8x。
+- 新增 `PRODUCT_DESIGN_NOTES.md` 与 `OVERSAMPLING_DESIGN_NOTES.md`，记录产品动机、实测依据、被否决方案和不能擅自改变的设计边界。
+- 完成 JUCE 8.0.15 Windows x64 Release 构建、源码 manifest、DLL/VST3 入口、PE/moduleinfo、Steinberg validator 与 BS.1770 自测；Cubase/PluginDoctor 的最终人工回归仍待用户完成。
+
+English:
+
+- Based on user PluginDoctor/host testing, narrowed Oversampling from a generic option at every Lookahead to a tool specifically for the nonlinear 0 ms colour.
+- At Lookahead=0 ms, one button cycles `1x -> 8x -> 16x -> 1x`; the remembered default for a new instance is 8x.
+- At Lookahead=10/26/40/80/100 ms, the control is hidden and DSP is forced to 1x while preserving the previous 0 ms choice.
+- Intentionally removed 2x/4x: user testing found severe aliasing remained at both factors, while the additional latency of 8x/16x was small.
+- 1x retains the rawest 0 ms colour, 8x is the default practical balance, and 16x further reduces alias fold-back. Oversampling is not intended to remove the harmonic colour itself.
+- Added a 16x maximum-quality linear-phase FIR path with integer latency compensation. PDC, Dry, Mix, and Bypass use the same total delay.
+- State migration: 0.1.8-or-earlier without OS -> 8x; 0.1.9 old 1x -> 1x and old 2x/4x/8x -> 8x.
+- Added `PRODUCT_DESIGN_NOTES.md` and `OVERSAMPLING_DESIGN_NOTES.md` to preserve product motivation, measurement evidence, rejected approaches, and protected design boundaries.
+- Completed the JUCE 8.0.15 Windows x64 Release build, source manifest, DLL/VST3 entry points, PE/moduleinfo, Steinberg validator, and BS.1770 self-test. Final Cubase/PluginDoctor manual regression remains for the user.
+
+## 0.1.9 — FIR Oversampling、PDC 对齐与警告清理 / FIR Oversampling, PDC Alignment, and Warning Cleanup
+
+- 日期 / Date: 2026-08-27
+- 状态 / Status: Candidate / Test
+
+中文：
+
+- 首次加入实验性 `1x / 2x / 4x / 8x` maximum-quality linear-phase FIR Oversampling，默认 1x，并在所有 Lookahead 暴露选择。
+- Detector、future-window peak、Ratio smoothing 与 Ratio gain 在选定的内部采样域运行；六路 pre-Makeup Wet 同时下采样，以保持 ST/LR/MS 的严格 LUFS Match 测量语义。
+- 宿主 PDC 改为 `Lookahead + FIR latency`，Dry、Mix 和 Bypass 使用相同总延迟。
+- Oversampling 进入工程状态、A/B、复制和 Undo/Redo；0.1.8 或更早状态缺参时迁移到 1x。
+- 将局部 `constrainer` 重命名为 `editorBoundsConstrainer`，清理此前的非致命名称遮蔽警告。
+- 该版属于测量实验；0.1.10 根据用户结果重新收敛了倍率与适用 Lookahead。
+
+English:
+
+- Introduced experimental `1x / 2x / 4x / 8x` maximum-quality linear-phase FIR Oversampling, defaulting to 1x and exposed at every Lookahead.
+- Ran the detector, future-window peak, Ratio smoothing, and Ratio gain in the selected internal domain, while downsampling six pre-Makeup Wet streams to preserve strict LUFS Match semantics across ST/LR/MS.
+- Changed host PDC to `Lookahead + FIR latency`; Dry, Mix, and Bypass use the same total delay.
+- Added Oversampling to project state, A/B, copy, and Undo/Redo; 0.1.8-or-earlier states without the parameter migrated to 1x.
+- Renamed the local `constrainer` to `editorBoundsConstrainer`, removing the previous non-fatal name-shadow warning.
+- This was a measurement experiment; 0.1.10 refines both the factors and the Lookahead scope using user results.
 
 ## 0.1.8 — GR Hold 可读性、统一缩放与发布文档 / GR Hold Readability, Uniform Scaling, and Release Documentation
 

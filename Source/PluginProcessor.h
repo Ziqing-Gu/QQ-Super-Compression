@@ -1,6 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <array>
+#include <memory>
 #include "Parameters.h"
 #include "StaticCompressionEngine.h"
 #include "MeterState.h"
@@ -44,13 +46,14 @@ public:
     qqsc::MeterState& getMeterState() noexcept { return meterState; }
     juce::UndoManager& getUndoManager() noexcept { return undoManager; }
 
-    // UI/state changes can tell the host about the new PDC value immediately,
-    // even while transport is stopped. The audio-thread configuration follows
-    // from the same APVTS parameter on the next process block.
-    void notifyHostLookaheadLatency (float lookaheadMs);
+    // UI/state changes can tell the host about the combined Lookahead +
+    // Oversampling filter latency immediately, even while transport is stopped.
+    // The audio-thread configuration follows from the same APVTS parameters on
+    // the next process block.
+    void notifyHostProcessingLatency();
 
     // UI A/B comparison. A/B stores the complete user sound-setting state
-    // (Ratio, all Makeup values, Mix, Lookahead and Mode). Bypass is intentionally global
+    // (Ratio, all Makeup values, Mix, Lookahead, Oversampling and Mode). Bypass is intentionally global
     // and is not part of A/B snapshots.
     int getActiveABSlot() const noexcept { return activeABSlot.load (std::memory_order_relaxed); }
     void selectABSlot (int slot);
@@ -76,6 +79,7 @@ private:
         float makeupS = 0.0f;
         float mix = 100.0f;
         float lookaheadMs = 26.0f;
+        int oversampling = 1;
         int mode = qqsc::params::stereoLinked;
     };
 
@@ -85,11 +89,16 @@ private:
     void applySnapshot (const ParameterSnapshot&);
     void refreshActiveSnapshot();
     void writeABStateTo (juce::ValueTree& state);
-    void readABStateFrom (const juce::ValueTree& state);
+    void readABStateFrom (const juce::ValueTree& state, bool legacyOversamplingSchema);
     void setActualParameterValue (const char* parameterID, float actualValue);
 
-    void updateLookaheadConfiguration (bool force = false);
-    void resetLookaheadState() noexcept;
+    void updateProcessingConfiguration (bool force = false);
+    void resetOversampledCoreState() noexcept;
+    void resetDryDelayState() noexcept;
+    void resetAllProcessingState() noexcept;
+    juce::dsp::Oversampling<float>& getCurrentOversampler() noexcept;
+    int getOversamplingLatencySamples (int oversamplingIndex) const noexcept;
+    int getCombinedLatencySamples (float lookaheadMs, int oversamplingIndex) const noexcept;
 
     void resetMatchAccumulator() noexcept;
     void updateMatchResults() noexcept;
@@ -109,16 +118,39 @@ private:
 
     qqsc::MeterState meterState;
 
-    // The audio path is delayed by the exact user Lookahead amount. The detector
-    // receives current input while gain is applied to the corresponding delayed
-    // sample, so each delayed sample can use its future [n..n+Lookahead] window.
-    juce::AudioBuffer<float> lookaheadDelayBuffer;
-    double currentSampleRate = 44100.0;
-    int delayCapacity = 1;
-    int delayWriteIndex = 0;
-    int maxLookaheadSamples = 0;
-    int currentLookaheadSamples = -1;
+    // 0.1.10: Oversampling is deliberately a Lookahead=0 ms-only option.
+    // User-facing choices are 1x/8x/16x; 10 ms and longer always use the 1x
+    // path regardless of the stored 0 ms choice. All three paths are created
+    // ahead of time so switching never constructs filters on the audio thread.
+    // Index 0 is JUCE's dummy 1x stage; indices 1/2 are 8x/16x maximum-quality
+    // linear-phase FIR stages with integer latency compensation enabled.
+    std::array<std::unique_ptr<juce::dsp::Oversampling<float>>, 3> oversamplers;
+    juce::AudioBuffer<float> wetBaseBuffer;
+
+    // The detector and Ratio gain application run in the effective internal
+    // domain. Only 0 ms may be 8x/16x; every non-zero Lookahead is forced 1x.
+    // Thus the oversampled mode never needs a non-zero internal Lookahead delay,
+    // while the established 10-100 ms future-window semantics stay host-rate.
+    juce::AudioBuffer<float> oversampledLookaheadDelayBuffer;
+    int oversampledDelayCapacity = 1;
+    int oversampledDelayWriteIndex = 0;
+    int maxLookaheadSamplesBase = 0;
+    int maxLookaheadSamplesInternal = 0;
+    int currentLookaheadSamplesBase = -1;
+    int currentLookaheadSamplesInternal = -1;
     int64_t detectorSampleCounter = 0;
+
+    // Dry stays at host sample rate. It is delayed by Lookahead plus the exact
+    // integer latency reported by the selected oversampling filter, so Dry, Wet,
+    // Mix and Bypass remain sample-aligned.
+    juce::AudioBuffer<float> dryDelayBuffer;
+    int dryDelayCapacity = 1;
+    int dryDelayWriteIndex = 0;
+    int currentOversamplingIndex = -1;
+    int currentOversamplingFactor = 1;
+    int currentTotalLatencySamples = 0;
+    int configuredMaximumBlockSize = 1;
+    double currentSampleRate = 44100.0;
 
     // Parameter smoothing only prevents zipper noise while controls move. It is
     // not the compressor's user Attack/Release behaviour.

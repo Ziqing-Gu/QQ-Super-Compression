@@ -1,0 +1,59 @@
+QQ Super Compression 0.1.9 — Static / local verification report
+Date: 2026-08-27
+Status: Candidate / Test
+Base: user-uploaded 0.1.8 Plan B
+
+Verification actually performed in this environment
+===================================================
+
+1. Source/document UTF-8 decode check: PASS.
+2. JUCE-free BS.1770 Match self-test compiled and executed with g++ -std=c++17 -O2: PASS.
+   Observed:
+   - 1 kHz 0 dBFS mono: -3.0036 LUFS
+   - fixed 6 dB Dry/Wet difference: +6 dB Match
+3. Source search for old local-variable shadow forms:
+   - no `auto* playHead = ...` in Source
+   - no `auto* constrainer = ...` in Source
+   - current local names are `hostPlayHead` and `editorBoundsConstrainer`
+4. Source wiring check: PASS for presence/connection of:
+   - Oversampling choices 1x/2x/4x/8x, default index 0
+   - pre-created JUCE dsp::Oversampling paths
+   - high-rate detector / future-window / Ratio gain application
+   - six Wet streams (ST L/R, LR L/R, MS M/S) into one downsample pass
+   - host-rate LUFS Match / Makeup / Mix
+   - combined Lookahead + FIR latency on Dry/Mix/Bypass/PDC
+   - Oversampling in project APVTS, A/B capture/apply/save/read and UI Undo path
+   - explicit 0.1.8-or-earlier missing-parameter migration to 1x
+5. CMake syntax/dependency probe with QQSC_FETCH_JUCE=OFF reached the expected
+   "JUCE was not found" dependency guard. No CMake parse error occurred before that guard.
+6. Independent JUCE-free logic simulation of the existing future-window detector/delay
+   showed exact numeric equality between the legacy 0.1.8 path and the 0.1.9 1x dummy
+   topology for representative random stereo data at multiple lookahead sample counts.
+   This is a logic/data-flow check, not a compiled plug-in A/B test.
+7. Release-safety source check: the returned Oversampling block is validated for
+   expected sample/channel dimensions before high-rate sample access.
+
+Not verified here
+=================
+
+- Full JUCE 8.0.15 project compile: NOT PERFORMED (no JUCE checkout/network access in this runtime).
+- Windows/MSVC Release VST3 compile: NOT PERFORMED.
+- VST3 scan/load: NOT PERFORMED.
+- Cubase PDC, Mix, Bypass, A/B, project restore, Undo/Redo: NOT PERFORMED.
+- PluginDoctor 0/10 ms 1x/2x/4x/8x aliasing comparison: NOT PERFORMED.
+- Runtime CPU profiling, especially 8x six-stream downsampling: NOT PERFORMED.
+
+Known candidate risks / checks for Codex
+========================================
+
+- Verify JUCE 8.0.15 dsp::Oversampling API and six-channel up/down path compile exactly.
+- Verify 1x parity against 0.1.8 before judging higher factors.
+- Verify total host latency = Lookahead base samples + Oversampling FIR integer latency.
+- Verify Dry/Wet and Bypass remain aligned at 2x/4x/8x; inspect Mix ~50% for timing combing.
+- Verify old 0.1.8 projects with no Oversampling state load at 1x.
+- Verify factor changes update PDC after direct UI changes, A/B and Undo/Redo.
+- Factor changes deliberately reset FIR/detector/delay history; one setting-change transient/PDC realignment is currently accepted.
+- The audio scratch reserve is at least 16384 host samples per callback; an unexpectedly larger callback fail-safe clears rather than reallocating on the audio thread.
+- 8x intentionally processes/downsamples six exact Match-domain Wet streams, so CPU cost may be substantial.
+
+This report must NOT be described as a successful JUCE/VST3 compile or DAW test.

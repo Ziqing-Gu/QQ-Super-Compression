@@ -1,20 +1,20 @@
-# QQ Super Compression 0.1.8 Plan D release checklist
+# QQ Super Compression 0.1.10 Plan D release checklist
 
 ## Cumulative gates
 
-- [ ] Plan A: Windows Release build succeeds.
-- [ ] Plan A: BS.1770 self-test and VST3 factory-load smoke test pass.
+- [ ] Plan A: Windows x64 Release VST3 builds with pinned JUCE 8.0.15.
+- [ ] Plan A: source manifest, BS.1770 self-test, DLL/VST3 entry points, moduleinfo, and Steinberg validator pass.
 - [ ] Plan A: installed Windows VST3 hash matches the verified output.
-- [ ] Plan B: refreshed formal source snapshot has manifest-backed parity.
-- [ ] Plan C: public GitHub repository is synchronized at the release commit.
-- [ ] Plan C: Windows and macOS GitHub Actions runs pass.
+- [ ] Plan B: refreshed formal source snapshot under the user's Vibe Coding backup tree has manifest-backed parity.
+- [ ] Plan C: public GitHub repository is synchronized at the intended release commit.
+- [ ] Plan D: Windows and macOS GitHub Actions jobs pass and their artifacts are downloaded.
 
 ## Required archives
 
-- [ ] `Win/QQ-Super-Compression-0.1.8-Windows-x64.zip`
-- [ ] `Mac/QQ-Super-Compression-0.1.8-macOS-Apple-Silicon-VST3.zip`
-- [ ] `Mac/QQ-Super-Compression-0.1.8-macOS-Intel-VST3.zip`
-- [ ] `Mac/QQ-Super-Compression-0.1.8-macOS-Universal-AU.zip`
+- [ ] `Win/QQ-Super-Compression-0.1.10-Windows-x64.zip`
+- [ ] `Mac/QQ-Super-Compression-0.1.10-macOS-Apple-Silicon-VST3.zip`
+- [ ] `Mac/QQ-Super-Compression-0.1.10-macOS-Intel-VST3.zip`
+- [ ] `Mac/QQ-Super-Compression-0.1.10-macOS-Universal-AU.zip`
 
 ## macOS checks
 
@@ -32,5 +32,8 @@ The final end-user folder contains only:
 - `Win/` with exactly one Windows archive.
 - `Mac/` with exactly three macOS archives.
 
-Checksums, workflow logs, build directories and internal proof files belong in a
-separate `InternalVerification/` sibling folder, never inside the end-user folder.
+Checksums, workflow logs, build directories, architecture proofs, and other internal evidence belong in a separate `InternalVerification/` sibling folder, never inside the end-user folder.
+
+## Candidate boundary
+
+Plan D packaging does not promote 0.1.10 to Stable. Cubase listening, CPU, PDC, Mix/Bypass alignment, automation, state migration, and final user acceptance remain separate manual checks.

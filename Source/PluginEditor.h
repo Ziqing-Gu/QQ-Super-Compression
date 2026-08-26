@@ -87,6 +87,8 @@ private:
     void beginUndoTransaction (const juce::String& name);
     void cycleMode();
     void commitLookaheadChoice();
+    void cycleOversampling();
+    void updateOversamplingUi();
     void setChoiceParameter (const char* parameterID, int value);
     void registerKeyboardListener (juce::Component&);
 
@@ -112,6 +114,8 @@ private:
     juce::Label modeLabel;
     juce::Label lookaheadLabel;
     juce::ComboBox lookaheadCombo;
+    juce::Label oversamplingLabel;
+    juce::TextButton oversamplingButton { "8x" };
 
     FineKnob ratioSlider { 8.0 };
     FineKnob makeupSTSlider { 0.0 };

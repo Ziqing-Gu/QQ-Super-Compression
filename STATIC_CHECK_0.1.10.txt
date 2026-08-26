@@ -1,0 +1,47 @@
+QQ Super Compression 0.1.10 — Static / local verification report
+Date: 2026-08-27
+Status: Candidate / Test
+Base: v0.1.9 Candidate
+
+IMPORTANT VERIFICATION BOUNDARY
+- This environment did NOT perform a complete JUCE/VST3 build.
+- This report must NOT be described as a successful Windows/Codex/DAW compile.
+- User PluginDoctor/host observations that motivated the design occurred on the v0.1.9 Oversampling experiment; the exact v0.1.10 implementation still needs Codex + DAW verification.
+
+LOCAL CHECKS PERFORMED
+1. UTF-8 decode check: PASS for all source/document text files checked.
+2. CMake metadata: PASS, project version is 0.1.10.
+3. Active Oversampling choice definition: PASS, 1x / 8x / 16x only.
+4. JUCE factor mapping: PASS by source review, 8x uses 3 stages and 16x uses 4 stages (JUCE constructor factor means 2^factor).
+5. 0 ms-only effective routing: PASS by static source review. Non-zero Lookahead forces effective 1x while preserving the remembered parameter.
+6. UI: PASS by static source review. 0 ms uses one click-cycle TextButton and non-zero Lookahead hides label/button.
+7. Default remembered 0 ms choice: PASS, index 1 = 8x.
+8. PDC code path: PASS by static source review. Combined latency uses effective Oversampling filter latency + Lookahead; non-zero Lookahead therefore returns to Lookahead-only PDC.
+9. Dry/Mix/Bypass alignment architecture: PASS by static source review; all use currentTotalLatencySamples and JUCE Oversampling is configured for integer latency.
+10. State/A-B migration: PASS by static source review. <=0.1.8 missing OS -> 8x; 0.1.9 old 1x -> 1x; old 2x/4x/8x -> 8x; new schema stores 0/1/2 = 1x/8x/16x.
+11. Warning cleanup regression: PASS by source search. No local 'playHead' or 'constrainer'; 'hostPlayHead' and 'editorBoundsConstrainer' remain.
+12. Ratio law regression: PASS, still gain = 1 / (1 + (ratio - 1) * level).
+13. Documentation handoff: PASS. PRODUCT_DESIGN_NOTES.md and OVERSAMPLING_DESIGN_NOTES.md explicitly record product motivation and Oversampling decisions, including why 2x/4x are deliberately omitted.
+
+JUCE-FREE BS.1770 MATCH SELF-TEST
+1 kHz 0 dBFS mono: -3.0036 LUFS
+6 dB fixed difference, ST Match: 6 dB
+PASS
+
+USER-VERIFIED DESIGN INPUTS (not re-measured by this environment)
+- 0 ms is the only Lookahead that still needs Oversampling for alias control.
+- 10/26/40/80/100 ms showed no meaningful aliasing need in the user's PluginDoctor comparisons.
+- 2x and 4x still left severe aliasing at 0 ms.
+- Oversampling added little latency in the user's test, so 8x/16x were preferred over weak 2x/4x intermediate choices.
+- Ratio=1:1 + 8x control measurement showed the FIR path essentially flat except normal near-Nyquist roll-off; the ratio-dependent high-frequency LinearAnalysis rise was not treated as an FIR EQ fault.
+
+STILL REQUIRED FROM CODEX / USER
+- Complete JUCE 8.0.15 Windows Release/VST3 compile and warning review.
+- Confirm 16x Oversampling API/build path and CPU cost.
+- PluginDoctor 0 ms 1x vs 8x vs 16x alias comparison.
+- Cubase PDC alignment at 0 ms 8x/16x and at non-zero Lookahead 1x.
+- 50% Mix phase/time alignment and Bypass alignment.
+- A/B, Undo/Redo, project restore and v0.1.9 state migration verification.
+- Confirm OS control appears only at 0 ms and restores remembered choice when returning to 0 ms.
+
+Do not promote this version to Stable unless the user explicitly confirms it.

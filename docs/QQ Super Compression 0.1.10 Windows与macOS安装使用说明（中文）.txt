@@ -1,4 +1,4 @@
-QQ Super Compression 0.1.8 安装与使用说明（中文）
+QQ Super Compression 0.1.10 安装与使用说明（中文）
 ==================================================
 
 一、产品与发布信息
@@ -6,9 +6,9 @@ QQ Super Compression 0.1.8 安装与使用说明（中文）
 
 产品：QQ Super Compression
 厂商：Qing Audio
-版本：0.1.8
+版本：0.1.10
 状态：Candidate / Test（尚未由用户确认 Stable）
-发布日期：2026-08-26
+发布日期：2026-08-27
 许可证：MIT
 公开源码：https://github.com/Ziqing-Gu/QQ-Super-Compression
 
@@ -22,16 +22,16 @@ QQ Super Compression 0.1.8 安装与使用说明（中文）
 --------------------
 
 1. Windows 64 位 VST3
-   QQ-Super-Compression-0.1.8-Windows-x64.zip
+   QQ-Super-Compression-0.1.10-Windows-x64.zip
 
 2. macOS Apple Silicon 原生 VST3（M1/M2/M3/M4 等）
-   QQ-Super-Compression-0.1.8-macOS-Apple-Silicon-VST3.zip
+   QQ-Super-Compression-0.1.10-macOS-Apple-Silicon-VST3.zip
 
 3. macOS Intel 原生 VST3
-   QQ-Super-Compression-0.1.8-macOS-Intel-VST3.zip
+   QQ-Super-Compression-0.1.10-macOS-Intel-VST3.zip
 
 4. macOS Universal 2 AU（同时包含 arm64 和 x86_64）
-   QQ-Super-Compression-0.1.8-macOS-Universal-AU.zip
+   QQ-Super-Compression-0.1.10-macOS-Universal-AU.zip
 
 Windows 包已在 GitHub Actions windows-2022 环境构建验证，适用于 64 位 Windows 10/11 的 VST3 宿主；更旧 Windows 未验证。
 
@@ -52,7 +52,7 @@ macOS 包是临时签名（ad-hoc signed），不是 Apple Developer ID 签名�
 ---------------------------
 
 1. 解压：
-   QQ-Super-Compression-0.1.8-Windows-x64.zip
+   QQ-Super-Compression-0.1.10-Windows-x64.zip
 
 2. 确认得到完整 bundle：
    QQ Super Compression.vst3
@@ -67,7 +67,7 @@ macOS 包是临时签名（ad-hoc signed），不是 Apple Developer ID 签名�
 
 6. 启动 DAW，执行完整 VST3 重新扫描。Cubase 可在“插件管理器”中重新扫描；若仍显示旧版本，关闭 Cubase，清理该宿主的插件黑名单/缓存后重新启动并扫描。
 
-7. 在插件信息或界面版本标签中确认版本为 0.1.8。
+7. 在插件信息或界面版本标签中确认版本为 0.1.10。
 
 五、macOS VST3 安装
 ------------------
@@ -110,7 +110,7 @@ macOS 包是临时签名（ad-hoc signed），不是 Apple Developer ID 签名�
 AU 与 VST3 是独立格式。Logic Pro 主要使用 AU；安装 AU 不会替代 VST3。
 
 1. 解压：
-   QQ-Super-Compression-0.1.8-macOS-Universal-AU.zip
+   QQ-Super-Compression-0.1.10-macOS-Universal-AU.zip
 
 2. 得到：
    QQ Super Compression.component
@@ -164,25 +164,29 @@ sudo xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/Components/QQ Super
 - 从旧版升级时可以覆盖同名 bundle；参数 ID 和状态兼容设计保持不变。
 - 0.1.4 的任意 Lookahead 值会迁移到最近的 0/10/26/40/80/100 ms 预设，等距时选择更长值。
 - 新实例记住用户最后选择的 Lookahead；没有历史记录时默认 26 ms。
+- 0.1.10 的 Oversampling 仅在 Lookahead=0 ms 显示并生效，按钮循环 1x/8x/16x；新实例记忆默认值为 8x。
+- Lookahead=10/26/40/80/100 ms 时 Oversampling 控件隐藏且 DSP 固定 1x；返回 0 ms 会恢复先前选择。
+- 0.1.8 或更早状态没有 Oversampling 参数时迁移到 8x；0.1.9 的旧 1x 保持 1x，旧 2x/4x/8x 迁移到 8x。
 - 不要在用户 VST3 目录和系统 VST3 目录各放一个副本，也不要同时安装 arm64 和 x86_64 VST3。
 - DAW 仍显示旧版时，应先关闭 DAW、移除重复 bundle、清理宿主缓存/黑名单，再重新扫描。
 - 0 ms Lookahead 有意保留可测谐波失真风格；它不是隐藏故障。
 - 改变 Lookahead 会改变插件报告的延迟，宿主可能在播放期间进行一次 PDC 重对齐。
 - Bypass 使用相同延迟路径，不会偷偷变成零延迟。
-- 0.1.8 仍为 Candidate/Test；Cubase GUI、听感、自动化、工程恢复和最终用户确认完成前不能标记 Stable。
+- 0.1.10 仍为 Candidate/Test；Cubase GUI、听感、自动化、工程恢复和最终用户确认完成前不能标记 Stable。
 
 九、首次验证建议
 ----------------
 
-1. 在宿主中确认插件显示为 QQ Super Compression 0.1.8。
+1. 在宿主中确认插件显示为 QQ Super Compression 0.1.10。
 2. 测试 ST、LR、MS 三种模式。
 3. 逐一切换 0/10/26/40/80/100 ms 并观察宿主延迟补偿。
-4. 检查 Ratio 增大时 Gain Reduction 增加，Makeup、Mix 和 Bypass 正常。
-5. 检查 Integrated LUFS Match 在至少一个完整 400 ms 测量块后工作。
-6. 检查 GR 的 2 秒 Peak Hold，以及切换 Mode/Lookahead 后旧标记清除。
-7. 缩放界面，确认完整 UI 始终按 1020x670 的原始比例放大或缩小。
-8. 保存并重开工程，确认参数、A/B、模式、Lookahead 和窗口尺寸恢复。
-9. 与旧版工程一起测试前先制作工程副本。
+4. 在 0 ms 下确认 Oversampling 按钮只显示 1x/8x/16x，并检查 8x/16x 的 CPU、PDC、Mix 与 Bypass 对齐；切到非零 Lookahead 时按钮应隐藏。
+5. 检查 Ratio 增大时 Gain Reduction 增加，Makeup、Mix 和 Bypass 正常。
+6. 检查 Integrated LUFS Match 在至少一个完整 400 ms 测量块后工作。
+7. 检查 GR 的 2 秒 Peak Hold，以及切换 Mode/Lookahead 后旧标记清除。
+8. 缩放界面，确认完整 UI 始终按 1020x670 的原始比例放大或缩小。
+9. 保存并重开工程，确认参数、A/B、模式、Lookahead 和窗口尺寸恢复。
+10. 与旧版工程一起测试前先制作工程副本。
 
 十、故障排查
 ------------
@@ -191,5 +195,5 @@ sudo xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/Components/QQ Super
 - 被列入黑名单：关闭 DAW，清理该宿主的黑名单/缓存，再扫描。
 - macOS 阻止：先确认来源与哈希，再仅对单个 bundle 使用上面的 xattr 命令。
 - 出现两个插件：删除用户/系统目录或自定义目录中的重复副本，只保留一个 VST3 架构。
-- 版本仍是旧的：关闭 DAW，删除旧 bundle 和缓存，复制 0.1.8 后重新启动。
+- 版本仍是旧的：关闭 DAW，删除旧 bundle 和缓存，复制 0.1.10 后重新启动。
 - 行为或声音异常：记录 DAW、系统、架构、采样率、缓冲区、模式、Lookahead、复现步骤和工程片段，再提交到公开仓库 Issues。
