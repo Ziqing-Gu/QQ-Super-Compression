@@ -33,8 +33,10 @@ namespace qqsc
 // direction and is not redesigned here.
 //
 // NOTE: Lookahead=0 means a one-sample analysis window and therefore intentionally
-// degenerates toward instantaneous sample-domain behaviour. It is kept only as
-// an experimental comparison point; it is not expected to be distortion-free.
+// degenerates toward instantaneous sample-domain behaviour. It is now a deliberate
+// colour/flavour mode rather than a transparency mode. v0.1.10 lets that 0 ms core
+// run at 1x/8x/16x externally to reduce alias fold-back without hiding the harmonic
+// character behind smoothing or secret Lookahead.
 class StaticCompressionEngine
 {
 public:

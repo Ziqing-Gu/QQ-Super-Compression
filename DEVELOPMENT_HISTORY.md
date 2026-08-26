@@ -509,3 +509,193 @@ Hold 必须在 audio thread 侧基于 block peak 更新，而不是只在 GUI 30
 ### 回滚
 
 当前仍无用户指定 Stable。若 0.1.8 的统一缩放在宿主中有问题，回到 0.1.7 Candidate，只重做 Editor scaling；不要回退 0.1.7 Hold algorithm、0.1.6 LUFS Match 或 future-window peak 核心。
+
+
+---
+
+## v0.1.9 — FIR Oversampling / PDC Alignment / Warning Cleanup
+
+**日期：** 2026-08-27  
+**状态：** Candidate / Test  
+**基于：** v0.1.8 Plan B（用户上传 `QQ Super Compression 0.1.8-PlanB-20260825-161114.zip`）
+
+### 用户需求
+
+用户反馈当前版本已分享给朋友使用，整体反响不错，认为主要功能已接近完整形态。除 0.1.8 编译出现的非致命 `constrainer` 名称遮蔽 warning 外，用户要求加入最高 8x Oversampling，主要给 0 ms / 10 ms Lookahead 的主动染色模式使用：允许用户保留该声音特征，同时通过 2x/4x/8x 选择减少 alias fold-back。
+
+### 问题表现 / 根因
+
+- 0/10 ms 的 future-window gain modulation 本身会生成谐波；在 host sample rate 直接运行时，高次内容可能折返到 Nyquist 以下形成 aliasing。这里的“谐波生成”属于用户要保留的声音行为，而“折返 aliasing”才是 Oversampling 希望减轻的部分。
+- 0.1.8 Editor 中局部变量 `constrainer` 与 JUCE/类上下文命名触发编译器 shadow warning，虽不影响运行但应清理。
+- 加入 FIR Oversampling 后 Wet 会获得额外滤波 latency；若仍只按 Lookahead 延迟 Dry/Bypass，Mix 会产生时间偏移/梳状，因此 PDC 必须升级为 combined latency。
+
+### 修改内容
+
+- 新增 APVTS Choice 参数 `oversampling`，固定 `1x / 2x / 4x / 8x`，默认 1x；参数追加在原 0.1.8 参数序列之后，尽量不改变既有 host-facing 参数顺序。
+- 预创建 4 套 `juce::dsp::Oversampling<float>`：1x dummy；2x/4x/8x = maximum-quality `filterHalfBandFIREquiripple` + `useIntegerLatency=true`。CMake 新增 `juce::juce_dsp`。
+- Detector、future-window monotonic peak、Ratio smoother 和 Ratio gain application 在选定 oversampled domain 运行。Lookahead 继续先按 host sample rate 取原有 rounded sample 数，再乘 factor，保持六档实际时间/PDC 语义。
+- 为避免破坏 0.1.6 起 Match 同时累积 ST/LR/MS 的行为，Oversampling 内部一次生成/下采样 6 路 pre-Makeup Wet：ST linked L/R、LR independent L/R、MS M/S。严格 LUFS accumulation 仍在 host rate 使用这六路。
+- Makeup、Mix、最终 output Meter/Display 仍在 host sample rate。
+- total latency = Lookahead base samples + JUCE FIR integer latency；独立 host-rate Dry delay 用相同 total latency，Active Mix Dry 与 Bypass 都走该路径。
+- Oversampling 进入工程状态、A/B Snapshot、A→B/B→A 和 Undo/Redo；没有 per-user last selection，新实例默认 1x，0.1.8 或更早 state 缺参时也显式迁移到 1x。Editor Timer 对 Undo/Redo/host-side choice 同步时补一次 latency notification。
+- `OVERSAMPLING` ComboBox 放在 Lookahead 下方，保持既有固定 1020x670 design root 和 uniform scaling。
+- 局部 `constrainer` 改名 `editorBoundsConstrainer`；既有 `hostPlayHead` 命名继续保留。
+- CMake project version 更新到 0.1.9，面板 `JucePlugin_VersionString` 因此自动显示低调 `v0.1.9`。
+
+### 保持不变
+
+- Ratio law 仍为 `gain = 1 / (1 + (Ratio - 1) * level)`。
+- Lookahead 仍只有 0 / 10 / 26 / 40 / 80 / 100 ms；0 ms 染色语义不取消、不偷偷加隐藏 smoothing。
+- 0.1.6 strict BS.1770 / EBU R128 Integrated LUFS Match 定义不改：Dry vs compressed Wet pre-Makeup/pre-Mix。
+- ST/MS/LR、Makeup、Mix、2 s GR Hold、Dynamic Display、A/B 其它字段、UTF-8/CJK 和插件产品/internal identity 不改。
+- 没有加入自动 Oversampling、没有按 Lookahead 强制某个 factor。
+
+### 为什么这样修改
+
+FIR linear-phase 路径优先服务于本插件已有 Dry/Wet Mix 的时间/相位可控性；integer latency 让 host PDC 与 base-rate Dry delay 能共享明确的整数 sample count。1x 使用 dummy stage，使默认状态尽量贴近 0.1.8，而不是强制所有用户承担 CPU/latency。保留六路 Wet 的代价是 8x CPU 更高，但避免为了性能而暗改 Match 的“所有域同时测量”语义。
+
+### 验证
+
+- [x] 源码静态数据流检查：OS factor → internal Lookahead → 6-Wet downsample → host-rate Match/Makeup/Mix → combined Dry/Bypass delay 已连接。
+- [x] CMake version = 0.1.9，新增 `juce::juce_dsp` link；UI version 仍从 JUCE metadata 读取。
+- [x] 源码检索：未重新引入局部 `playHead`；原 `constrainer` 局部变量已改为 `editorBoundsConstrainer`。
+- [x] JUCE-free `tests/bs1770_match_selftest.cpp` 可继续作为 LUFS 回归基准（实际运行结果另见本版静态检查报告）。
+- [ ] 当前 AI 环境完整 JUCE 8.0.15 / VST3 编译。
+- [ ] Windows/Codex Release compile + warning 验证。
+- [ ] Cubase PDC / Mix / Bypass / project/A-B/Undo 实测。
+- [ ] PluginDoctor 0/10 ms 1x/2x/4x/8x aliasing 对比。
+- [ ] 用户确认 0.1.9。
+
+### 已知问题 / 边界
+
+- 当前实现为了保持三个 Match domain 同时可用，2x/4x/8x 下会对 6 路 Wet 做 downsample，8x CPU 成本预计明显高于只处理当前模式；这是已知取舍，需要实际 profiling。
+- 切换 Oversampling factor 会 reset FIR/detector/delay history，并改变 host latency；运行中可能出现一次 setting-change transient/PDC realignment。当前未加入用户未要求的双路径 crossfade。
+- 当前预分配按至少 16384 host samples/block；正常 DAW block 远小于此值。异常大于 reserve 的 callback 会 fail-safe clear，而不是 realtime realloc；需实际宿主确认不会触发。
+- 完整 JUCE API/编译尚未在当前环境验证，因此不能把静态检查写成“已编译”。
+
+### 回滚
+
+当前仍无用户指定 Stable。若 0.1.9 Oversampling/PDC 失败，优先回滚到用户上传的 **0.1.8 Plan B Candidate**，只重做 Oversampling / combined latency；不要回退 0.1.8 UI、0.1.7 Hold、0.1.6 strict LUFS Match 或 future-window peak 核心。
+
+### 后续建议
+
+Codex 首先完成 Windows Release 编译并看 warning；随后在 Cubase 测 combined latency/Mix/Bypass，再用 PluginDoctor 比 0/10 ms 的 1x→8x aliasing。只有用户明确确认后才能把版本提升为 Stable。
+
+
+---
+
+## v0.1.10 — 0 ms-Only 1x/8x/16x Oversampling / Product Rationale Handoff
+
+**日期：** 2026-08-27  
+**状态：** Candidate / Test  
+**基于：** v0.1.9 Candidate
+
+### 本次用户需求
+
+用户在 v0.1.9 的 Oversampling 实验后完成了 PluginDoctor/宿主对比，并把最终产品逻辑收敛为：
+
+- 仅 Lookahead = 0 ms 需要 Oversampling；
+- 0 ms 显示一个单击循环按钮，choices = `1x / 8x / 16x`；
+- 默认 remembered 0 ms choice = `8x`；
+- 10/26/40/80/100 ms 内部固定 1x，Oversampling UI 隐藏；
+- 切离 0 ms 不清除 choice，切回恢复。
+
+用户额外要求源码仓库必须带足够的设计说明，因为之后会让 Codex 在 GitHub 上写插件介绍，而 Codex 无法看到本聊天。用户明确补充插件的真正设计起点：传统压缩的 Attack/Release 会改变吉他、人声、钢琴、贝斯等素材的音头/瞬态与听感；QQ Super Compression 是为了“需要压缩行为，但不想让 Attack/Release 同时重塑瞬态”的场景。
+
+### 为什么没有 2x / 4x
+
+这是本版必须永久保留的用户实测结论：
+
+- PluginDoctor 实测 `2x` 仍存在严重 aliasing；
+- `4x` 仍存在严重 aliasing；
+- 同时用户观察到 8x Oversampling 增加的延迟并不多；
+- 因而保留 2x/4x 的实际价值不高，直接给 `8x` 与 `16x` 更合理。
+
+这不是“漏做了 2x/4x”。未来 AI/Codex 不得因为常见 Oversampling 菜单习惯而自动补回。
+
+### 为什么 10 ms+ 不做 Oversampling
+
+用户 PluginDoctor 实测 10 ms 及以上 Lookahead 基本没有需要处理的明显混叠。继续 Oversampling 只会增加 CPU/路径复杂度，而没有对应的实测问题，因此非零 Lookahead 统一 1x。
+
+### 0 ms 的产品定义
+
+0 ms 是故意保留的 instantaneous nonlinear colour/flavour。Oversampling 只用于减少 alias fold-back，不负责消灭它本身的谐波/染色：
+
+- 1x = 最原始/最重的 0 ms colour；
+- 8x = 默认 practical balance；
+- 16x = 进一步降低 aliasing。
+
+此前 PluginDoctor LinearAnalysis 在 Ratio>1 下看到高频上翘；Ratio=1:1 + 8x 的控制测试显示 FIR 本身基本平坦，仅接近 Nyquist 正常 roll-off。用户后续确认该问题无需处理，因此不要擅自加 compensating EQ。
+
+### 具体代码修改
+
+- `Parameters.h`：Oversampling factors 从 `{1,2,4,8}` 改为 `{1,8,16}`，stage counts `{0,3,4}`；增加 `effectiveOversamplingChoiceIndex()`，非零 Lookahead 永远返回 1x。
+- `PluginProcessor`：预创建 1x dummy / 8x FIR / 16x FIR 三条 6-channel 路径；0 ms 才允许 8x/16x，10 ms+ 运行 1x。
+- PDC：`getCombinedLatencySamples()` 使用 effective factor，因此 0 ms 8x/16x 报 FIR latency；10 ms+ 回到原 Lookahead-only latency。
+- `PluginEditor`：Oversampling ComboBox 改为 TextButton，0 ms 显示并单击循环 `1x -> 8x -> 16x`；其它 Lookahead 隐藏 label/button。
+- State：`oversampling` 参数继续保存 remembered 0 ms choice，默认 index=1(8x)。新增 state schema version 处理 v0.1.9 旧 choice 语义。
+- Migration：v0.1.8 或更早缺少 OS -> 8x；v0.1.9 old 1x -> new 1x；old 2x/4x/8x -> new 8x。
+- A/B：继续保存 OS choice；隐藏期间不清除。
+- 版本号：CMake -> 0.1.10，面板继续自动显示 `v0.1.10`。
+- 新增 `PRODUCT_DESIGN_NOTES.md` 和 `OVERSAMPLING_DESIGN_NOTES.md`；README/CODEX_BUILD/CHANGELOG/HANDOFF/TEST_CHECKLIST 同步更新。
+
+### 保持不变
+
+- Ratio law `gain = 1 / (1 + (Ratio - 1) * level)`；
+- 0/10/26/40/80/100 ms 六档 Lookahead；
+- strict Integrated LUFS Match；
+- ST/MS/LR；
+- Makeup / Mix；
+- 2 s GR Hold；
+- Dynamic Display / Meter；
+- fixed-aspect uniform UI scaling；
+- UTF-8/CJK 与插件 internal identity。
+
+### 当前验证级别
+
+- 用户对 v0.1.9 Oversampling 的 PluginDoctor/宿主测试：已实际发生，作为 v0.1.10 设计依据。
+- v0.1.10 源码：已做静态数据流/状态/UI 检查。
+- JUCE-free BS.1770 self-test：继续作为回归测试。
+- 完整 JUCE/VST3 编译、16x CPU、Cubase PDC/Mix/Bypass/state migration：仍需 Codex/用户实测。
+
+### 回滚
+
+若 v0.1.10 失败，优先回到 v0.1.9 Candidate，只重做 Oversampling finalisation；若 v0.1.9 Oversampling 架构本身有根本问题，则回到用户上传的 v0.1.8 Plan B Candidate，仅重新实现 0 ms-only OS。不得回退 future-window peak、strict LUFS Match、GR Hold 或 uniform UI。
+
+---
+
+## v0.1.10 — Plan A Verification / Public README and Release Preparation
+
+**日期：** 2026-08-27  
+**状态：** Candidate / Test  
+**基于：** v0.1.10 ZeroMs-Oversampling source
+
+### 用户需求
+
+用户要求执行 Plan B/C/D，并要求在修改 GitHub README 前完整阅读源代码包内的 Markdown，特别理解设计过程中遇到的问题、方案演进和设计这款压缩器的真正原因。
+
+### 文档结论
+
+公开介绍必须先说明产品要解决的混音问题：吉他、人声、钢琴、贝斯等素材有时需要动态收敛，但不希望传统 Attack/Release 同时重塑拨弦、辅音、琴槌或指弹等音头。Future-window Lookahead 是为了在对应延迟音频到达前获得未来电平信息，从而减少对传统 Attack 包络的依赖。0 ms 是用户主动保留的额外非线性色彩，不应描述为透明模式。
+
+### 发布准备修改
+
+- GitHub README 重写为完整中英双语产品介绍，先讲应用问题和适用素材，再讲算法、使用方法、0 ms 色彩、Oversampling、PDC、严格 LUFS Match、状态迁移与边界。
+- 保留并公开链接 `PRODUCT_DESIGN_NOTES.md`、`OVERSAMPLING_DESIGN_NOTES.md`、完整开发历史、交接文档和测试清单。
+- 恢复 macOS 构建所需的条件式 AU target；Windows 仍只生成 VST3。
+- GitHub Actions 与 Plan D 包名更新到 0.1.10。
+- Windows/macOS 中英文安装说明更新到 0.1.10，加入 0 ms Oversampling、状态迁移和手动验证步骤。
+- 新增独立 Plan A 验证记录；保留原静态检查文件的历史边界，不把早期静态环境的结论改写成当时已经编译。
+- DSP、参数 ID、Ratio law、Lookahead、LUFS Match、ST/MS/LR、Makeup/Mix、GR Hold 与 UI 行为均未在本次发布准备中修改。
+
+### 实际验证
+
+- [x] JUCE 8.0.15 / MSVC Windows x64 Release VST3 编译成功。
+- [x] 源码 manifest 25/25、x64 PE、moduleinfo、DLL/VST3 入口、Steinberg validator 与 BS.1770 self-test 通过。
+- [x] 安装、构建与 D 盘交付模块 SHA-256 一致。
+- [x] 编译报告记录一个非致命 C4459：局部 `lookaheadMs` 隐藏同名 namespace 参数；未影响构建和自动验证。
+- [ ] Cubase/PluginDoctor 最终手动验证与用户确认。
+
+### 状态边界
+
+Plan B/C/D 的备份、GitHub/CI 和最终桌面交付证据由独立 release verification 报告记录。本次发布准备不把 0.1.10 擅自标记为 Stable。

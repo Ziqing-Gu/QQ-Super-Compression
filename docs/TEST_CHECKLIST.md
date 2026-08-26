@@ -1,11 +1,35 @@
-# QQ Super Compression 0.1.8 Test Checklist
+# QQ Super Compression 0.1.10 Test Checklist
+
+## 0.1.9 Oversampling / PDC / warning cleanup
+
+- [ ] Panel version reads small/low-contrast `v0.1.9`.
+- [ ] `OVERSAMPLING` menu shows exactly `1x / 2x / 4x / 8x`; first/default is `1x`.
+- [ ] A fresh instance does **not** inherit the previous user's Oversampling choice; it starts at `1x`.
+- [ ] A 0.1.8 project/state with no Oversampling field opens at `1x` while retaining its old Ratio/Makeup/Mix/Lookahead/Mode values.
+- [ ] A 0.1.9 project restores its saved Oversampling choice.
+- [ ] A/B and A→B/B→A include Oversampling.
+- [ ] Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z restore Oversampling and host PDC correctly.
+- [ ] `1x` with identical settings matches 0.1.8 behaviour and Lookahead-only latency.
+- [ ] `2x / 4x / 8x` report Lookahead + FIR latency to the host.
+- [ ] Bypass and Mix Dry use the same total delay as Wet; no Active/Bypass PDC offset.
+- [ ] Ratio 1:1, Makeup 0 dB, Mix 0% gives pure delayed Dry at each factor.
+- [ ] Mix around 50% does not show a timing-offset comb caused by uncompensated Oversampling latency.
+- [ ] At Lookahead 0 ms, PluginDoctor comparison across 1x/2x/4x/8x shows progressively reduced alias fold-back without requiring the intentional harmonic flavour itself to disappear.
+- [ ] Repeat the oversampling spectrum comparison at 10 ms.
+- [ ] 26/40/80/100 ms remain selectable and functional at every factor.
+- [ ] ST/LR/MS output and strict LUFS Match still work after factor changes; Match remains Dry vs compressed Wet pre-Makeup/pre-Mix.
+- [ ] GR current meter and 2 s Hold still work; changing Oversampling clears an old Hold marker.
+- [ ] Factor changes during playback may cause one setting-change/PDC transition but do not create a persistent alignment error.
+- [ ] No non-fatal local-name shadow warning remains for `playHead` or `constrainer`.
+- [ ] CPU scaling is observed/documented, especially 8x; no expectation that 8x is cheap.
+
 
 ## Build / load
 
 - [ ] Release VST3 compiles.
 - [ ] VST3 scans and loads in DAW.
-- [ ] Host-reported latency equals the selected Lookahead preset in samples.
-- [ ] Bypass reports and uses the identical Lookahead latency/PDC.
+- [ ] Host-reported latency equals selected Lookahead samples + selected Oversampling FIR latency (1x adds 0).
+- [ ] Bypass reports and uses the identical combined latency/PDC.
 
 ## UI layout
 
@@ -184,3 +208,54 @@ For Ratio, all active/inactive mode Makeup knobs, and Mix:
 - [ ] Mouse hit targets remain aligned after scaling, including A/B, Match, Bypass, Mode, Lookahead and rotary controls.
 - [ ] A previously saved non-proportional 0.1.7 size migrates to a proportional 0.1.8 size and remains proportional after reopen.
 - [ ] Audio DSP, Lookahead/PDC, LUFS Match, A/B, Makeup/Mix and ST/MS/LR behaviour are unchanged.
+
+
+## 0.1.10 0 ms-only 1x/8x/16x Oversampling
+
+### UI / product logic
+
+- [ ] Panel version reads subdued `v0.1.10`.
+- [ ] Lookahead `0 ms`: `OVERSAMPLING` label and one button are visible.
+- [ ] One click cycles exactly `1x -> 8x -> 16x -> 1x`.
+- [ ] A fresh/new/legacy-no-OS state remembers `8x` as the default 0 ms choice.
+- [ ] Lookahead `10 / 26 / 40 / 80 / 100 ms`: Oversampling label/button are hidden.
+- [ ] Non-zero Lookahead actually runs 1x internally; no hidden 8x/16x CPU or FIR latency remains.
+- [ ] Switch `0 ms / 16x -> 10 ms -> 0 ms`: the 0 ms button returns to `16x` rather than resetting.
+
+### Deliberately omitted factors
+
+- [ ] UI/host choice list contains no user-facing `2x` or `4x`.
+- [ ] Do not mark their absence as a bug: user PluginDoctor tests already found both insufficient against 0 ms aliasing.
+
+### PluginDoctor
+
+- [ ] At 0 ms and a clearly nonlinear Ratio, compare `1x / 8x / 16x`: alias fold-back should progressively reduce.
+- [ ] Do **not** require 8x/16x to remove the intended harmonic colour itself.
+- [ ] At 10 ms and longer, verify there is no meaningful aliasing regression relative to the approved 1x behaviour.
+- [ ] Ratio `1:1` + 8x/16x remains essentially flat except expected near-Nyquist FIR roll-off.
+- [ ] Do not add compensating EQ only to make nonlinear Ratio>1 LinearAnalysis visually flat.
+
+### PDC / Dry / Mix / Bypass
+
+- [ ] 0 ms / 1x reports no Oversampling FIR latency.
+- [ ] 0 ms / 8x reports the JUCE integer FIR latency and Bypass uses the same delay.
+- [ ] 0 ms / 16x reports its JUCE integer FIR latency and Bypass uses the same delay.
+- [ ] 10 ms+ reports Lookahead-only latency regardless of the hidden remembered 0 ms choice.
+- [ ] Mix around 50% has no steady-state combing from Dry/Wet time misalignment at 8x or 16x.
+- [ ] Switching factor/Lookahead may cause one PDC realignment but settles to the exact reported delay.
+
+### State / A-B / Undo
+
+- [ ] Project save/reload restores the remembered 0 ms OS choice.
+- [ ] A/B and A→B/B→A restore Lookahead + remembered OS choice together.
+- [ ] Undo/Redo on the OS button restores factor and PDC.
+- [ ] v0.1.8-or-earlier state with no OS migrates to remembered 8x.
+- [ ] v0.1.9 state migration: old 1x -> new 1x; old 2x/4x/8x -> new 8x.
+
+### CPU / warnings / regressions
+
+- [ ] Profile 8x and 16x CPU at common host block sizes.
+- [ ] Build has no local-name shadow warning for `playHead` or `constrainer`.
+- [ ] strict LUFS Match result is unchanged.
+- [ ] Ratio law / ST-MS-LR / Makeup / Mix / 2 s GR Hold / Dynamic Display remain unchanged.
+- [ ] Existing 1020x670 uniform scaling and mouse hit-testing remain correct.

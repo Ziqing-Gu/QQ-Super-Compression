@@ -1,171 +1,209 @@
-# QQ Super Compression 0.1.8 构建说明 / Build Guide
+# QQ Super Compression 0.1.10 — Codex build / validation brief
 
-## 1. 项目状态 / Project status
+Before changing code, read these files in this order:
 
-- 产品 / Product: QQ Super Compression
-- 厂商 / Vendor: Qing Audio
-- 版本 / Version: 0.1.8
-- 状态 / Status: Candidate / Test；尚未由用户确认 Stable / not yet user-confirmed Stable
-- 构建系统 / Build system: CMake 3.22+
-- 语言标准 / Language standard: C++17
-- 固定框架 / Pinned framework: JUCE 8.0.15
-- Windows 格式 / Windows format: x64 VST3
-- macOS 格式 / macOS formats: arm64 VST3, x86_64 VST3, Universal 2 AU
+1. `AI_DEVELOPMENT_HANDOFF.md`
+2. `PRODUCT_DESIGN_NOTES.md`
+3. `OVERSAMPLING_DESIGN_NOTES.md`
+4. `README.md`
+5. `CHANGELOG.md`
+6. `DEVELOPMENT_HISTORY.md`
+7. `docs/TEST_CHECKLIST.md`
 
-本文件只描述可复现构建和验证。0.1.8 的发布文档纠正不改变 DSP、参数 ID、状态结构或二进制目标。
+Codex does **not** have the design conversation that produced this plug-in. The two dedicated design-note files are therefore authoritative context for GitHub/Release/product writing as well as development decisions.
 
-This file documents reproducible build and validation only. The 0.1.8 release-documentation correction does not alter DSP, parameter IDs, state schema, or binary targets.
+Build as VST3. Do not redesign the Ratio/future-window algorithm just to solve compiler/API issues.
 
-## 2. 依赖获取 / Dependency resolution
+## Build priority
 
-CMake 按以下顺序寻找 JUCE：
+1. Prefer an existing local JUCE checkout via `-DJUCE_PATH=...`.
+2. If none is available and network access is allowed, CMake FetchContent is pinned to JUCE 8.0.15.
+3. Build Release target `QQSuperCompression_VST3`.
+4. Report compiler warnings separately from errors; do not call a static source check a successful plug-in build.
 
-CMake resolves JUCE in this order:
+## Core product intent — do not lose this
 
-1. 如果提供有效的 `JUCE_PATH`，使用该本地 JUCE checkout。/ If a valid `JUCE_PATH` is supplied, use that local JUCE checkout.
-2. 否则，当 `QQSC_FETCH_JUCE=ON` 时，从 JUCE 官方 Git 仓库获取固定标签 `8.0.15`。/ Otherwise, with `QQSC_FETCH_JUCE=ON`, fetch pinned tag `8.0.15` from the official JUCE Git repository.
-3. 两者均不可用时配置失败。/ Configuration fails if neither source is available.
+QQ Super Compression exists for sources that need dynamic control but where conventional compressor Attack / Release behaviour would undesirably reshape the transient/onset. Typical examples are guitar pick attack, vocal word/consonant onsets, piano hammer attack and bass finger/pick articulation.
 
-网络可用的标准配置 / Standard network-enabled configuration:
+The plug-in is not claiming traditional compressors are wrong. It is for the specific use case where the engineer wants compression while preserving the original transient character as much as practical.
 
-```powershell
-cmake -S . -B <build-dir> -G "Visual Studio 17 2022" -A x64 -DQQSC_FETCH_JUCE=ON
-```
+This is why the core uses delayed audio + future-window analysis rather than a conventional user Attack/Release envelope. See `PRODUCT_DESIGN_NOTES.md` before writing public GitHub copy.
 
-已有 JUCE 的离线/固定路径配置 / Offline or fixed-path configuration with an existing JUCE checkout:
+## 0.1.10 Oversampling — primary change
 
-```powershell
-cmake -S . -B <build-dir> -G "Visual Studio 17 2022" -A x64 -DJUCE_PATH="<path-to-JUCE>" -DQQSC_FETCH_JUCE=OFF
-```
+### Final UI / behaviour
 
-## 3. Windows x64 VST3
-
-### 配置与编译 / Configure and build
-
-应在 Visual Studio 2022 Developer PowerShell 或已经运行 `VsDevCmd.bat` 的环境中执行，以确保 MSVC 标准头文件、SDK 和链接工具完整可见。
-
-Run inside Visual Studio 2022 Developer PowerShell or after `VsDevCmd.bat`, so MSVC standard headers, the Windows SDK, and linker tools are visible.
-
-```powershell
-cmake -S . -B <build-dir> -G "Visual Studio 17 2022" -A x64 -DQQSC_FETCH_JUCE=ON
-cmake --build <build-dir> --config Release --target QQSuperCompression_VST3
-```
-
-预期 bundle / Expected bundle:
+At **Lookahead = 0 ms only**, show `OVERSAMPLING` and one button. Each click cycles:
 
 ```text
-<build-dir>/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3
+1x -> 8x -> 16x -> 1x
 ```
 
-系统安装位置只应放最终 bundle / The system install location should contain only the final bundle:
+The remembered default is **8x**.
+
+At **Lookahead = 10 / 26 / 40 / 80 / 100 ms**:
+
+- hide the Oversampling label/button;
+- force the audio core to **1x** internally;
+- keep the user's remembered 0 ms Oversampling choice untouched;
+- when Lookahead returns to 0 ms, restore that remembered choice.
+
+### Why 2x / 4x are missing
+
+Do **not** treat this as an incomplete menu.
+
+User PluginDoctor tests found:
+
+- `2x`: aliasing still severe;
+- `4x`: aliasing still severe;
+- Oversampling added only a small amount of latency in practice.
+
+Therefore the user intentionally rejected 2x/4x and chose the meaningful set `1x / 8x / 16x`. 8x/16x make more sense because their latency cost is small enough not to justify weaker intermediate modes.
+
+Do not re-add 2x/4x unless the user explicitly requests new testing/design work.
+
+### Why only 0 ms uses Oversampling
+
+User PluginDoctor testing found no meaningful aliasing problem at 10 ms or longer Lookahead. Those settings therefore remain 1x. Oversampling at 10 ms+ would add CPU/complexity without solving an observed problem.
+
+### 0 ms meaning
+
+0 ms is intentionally nonlinear/coloured. Oversampling is meant to reduce **alias fold-back**, not remove the harmonic colour itself.
+
+- `1x`: rawest / strongest aliasing;
+- `8x`: default practical balance;
+- `16x`: further alias reduction.
+
+Do not add hidden smoothing or hidden Lookahead to make 0 ms "clean".
+
+## Oversampling implementation / PDC requirements
+
+- `1x` = JUCE dummy Oversampling path.
+- `8x` = maximum-quality linear-phase half-band FIR, 3 stages, integer latency.
+- `16x` = same FIR family, 4 stages, integer latency.
+- At 0 ms, detector input + Ratio smoother + Ratio gain application run in the selected internal domain.
+- At 10 ms+ effective factor must be 1x, so the established future-window detector remains host-rate.
+- Makeup, Mix, Integrated LUFS Match accumulation and public meters/display remain host-rate after downsampling.
+- Six pre-Makeup Wet streams are still downsampled in parallel (`ST L/R`, `LR L/R`, `MS M/S`) so Match can continue accumulating all processing domains exactly as before.
+
+Reported latency must be:
 
 ```text
-C:\Program Files\Common Files\VST3\QQ Super Compression.vst3
+active Lookahead samples + active Oversampling FIR integer latency
 ```
 
-安装或覆盖前必须关闭 Cubase 和其他 DAW。/ Close Cubase and every other DAW before installing or overwriting the bundle.
+Because Oversampling is effective only at 0 ms:
 
-### Windows 验证 / Windows validation
+- 0 ms / 1x -> 0-sample Oversampling latency;
+- 0 ms / 8x or 16x -> FIR latency only;
+- 10 ms+ -> original Lookahead-only latency.
 
-最低验证集 / Minimum validation set:
+Bypass and the Dry side of Mix must use the identical total delay. Test 50% Mix for combing/time offset.
 
-1. Release 目标成功编译。/ Release target builds successfully.
-2. `QQ Super Compression.vst3` bundle 和内部模块存在。/ The bundle and internal module exist.
-3. `InitDll`、`GetPluginFactory`、`ExitDll` 入口点烟雾测试通过。/ Entry-point smoke test passes.
-4. Steinberg `vst3effectsvalidator.exe` 返回 0。/ Steinberg validator returns exit code 0.
-5. 安装后源 bundle 与系统 bundle 的 SHA-256 一致。/ Installed and source bundle hashes match.
-6. 用户在 Cubase 中完成扫描、打开界面、输入文字、缩放、自动化、声音与延迟验证。/ The user completes Cubase scan, GUI, text entry, scaling, automation, sound, and latency checks.
+Changing Lookahead or active 0 ms Oversampling may trigger one host PDC realignment. A setting-change transient is acceptable for this Candidate; do not add an unrequested dual-path crossfade architecture.
 
-## 4. BS.1770 / LUFS 自测 / BS.1770 / LUFS self-test
+## State / A-B / migration
 
-此测试不依赖 JUCE，可独立验证 K-weighting、门限与匹配基准。
+Parameter ID remains `oversampling`, but v0.1.10 changes its choices to `1x/8x/16x` and treats it as the remembered 0 ms choice.
 
-This JUCE-free test independently checks K-weighting, gating, and match reference behaviour.
+Required behaviour:
 
-使用 MSVC / With MSVC:
+- New instance remembered 0 ms choice = `8x`.
+- v0.1.8-or-earlier state has no Oversampling parameter -> migrate remembered choice to `8x`.
+- v0.1.9 state migration -> old `1x => new 1x`; old `2x/4x/8x => new 8x`.
+- A/B snapshots include the remembered 0 ms choice.
+- Undo/Redo includes it.
+- Moving from 0 ms to non-zero Lookahead must **not** overwrite it.
+- Returning to 0 ms must restore it and update PDC.
 
-```powershell
-cl /std:c++17 /EHsc /O2 tests\bs1770_match_selftest.cpp /Fe:<temp-output>\bs1770_match_selftest.exe
-& <temp-output>\bs1770_match_selftest.exe
-```
+## UI validation
 
-预期结果 / Expected result:
+- Panel version must show subdued `v0.1.10` from JUCE/CMake metadata.
+- 0 ms: Oversampling label/button visible; one click cycles 1x/8x/16x.
+- 10 ms+: label/button hidden, leaving no misleading quality control visible.
+- Existing fixed 1020x670 design root, aspect ratio and uniform scaling must remain intact.
+- Mouse hit-testing must stay aligned after resize.
+- Confirm the prior non-fatal shadow warnings remain gone: local names should not regress to `playHead` or `constrainer`; current code uses `hostPlayHead` and `editorBoundsConstrainer`.
 
-- 1 kHz 满刻度单声道约为 -3.0036 LUFS。/ A 1 kHz full-scale mono signal is approximately -3.0036 LUFS.
-- 相差 6 dB 的两路测量得到 6 dB Match。/ Two measurements differing by 6 dB produce a 6 dB Match.
-- 程序输出 PASS 并返回 0。/ The program prints PASS and returns 0.
+## PluginDoctor validation
 
-## 5. macOS VST3 与 AU / macOS VST3 and AU
+1. `0 ms / Ratio > 1`: compare 1x vs 8x vs 16x aliasing.
+2. Expect harmonic colour to remain even at 16x; judge **alias fold-back**, not the existence of harmonics.
+3. Verify 2x/4x are not in the UI.
+4. `10 / 26 / 40 / 80 / 100 ms`: confirm UI hides Oversampling and effective DSP/PDC is 1x.
+5. Ratio `1:1` at 0 ms + 8x/16x: linear response should be essentially flat except expected near-Nyquist FIR roll-off; do not add compensating EQ merely to flatten nonlinear LinearAnalysis at Ratio > 1. See `OVERSAMPLING_DESIGN_NOTES.md`.
 
-GitHub Actions 使用两个 VST3 runner 和一个 Universal AU job：
+## Future-window core — keep unchanged
 
-GitHub Actions uses two VST3 runners and one Universal AU job:
+Approved Lookahead presets:
 
-| 目标 / Target | Runner | 架构 / Architecture |
-|---|---|---|
-| Apple Silicon VST3 | `macos-14` | arm64 |
-| Intel VST3 | `macos-15-intel` | x86_64 |
-| Universal 2 AU | `macos-14` | arm64 + x86_64 |
+`0 / 10 / 26 / 40 / 80 / 100 ms`
 
-单架构配置示例 / Single-architecture configuration example:
-
-```bash
-cmake -S . -B <build-dir> -G Xcode \
-  -DQQSC_FETCH_JUCE=ON \
-  -DCMAKE_OSX_ARCHITECTURES=arm64
-cmake --build <build-dir> --config Release --target QQSuperCompression_VST3
-```
-
-Intel 将 `arm64` 改为 `x86_64`。AU 分别构建两个架构，再用 `lipo` 合成 `arm64 x86_64` 的 Universal 2 模块，并通过 `auval -v aufx Qscp Qing`。
-
-For Intel, replace `arm64` with `x86_64`. The AU job builds both architectures, combines the modules with `lipo` into an `arm64 x86_64` Universal 2 binary, and runs `auval -v aufx Qscp Qing`.
-
-预期 bundle / Expected bundles:
+Ratio law:
 
 ```text
-QQ Super Compression.vst3
-QQ Super Compression.component
+gain = 1 / (1 + (Ratio - 1) * level)
 ```
 
-预期 AU 标识 / Expected AU identity:
+Do not restore:
+
+- v0.1.0 `abs(x)^(1/Ratio)` sample-domain waveshaper;
+- v0.1.1-v0.1.3 fixed 20 ms rolling RMS detector.
+
+User-verified historical PluginDoctor observations that must remain documented:
+
+- 5 ms ~99.6 Hz boundary;
+- 10 ms ~49.8 Hz;
+- 20 ms ~24.9 Hz;
+- 26 ms ~20 Hz region;
+- 40 ms cleaner at 20 Hz than 26 ms;
+- 80 ms cleaner again.
+
+## Match — strict Integrated LUFS must remain unchanged
+
+`Source/BS1770LoudnessMatch.h` remains the active Match implementation:
+
+- BS.1770-compatible K-weighting;
+- 400 ms blocks;
+- 100 ms hop / 75% overlap;
+- -70 LUFS absolute gate;
+- -10 LU relative gate;
+- source = delayed Dry vs compressed Wet pre-Makeup/pre-Mix;
+- ST stereo programme; LR/MS independent mono-domain measurements.
+
+Do not simplify back to RMS/power.
+
+Standalone sanity test:
 
 ```text
-Type: aufx
-Subtype: Qscp
-Manufacturer: Qing
+c++ -std=c++17 -O2 tests/bs1770_match_selftest.cpp -I. -o bs1770_test
 ```
 
-## 6. 公开 CI / Public CI
+Expected: full-scale 1 kHz mono at 48 kHz about -3.01 LUFS; fixed 6 dB Dry/Wet difference about +6 dB Match.
 
-工作流 / Workflows:
+## Existing workflow that must remain
 
-- `.github/workflows/build-windows-vst3.yml`
-- `.github/workflows/build-macos-vst3-au.yml`
+- ST / MS / LR.
+- ST common Makeup; LR independent L/R; MS independent M/S.
+- A/B + A→B / B→A.
+- Shift fine / Alt reset / Undo / Redo.
+- Bypass button and correct PDC.
+- Dynamic Display = Dry, Wet pre-Makeup, final post-Mix Output.
+- Input / Output / GR meters.
+- 2-second automatic GR Peak Hold.
+- Uniform resize/aspect-ratio system.
+- UTF-8 source, MSVC `/utf-8`, CJK font fallback.
 
-每个正式 Plan D 候选必须从同一个公开 commit 生成以下四个包：
+## Validation status discipline
 
-Every formal Plan D candidate must generate these four packages from the same public commit:
+Append results to `AI_DEVELOPMENT_HANDOFF.md` / `DEVELOPMENT_HISTORY.md`. Separate:
 
-```text
-QQ-Super-Compression-0.1.8-Windows-x64.zip
-QQ-Super-Compression-0.1.8-macOS-Apple-Silicon-VST3.zip
-QQ-Super-Compression-0.1.8-macOS-Intel-VST3.zip
-QQ-Super-Compression-0.1.8-macOS-Universal-AU.zip
-```
+- source/static check;
+- standalone test;
+- compiler success;
+- VST3 scan/load;
+- PluginDoctor result;
+- Cubase/PDC result;
+- user confirmation.
 
-内部验证应记录 commit、run/job、包名、大小、SHA-256、架构、bundle 名、版本和验证结果。/ Internal verification must record the commit, run/job, package name, size, SHA-256, architecture, bundle name, version, and validation result.
-
-## 7. 已知警告与影响 / Known warning and impact
-
-Windows 编译可能出现 `PluginEditor.cpp` 中 `constrainer` 名称遮蔽的 C4458 警告。它是局部名称与基类成员同名的编译期可读性警告，不改变解析到的对象、生成的二进制行为、音频处理或 UI 约束；当前为非致命。后续可通过重命名局部变量清理，但不能在未经回归验证时借机改动界面逻辑。
-
-The Windows build may emit C4458 for a `constrainer` name shadow in `PluginEditor.cpp`. This is a compile-time readability warning caused by a local name matching a base-class member. It does not change object resolution, binary behaviour, audio processing, or UI constraints and is currently non-fatal. A future cleanup may rename the local variable, but must not alter UI behaviour without regression testing.
-
-## 8. 行为约束 / Behavioural constraints
-
-- 不得把 0 ms 偷偷平滑或加入隐藏 Lookahead。/ Do not secretly smooth 0 ms or add hidden lookahead.
-- Lookahead 必须同时控制分析窗口、真实延迟、Bypass 延迟路径和宿主 PDC。/ Lookahead must control the analysis window, real delay, bypass delay path, and host PDC together.
-- Match 必须测量延迟 Dry 与 Makeup/Mix 前的压缩 Wet。/ Match must measure delayed Dry against compressed Wet before Makeup and Mix.
-- Hold 必须保持纯显示逻辑。/ Hold must remain display-only.
-- 保持参数 ID、状态兼容、UTF-8 与 CJK 字体回退。/ Preserve parameter IDs, state compatibility, UTF-8, and CJK font fallback.
-- 只有用户可以确认 Stable。/ Only the user can confirm Stable.
+Do not mark v0.1.10 Stable unless the user explicitly says it is Stable.

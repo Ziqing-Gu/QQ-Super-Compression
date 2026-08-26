@@ -29,8 +29,8 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     setLookAndFeel (&utf8LookAndFeel);
     setResizable (true, true);
     setResizeLimits (minEditorWidth, minEditorHeight, maxEditorWidth, maxEditorHeight);
-    if (auto* constrainer = getConstrainer())
-        constrainer->setFixedAspectRatio (editorAspectRatio);
+    if (auto* editorBoundsConstrainer = getConstrainer())
+        editorBoundsConstrainer->setFixedAspectRatio (editorAspectRatio);
 
     int savedWidth = defaultEditorWidth;
     int savedHeight = defaultEditorHeight;
@@ -80,8 +80,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureLabel (mixLabel, "MIX");
     configureLabel (modeLabel, "MODE");
     configureLabel (lookaheadLabel, "LOOKAHEAD (ms)");
+    configureLabel (oversamplingLabel, "OVERSAMPLING");
 
-    for (auto* label : { &ratioLabel, &makeupLabel, &makeupChannel0Label, &makeupChannel1Label, &mixLabel, &modeLabel, &lookaheadLabel })
+    for (auto* label : { &ratioLabel, &makeupLabel, &makeupChannel0Label, &makeupChannel1Label, &mixLabel, &modeLabel, &lookaheadLabel, &oversamplingLabel })
         contentRoot.addAndMakeVisible (*label);
 
     configureKnob (ratioSlider);
@@ -122,6 +123,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureActionButton (bButton);
     configureActionButton (aToBButton);
     configureActionButton (bToAButton);
+    configureActionButton (oversamplingButton);
 
     aToBButton.setButtonText (arrowText ("A", "B"));
     bToAButton.setButtonText (arrowText ("B", "A"));
@@ -130,7 +132,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     aButton.setClickingTogglesState (false);
     bButton.setClickingTogglesState (false);
 
-    for (auto* button : { &modeButton, &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton })
+    for (auto* button : { &modeButton, &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton, &oversamplingButton })
     {
         contentRoot.addAndMakeVisible (*button);
         registerKeyboardListener (*button);
@@ -155,6 +157,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     mixSlider.onGestureStart = [this] { beginUndoTransaction ("Mix"); };
 
     modeButton.onClick = [this] { cycleMode(); };
+    oversamplingButton.onClick = [this] { cycleOversampling(); };
     matchButton.onClick = [this] { processor.applyMatchForCurrentMode(); };
     aButton.onClick = [this] { processor.selectABSlot (0); };
     bButton.onClick = [this] { processor.selectABSlot (1); };
@@ -165,6 +168,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     setWantsKeyboardFocus (true);
 
     updateModeUi();
+    updateOversamplingUi();
     startTimerHz (15);
 }
 
@@ -275,9 +279,11 @@ void QQSuperCompressionAudioProcessorEditor::commitLookaheadChoice()
             parameter->beginChangeGesture();
             parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
             parameter->endChangeGesture();
-            processor.notifyHostLookaheadLatency (value);
+            processor.notifyHostProcessingLatency();
         }
     }
+
+    updateOversamplingUi();
 
     // User preference, not project state: new instances use the last manually
     // selected preset, while an existing project still restores its own APVTS
@@ -287,6 +293,37 @@ void QQSuperCompressionAudioProcessorEditor::commitLookaheadChoice()
         uiProperties->setValue ("lastLookaheadMs", value);
         uiProperties->saveIfNeeded();
     }
+}
+
+void QQSuperCompressionAudioProcessorEditor::cycleOversampling()
+{
+    // This button is visible only at 0 ms. It deliberately cycles 1x -> 8x ->
+    // 16x -> 1x. 2x/4x were tested and intentionally omitted because aliasing
+    // remained severe while the latency cost of 8x/16x was small.
+    const auto current = juce::jlimit (0, 2, juce::roundToInt (
+        processor.getAPVTS().getRawParameterValue (qqsc::params::oversampling)->load()));
+    const auto next = (current + 1) % 3;
+
+    beginUndoTransaction ("0 ms Oversampling");
+    setChoiceParameter (qqsc::params::oversampling, next);
+    processor.notifyHostProcessingLatency();
+    updateOversamplingUi();
+}
+
+void QQSuperCompressionAudioProcessorEditor::updateOversamplingUi()
+{
+    const auto lookaheadMs = qqsc::params::snapLookaheadMs (
+        processor.getAPVTS().getRawParameterValue (qqsc::params::lookaheadMs)->load());
+    const bool zeroMs = lookaheadMs < 0.0001f;
+
+    const auto oversamplingIndex = juce::jlimit (0, 2, juce::roundToInt (
+        processor.getAPVTS().getRawParameterValue (qqsc::params::oversampling)->load()));
+    oversamplingButton.setButtonText (qqsc::params::oversamplingNameForChoiceIndex (oversamplingIndex));
+
+    // Non-zero Lookahead uses 1x internally and does not expose a meaningless
+    // Oversampling control. The stored 0 ms choice is preserved while hidden.
+    oversamplingLabel.setVisible (zeroMs);
+    oversamplingButton.setVisible (zeroMs);
 }
 
 void QQSuperCompressionAudioProcessorEditor::cycleMode()
@@ -302,10 +339,29 @@ void QQSuperCompressionAudioProcessorEditor::timerCallback()
 {
     updateModeUi();
 
+    bool latencyChoiceChangedOutsideDirectUiGesture = false;
+
     const auto lookaheadIndex = qqsc::params::lookaheadChoiceIndexForMs (
         processor.getAPVTS().getRawParameterValue (qqsc::params::lookaheadMs)->load());
     if (lookaheadCombo.getSelectedItemIndex() != lookaheadIndex)
+    {
         lookaheadCombo.setSelectedItemIndex (lookaheadIndex, juce::dontSendNotification);
+        latencyChoiceChangedOutsideDirectUiGesture = true;
+    }
+
+    const auto oversamplingIndex = juce::jlimit (0, 2, juce::roundToInt (
+        processor.getAPVTS().getRawParameterValue (qqsc::params::oversampling)->load()));
+    const auto currentButtonText = qqsc::params::oversamplingNameForChoiceIndex (oversamplingIndex);
+    if (oversamplingButton.getButtonText() != currentButtonText)
+        latencyChoiceChangedOutsideDirectUiGesture = true;
+
+    updateOversamplingUi();
+
+    // Direct ComboBox changes notify immediately. This additional path covers
+    // Undo/Redo, A/B recall and host-side parameter changes while the editor is
+    // open, including when transport is stopped and no audio callback is running.
+    if (latencyChoiceChangedOutsideDirectUiGesture)
+        processor.notifyHostProcessingLatency();
 }
 
 void QQSuperCompressionAudioProcessorEditor::updateModeUi()
@@ -442,11 +498,15 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     mixSlider.setBounds (mixArea.reduced (16, 0));
 
     auto modeArea = controls;
-    modeLabel.setBounds (modeArea.removeFromTop (22));
-    auto modeButtonArea = modeArea.removeFromTop (46);
-    modeButton.setBounds (modeButtonArea.withSizeKeepingCentre (juce::jmin (120, modeButtonArea.getWidth() - 28), 38));
-    modeArea.removeFromTop (4);
-    lookaheadLabel.setBounds (modeArea.removeFromTop (20));
-    auto lookaheadComboArea = modeArea.removeFromTop (34);
-    lookaheadCombo.setBounds (lookaheadComboArea.withSizeKeepingCentre (112, 30));
+    modeLabel.setBounds (modeArea.removeFromTop (20));
+    auto modeButtonArea = modeArea.removeFromTop (40);
+    modeButton.setBounds (modeButtonArea.withSizeKeepingCentre (juce::jmin (120, modeButtonArea.getWidth() - 28), 36));
+    modeArea.removeFromTop (2);
+    lookaheadLabel.setBounds (modeArea.removeFromTop (16));
+    auto lookaheadComboArea = modeArea.removeFromTop (28);
+    lookaheadCombo.setBounds (lookaheadComboArea.withSizeKeepingCentre (112, 26));
+    modeArea.removeFromTop (2);
+    oversamplingLabel.setBounds (modeArea.removeFromTop (16));
+    auto oversamplingButtonArea = modeArea.removeFromTop (28);
+    oversamplingButton.setBounds (oversamplingButtonArea.withSizeKeepingCentre (112, 26));
 }
