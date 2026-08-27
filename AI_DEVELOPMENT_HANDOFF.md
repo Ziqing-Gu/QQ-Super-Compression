@@ -1361,3 +1361,5 @@ v0.9.2 128-frame bitmap knob 在真实插件中的视觉被用户明确否决；
 - English: `CMakeLists.txt` now keeps Windows VST3-only through `QQSC_PLUGIN_FORMATS` and appends AU only on Apple platforms. This is a required Plan D build-compatibility fix and must not be treated as a DSP or UI revision.
 - 中文：首轮失败证据为 `No rule to make target 'QQSuperCompression_AU'`；后续必须让 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 来自同一修复提交。
 - English: The first-run failure was `No rule to make target 'QQSuperCompression_AU'`. Subsequent Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU artifacts must all come from the same fixed commit.
+- 中文：最终结果：Actions runs `33040246933`（Windows）与 `33040244828`（macOS）全部成功；四个 artifact 均来自 `7cb70ecbe66681659d4f5ad99032c885b0557341`。
+- English: Final result: Actions runs `33040246933` (Windows) and `33040244828` (macOS) both succeeded; all four artifacts came from `7cb70ecbe66681659d4f5ad99032c885b0557341`.

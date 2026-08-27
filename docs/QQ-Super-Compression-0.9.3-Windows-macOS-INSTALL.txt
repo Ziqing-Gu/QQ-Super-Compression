@@ -1,7 +1,7 @@
 QQ Super Compression 0.9.3
 English Installation and Usage Guide
 
-Release status: Plan D stable baseline (source and Windows x64 VST3 verified; macOS products pending)
+Release status: Plan D stable baseline (Windows x64 VST3, macOS arm64/x86_64 VST3, and Universal 2 AU verified)
 Vendor: Qing Audio
 Formats: Windows x64 VST3; macOS arm64/x86_64 VST3; macOS Universal 2 AU
 This is an MIT-licensed open-source project. The guide targets Windows 10/11 x64 and macOS 12 or later; choose the macOS package that matches the Mac architecture.

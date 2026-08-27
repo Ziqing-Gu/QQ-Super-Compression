@@ -9,15 +9,15 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 | 项目 / Item | 内容 / Value |
 |---|---|
 | 当前版本 / Current version | 0.9.3 |
-| 状态 / Status | Stable baseline (Plan D policy) — macOS packages pending / 稳定基线（Plan D 规则），macOS 成品待补齐 |
+| 状态 / Status | Stable baseline — Plan D cross-platform verification complete / 稳定基线——Plan D 跨平台验证完成 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | MIT |
 
-> **0.9.3 稳定基线 / Stable baseline:** 按 Plan D 规则，本版本作为稳定基线记录；当前已完成 Windows x64 VST3 的本机构建与安装验证，macOS 三类成品尚未生成，因此尚未创建跨平台下载 Release。
+> **0.9.3 稳定基线 / Stable baseline:** 按 Plan D 规则，本版本作为稳定基线记录。Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 均已从同一提交 `7cb70ec` 通过 Actions；AU 同时通过 `auval` 与双架构检查。GitHub Release 属于单独的 Plan G，本次 Plan D 未创建新 Release。
 >
-> **Stable baseline:** Under the Plan D policy, this version is recorded as the stable baseline. Windows x64 VST3 has passed local build and install verification; the three macOS products are not yet generated, so no cross-platform download Release has been created.
+> **Stable baseline:** Under the Plan D policy, this version is recorded as the stable baseline. Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU all passed Actions from commit `7cb70ec`; the AU also passed `auval` and dual-architecture checks. A GitHub Release belongs to the separate Plan G and was not created by this Plan D run.
 
 
 ## 下载 / Download
@@ -261,7 +261,7 @@ Manual Cubase validation of 0 ms 1x/8x/16x sound, CPU, PDC, 50% Mix, Bypass, aut
 
 ## 完整版本历史 / Complete version history
 
-下面记录从首个原型到当前版本的全部真实版本。所有版本均为 Candidate/Test；用户尚未确认任何版本为 Stable。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
+下面记录从首个原型到当前版本的全部真实版本。0.9.3 是本次 Plan D 指定的稳定基线；此前版本保留各自的 Candidate/Test 历史标签。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 Every real version from the first prototype through the current build is recorded below. Version 0.9.3 is the stable baseline requested for this Plan D run; earlier entries retain their historical Candidate/Test labels. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
 
@@ -269,8 +269,8 @@ Every real version from the first prototype through the current build is recorde
 
 - 中文：恢复 v0.9.1 矢量暖光旋钮，保留 v0.9.2 Input/Output Gain、A/B、工程状态和 Undo/Redo；Windows x64 VST3 已完成 Release 构建与安装校验。
 - English: Restored the v0.9.1 vector warm-light rotary while retaining v0.9.2 Input/Output Gain, A/B, project state, and Undo/Redo; Windows x64 VST3 passed Release build and install verification.
-- 中文：按 Plan D 规则记录为稳定基线；macOS arm64 VST3、x86_64 VST3 和 Universal 2 AU 尚未生成，跨平台交付仍待补齐。
-- English: Recorded as the stable baseline under the Plan D policy; macOS arm64 VST3, x86_64 VST3, and Universal 2 AU are not yet generated, so cross-platform delivery remains pending.
+- 中文：按 Plan D 规则记录为稳定基线；Windows x64 VST3、macOS arm64 VST3、x86_64 VST3 和 Universal 2 AU 均已从提交 `7cb70ec` 通过 Actions，AU 同时通过 `auval`。
+- English: Recorded as the stable baseline under the Plan D policy; Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU all passed Actions from commit `7cb70ec`, including `auval` for the AU.
 
 ### 0.9.2 — 2026-08-27 — Candidate / Test
 

@@ -912,7 +912,7 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 ## v0.9.3 — Plan D AU Target Fix / Plan D AU 目标修复
 
 **日期 / Date:** 2026-08-27
-**状态 / Status:** Stable baseline, Plan D cross-platform verification in progress
+**状态 / Status:** Stable baseline, Plan D cross-platform verification complete
 
 ### 问题与根因 / Problem and root cause
 
@@ -930,5 +930,5 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 - [x] Windows x64 Release 回归编译 / regression build.
 - [x] VST3 moduleinfo version remains `0.9.3`.
-- [ ] 修复提交的 Windows 与 macOS Actions 四生成物 / four artifacts from the fixed commit.
-- [ ] Universal 2 AU `auval` and architecture verification.
+- [x] 修复提交 `7cb70ec` 的 Windows 与 macOS Actions 四生成物 / four artifacts from fixed commit `7cb70ec`（runs `33040246933` / `33040244828`）。
+- [x] Universal 2 AU `auval` and architecture verification.
