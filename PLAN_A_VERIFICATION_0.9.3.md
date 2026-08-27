@@ -12,8 +12,9 @@ Status: Windows x64 VST3 build verified; DAW acceptance remains a user step.
 - Build path: `build/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3` (local Plan A/Plan C staging)
 - PE architecture: x64 (`8664 machine`)
 - Binary size: 6,582,784 bytes
-- SHA-256: `A23917FBAAAC3547C942563B512923B5765888BE0411CAEA9B150CE716BF36BD`
+- SHA-256: `8E63513F5FE16A47D8B1135423CA0C204F87F9431F376EED6B232D4487C61C87`
 - `moduleinfo.json`: version `0.9.3`
+- Plan D build-target fix: AU is appended only on Apple; Windows remains VST3-only. No DSP/UI/state change.
 
 ## Tests
 

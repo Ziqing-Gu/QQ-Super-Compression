@@ -18,6 +18,8 @@ This document records every real version from 0.1.0 through 0.1.10 and the 0.9.0
 - English: Restored the v0.9.1 vector warm-light rotary, removed the active QQSCAssets BinaryData target, and retained v0.9.2 Input/Output Gain, Display semantics, A/B, project state, and Undo/Redo. The Windows x64 VST3 passed local Release build and install checks.
 - 中文：按 Plan D 规则标记为稳定基线；macOS 三类成品尚未生成，跨平台交付与 GitHub Release 仍待补齐。
 - English: Marked as the stable baseline under the Plan D policy; the three macOS products and a GitHub Release remain pending.
+- 中文：Plan D 首轮 Actions 暴露出 CMake 仅声明 VST3、因此没有生成 AU target；现改为仅在 Apple 平台追加 AU，Windows 仍仅构建 VST3。此构建系统修复不改变 DSP、UI、参数或工程状态。
+- English: The first Plan D Actions run exposed that CMake declared only VST3 and therefore generated no AU target. AU is now appended only on Apple platforms, while Windows remains VST3-only. This build-system fix does not change DSP, UI, parameters, or project state.
 
 ## 0.9.2 — Asset Knobs + Input/Output Gain — Candidate / Test
 

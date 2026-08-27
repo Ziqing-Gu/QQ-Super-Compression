@@ -1353,3 +1353,11 @@ v0.9.2 128-frame bitmap knob 在真实插件中的视觉被用户明确否决；
 ### 回滚
 
 若 UI restore 编译失败，只回滚/修复 UI/CMake；不要回退 v0.9.2 的 Input/Output Gain 功能。
+
+
+## v0.9.3 Plan D AU target fix — 2026-08-27
+
+- 中文：`CMakeLists.txt` 现在通过 `QQSC_PLUGIN_FORMATS` 在 Windows 保持 VST3-only，并只在 Apple 平台追加 AU。这是 Plan D 的必要构建兼容修复，不得解释为 DSP 或 UI 改版。
+- English: `CMakeLists.txt` now keeps Windows VST3-only through `QQSC_PLUGIN_FORMATS` and appends AU only on Apple platforms. This is a required Plan D build-compatibility fix and must not be treated as a DSP or UI revision.
+- 中文：首轮失败证据为 `No rule to make target 'QQSuperCompression_AU'`；后续必须让 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 来自同一修复提交。
+- English: The first-run failure was `No rule to make target 'QQSuperCompression_AU'`. Subsequent Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU artifacts must all come from the same fixed commit.

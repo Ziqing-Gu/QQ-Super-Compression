@@ -907,3 +907,28 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 若 v0.9.3 UI 恢复发生编译问题，可对照 v0.9.1 的 `UTF8LookAndFeel.h` / CMake；**不要回滚 v0.9.2 的 Input/Output Gain DSP/state 功能**。
 
+
+
+## v0.9.3 — Plan D AU Target Fix / Plan D AU 目标修复
+
+**日期 / Date:** 2026-08-27
+**状态 / Status:** Stable baseline, Plan D cross-platform verification in progress
+
+### 问题与根因 / Problem and root cause
+
+- 中文：首轮 macOS Actions 中，两套 VST3 均成功，但 Universal 2 AU 任务报错 `No rule to make target 'QQSuperCompression_AU'`。根因是 `juce_add_plugin` 仅声明了 `FORMATS VST3`，CMake 从未生成 AU target。
+- English: In the first macOS Actions run, both VST3 jobs succeeded but the Universal 2 AU job failed with `No rule to make target 'QQSuperCompression_AU'`. The root cause was that `juce_add_plugin` declared only `FORMATS VST3`, so CMake never generated an AU target.
+
+### 修复与边界 / Fix and boundaries
+
+- 中文：新增 `QQSC_PLUGIN_FORMATS`，默认只有 VST3；仅在 `APPLE` 平台追加 AU。Windows 的目标集合保持 VST3-only。
+- English: Added `QQSC_PLUGIN_FORMATS`, defaulting to VST3 and appending AU only when `APPLE` is true. Windows remains VST3-only.
+- 中文：本次仅修改构建目标，不修改 DSP、UI、参数 ID、状态 schema、延迟、旁路或音频路径。
+- English: This is a build-target-only change. DSP, UI, parameter IDs, state schema, latency, bypass, and signal flow are unchanged.
+
+### 验证 / Verification
+
+- [x] Windows x64 Release 回归编译 / regression build.
+- [x] VST3 moduleinfo version remains `0.9.3`.
+- [ ] 修复提交的 Windows 与 macOS Actions 四生成物 / four artifacts from the fixed commit.
+- [ ] Universal 2 AU `auval` and architecture verification.

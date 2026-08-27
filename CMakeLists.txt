@@ -26,12 +26,18 @@ else()
     message(FATAL_ERROR "JUCE was not found. Set -DJUCE_PATH=/path/to/JUCE or enable QQSC_FETCH_JUCE.")
 endif()
 
+set(QQSC_PLUGIN_FORMATS VST3)
+
+if (APPLE)
+    list(APPEND QQSC_PLUGIN_FORMATS AU)
+endif()
+
 juce_add_plugin(QQSuperCompression
     COMPANY_NAME "Qing Audio"
     BUNDLE_ID "com.qingaudio.qqsupercompression"
     PLUGIN_MANUFACTURER_CODE Qing
     PLUGIN_CODE Qscp
-    FORMATS VST3
+    FORMATS ${QQSC_PLUGIN_FORMATS}
     PRODUCT_NAME "QQ Super Compression"
     DESCRIPTION "Threshold-free lookahead dynamic-range compressor"
     IS_SYNTH FALSE
