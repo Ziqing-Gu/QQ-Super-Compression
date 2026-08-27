@@ -38,11 +38,15 @@ The formal Release contains one umbrella ZIP, `QQ.Super.Compression.0.1.10.zip`.
 
 ## 界面预览 / Interface preview
 
-![QQ Super Compression 0.1.10 在 Cubase 中处理人声 / processing a vocal track in Cubase](docs/images/qq-super-compression-0.1.10-mixing.png)
+![QQ Super Compression 0.9.3 在 Cubase 中处理人声 / v0.9.3 vocal mixing view in Cubase](docs/images/qq-super-compression-0.9.3-vocal-mix.png)
 
-图中是一个有代表性的正常混音状态：ST 模式、26 ms Lookahead、8:1 Ratio 与并行 Mix，同时显示动态历史、输入/输出电平和 Gain Reduction。图中数值用于展示工作流，并非固定推荐设置。
+![QQ Super Compression 0.1.10 mixing reference / 历史混音参考](docs/images/qq-super-compression-0.1.10-mixing.png)
 
-This is a representative mixing state: ST mode, 26 ms Lookahead, an 8:1 Ratio, and parallel Mix, with dynamic history plus input, output, and Gain Reduction metering. The displayed values demonstrate the workflow rather than prescribe fixed settings.
+首图展示 0.9.3 的实际人声混音状态：暖色透明界面、Input Gain、Ratio、Makeup、Mix、Output Gain、ST 模式与 26 ms Lookahead 同时可见。图中数值用于展示工作流，不是固定推荐值。
+
+The first image shows a real v0.9.3 vocal-mixing state: the warm transparent UI with Input Gain, Ratio, Makeup, Mix, Output Gain, ST mode, and 26 ms Lookahead visible together. The values demonstrate a workflow, not fixed recommendations.
+
+The second image remains as a historical 0.1.10 mixing reference.
 
 ## 为什么设计它 / Why it exists
 

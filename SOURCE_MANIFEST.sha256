@@ -12,6 +12,7 @@ b119b870ea757d352c71d6de6281d9b30eb98d3aa479442b49b49fa6ce16443f  ./CMakeLists.t
 15ed62e9c7453f0676a9bc2845d32431ac8d96af335baec820aae77357b9c40f  ./CODEX_BUILD.md
 e4d972a6b1707be9ffc35d68c41a81bd14d7e09b6fedfe3b71e8ae07c71ad2cc  ./DEVELOPMENT_HISTORY.md
 2d90b68d1f4860167bf17a50fe4193fcbebb67e896011af176d9714c5fb00b00  ./docs/images/qq-super-compression-0.1.10-mixing.png
+cc779a69da06ba23e681be6056b816ca7f32d4acfd0b96ac80321a12995a790d  ./docs/images/qq-super-compression-0.9.3-vocal-mix.png
 450a6b425663061924ecc545aec495b1305afbc7909b0bb3dcdb065c1bbe4886  ./docs/plan_d_release_checklist.md
 4cb4b9a2e6d78600aa3bf25612f525a408f18d3cae40832d4deeb74d8e211006  ./docs/QQ Super Compression 0.1.10 Windows与macOS安装使用说明（中文）.txt
 9bc9f5004341daaee151049452695a9b54b77c0057c29cf1e662433e8c55b862  ./docs/QQ Super Compression 0.9.3 Windows与macOS 安装使用说明（中文）.txt
@@ -23,7 +24,7 @@ c769364d44181ef19edd7c02caa71cbe7a18bd2488d1a81c301f5b4bcb3afa71  ./LICENSE
 03f126046e220a3c301bd7fbaeb884d836391236dc46cd90bb166ec0626aa646  ./PLAN_A_VERIFICATION_0.1.10.md
 f902a21fd87cd7f387de0702844e65ccac0de9fce01ac053b02d275d9b6c5c4f  ./PLAN_A_VERIFICATION_0.9.3.md
 0f60bb13b7ba474074429b0773c9ca964ee666351db47cdcabc0148e70df10b3  ./PRODUCT_DESIGN_NOTES.md
-1c91d59852f2020c2e0eab8028f170f5bef8f045ef3519f5237c5330ee52ad9c  ./README.md
+41d9ac015f27b354c4ffabb654fc98b369640e358575651451c7f9a9f08440c0  ./README.md
 1f3bb96bd6aad98383977d1c3fc9c0c9dd065302f59cd2fbce83ee5642d07fbf  ./Source/BS1770LoudnessMatch.h
 2c1fe77c00e19bac73199ddf0e61393f2fba505bc11ce314ffa0ed6515f6399d  ./Source/DynamicDisplay.cpp
 e97f174d6a447bfb4f803fd3650ab92b3fb4dd69f9d04794ae1d2ce5c2ed079a  ./Source/DynamicDisplay.h
