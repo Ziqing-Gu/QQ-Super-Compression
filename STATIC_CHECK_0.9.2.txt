@@ -1,0 +1,78 @@
+QQ Super Compression v0.9.2 — Static Verification
+Date: 2026-08-27
+Status: Candidate / static only
+Base: v0.9.1 Candidate
+
+IMPORTANT: This is NOT a JUCE/VST3 compile report.
+
+Checks completed:
+
+1. Runtime knob asset
+   - PNG dimensions: 256 x 32768 RGBA
+   - 128 exact 256 x 256 frames
+   - alpha channel includes transparent pixels (0..255)
+   - embedded runtime asset SHA256:
+     017cd74dcd51bf974dc01d7bcc0d4a0d300053cc58d14ae097ce11afcee21feb
+   - warm outer-arc pixel count increased at key frames 0/25/64/96/127:
+     0 / 65 / 181 / 271 / 357
+     This is a static confirmation of cumulative illumination, not a visual approval.
+
+2. Asset architecture
+   - CMake adds QQSCAssets via juce_add_binary_data.
+   - UTF8LookAndFeel loads the filmstrip from BinaryData.
+   - decoded juce::Image is a function-local static/shared image so multiple editor instances reference one decoded atlas.
+   - drawRotarySlider maps nearest visual frame using round(normalized * 127).
+   - Slider/APVTS parameter ranges remain continuous; no 128-step parameter quantisation was introduced.
+   - Slider text boxes remain editable live UI and are not inside the PNG.
+
+3. Input / Output Gain source path
+   - inputGainDb / outputGainDb parameter IDs exist.
+   - new parameters are appended after the complete old parameter sequence.
+   - both Candidate ranges: -24..+24 dB, default 0 dB.
+   - Input Gain is smoothed at host rate before Oversampling/detector/compression.
+   - original pre-Input-Gain host samples are preserved separately.
+   - active Dry/Mix uses Input-Gain-adjusted delayed signal.
+   - Dynamic Display Dry/Input uses separately delayed original pre-Input-Gain signal.
+   - Output Gain is smoothed after Makeup/Mix.
+   - Dynamic Display Output / Output meter read final post-Output-Gain samples.
+   - LUFS Match continues to use Input-Gain-adjusted Dry vs Wet pre-Makeup and does not include Output Gain.
+   - true Bypass uses original delayed input while keeping the same PDC latency.
+
+4. State / A-B
+   - Input/Output Gain included in ParameterSnapshot capture/apply.
+   - Input/Output Gain included in A/B serialization.
+   - state schema bumped to 3.
+   - Oversampling legacy threshold remains independently fixed at schema 2; v0.9.1 schema-2 state is therefore NOT accidentally treated as old v0.1.9 oversampling state.
+   - pre-v0.9.2 state missing the new gains is explicitly migrated to 0 dB.
+
+5. Existing core files byte-identical to v0.9.1
+   - Source/BS1770LoudnessMatch.h
+   - Source/StaticCompressionEngine.h
+   - Source/DynamicDisplay.cpp/.h
+   - Source/LevelMeters.cpp/.h
+   - Source/MeterState.h
+
+6. Standalone BS.1770 test
+   - 1 kHz 0 dBFS mono: -3.0036 LUFS
+   - fixed Dry/Wet difference: 6.00 dB Match
+   - PASS
+
+7. Basic source integrity
+   - brace counts balanced in modified C++/headers.
+   - required new symbols and asset references present.
+
+8. CMake environment check
+   - CMake compiler detection succeeded.
+   - configuration intentionally stopped because this environment has no local JUCE checkout and QQSC_FETCH_JUCE was disabled for the check.
+   - Therefore no JUCE compile, link, VST3 scan, Cubase test, PDC test or HiDPI UI test has been claimed.
+
+Codex/user real verification required:
+- JUCE 8.0.15 BinaryData generation/link and VST3 build.
+- Visual asset quality in Cubase at multiple UI scales.
+- text input / Shift fine / Alt reset / host automation.
+- Input Gain detector behaviour and Input meter.
+- Dynamic Display Dry/Input remains pre-Input-Gain.
+- Output Gain changes final Output display/meter/audio.
+- A/B, Undo/Redo and project state migration.
+- Bypass/PDC at 0ms 1x/8x/16x and non-zero Lookahead.
+- C4459 remains absent in MSVC build.

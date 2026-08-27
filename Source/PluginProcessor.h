@@ -53,7 +53,7 @@ public:
     void notifyHostProcessingLatency();
 
     // UI A/B comparison. A/B stores the complete user sound-setting state
-    // (Ratio, all Makeup values, Mix, Lookahead, Oversampling and Mode). Bypass is intentionally global
+    // (Input/Output Gain, Ratio, all Makeup values, Mix, Lookahead, Oversampling and Mode). Bypass is intentionally global
     // and is not part of A/B snapshots.
     int getActiveABSlot() const noexcept { return activeABSlot.load (std::memory_order_relaxed); }
     void selectABSlot (int slot);
@@ -71,6 +71,7 @@ public:
 private:
     struct ParameterSnapshot
     {
+        float inputGainDb = 0.0f;
         float ratio = 8.0f;
         float makeupST = 0.0f;
         float makeupL = 0.0f;
@@ -78,6 +79,7 @@ private:
         float makeupM = 0.0f;
         float makeupS = 0.0f;
         float mix = 100.0f;
+        float outputGainDb = 0.0f;
         float lookaheadMs = 26.0f;
         int oversampling = 1;
         int mode = qqsc::params::stereoLinked;
@@ -98,7 +100,7 @@ private:
     void resetAllProcessingState() noexcept;
     juce::dsp::Oversampling<float>& getCurrentOversampler() noexcept;
     int getOversamplingLatencySamples (int oversamplingIndex) const noexcept;
-    int getCombinedLatencySamples (float lookaheadMs, int oversamplingIndex) const noexcept;
+    int getCombinedLatencySamples (float requestedLookaheadMs, int oversamplingIndex) const noexcept;
 
     void resetMatchAccumulator() noexcept;
     void updateMatchResults() noexcept;
@@ -126,6 +128,9 @@ private:
     // linear-phase FIR stages with integer latency compensation enabled.
     std::array<std::unique_ptr<juce::dsp::Oversampling<float>>, 3> oversamplers;
     juce::AudioBuffer<float> wetBaseBuffer;
+    // v0.9.2 keeps a host-rate copy of the untouched input so the Dynamic
+    // Display Dry/Input reference and true bypass remain pre-Input-Gain.
+    juce::AudioBuffer<float> originalInputBuffer;
 
     // The detector and Ratio gain application run in the effective internal
     // domain. Only 0 ms may be 8x/16x; every non-zero Lookahead is forced 1x.
@@ -144,6 +149,7 @@ private:
     // integer latency reported by the selected oversampling filter, so Dry, Wet,
     // Mix and Bypass remain sample-aligned.
     juce::AudioBuffer<float> dryDelayBuffer;
+    juce::AudioBuffer<float> originalDryDelayBuffer;
     int dryDelayCapacity = 1;
     int dryDelayWriteIndex = 0;
     int currentOversamplingIndex = -1;
@@ -154,6 +160,7 @@ private:
 
     // Parameter smoothing only prevents zipper noise while controls move. It is
     // not the compressor's user Attack/Release behaviour.
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> inputGainSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupSTSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupLSmoother;
@@ -161,6 +168,7 @@ private:
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupMSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupSSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mixSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGainSmoother;
 
     mutable juce::CriticalSection abLock;
     ParameterSnapshot snapshotA;

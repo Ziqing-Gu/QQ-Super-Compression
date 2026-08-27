@@ -1,4 +1,4 @@
-# QQ Super Compression 0.1.10
+# QQ Super Compression 0.9.3
 
 **Qing Audio 开源动态处理器 / Open-source dynamics processor by Qing Audio**
 
@@ -8,12 +8,17 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 | 项目 / Item | 内容 / Value |
 |---|---|
-| 当前版本 / Current version | 0.1.10 |
-| 状态 / Status | Candidate / Test — 尚未由用户确认 Stable / not yet user-confirmed Stable |
+| 当前版本 / Current version | 0.9.3 |
+| 状态 / Status | Stable baseline (Plan D policy) — macOS packages pending / 稳定基线（Plan D 规则），macOS 成品待补齐 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | MIT |
+
+> **0.9.3 稳定基线 / Stable baseline:** 按 Plan D 规则，本版本作为稳定基线记录；当前已完成 Windows x64 VST3 的本机构建与安装验证，macOS 三类成品尚未生成，因此尚未创建跨平台下载 Release。
+>
+> **Stable baseline:** Under the Plan D policy, this version is recorded as the stable baseline. Windows x64 VST3 has passed local build and install verification; the three macOS products are not yet generated, so no cross-platform download Release has been created.
+
 
 ## 下载 / Download
 
@@ -254,7 +259,29 @@ Manual Cubase validation of 0 ms 1x/8x/16x sound, CPU, PDC, 50% Mix, Bypass, aut
 
 下面记录从首个原型到当前版本的全部真实版本。所有版本均为 Candidate/Test；用户尚未确认任何版本为 Stable。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
 
-Every real version from the first prototype through the current build is recorded below. All versions remain Candidate/Test; none has been user-confirmed Stable. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+Every real version from the first prototype through the current build is recorded below. Version 0.9.3 is the stable baseline requested for this Plan D run; earlier entries retain their historical Candidate/Test labels. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+
+### 0.9.3 — 2026-08-27 — Stable baseline / 稳定基线
+
+- 中文：恢复 v0.9.1 矢量暖光旋钮，保留 v0.9.2 Input/Output Gain、A/B、工程状态和 Undo/Redo；Windows x64 VST3 已完成 Release 构建与安装校验。
+- English: Restored the v0.9.1 vector warm-light rotary while retaining v0.9.2 Input/Output Gain, A/B, project state, and Undo/Redo; Windows x64 VST3 passed Release build and install verification.
+- 中文：按 Plan D 规则记录为稳定基线；macOS arm64 VST3、x86_64 VST3 和 Universal 2 AU 尚未生成，跨平台交付仍待补齐。
+- English: Recorded as the stable baseline under the Plan D policy; macOS arm64 VST3, x86_64 VST3, and Universal 2 AU are not yet generated, so cross-platform delivery remains pending.
+
+### 0.9.2 — 2026-08-27 — Candidate / Test
+
+- 中文：引入 Input Gain、Output Gain 与 128 帧位图旋钮实验；输入增益进入检测/压缩路径，输出增益位于最终输出。
+- English: Added Input Gain, Output Gain, and the 128-frame bitmap-knob experiment; Input Gain feeds detection/compression and Output Gain trims the final output.
+
+### 0.9.1 — 2026-08-27 — Candidate / Test
+
+- 中文：细化暖光/材质表现，修复 lookaheadMs 名称遮蔽警告，DSP 与布局保持不变。
+- English: Refined the warm-light/material treatment, removed the lookaheadMs shadow warning, and kept DSP and layout unchanged.
+
+### 0.9.0 — 2026-08-27 — Candidate / Test
+
+- 中文：首次暖色透明 UI 候选，保留 0.1.10 DSP 基线。
+- English: First warm transparent UI candidate, retaining the 0.1.10 DSP baseline.
 
 ### 0.1.10 — 2026-08-27 — Candidate / Test
 

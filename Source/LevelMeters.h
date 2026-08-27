@@ -29,7 +29,8 @@ private:
                         float maxDb,
                         bool reductionMeter,
                         float hold0Db,
-                        float hold1Db);
+                        float hold1Db,
+                        juce::Colour barColour);
 
     void drawSingleBar (juce::Graphics&,
                         juce::Rectangle<float>,
@@ -38,7 +39,8 @@ private:
                         float minDb,
                         float maxDb,
                         bool reductionMeter,
-                        float holdDb);
+                        float holdDb,
+                        juce::Colour barColour);
 
     QQSuperCompressionAudioProcessor& processor;
 

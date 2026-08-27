@@ -1,0 +1,34 @@
+QQ Super Compression 0.9.3
+English Installation and Usage Guide
+
+Release status: Plan D stable baseline (source and Windows x64 VST3 verified; macOS products pending)
+Vendor: Qing Audio
+Formats: Windows x64 VST3; macOS arm64/x86_64 VST3; macOS Universal 2 AU
+This is an MIT-licensed open-source project. The guide targets Windows 10/11 x64 and macOS 12 or later; choose the macOS package that matches the Mac architecture.
+
+1. Windows x64 VST3
+
+1. Fully quit Cubase, Nuendo, REAPER, Studio One, and every host that may scan plug-ins.
+2. Extract the Windows x64 VST3 ZIP. It must contain `QQ Super Compression.vst3`.
+3. If an older `QQ Super Compression.vst3` exists, remove the old copy first. Do not keep duplicate copies in the user and system plug-in folders.
+4. Copy the bundle to `C:\Program Files\Common Files\VST3`; Windows may request administrator permission.
+5. Reopen the host and rescan VST3. If it is still missing, clear the host plug-in cache and restart the host.
+
+2. macOS VST3
+
+Install only the arm64 ZIP on Apple Silicon (M-series) Macs, or only the x86_64 ZIP on Intel Macs. Do not install both VST3 packages.
+
+Copy the extracted `QQ Super Compression.vst3` to `~/Library/Audio/Plug-Ins/VST3`, or to `/Library/Audio/Plug-Ins/VST3` when administrator permission is appropriate. Use Finder “Go to Folder” to open the hidden user Library. Reopen the host and rescan VST3.
+
+3. macOS Audio Unit
+
+The Universal 2 AU contains both arm64 and x86_64. Extract the AU ZIP and copy `QQ Super Compression.component` to `~/Library/Audio/Plug-Ins/Components`, or to `/Library/Audio/Plug-Ins/Components`. AU and VST3 are separate formats; install only the format you need, then rescan Audio Units in Logic Pro or another AU host.
+
+4. Security and upgrades
+
+If a macOS bundle is ad-hoc signed or not notarized, macOS may block it. After confirming that the source is trusted, use the actual bundle path in:
+
+`xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"`
+
+Do not remove quarantine for an untrusted source. For upgrades always use: quit the DAW → remove the old copy → copy the new bundle → rescan. Never keep duplicate copies in both user and system folders.
+

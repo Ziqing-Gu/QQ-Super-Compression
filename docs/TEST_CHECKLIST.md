@@ -1,4 +1,4 @@
-# QQ Super Compression 0.1.10 Test Checklist
+# QQ Super Compression 0.1.9 Test Checklist
 
 ## 0.1.9 Oversampling / PDC / warning cleanup
 
@@ -259,3 +259,101 @@ For Ratio, all active/inactive mode Makeup knobs, and Mix:
 - [ ] strict LUFS Match result is unchanged.
 - [ ] Ratio law / ST-MS-LR / Makeup / Mix / 2 s GR Hold / Dynamic Display remain unchanged.
 - [ ] Existing 1020x670 uniform scaling and mouse hit-testing remain correct.
+
+## 0.9.0 Warm Transparent UI Candidate
+
+### Version / theme
+
+- [ ] Panel version reads subdued `v0.9.0`.
+- [ ] Main canvas is warm ivory/sand, not the old black prototype theme.
+- [ ] Text remains high-contrast/readable at minimum and maximum editor size.
+- [ ] Panel shadows/glow remain subtle; no clipped neon halos.
+
+### Knobs / buttons / glow
+
+- [ ] Ratio / Makeup / Mix use warm orange illuminated arcs.
+- [ ] Mode reads as a compact active state button and clicks `ST -> MS -> LR -> ST`.
+- [ ] A/B selected slot is visually obvious.
+- [ ] Bypass ON is visually obvious but not visually overwhelming.
+- [ ] Oversampling button uses the technical cyan accent and remains visible only at 0 ms.
+- [ ] Match disabled state is still clearly disabled/readable.
+
+### Display / meters
+
+- [ ] Dynamic Display geometry/behaviour is unchanged from 0.1.10.
+- [ ] Dry trace = warm neutral grey; Wet = cyan; Output = coral/orange.
+- [ ] Meter panel is light/warm and Input/Output/GR remain distinguishable.
+- [ ] GR grows downward from 0 dB and the 2 s Hold marker/value still work.
+
+### Resize / interaction
+
+- [ ] 1020:670 aspect and uniform scaling remain correct.
+- [ ] Knob/button/ComboBox mouse hit targets stay aligned after resize.
+- [ ] Lookahead popup menu remains readable on the light theme.
+- [ ] Shift fine drag / Alt reset / Undo / Redo still work.
+
+### DSP regression
+
+- [ ] Ratio / Lookahead / Oversampling / LUFS Match / PDC / A-B / Makeup / Mix are audibly/behaviourally unchanged from 0.1.10.
+- [ ] 0 ms Oversampling still cycles 1x/8x/16x; 10 ms+ remains fixed 1x internally.
+
+
+## 0.9.1 Lighting & Material Refinement Candidate
+
+### Visual lighting
+
+- [ ] Panel version reads subdued `v0.9.1`.
+- [ ] v0.9.0 layout is unchanged.
+- [ ] Ratio / Makeup / Mix have a visible soft halo rather than only an orange outline.
+- [ ] A broad but subtle warm spill is visible below each warm-accent knob.
+- [ ] The lit arc endpoint has a small bright core without looking like harsh neon.
+- [ ] Knob body has a light top rim, soft lower shade and subtle reflected warm light.
+- [ ] Mode / selected A-B / Bypass ON / 0 ms Oversampling use the same back-lit visual language.
+- [ ] Glow is not clipped at min/max editor sizes.
+- [ ] Background remains warm ivory and does not become dark/heavy.
+
+### Compile / regression
+
+- [ ] MSVC C4459 `lookaheadMs` warning is gone.
+- [ ] No new compiler warnings from the lighting code.
+- [ ] Mode still cycles `ST -> MS -> LR -> ST`.
+- [ ] Dynamic Display and meter geometry/data semantics are unchanged.
+- [ ] Ratio / Lookahead / Oversampling / PDC / LUFS Match / A-B / Makeup / Mix / GR Hold are unchanged from v0.9.0.
+
+## v0.9.2 — Asset knobs / Input & Output Gain
+
+- [ ] VST3 compiles with `QQSCAssets` BinaryData target.
+- [ ] No external PNG is required beside installed VST3.
+- [ ] Ratio / Makeup / Mix / Input Gain / Output Gain show the intended bitmap knob.
+- [ ] visual frame 0 pointer visible.
+- [ ] visual frame 127 pointer visible.
+- [ ] ~20% shows only the first ~20% of the lit arc.
+- [ ] 100% shows the complete usable arc lit.
+- [ ] direct numeric input remains editable and supports decimals.
+- [ ] DAW automation remains continuous; values are not quantised to 128 steps.
+- [ ] Input Gain 0 dB null/behaviour regression against 0.9.1 where applicable.
+- [ ] Input Gain changes compression response.
+- [ ] Input Gain changes Input meter but does not move Dynamic Display Dry/Input reference by itself.
+- [ ] Output Gain changes final audio, Output meter and Dynamic Display Output.
+- [ ] LUFS Match still writes Makeup only.
+- [ ] Mix 0 path uses Input-Gain-adjusted Dry when active.
+- [ ] Bypass removes both trims but keeps exact PDC alignment.
+- [ ] A/B copy/recall includes both trims.
+- [ ] Undo/Redo includes both trims.
+- [ ] pre-0.9.2 project restores Input/Output Gain at 0 dB.
+- [ ] 0ms 1x/8x/16x and 10/26/40/80/100ms latency regressions pass.
+- [ ] MSVC C4459 warning from old lookahead naming does not return.
+
+
+## v0.9.3 — UI rollback / v0.9.2 feature retention
+
+- [ ] Panel version reads `v0.9.3`.
+- [ ] No bitmap/filmstrip knob is visible or required at runtime.
+- [ ] v0.9.1 warm vector knob/button appearance is restored.
+- [ ] Input Gain and Output Gain remain visible, editable and automatable.
+- [ ] Input Gain affects compression/Input meter but not Dynamic Display Dry/Input reference.
+- [ ] Output Gain affects final Output meter and Dynamic Display Output.
+- [ ] A/B, save/reload and Undo/Redo retain both trims.
+- [ ] Pre-0.9.2 state still migrates both trims to 0 dB.
+- [ ] 0 ms 1x/8x/16x and 10/26/40/80/100 ms PDC behaviour unchanged.
+- [ ] LUFS Match, ST/MS/LR, Mix, Bypass and 2 s GR Hold unchanged.

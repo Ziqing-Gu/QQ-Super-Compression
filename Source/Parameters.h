@@ -6,6 +6,7 @@
 
 namespace qqsc::params
 {
+    inline constexpr auto inputGainDb    = "inputGainDb";
     inline constexpr auto ratio          = "ratio";
     inline constexpr auto makeupGainDb   = "makeupGainDb";   // ST / legacy shared Makeup
     inline constexpr auto makeupGainLDb  = "makeupGainLDb";
@@ -13,6 +14,7 @@ namespace qqsc::params
     inline constexpr auto makeupGainMDb  = "makeupGainMDb";
     inline constexpr auto makeupGainSDb  = "makeupGainSDb";
     inline constexpr auto mix            = "mix";
+    inline constexpr auto outputGainDb   = "outputGainDb";
     inline constexpr auto lookaheadMs    = "lookaheadMs";
     inline constexpr auto oversampling   = "oversampling";
     inline constexpr auto processingMode = "processingMode";
@@ -91,12 +93,12 @@ namespace qqsc::params
         return lookaheadMsForChoiceIndex (lookaheadChoiceIndexForMs (ms));
     }
 
-    inline int effectiveOversamplingChoiceIndex (float lookaheadMs, int userChoiceIndex) noexcept
+    inline int effectiveOversamplingChoiceIndex (float requestedLookaheadMs, int userChoiceIndex) noexcept
     {
         // Oversampling is intentionally a 0 ms flavour/anti-aliasing option only.
         // User PluginDoctor testing found no meaningful aliasing need at 10 ms
         // or longer, so every non-zero Lookahead always runs the Ratio core at 1x.
-        if (snapLookaheadMs (lookaheadMs) > 0.0001f)
+        if (snapLookaheadMs (requestedLookaheadMs) > 0.0001f)
             return 0;
 
         return juce::jlimit (0, static_cast<int> (oversamplingFactors.size()) - 1, userChoiceIndex);

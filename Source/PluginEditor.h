@@ -106,17 +106,20 @@ private:
 
     juce::Label title;
     juce::Label versionLabel;
+    juce::Label inputGainLabel;
     juce::Label ratioLabel;
     juce::Label makeupLabel;
     juce::Label makeupChannel0Label;
     juce::Label makeupChannel1Label;
     juce::Label mixLabel;
+    juce::Label outputGainLabel;
     juce::Label modeLabel;
     juce::Label lookaheadLabel;
     juce::ComboBox lookaheadCombo;
     juce::Label oversamplingLabel;
     juce::TextButton oversamplingButton { "8x" };
 
+    FineKnob inputGainSlider { 0.0 };
     FineKnob ratioSlider { 8.0 };
     FineKnob makeupSTSlider { 0.0 };
     FineKnob makeupLSlider { 0.0 };
@@ -124,6 +127,7 @@ private:
     FineKnob makeupMSlider { 0.0 };
     FineKnob makeupSSlider { 0.0 };
     FineKnob mixSlider { 100.0 };
+    FineKnob outputGainSlider { 0.0 };
 
     juce::TextButton modeButton { "ST" };
     juce::TextButton matchButton { "MATCH" };
@@ -133,6 +137,7 @@ private:
     juce::TextButton aToBButton;
     juce::TextButton bToAButton;
 
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> inputGainAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> ratioAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> makeupSTAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> makeupLAttachment;
@@ -140,6 +145,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> makeupMAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> makeupSAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> outputGainAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (QQSuperCompressionAudioProcessorEditor)

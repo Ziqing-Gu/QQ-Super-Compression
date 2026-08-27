@@ -1,0 +1,46 @@
+QQ Super Compression v0.9.1 — Static / Source Verification
+Date: 2026-08-27
+Status: Candidate / Test
+Base: v0.9.0 Warm Transparent UI Candidate
+
+USER-REPORTED REAL BUILD INPUT
+- v0.9.0 was actually compiled by the user/Codex.
+- The only reported compiler issue was one non-fatal MSVC C4459 warning involving the identifier lookaheadMs.
+- The user reported that this warning did not prevent runtime or VST3 loading.
+- v0.9.1 source renames the conflicting Parameters.h helper argument to requestedLookaheadMs and also cleans two same-name locals in PluginProcessor.cpp. This source change is intended to remove that warning; it still requires a real MSVC rebuild to confirm.
+
+V0.9.1 SCOPE CHECK
+- PluginEditor::resized() layout coordinates are unchanged from v0.9.0.
+- DynamicDisplay.cpp unchanged.
+- LevelMeters.cpp/.h unchanged.
+- PluginEditor.h unchanged.
+- PluginProcessor.h change is identifier-only for the C4459 cleanup (`requestedLookaheadMs`).
+- StaticCompressionEngine.h unchanged.
+- BS1770LoudnessMatch.h unchanged.
+- MeterState.h unchanged.
+- Parameters.h change is identifier-only for the C4459 cleanup (`requestedLookaheadMs`).
+- PluginProcessor.cpp changes are identifier-only for the C4459 cleanup (`requestedLookaheadMs` / `currentLookaheadMs` / `snapshotLookaheadMs`).
+- UI changes are concentrated in UTF8LookAndFeel.h plus panel material drawing in PluginEditor::paint().
+- CMake version updated to 0.9.1.
+
+LIGHTING IMPLEMENTATION CHECK
+- Rotary value arc: four-layer halo/bloom plus crisp active arc.
+- Rotary endpoint: wide faint bloom + bright hot core.
+- Knob/panel interaction: broad warm light pool below knob.
+- Knob material: vertical warm gradient, soft neutral shadow, clipped lower reflected light, top highlight and lower shade.
+- Lit buttons: three-layer halo plus bottom light spill; existing toggle/always-lit state logic preserved.
+- Panel geometry unchanged; only low-contrast material gradient/rim/shadow added.
+- No bitmap glow assets and no animation system added.
+
+STANDALONE DSP REGRESSION SELF-TEST
+Command:
+  g++ -std=c++17 -O2 -I. tests/bs1770_match_selftest.cpp -o /tmp/qqsc_bs1770 && /tmp/qqsc_bs1770
+Result:
+  1 kHz 0 dBFS mono: -3.0036 LUFS
+  6 dB fixed difference, ST Match: 6 dB
+  PASS
+
+FULL BUILD STATUS
+- Full JUCE/VST3 compilation was NOT completed in this assistant environment because no local JUCE checkout is available and network access from the build container is unavailable.
+- Therefore v0.9.1 is NOT claimed as compiled/DAW-verified here.
+- Required next step: Codex/user Windows Release build, confirm C4459 is gone, confirm no new warnings, then inspect a real Cubase screenshot for glow strength/clipping.

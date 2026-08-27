@@ -1,16 +1,38 @@
 # QQ Super Compression 版本记录 / Changelog
 
-本文档记录所有真实版本 0.1.0–0.1.10。每条记录均提供语义一致的中文和英文摘要。所有版本当前均为 Candidate/Test；没有任何版本已由用户确认 Stable。
+本文档记录所有真实版本 0.1.0–0.1.10 与 0.9.0–0.9.3。0.9.3 按本次 Plan D 规则作为稳定基线；其余版本保留历史状态。
 
-This document records every real version from 0.1.0 through 0.1.10. Every entry includes semantically equivalent Chinese and English summaries. All versions currently remain Candidate/Test; no version has been user-confirmed Stable.
+This document records every real version from 0.1.0 through 0.1.10 and the 0.9.0–0.9.3 UI line. Every entry includes semantically equivalent Chinese and English summaries; 0.9.3 is the requested Plan D stable baseline.
 
 ## 版本覆盖审计 / Version coverage audit
 
-- 当前目标 / Current target: 0.1.10.
-- 实际连续版本 / Actual continuous versions: 0.1.0–0.1.10.
+- 当前目标 / Current target: 0.9.3 stable baseline.
+- 实际版本序列 / Actual version sequence: 0.1.0–0.1.10, then 0.9.0–0.9.3.
 - README 覆盖 / README coverage: current product design plus links to complete history.
 - CHANGELOG 覆盖 / CHANGELOG coverage: 0.1.0–0.1.10.
 - 遗漏 / Omissions: 无 / none.
+
+## 0.9.3 — UI Rollback / Features Retained — Stable baseline
+
+- 中文：恢复 v0.9.1 的矢量暖光旋钮，移除活动的 QQSCAssets BinaryData 目标，同时保留 v0.9.2 的 Input/Output Gain、Display 语义、A/B、工程状态和 Undo/Redo。Windows x64 VST3 已完成本机 Release 构建与安装校验。
+- English: Restored the v0.9.1 vector warm-light rotary, removed the active QQSCAssets BinaryData target, and retained v0.9.2 Input/Output Gain, Display semantics, A/B, project state, and Undo/Redo. The Windows x64 VST3 passed local Release build and install checks.
+- 中文：按 Plan D 规则标记为稳定基线；macOS 三类成品尚未生成，跨平台交付与 GitHub Release 仍待补齐。
+- English: Marked as the stable baseline under the Plan D policy; the three macOS products and a GitHub Release remain pending.
+
+## 0.9.2 — Asset Knobs + Input/Output Gain — Candidate / Test
+
+- 中文：加入 Input/Output Gain、位图旋钮实验及对应的检测、显示、状态和 A/B 保持规则。
+- English: Added Input/Output Gain and the bitmap-knob experiment with the agreed detector, display, state, and A/B rules.
+
+## 0.9.1 — Lighting & Material Refinement — Candidate / Test
+
+- 中文：增强暖光/材质层次，清理 lookaheadMs 名称遮蔽警告，DSP 未改。
+- English: Increased warm-light/material depth, cleaned the lookaheadMs shadow warning, and left DSP unchanged.
+
+## 0.9.0 — Warm Transparent UI — Candidate / Test
+
+- 中文：暖色透明 UI 首个候选，继承 0.1.10 DSP 基线。
+- English: First warm transparent UI candidate inheriting the 0.1.10 DSP baseline.
 
 ## 0.1.10 — 0 ms 专用 1x/8x/16x Oversampling 与产品设计文档 / 0 ms-Only 1x/8x/16x Oversampling and Product Design Documentation
 

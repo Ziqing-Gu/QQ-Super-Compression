@@ -1,0 +1,74 @@
+QQ Super Compression v0.9.0 — Static Verification Report
+Date: 2026-08-27
+Status: Candidate / Test
+Base: v0.1.10
+
+Scope
+-----
+This report covers static/source-level verification performed in the current AI environment.
+It is NOT a JUCE/VST3 compile report and is NOT a Cubase/DAW validation report.
+
+1. Version metadata
+-------------------
+PASS: CMake project version = 0.9.0.
+PASS: panel version still reads JucePlugin_VersionString, so compiled UI should display v0.9.0.
+
+2. DSP parity against v0.1.10
+-----------------------------
+Byte-for-byte unchanged versus the original v0.1.10 source package:
+PASS: Source/PluginProcessor.cpp
+PASS: Source/PluginProcessor.h
+PASS: Source/StaticCompressionEngine.h
+PASS: Source/BS1770LoudnessMatch.h
+PASS: Source/Parameters.h
+PASS: Source/MeterState.h
+
+Therefore this UI pass does not intentionally change Ratio, Lookahead, Oversampling, PDC,
+LUFS Match, A/B state schema, processing modes or audio-thread GR Hold logic.
+
+3. BS.1770 regression self-test
+-------------------------------
+Compiled JUCE-free test with:
+  g++ -std=c++17 -O2 -I. tests/bs1770_match_selftest.cpp
+
+Observed:
+  1 kHz 0 dBFS mono: -3.0036 LUFS
+  6 dB fixed difference, ST Match: 6 dB
+  PASS
+
+4. UTF-8 / source integrity
+---------------------------
+PASS: source/document files decode as UTF-8.
+PASS: MSVC /utf-8 build rule remains present in CMakeLists.txt.
+PASS: PingFang SC / Microsoft YaHei runtime fallback remains in UTF8LookAndFeel.
+
+5. UI implementation checks
+----------------------------
+PASS: old black editor background replaced by warm ivory/sand palette.
+PASS: Dynamic Display data/history implementation preserved; palette/background only changed.
+PASS: Dry/Wet/Output trace semantics remain Dry neutral / Wet cyan / Output coral-orange.
+PASS: Level meter ranges/direction/GR Hold input data remain unchanged; only paint palette changed.
+PASS: Mode uses existing TextButton click-cycle path; no Mode ComboBox/dropdown added.
+PASS: Mode click calls cycleMode(); cycle order remains existing ST -> MS -> LR -> ST parameter order.
+PASS: 0 ms Oversampling visibility/cycle code remains in the existing v0.1.10 path.
+PASS: new glow uses scalable JUCE vector strokes/fills, no bitmap asset dependency or realtime blur pass.
+PASS: new UI design rationale recorded in UI_DESIGN_NOTES.md.
+
+6. Warning-name regression checks
+---------------------------------
+PASS: no local variable named exactly playHead was reintroduced.
+PASS: existing hostPlayHead remains.
+PASS: existing editorBoundsConstrainer remains; no local variable named exactly constrainer was reintroduced.
+
+7. Not verified in this environment
+-----------------------------------
+NOT VERIFIED: full JUCE 8.0.15 CMake configure/build.
+NOT VERIFIED: VST3 binary compile/link/scan.
+NOT VERIFIED: Windows/Cubase UI rendering.
+NOT VERIFIED: light-theme popup menu rendering on the target OS.
+NOT VERIFIED: actual glow appearance at min/max editor sizes.
+NOT VERIFIED: mouse hit targets after host/editor scaling.
+NOT VERIFIED: GPU/CPU cost of the new vector painting in the real plugin host.
+
+Codex / user should perform the above before v0.9.0 is accepted. v1.0.0 must not be
+released until the user explicitly confirms the final UI and overall product state.

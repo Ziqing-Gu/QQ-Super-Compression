@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 0.1.10 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 0.9.3 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,17 +26,12 @@ else()
     message(FATAL_ERROR "JUCE was not found. Set -DJUCE_PATH=/path/to/JUCE or enable QQSC_FETCH_JUCE.")
 endif()
 
-set(QQSC_PLUGIN_FORMATS VST3)
-if (APPLE)
-    list(APPEND QQSC_PLUGIN_FORMATS AU)
-endif()
-
 juce_add_plugin(QQSuperCompression
     COMPANY_NAME "Qing Audio"
     BUNDLE_ID "com.qingaudio.qqsupercompression"
     PLUGIN_MANUFACTURER_CODE Qing
     PLUGIN_CODE Qscp
-    FORMATS ${QQSC_PLUGIN_FORMATS}
+    FORMATS VST3
     PRODUCT_NAME "QQ Super Compression"
     DESCRIPTION "Threshold-free lookahead dynamic-range compressor"
     IS_SYNTH FALSE
@@ -49,6 +44,9 @@ juce_add_plugin(QQSuperCompression
 )
 
 juce_generate_juce_header(QQSuperCompression)
+
+# v0.9.3: bitmap filmstrip UI was rejected by user testing.
+# Rotary controls are again rendered by UTF8LookAndFeel; archived PNG assets remain in source history only.
 
 target_sources(QQSuperCompression PRIVATE
     Source/Parameters.h

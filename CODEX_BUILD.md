@@ -1,4 +1,4 @@
-# QQ Super Compression 0.1.10 — Codex build / validation brief
+# QQ Super Compression 0.9.3 — Codex build / validation brief
 
 Before changing code, read these files in this order:
 
@@ -206,4 +206,82 @@ Append results to `AI_DEVELOPMENT_HANDOFF.md` / `DEVELOPMENT_HISTORY.md`. Separa
 - Cubase/PDC result;
 - user confirmation.
 
-Do not mark v0.1.10 Stable unless the user explicitly says it is Stable.
+For this Plan D run, v0.9.3 is the requested stable baseline; retain Candidate labels for historical versions unless explicitly changed.
+
+## v0.9.0 UI-specific verification
+
+Before building or editing v0.9.0, also read `UI_DESIGN_NOTES.md`.
+
+This version is intentionally a UI-only pre-release pass over the v0.1.10 DSP core. Please verify:
+
+- the plug-in reports/displays `v0.9.0`;
+- warm ivory/sand background and panel borders render correctly on Windows/macOS;
+- rotary controls show a subtle orange/cyan vector glow without clipping;
+- text boxes remain readable and editable;
+- Lookahead ComboBox and popup menu are readable on the light theme;
+- Mode is one click-cycle button (`ST -> MS -> LR -> ST`), not a dropdown;
+- A/B active state and Bypass ON state remain visually distinct;
+- disabled Match is visibly disabled/readable;
+- 0 ms Oversampling button still appears only at 0 ms and cycles 1x/8x/16x;
+- resize remains uniform 1020:670 with correct mouse hit targets;
+- Dynamic Display traces retain Dry/Wet/Output semantics;
+- Meter ranges/orientation and 2 s GR Hold remain unchanged;
+- no DSP regression relative to v0.1.10.
+
+
+## v0.9.1 lighting-refinement verification
+
+Build v0.9.1 exactly as the previous candidate, then verify the visual change in a real host rather than judging only source constants.
+
+- panel version must read `v0.9.1`;
+- the v0.9.0 layout must not move;
+- Ratio / Makeup / Mix arcs should now read as **light**, with a visible but soft warm pool below the knob;
+- active A/B, Mode, Bypass and 0 ms Oversampling states should read as softly back-lit, not merely outlined;
+- no glow may clip at minimum/max editor size;
+- ivory background must remain clean and light (do not darken it to make glow easier to see);
+- confirm MSVC C4459 for `lookaheadMs` is gone;
+- confirm no new warnings are introduced by `UTF8LookAndFeel.h`;
+- verify Mode still cycles `ST -> MS -> LR -> ST`;
+- verify Lookahead, 0 ms Oversampling visibility, Match, A/B, PDC, Mix and Bypass behave exactly as v0.9.0 / 0.1.10.
+
+If the glow is still too weak/strong, report a screenshot and tune only the alpha/width/material constants before changing layout.
+
+
+## v0.9.2 asset-knob / I-O Gain verification
+
+Build v0.9.2 as a new Candidate. This is the first version with an embedded BinaryData PNG filmstrip and new audio parameters, so verify both build-system and runtime behaviour.
+
+Required checks:
+
+- CMake/JUCE version and panel must report `0.9.2`.
+- `QQSCAssets` BinaryData target must compile and link; no external PNG file is required at runtime.
+- All rotary controls display the 128-frame asset and remain draggable/editable.
+- Direct text entry must accept decimal values such as `7.95 dB`; text must remain crisp and independent of the bitmap.
+- Visual frame mapping must not quantise DAW automation or parameter values.
+- Frame 0 and 127 pointer visibility; 20% approximate partial arc; 100% full usable arc.
+- Input Gain default 0 dB; current Candidate range -24..+24 dB.
+- Input Gain changes detector/compression behaviour and Input meters, but the Dynamic Display Dry/Input trace must not move merely because Input Gain changes.
+- Output Gain must change final audio, Output meters and Dynamic Display Output trace.
+- LUFS Match must still write Makeup only; Output Gain must not contaminate Match calculation.
+- Bypass must remain sample-aligned/PDC-correct and bypass both new trims.
+- A/B copy/select, project save/restore and Undo/Redo must include Input/Output Gain.
+- Load a pre-0.9.2 state and confirm both new trims migrate to 0 dB.
+- Confirm the old C4459 lookahead shadow warning remains absent.
+
+Do not call v0.9.2 Stable/Release until the user explicitly confirms it.
+
+
+## v0.9.3 UI rollback verification
+
+This Candidate intentionally keeps v0.9.2 DSP/state features but restores v0.9.1 vector rotary rendering. Verify:
+
+- build has **no `QQSCAssets` BinaryData dependency**;
+- panel version is `v0.9.3`;
+- rotary controls render with the v0.9.1 code-drawn warm-light LookAndFeel, not bitmap filmstrip frames;
+- Input Gain / Output Gain are still present and editable as smaller secondary trims;
+- Input Gain changes compression/Input meters but not Dynamic Display Dry/Input reference;
+- Output Gain changes final audio/Output meters/Dynamic Display Output;
+- A/B, save/restore and Undo/Redo still include both trims;
+- Ratio / Lookahead / Oversampling / PDC / Bypass / LUFS Match / GR Hold regressions remain unchanged.
+
+Do not remove the archived v0.9.2 asset-history documents merely because they are no longer active.

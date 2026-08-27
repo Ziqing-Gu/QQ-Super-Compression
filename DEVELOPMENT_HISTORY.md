@@ -664,61 +664,246 @@ Codex 首先完成 Windows Release 编译并看 warning；随后在 Cubase 测 c
 
 ---
 
-## v0.1.10 — Plan A Verification / Public README and Release Preparation
+## v0.9.0 — Warm Transparent UI Candidate
 
 **日期：** 2026-08-27  
 **状态：** Candidate / Test  
-**基于：** v0.1.10 ZeroMs-Oversampling source
+**基于：** v0.1.10 — 0 ms-Only 1x/8x/16x Oversampling / Design Documentation
 
 ### 用户需求
 
-用户要求执行 Plan B/C/D，并要求在修改 GitHub README 前完整阅读源代码包内的 Markdown，特别理解设计过程中遇到的问题、方案演进和设计这款压缩器的真正原因。
+当前 DSP/产品概念已经获得用户本人和多位网友积极实际反馈。进入正式发布前，先优化单段 QQ Super Compression 的 UI；用户不希望 Display 变成 FabFilter / Cenozoix 类设计，只接受背景/颜色层面的优化。
 
-### 文档结论
+用户拒绝最初的深黑赛博朋克方案，因为过暗的视觉容易让人联想到重度失真/饱和，与本产品“干净、透亮、尽量保留瞬态”的定位冲突。用户最终选择浅暖、简洁、透明、带柔和内发光的方向，并明确选择 Mode 方案 A：一个按钮单击循环三个模式，而不是下拉菜单。
 
-公开介绍必须先说明产品要解决的混音问题：吉他、人声、钢琴、贝斯等素材有时需要动态收敛，但不希望传统 Attack/Release 同时重塑拨弦、辅音、琴槌或指弹等音头。Future-window Lookahead 是为了在对应延迟音频到达前获得未来电平信息，从而减少对传统 Attack 包络的依赖。0 ms 是用户主动保留的额外非线性色彩，不应描述为透明模式。
+### 问题表现
 
-### 发布准备修改
+0.1.10 功能/UI 工作流可用，但整体仍是黑色开发者原型视觉。视觉语言没有充分表达插件的透明动态控制定位，也缺少接近正式产品的统一层级与材质感。
 
-- GitHub README 重写为完整中英双语产品介绍，先讲应用问题和适用素材，再讲算法、使用方法、0 ms 色彩、Oversampling、PDC、严格 LUFS Match、状态迁移与边界。
-- 保留并公开链接 `PRODUCT_DESIGN_NOTES.md`、`OVERSAMPLING_DESIGN_NOTES.md`、完整开发历史、交接文档和测试清单。
-- 恢复 macOS 构建所需的条件式 AU target；Windows 仍只生成 VST3。
-- GitHub Actions 与 Plan D 包名更新到 0.1.10。
-- Windows/macOS 中英文安装说明更新到 0.1.10，加入 0 ms Oversampling、状态迁移和手动验证步骤。
-- 新增独立 Plan A 验证记录；保留原静态检查文件的历史边界，不把早期静态环境的结论改写成当时已经编译。
-- DSP、参数 ID、Ratio law、Lookahead、LUFS Match、ST/MS/LR、Makeup/Mix、GR Hold 与 UI 行为均未在本次发布准备中修改。
+### 根因
 
-### 实际验证
+不是 DSP 问题。属于产品视觉身份尚未完成：旧暗色主题来自开发阶段，而不是经用户确认的最终品牌方向。
 
-- [x] JUCE 8.0.15 / MSVC Windows x64 Release VST3 编译成功。
-- [x] 源码 manifest 25/25、x64 PE、moduleinfo、DLL/VST3 入口、Steinberg validator 与 BS.1770 self-test 通过。
-- [x] 安装、构建与 D 盘交付模块 SHA-256 一致。
-- [x] 编译报告记录一个非致命 C4459：局部 `lookaheadMs` 隐藏同名 namespace 参数；未影响构建和自动验证。
-- [ ] Cubase/PluginDoctor 最终手动验证与用户确认。
+### 修改内容
 
-### 状态边界
+- CMake/JUCE 版本更新为 `0.9.0`；面板版本号继续自动读取 metadata。
+- 扩展 `UTF8LookAndFeel.h`：新增暖白/沙色 palette、可缩放旋钮、细轨道、柔和多层 glow、按钮状态 glow、浅色 ComboBox。
+- Ratio / Makeup / Mix 使用暖橙主 accent；Oversampling / technical accent 使用 cyan；A/B active / Mode / Bypass 根据状态采用柔和灯光语言。
+- Editor 主背景由黑色改为暖 ivory/sand；加入轻薄 rounded chassis panels、细 border 与非常轻的投影。
+- Dynamic Display 结构和数据完全不改，只改为浅暖背景；Dry=warm neutral grey、Wet=cyan、Output=coral/orange。
+- LevelMeters 改为浅暖面板；Input / Output / Gain Reduction 分别使用 neutral / output-orange / coral 色，同时保留原 Meter 范围、方向和 2 s Hold。
+- Mode 继续/明确使用单按钮 click-cycle，当前文字直接显示 ST/MS/LR，不使用下拉菜单。
+- 新增 `UI_DESIGN_NOTES.md`，记录用户拒绝暗色方案、选择暖透明方向、Glow 实现原则、Mode 交互和不得改动的 DSP 边界。
 
-Plan B/C/D 的备份、GitHub/CI 和最终桌面交付证据由独立 release verification 报告记录。本次发布准备不把 0.1.10 擅自标记为 Stable。
+### 保持不变
+
+- Ratio law 不变。
+- Future-window detector / 六档 Lookahead 不变。
+- 0 ms 1x/8x/16x Oversampling、默认 8x、10 ms+ fixed 1x 不变。
+- PDC、Dry/Wet/Bypass 对齐不变。
+- Strict Integrated LUFS Match 不变。
+- A/B、Undo/Redo、Makeup、Mix 不变。
+- ST/MS/LR DSP 定义和 parameter IDs 不变。
+- 2 s GR Peak Hold 不变。
+- Dynamic Display 数据语义不变。
+
+### 为什么这样修改
+
+UI 必须与声音定位一致。用户希望看到的是“干净、透亮、温暖、未来感已经变成现实”的工具，而不是暗黑/重失真视觉。Glow 使用多层低透明矢量 stroke/fill，而不是大面积 neon blur，既符合柔和内发光效果，也保持 resize 清晰和可维护性。
+
+Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；单按钮循环更快、更简洁，也保留已有处理模式参数语义。
+
+### 验证
+
+- [x] 源码静态检查（当前 AI 环境）
+- [x] DSP 源文件 hash 对照计划：确认 UI pass 不改 Processor / Ratio engine / loudness match 后再交付
+- [ ] JUCE / VST3 完整编译（需 Codex）
+- [ ] Windows / Cubase 实测
+- [ ] 用户 UI 视觉确认
+- [ ] 用户最终 v1.0.0 发布确认
+
+### 已知问题
+
+- Glow / knob/body 的最终明暗、色温和间距仍需要实际 VST3 截图由用户审美确认。
+- 不得因为 v0.9.0 是“接近发布”就擅自标记 Stable 或 Release。
+
+### 回滚
+
+如果 v0.9.0 UI 实现有问题，回滚到 `v0.1.10` 的 UI 文件即可；DSP 仍以 0.1.10 核心为准，不要回滚 Ratio / Lookahead / LUFS Match / Oversampling 等已验证设计。
+
+### 后续建议
+
+- Codex 编译后先检查 light-theme 控件边界、字体、PopupMenu、resize、disabled Match、A/B active state、Bypass on-state 和 0 ms Oversampling visibility。
+- 用户确认视觉后再做小范围 spacing / glow / colour tuning。
+- 最终确认后才升级为 v1.0.0 Release。
+
+
 ---
 
-## v0.1.10 — Plan B/C/D/G Compliance Completion
+## v0.9.1 — Lighting & Material Refinement
 
 **日期：** 2026-08-27  
-**状态：** Candidate / Test
+**状态：** Candidate / Test  
+**基于：** v0.9.0 — Warm Transparent UI Candidate
 
-### 目的
+### 用户需求
 
-依据项目外部的 Plan A–G 完整执行规范，补齐公开下载入口、README 内逐版本双语历史、正式源码备份、最新 CI 产物验证、桌面交付结构与首个 GitHub Release 的发布资料。
+用户实际编译 v0.9.0 后，对当前布局已经比较满意，但明确指出此前承诺的“亮灯/光影”没有在真实界面里体现出来。实机截图中 Ratio / Makeup / Mix 更像橙色描边，而不是概念图中的柔和内发光。用户确认继续修改，但不重做布局。
 
-### 文档与发布行为
+### 问题表现
 
-- README 顶部加入 Latest、固定版本与实际资产直链，说明单一完整 ZIP 的四个平台/格式子包与两份安装说明，并警告 Source code archives 不可安装。
-- README 直接记录 0.1.0–0.1.10 全部版本；没有用 `CHANGELOG.md` 链接代替公开首页的版本覆盖。
-- GitHub 首个 Release 的公开正文必须标明首个 Release、日期、Candidate/Test、用户提供资产且本轮未重建、平台/格式、安装安全、限制、实际远端资产名、字节数与 SHA-256。
-- Plan D 的内部 Actions 证据与公开桌面安装包分离；校验文件、架构证据和流水线日志只保留在 D 盘验证目录，不放入面向用户的桌面目录。
+0.9.0 虽然已经有多层低透明矢量 stroke/fill，但在浅 ivory 背景下能量过低：外圈 glow、底部 spill 和按钮 glow 在真实 DAW 缩放后几乎被背景吃掉，因此视觉上只剩清晰的橙色弧线。
 
-### 不变项与回滚
+### 根因
 
-- 本次没有修改 DSP、参数 ID、状态 schema、Ratio law、Lookahead、Oversampling、LUFS Match、ST/MS/LR、Makeup/Mix、PDC 或 UI 行为。
-- 版本仍为 Candidate/Test，最终 Cubase/PluginDoctor 与用户确认未被自动化验证替代。
-- 若发布资料需要回滚，只回退本次文档/Release metadata；若音频实现失败，继续使用既有 v0.1.10 -> v0.1.9 -> v0.1.8 Candidate 回滚顺序。
+这是 UI 光影参数/材质层级不足，不是布局问题，也不是 DSP 问题。0.9.0 的 glow 思路本身正确，但透明度、扩散宽度、底部反射面积以及旋钮实体材质之间的对比不足。
+
+### 修改内容
+
+- `UTF8LookAndFeel.h`：旋钮 value arc 改为更宽的四层 halo/bloom + crisp arc；增加更大的底部暖光池、endpoint hot core、旋钮内部下半区暖色反射、顶部白色 rim 与下缘 shade。
+- 激活按钮：增加三层外 halo 与底部 light spill；保持原有 toggle/always-lit 逻辑和 colour roles。
+- `PluginEditor::paint()`：不改 panel geometry，只增加极轻的 ivory vertical gradient、顶部高光 rim、柔和 shadow/border，让发光有可见的材质承载面。
+- 版本号 -> 0.9.1。
+- 用户报告的真实 MSVC C4459：把 `lookaheadMs` 冲突 argument/local 仅做命名替换，使用 `requestedLookaheadMs` / `currentLookaheadMs` / `snapshotLookaheadMs`；算法不变。
+
+### 保持不变
+
+- 0.9.0 的整体布局、Display / Meter 位置和尺寸不变。
+- Mode 仍为单按钮循环 `ST -> MS -> LR -> ST`。
+- Ratio / Lookahead / 0 ms 1x-8x-16x Oversampling / PDC / LUFS Match / A-B / Makeup / Mix / GR Hold 均不改。
+- Dynamic Display 数据和三条 trace 语义不改。
+- 不加入 animation、bitmap glow 或暗色背景。
+
+### 为什么这样改
+
+用户已经确认“布局对了，灯光没出来”，因此最小风险做法是只提高已经批准的灯光语言的可感知度，而不是再次推翻界面。亮背景下需要比暗背景更大的扩散面积和更清晰的局部光源/反射，才能让 glow 被看成光而不是一条色线。
+
+### 验证
+
+- [x] 源码 diff/static 检查：布局坐标没有修改。
+- [x] C4459 冲突命名已从 Parameters namespace helper 中移除，并清理两处同名局部变量。
+- [ ] JUCE/VST3 完整编译（需 Codex/用户）。
+- [ ] Cubase 实际截图确认 glow 强度。
+- [ ] 用户确认。
+
+### 已知问题
+
+最终 glow 强度仍属于视觉审美，需要真实 VST3 截图确认。若仍偏弱/偏强，应优先只调 `UTF8LookAndFeel.h` 中 alpha / stroke width / spill size，不修改布局和 DSP。
+
+### 回滚
+
+若 0.9.1 光影效果失败，可直接回到 v0.9.0 UI 文件；DSP 基线不回退。
+
+---
+
+## v0.9.2 — Asset Knobs / Input & Output Gain
+
+**日期：** 2026-08-27  
+**状态：** Candidate  
+**基于：** v0.9.1
+
+### 用户需求
+
+1. 0.9.0/0.9.1 通过 JUCE 绘制 glow 虽然功能正确，但实机视觉达不到用户要求。用户明确要求改为真正的 UI 图片资产：旋钮使用 128 帧透明 PNG，方便视觉状态与 7-bit MIDI CC 0–127 对应。
+2. 图片资产不能包含参数数字/小数点/单位，因为 Ratio、Makeup、Mix 等参数需要直接文本输入；数字必须继续用字体实时显示。
+3. 旋钮灯光不是移动单点：应从最小值左侧开始，随数值累计点亮；20% 约亮前 20%，100% 亮完整有效弧；0/127 两端指针都必须可见。
+4. 之前已确认需要加入 Input Gain / Output Gain。Input Gain 不改变 Dynamic Display 的 Dry/Input 参考；Output Gain 必须进入最终 Output Display。
+
+### 为什么属于架构变化
+
+旧 UI 的旋钮材质、弧线、Glow、指针全部由 `drawRotarySlider()` 动态矢量绘制。v0.9.2 改为：Slider/APVTS 仍负责参数与交互，LookAndFeel 只按 normalized value 选择 PNG filmstrip 中的一帧。这将视觉资产与参数逻辑分离，未来可换皮而不重写 DSP/参数。
+
+### 修改内容
+
+- CMake 增加 `QQSCAssets` BinaryData target，把 runtime PNG 嵌入 VST3。
+- 新增 128-frame / 256px vertical transparent filmstrip。
+- `UTF8LookAndFeel::drawRotarySlider()` 改为 `round(normalized*127)` 选择 frame；保留 asset-missing fallback，仅用于防止空白控件。
+- 数值 TextBox 保持 JUCE editable text，不进入 PNG。
+- 新增 `inputGainDb` / `outputGainDb` APVTS 参数；为避免旧工程风险，新参数追加在完整旧参数序列之后，不插入旧参数中间。
+- Input Gain 在 host-rate 先平滑，再进入 Oversampling / detector / compression。
+- 新增 untouched host-rate input copy + parallel original Dry delay：Dynamic Display Dry/Input 与 true bypass 使用 pre-Input-Gain 信号；活动 Dry/Mix/Match 使用 Input-Gain 后信号。
+- Output Gain 位于 Makeup + Mix 后；Dynamic Display Output 与 Output meter 使用 Output-Gain 后最终信号。
+- Match 仍比较处理链内部的 Dry（Input Gain 后）与 Wet pre-Makeup，不让 Output Gain 污染 Match。
+- Input/Output Gain 加入 A/B snapshot、state、Undo/Redo；旧 state 缺失时明确恢复 0 dB。
+- UI 主布局保留 Display/Meter 不动，底部增加左右两个较小 Trim knob；Ratio/Makeup/Mix 仍是主旋钮；Mode/Lookahead 区保留。
+
+### 保持不变
+
+- Ratio law 不改。
+- Future-window Peak / Lookahead presets 不改。
+- 0 ms 1x/8x/16x Oversampling 语义不改。
+- LUFS Match 算法不改，Match 仍只写 Makeup。
+- 2 s GR Hold 不改。
+- PDC 总延迟逻辑不改。
+- Mode 仍单按钮 ST -> MS -> LR -> ST。
+- Dynamic Display / Meter 本身仍实时绘制，不图片化。
+
+### 验证状态
+
+- 已做源码静态检查、资产尺寸/128 frame 检查、PNG alpha 检查、状态/参数引用检查。
+- 当前 AI 环境没有 JUCE checkout，未完成真实 VST3 编译。
+- 必须由 Codex/用户实测：BinaryData 编译、图片缩放/HiDPI、文本输入、A/B/Undo、Input Gain detector 行为、Display 不跟随 Input Dry、Output Gain 跟随 Output Display、Bypass/PDC。
+
+### 回滚
+
+若 bitmap knob 架构或新增 trims 出现问题，回滚到 v0.9.1 Candidate；不要回退既有 Ratio/Lookahead/Oversampling/LUFS Match/GR Hold 核心。
+
+
+---
+
+## v0.9.3 — UI Rollback / Features Retained
+
+**日期：** 2026-08-27  
+**状态：** Candidate / Test  
+**基于：** v0.9.2 — Asset Knobs / Input & Output Gain
+
+### 用户需求
+
+用户明确放弃继续追求图片资产旋钮的“完美 UI”，要求退回上一版 v0.9.1 的 UI 设计/绘制风格，但保留 v0.9.2 已加入的功能。
+
+### 问题表现
+
+用户在真实插件中测试 v0.9.2 后，认为 128 帧 bitmap knob 的实际视觉结果很差；后续多轮 AI 资产生成也无法稳定复现概念图、灯光与刻度规则。继续围绕 bitmap 资产修补会增加 UI 架构复杂度，却没有形成可靠收益。
+
+### 根因
+
+功能层与 UI 层本可独立，但 v0.9.2 把旋钮视觉切换为 BinaryData filmstrip，使美术资产质量直接决定运行时观感。用户最终决定停止这条视觉路线。因此本次根因不是 DSP，也不是 Input/Output Gain 功能错误，而是 **bitmap rotary UI 方向被用户实际审美验证否决**。
+
+### 修改内容
+
+- 以 v0.9.2 为功能基线，不回滚 Processor / Parameters / state schema。
+- `UTF8LookAndFeel.h` 恢复为 v0.9.1 的 JUCE/vector rotary drawing。
+- CMake 删除活动 `QQSCAssets` BinaryData target/link；PNG 及 `UI_ASSET_ARCHITECTURE.md` 保留为失败实验历史，不再参与运行时。
+- 底部仍保留 v0.9.2 的 Input Gain / Ratio / Makeup / Mix / Output Gain / Mode-LOOKAHEAD 布局；Input/Output 继续是较小次级 Trim。
+- 版本号更新为 v0.9.3。
+
+### 保持不变
+
+- Input Gain 仍位于 detector/compression 前并改变压缩行为与 Input meters。
+- Input Gain 仍 **不移动 Dynamic Display Dry/Input 原始参考**。
+- Output Gain 仍位于 Makeup/Mix 后，影响最终音频、Output meters 与 Dynamic Display Output。
+- LUFS Match 仍只写 Makeup；A/B、项目状态、Undo/Redo 仍包含两只新 Gain。
+- Ratio law、Future-window Lookahead、0 ms 1x/8x/16x Oversampling、PDC/Bypass、ST/MS/LR、2 秒 GR Hold 均不改。
+
+### 为什么这样修改
+
+用户要的是“退回上一版 UI，但保留当前功能”，因此不能直接用 v0.9.1 整包覆盖 v0.9.2，否则会丢失 Input/Output Gain 及其完整信号/state 逻辑。最小风险方案是仅回退视觉实现层与 build asset dependency，同时保持 v0.9.2 功能代码不变。
+
+### 验证
+
+- [x] 源码静态 diff：Processor / Parameters / Meter / Display 等功能/DSP 文件保持 v0.9.2。
+- [x] `UTF8LookAndFeel.h` 与 v0.9.1 恢复源逐字节一致。
+- [x] CMake 已无 `QQSCAssets` target/link。
+- [ ] JUCE/VST3 真实编译（需 Codex）。
+- [ ] Cubase 实际 UI/功能验证。
+- [ ] 用户最终确认。
+
+### 已知问题
+
+- v0.9.3 保留了 v0.9.1 的 code-drawn glow/material，因此也保留其视觉局限；这是用户主动接受的回退方向，不再继续 bitmap asset 追求。
+- 当前仍无用户明确指定 Stable。
+
+### 回滚
+
+若 v0.9.3 UI 恢复发生编译问题，可对照 v0.9.1 的 `UTF8LookAndFeel.h` / CMake；**不要回滚 v0.9.2 的 Input/Output Gain DSP/state 功能**。
+

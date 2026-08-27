@@ -1,5 +1,6 @@
 #include "DynamicDisplay.h"
 #include "Parameters.h"
+#include "UTF8LookAndFeel.h"
 
 namespace
 {
@@ -86,8 +87,10 @@ juce::Path DynamicDisplay::makePath (const std::deque<float>& values) const
 void DynamicDisplay::paint (juce::Graphics& g)
 {
     const auto bounds = getLocalBounds().toFloat();
-    g.setColour (juce::Colour::fromRGB (16, 18, 22));
-    g.fillRoundedRectangle (bounds, 10.0f);
+    g.setColour (qqsc::ui::panel().withAlpha (0.97f));
+    g.fillRoundedRectangle (bounds, 12.0f);
+    g.setColour (qqsc::ui::border().withAlpha (0.72f));
+    g.drawRoundedRectangle (bounds.reduced (0.5f), 12.0f, 1.0f);
 
     const auto plot = getPlotArea();
     auto& m = processor.getMeterState();
@@ -99,27 +102,27 @@ void DynamicDisplay::paint (juce::Graphics& g)
     auto wetArea = header.removeFromLeft (header.getWidth() * 0.56f);
     auto outArea = header;
 
-    g.setColour (juce::Colours::white.withAlpha (0.72f));
+    g.setColour (qqsc::ui::text().withAlpha (0.84f));
     g.setFont (juce::Font (juce::FontOptions (11.0f, juce::Font::bold)));
     g.drawFittedText ("DYNAMIC LEVEL HISTORY", titleArea.toNearestInt(), juce::Justification::centredLeft, 1);
 
-    g.setColour (juce::Colour::fromRGB (99, 217, 255));
+    g.setColour (qqsc::ui::cyanAccent());
     g.setFont (10.5f);
     g.drawFittedText ("WET PRE-MAKEUP  " + dbText (m.wetDb.load (std::memory_order_relaxed)),
                       wetArea.toNearestInt(), juce::Justification::centred, 1);
 
     const auto mode = m.processingMode.load (std::memory_order_relaxed);
-    g.setColour (juce::Colours::white.withAlpha (0.62f));
+    g.setColour (qqsc::ui::textMuted().withAlpha (0.82f));
     g.drawFittedText ("MODE  " + qqsc::params::modeName (mode),
                       outArea.toNearestInt(), juce::Justification::centredRight, 1);
 
     for (float db : { 0.0f, -20.0f, -40.0f, -60.0f, -80.0f, -100.0f, -120.0f })
     {
         const auto y = dbToY (db);
-        g.setColour (juce::Colours::white.withAlpha (0.085f));
+        g.setColour (qqsc::ui::text().withAlpha (0.075f));
         g.drawHorizontalLine (juce::roundToInt (y), plot.getX(), plot.getRight());
 
-        g.setColour (juce::Colours::white.withAlpha (0.44f));
+        g.setColour (qqsc::ui::textMuted().withAlpha (0.72f));
         g.setFont (10.0f);
         g.drawText (juce::String (static_cast<int> (db)) + " dB",
                     10, static_cast<int> (y - 7.0f), 48, 14, juce::Justification::right);
@@ -128,14 +131,14 @@ void DynamicDisplay::paint (juce::Graphics& g)
     g.saveState();
     g.reduceClipRegion (plot.toNearestInt());
 
-    g.setColour (juce::Colour::fromRGB (130, 139, 158).withAlpha (0.78f));
+    g.setColour (qqsc::ui::dryTrace().withAlpha (0.82f));
     g.strokePath (makePath (inputHistory), juce::PathStrokeType (1.3f));
 
-    g.setColour (juce::Colour::fromRGB (99, 217, 255));
+    g.setColour (qqsc::ui::cyanAccent());
     g.strokePath (makePath (wetHistory), juce::PathStrokeType (2.0f));
 
     // Output is the final signal AFTER Makeup and AFTER Dry/Wet Mix.
-    g.setColour (juce::Colour::fromRGB (248, 190, 73).withAlpha (0.92f));
+    g.setColour (qqsc::ui::outputAccent().withAlpha (0.94f));
     g.strokePath (makePath (outputHistory), juce::PathStrokeType (1.5f));
     g.restoreState();
 
@@ -153,7 +156,7 @@ void DynamicDisplay::paint (juce::Graphics& g)
         g.drawFittedText (text, item.withTrimmedLeft (28), juce::Justification::centredLeft, 1);
     };
 
-    drawLegend (legendArea.removeFromLeft (itemW), juce::Colour::fromRGB (130, 139, 158), "Dry / Input");
-    drawLegend (legendArea.removeFromLeft (itemW), juce::Colour::fromRGB (99, 217, 255), "Wet (pre-makeup)");
-    drawLegend (legendArea, juce::Colour::fromRGB (248, 190, 73), "Output (post-mix)");
+    drawLegend (legendArea.removeFromLeft (itemW), qqsc::ui::dryTrace(), "Dry / Input");
+    drawLegend (legendArea.removeFromLeft (itemW), qqsc::ui::cyanAccent(), "Wet (pre-makeup)");
+    drawLegend (legendArea, qqsc::ui::outputAccent(), "Output (post-mix)");
 }
