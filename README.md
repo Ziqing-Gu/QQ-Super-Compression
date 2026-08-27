@@ -23,18 +23,18 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 ## 下载 / Download
 
 - [最新 Release / Latest Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
-- [QQ Super Compression 0.1.10 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.1.10)
-- [直接下载 0.1.10 完整包 / Direct download of the 0.1.10 umbrella package](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.1.10/QQ.Super.Compression.0.1.10.zip)
+- [QQ Super Compression 0.9.3 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.3)
+- [直接下载 0.9.3 完整包 / Direct download of the 0.9.3 complete package](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.9.3/QQ.Super.Compression.0.9.3.Plan.D.20260827.zip)
 
-正式 Release 只提供一个完整 ZIP：`QQ.Super.Compression.0.1.10.zip`。它包含 Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3、macOS Universal 2 AU，以及中英文安装说明。Windows 用户使用 Windows x64 包；Mac 用户只安装与机器架构匹配的一份 VST3（Apple Silicon/M 系列或 Intel），AU 是供 Logic Pro 等 AU 宿主使用的独立选择。
+正式 Release 只提供一个完整 ZIP：`QQ.Super.Compression.0.9.3.Plan.D.20260827.zip`。它包含 Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3、macOS Universal 2 AU，以及中英文安装说明。Windows 用户解压后使用 `Win` 目录中的 Windows x64 包；Apple Silicon/M 系列 Mac 使用 Apple Silicon VST3；Intel Mac 使用 Intel x86_64 VST3；Logic Pro 等 AU 宿主可使用 Universal 2 AU。不要同时安装两套不同架构的 macOS VST3。
 
-The formal Release contains one umbrella ZIP, `QQ.Super.Compression.0.1.10.zip`. It includes Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, macOS Universal 2 AU, and both installation guides. Windows users should choose the Windows x64 package. Mac users should install only the VST3 matching their machine (Apple Silicon/M-series or Intel); the AU is a separate option for AU hosts such as Logic Pro.
+The formal Release contains one complete ZIP, `QQ.Super.Compression.0.9.3.Plan.D.20260827.zip`. It includes Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, macOS Universal 2 AU, and both installation guides. Windows users should choose the Windows x64 package in the `Win` directory. Apple Silicon/M-series Macs should use the Apple Silicon VST3; Intel Macs should use the Intel x86_64 VST3. Logic Pro and other AU hosts can use the Universal 2 AU. Do not install both macOS VST3 architectures.
 
-- [中文安装与使用说明 / Chinese installation guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.1.10/docs/QQ%20Super%20Compression%200.1.10%20Windows%E4%B8%8EmacOS%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
-- [English installation and usage guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.1.10/docs/QQ-Super-Compression-0.1.10-Windows-macOS-INSTALL.txt)
+- [中文安装与使用说明 / Chinese installation guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.9.3/docs/QQ%20Super%20Compression%200.9.3%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+- [English installation and usage guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.9.3/docs/QQ-Super-Compression-0.9.3-Windows-macOS-INSTALL.txt)
 
-> **注意 / Important:** GitHub 自动生成的 **Source code (zip)** 和 **Source code (tar.gz)** 只是源码快照，不是可安装插件。请下载上面的 `QQ.Super.Compression.0.1.10.zip`。  
-> GitHub's automatically generated **Source code (zip)** and **Source code (tar.gz)** files are source snapshots, not installable plug-ins. Download `QQ.Super.Compression.0.1.10.zip` above.
+> **注意 / Important:** GitHub 自动生成的 **Source code (zip)** 和 **Source code (tar.gz)** 只是源码快照，不是可安装插件。请下载上面的 `QQ.Super.Compression.0.9.3.Plan.D.20260827.zip`。
+> GitHub's automatically generated **Source code (zip)** and **Source code (tar.gz)** files are source snapshots, not installable plug-ins. Download `QQ.Super.Compression.0.9.3.Plan.D.20260827.zip` above.
 
 ## 界面预览 / Interface preview
 
