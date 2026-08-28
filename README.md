@@ -15,9 +15,9 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | MIT |
 
-> **0.9.4 稳定基线 / Stable baseline:** 按 Plan D 规则，本版本作为稳定基线记录。Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 均将从同一 0.9.4 Plan D 提交通过 Actions；AU 同时通过 `auval` 与双架构检查。GitHub Release 属于单独的 Plan G，本次 Plan D 未创建新 Release。
+> **0.9.4 稳定基线 / Stable baseline:** 按 Plan D 规则，本版本作为稳定基线记录。Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 均已从同一 0.9.4 Plan D 提交通过 Actions；AU 同时通过 `auval` 与双架构检查。Plan G 已发布正式 GitHub Release。
 >
-> **Stable baseline:** Under the Plan D policy, this version is recorded as the stable baseline. Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU all pass Actions from the same 0.9.4 Plan D commit; the AU also passed `auval` and dual-architecture checks. A GitHub Release belongs to the separate Plan G and was not created by this Plan D run.
+> **Stable baseline:** Under the Plan D policy, this version is recorded as the stable baseline. Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU all passed Actions from the same 0.9.4 Plan D commit; the AU also passed `auval` and dual-architecture checks. Plan G has published the formal GitHub Release.
 
 
 ## 0.9.4 更新 / 0.9.4 update
@@ -26,28 +26,28 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 This version makes a focused light-theme UI correction: direct numeric entry now has explicit readable text, background, selection, outline and caret colours in the JUCE edit state. DSP, parameter ranges, layout, Input/Output Gain, Display, A/B, Undo/Redo, Lookahead, Oversampling, PDC, LUFS Match and GR Hold are unchanged.
 
-Plan D marks 0.9.4 as the current stable baseline under the project's release policy. The public GitHub Release remains a separate Plan G action; this Plan BCD run does not publish a Release.
+Plan D marks 0.9.4 as the current stable baseline under the project's release policy. Plan G publishes the verified Plan D package through the formal GitHub Release linked below.
 
-Plan D 按项目发布规则将 0.9.4 记录为当前稳定基线。公开 GitHub Release 属于单独的 Plan G；本次 Plan BCD 不发布 Release。
+Plan D 按项目发布规则将 0.9.4 记录为当前稳定基线。Plan G 已通过下方正式 GitHub Release 发布经过验证的 Plan D 完整包。
 
 - [0.9.4 English installation guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/main/docs/QQ-Super-Compression-0.9.4-Windows-macOS-INSTALL.txt)
 - [0.9.4 中文安装说明](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/main/docs/QQ%20Super%20Compression%200.9.4%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
 
 ## 下载 / Download
 
-- [上一份公开 Release（0.9.3） / Previous public Release (0.9.3)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
-- [QQ Super Compression 0.9.3 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.3)
-- [直接下载 0.9.3 完整包 / Direct download of the 0.9.3 complete package](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.9.3/QQ.Super.Compression.0.9.3.Plan.D.20260827.zip)
+- [最新正式 Release / Latest formal Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
+- [QQ Super Compression 0.9.4 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.4)
+- [直接下载 0.9.4 完整包 / Direct download of the 0.9.4 complete package](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.9.4/QQ.Super.Compression.0.9.4.Plan.D.20260828.zip)
 
-正式 Release 只提供一个完整 ZIP：`QQ.Super.Compression.0.9.3.Plan.D.20260827.zip`。它包含 Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3、macOS Universal 2 AU，以及中英文安装说明。Windows 用户解压后使用 `Win` 目录中的 Windows x64 包；Apple Silicon/M 系列 Mac 使用 Apple Silicon VST3；Intel Mac 使用 Intel x86_64 VST3；Logic Pro 等 AU 宿主可使用 Universal 2 AU。不要同时安装两套不同架构的 macOS VST3。
+正式 Release 只提供一个完整 ZIP：`QQ.Super.Compression.0.9.4.Plan.D.20260828.zip`。它包含 Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3、macOS Universal 2 AU，以及中英文安装说明。Windows 用户解压后使用 `Win/QQ-Super-Compression-0.9.4-Windows-x64.zip`；Apple Silicon/M 系列 Mac 使用 Apple Silicon arm64 VST3；Intel Mac 使用 Intel x86_64 VST3；Logic Pro 等 AU 宿主可使用 Universal 2 AU。不要同时安装两套不同架构的 macOS VST3。Linux、AAX 与独立应用版本不提供。
 
-The formal Release contains one complete ZIP, `QQ.Super.Compression.0.9.3.Plan.D.20260827.zip`. It includes Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, macOS Universal 2 AU, and both installation guides. Windows users should choose the Windows x64 package in the `Win` directory. Apple Silicon/M-series Macs should use the Apple Silicon VST3; Intel Macs should use the Intel x86_64 VST3. Logic Pro and other AU hosts can use the Universal 2 AU. Do not install both macOS VST3 architectures.
+The formal Release contains one complete ZIP, `QQ.Super.Compression.0.9.4.Plan.D.20260828.zip`. It includes Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, macOS Universal 2 AU, and both installation guides. Windows users should choose `Win/QQ-Super-Compression-0.9.4-Windows-x64.zip`. Apple Silicon/M-series Macs should use the Apple Silicon arm64 VST3; Intel Macs should use the Intel x86_64 VST3. Logic Pro and other AU hosts can use the Universal 2 AU. Do not install both macOS VST3 architectures. Linux, AAX, and standalone application builds are not provided.
 
-- [中文安装与使用说明 / Chinese installation guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.9.3/docs/QQ%20Super%20Compression%200.9.3%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
-- [English installation and usage guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.9.3/docs/QQ-Super-Compression-0.9.3-Windows-macOS-INSTALL.txt)
+- [0.9.4 中文安装与使用说明 / Chinese installation guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.9.4/docs/QQ%20Super%20Compression%200.9.4%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+- [0.9.4 English installation and usage guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.9.4/docs/QQ-Super-Compression-0.9.4-Windows-macOS-INSTALL.txt)
 
-> **注意 / Important:** GitHub 自动生成的 **Source code (zip)** 和 **Source code (tar.gz)** 只是源码快照，不是可安装插件。请下载上面的 `QQ.Super.Compression.0.9.3.Plan.D.20260827.zip`。
-> GitHub's automatically generated **Source code (zip)** and **Source code (tar.gz)** files are source snapshots, not installable plug-ins. Download `QQ.Super.Compression.0.9.3.Plan.D.20260827.zip` above.
+> **注意 / Important:** GitHub 自动生成的 **Source code (zip)** 和 **Source code (tar.gz)** 只是源码快照，不是可安装插件。请下载上面的 `QQ.Super.Compression.0.9.4.Plan.D.20260828.zip`。
+> GitHub's automatically generated **Source code (zip)** and **Source code (tar.gz)** files are source snapshots, not installable plug-ins. Download `QQ.Super.Compression.0.9.4.Plan.D.20260828.zip` above.
 
 ## 界面预览 / Interface preview
 
@@ -284,7 +284,7 @@ Every real version from the first prototype through the current build is recorde
 - English: Fixed unreadable white text when directly editing Ratio, Makeup, Mix, Input Gain, and Output Gain values on the light UI by explicitly styling Label/TextEditor text, background, selection, outline, and caret colours.
 - 中文：DSP、参数范围、布局、Input/Output Gain、Display、A/B、Undo/Redo、Lookahead、Oversampling、PDC、LUFS Match 和 GR Hold 均保持不变。
 - English: DSP, parameter ranges, layout, Input/Output Gain, Display, A/B, Undo/Redo, Lookahead, Oversampling, PDC, LUFS Match, and GR Hold are unchanged.
-- 状态 / Status：Plan D stable baseline under the user release policy；Windows Plan A 已通过，跨平台 Actions 将由本次同步提交验证。
+- 状态 / Status：Plan D stable baseline under the user release policy；Windows Plan A 与跨平台 Actions 已通过，Plan G 正式 Release 已发布。
 
 ### 0.9.3 — 2026-08-27 — Stable baseline / 稳定基线
 
