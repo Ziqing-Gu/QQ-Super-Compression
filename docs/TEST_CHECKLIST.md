@@ -357,3 +357,16 @@ For Ratio, all active/inactive mode Makeup knobs, and Mix:
 - [ ] Pre-0.9.2 state still migrates both trims to 0 dB.
 - [ ] 0 ms 1x/8x/16x and 10/26/40/80/100 ms PDC behaviour unchanged.
 - [ ] LUFS Match, ST/MS/LR, Mix, Bypass and 2 s GR Hold unchanged.
+
+
+## v0.9.4 — Editable numeric text contrast
+
+- [ ] Panel version reads `v0.9.4`.
+- [ ] Double-click Ratio numeric value: editable text is dark/readable on ivory.
+- [ ] Double-click Makeup / Mix numeric values: editable text is dark/readable.
+- [ ] Double-click Input Gain / Output Gain numeric values: editable text is dark/readable.
+- [ ] Decimal point, minus sign, plus sign/unit suffix where applicable remain visible.
+- [ ] Text selection remains readable and caret is visible.
+- [ ] Enter commits direct input normally.
+- [ ] Normal non-editing text colours are unchanged.
+- [ ] Audio DSP/state/PDC/LUFS Match/GR Hold regression checks remain unchanged from v0.9.3.

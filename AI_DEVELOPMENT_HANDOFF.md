@@ -348,8 +348,8 @@ Project Root/
 
 ```text
 项目名称：QQ Super Compression
-当前稳定版本：暂无（尚未由用户明确指定 Stable）
-当前候选版本：0.9.3 — UI Rollback / Features Retained Candidate（pre-release UI stage）
+当前稳定版本：0.9.4 — Editable Numeric Text Contrast（Plan D 稳定基线）
+当前候选版本：无（0.9.4 已完成 Plan D 跨平台交付）
 主要平台：Windows / macOS
 插件/程序格式：VST3
 主要开发环境：JUCE 8 / CMake / C++17
@@ -381,6 +381,7 @@ Project Root/
 - 0.9.0 在不改 DSP 的前提下进入正式发布前 UI 阶段：浅暖 ivory/sand 背景、暖橙主 accent、cyan technical accent、柔和 vector glow；Dynamic Display 结构不改；新增 UI_DESIGN_NOTES.md。
 - 0.9.2 加入 Input Gain / Output Gain 与完整 A/B/state/Undo/Display 语义；同版 bitmap filmstrip knob 视觉路线后被用户实机否决。
 - 0.9.3 恢复 v0.9.1 vector UI 绘制，保留 v0.9.2 两只 Gain 和全部功能逻辑；bitmap 资产不再参与 build/runtime。
+- 0.9.4 补齐浅色主题下 Slider 双击直接输入的 Label/TextEditor 编辑态配色，解决白字不可见；仅改 UI LookAndFeel，不改 DSP/参数/布局。
 - Ratio law 仍为 gain = 1 / (1 + (Ratio - 1) * level)。
 - UTF-8/CJK 跨平台规则继续保留。
 
@@ -394,26 +395,27 @@ Project Root/
 - 运行中改变 Lookahead 或 0 ms OS factor 会改变真实 plugin latency，宿主可能做一次 PDC realignment；当前 Candidate 不加入用户未要求的 realtime crossfade。
 - 0.1.10 的 16x JUCE/VST3 路径尚未在当前 AI 环境完成完整编译/DAW 验证；必须由 Codex/用户验证 CPU、PDC、Dry/Wet/Bypass 对齐、A/B/Undo/工程恢复。
 - Ctrl/Cmd+Z 是否被宿主优先截获仍需实际 VST3/Cubase 键盘焦点验证。
-- 尚无用户明确确认的 Stable 版本。
+- 0.9.4 已按 Plan D 规则记录为 Stable；DAW 直接输入视觉检查仍建议由用户复核。
 
 当前正在开发：
-- 0.9.3 Candidate：用户否决 v0.9.2 bitmap knob 实机视觉后，恢复 v0.9.1 的 JUCE/vector UI 绘制，但保留 v0.9.2 Input Gain / Output Gain 及其完整 signal/state 功能。PNG 资产和架构文档仅作为失败实验历史保留，不参与运行时。
+- 无（0.9.4 为当前稳定基线）。
 
 当前回滚基线：
-- 没有用户明确指定的 Stable。
+- 0.9.4 Stable；若后续回归，优先回滚到 Plan B 备份中的 0.9.4，或对照 0.9.3。
 - 若 0.1.10 的 16x / OS UI / state migration 出现问题，优先回滚到 0.1.9 Candidate 只重做 Oversampling；不要回退 0.1.8 UI、0.1.7 Hold、0.1.6 LUFS Match 或 future-window peak。
 - 若通用 0.1.9 Oversampling 架构本身存在根本 PDC/API 问题，可回到用户上传的 0.1.8 Plan B Candidate，只重新实现 0 ms-only Oversampling。
 - 永远不要恢复 0.1.0 waveshaper 或 0.1.1–0.1.3 rolling RMS 作为最终核心。
 
 下一步建议：
-- Codex 首先完整读取 PRODUCT_DESIGN_NOTES.md、OVERSAMPLING_DESIGN_NOTES.md、UI_DESIGN_NOTES.md、UI_ASSET_ARCHITECTURE.md（注意其中 v0.9.2 bitmap 路线已标记 rejected）再编译 0.9.3。
+- Codex 首先完整读取 PRODUCT_DESIGN_NOTES.md、OVERSAMPLING_DESIGN_NOTES.md、UI_DESIGN_NOTES.md、UI_ASSET_ARCHITECTURE.md（注意其中 v0.9.2 bitmap 路线已标记 rejected）再编译 0.9.4。
 - 确认 build 不再创建/链接 `QQSCAssets`，旋钮使用恢复后的 v0.9.1 vector LookAndFeel。
+- 双击 Ratio / Makeup / Mix / Input Gain / Output Gain 数值，确认编辑文字为深色可见，caret/selection 清晰，提交行为不变。
 - 重点验证 Input/Output Gain 仍完整存在：Input 改变 detector/compression 与 Input meter，但不移动 Dynamic Display Dry/Input；Output 改变最终 Output meter 与 Display Output。
 - 验证 A/B、Undo/Redo、工程保存/旧 state migration 仍包含两只 Gain。
 - 确认 JUCE 8.0.15 的 8x(3 stage)/16x(4 stage) FIR API、PDC/Bypass、LUFS Match、GR Hold 与 ST/MS/LR 均无回归。
 - PluginDoctor：0 ms 对比 1x/8x/16x aliasing；不要把谐波仍存在误判为 Oversampling 失败。
 - Cubase：0 ms 三档 PDC、Mix 50%、Bypass；10 ms+ 确认 OS 隐藏且 effective 1x/Lookahead-only PDC。
-- v0.9.3 只作为 Candidate；只有用户最终确认 UI/整体状态后，才进入 v1.0.0 Release。不要擅自提前标 Stable/Release。
+- v0.9.4 已按 Plan D 规则记录为 Stable；v1.0.0 仍需用户对整体产品状态作最终确认。公开 GitHub Release 仍属于单独的 Plan G。
 ```
 
 ---
@@ -1355,11 +1357,56 @@ v0.9.2 128-frame bitmap knob 在真实插件中的视觉被用户明确否决；
 若 UI restore 编译失败，只回滚/修复 UI/CMake；不要回退 v0.9.2 的 Input/Output Gain 功能。
 
 
-## v0.9.3 Plan D AU target fix — 2026-08-27
+---
 
-- 中文：`CMakeLists.txt` 现在通过 `QQSC_PLUGIN_FORMATS` 在 Windows 保持 VST3-only，并只在 Apple 平台追加 AU。这是 Plan D 的必要构建兼容修复，不得解释为 DSP 或 UI 改版。
-- English: `CMakeLists.txt` now keeps Windows VST3-only through `QQSC_PLUGIN_FORMATS` and appends AU only on Apple platforms. This is a required Plan D build-compatibility fix and must not be treated as a DSP or UI revision.
-- 中文：首轮失败证据为 `No rule to make target 'QQSuperCompression_AU'`；后续必须让 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 来自同一修复提交。
-- English: The first-run failure was `No rule to make target 'QQSuperCompression_AU'`. Subsequent Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU artifacts must all come from the same fixed commit.
-- 中文：最终结果：Actions runs `33040246933`（Windows）与 `33040244828`（macOS）全部成功；四个 artifact 均来自 `7cb70ecbe66681659d4f5ad99032c885b0557341`。
-- English: Final result: Actions runs `33040246933` (Windows) and `33040244828` (macOS) both succeeded; all four artifacts came from `7cb70ecbe66681659d4f5ad99032c885b0557341`.
+## v0.9.4 — Editable Numeric Text Contrast
+
+**日期：** 2026-08-28  
+**状态：** Stable baseline（Plan D policy）  
+**基于：** v0.9.3 — UI Rollback / Features Retained
+
+### 用户需求
+
+用户认为当前版本已经基本完善，但发现一个小遗憾：双击旋钮数值进入直接输入状态后，正在编辑的数字显示成白色，在浅 ivory 背景上几乎看不见。
+
+### 问题表现
+
+Slider 非编辑状态的数值颜色正常；只有双击后进入 JUCE 临时文本编辑状态时，编辑文字变成白色。
+
+### 根因
+
+已从源码定位为 UI 状态配色遗漏：v0.9.3 已设置 `Slider::textBoxTextColourId`，它覆盖普通显示状态，但没有显式设置 `Label::textWhenEditingColourId` / TextEditor 编辑态颜色。浅色主题下 JUCE 编辑器默认文字颜色与背景对比不足。
+
+### 修改内容
+
+- `UTF8LookAndFeel.h` 显式设置 Label 编辑态文字/背景/outline。
+- 同时设置 TextEditor 文字、背景、选区与 highlighted text，避免 JUCE 内部编辑器继承不适合浅色主题的默认色。
+- Caret 使用现有 warm accent，保证输入光标可见。
+- CMake 版本号更新为 0.9.4；README / CHANGELOG / CODEX_BUILD / UI_DESIGN_NOTES / TEST_CHECKLIST 同步记录。
+
+### 保持不变
+
+- 不改任何 Slider 参数范围、默认值、数值精度或直接输入行为。
+- 不改布局、旋钮几何、Display、Meter。
+- 不改 Ratio / Lookahead / Oversampling / PDC / Bypass / LUFS Match / ST-MS-LR / GR Hold。
+- 不改 Input Gain / Output Gain 信号位置和 Display 语义。
+- 不改 A/B、Undo/Redo、工程状态。
+
+### 为什么这样修改
+
+这是一个明确的浅色 UI 编辑态对比度 Bug，最小风险修复应只补齐 JUCE Label/TextEditor 的颜色状态，而不是重写数值输入组件或改变交互。
+
+### 验证
+
+- [x] 源码静态检查：新增编辑态颜色 ID，DSP/Processor/Parameters 未修改。
+- [x] JUCE/VST3 实际编译、安装、BS.1770 自测与 SHA-256 核对（Plan A）。
+- [ ] Cubase 双击数值输入实测。
+- [ ] 用户最终确认。
+
+### 已知问题
+
+暂无新增 DSP 已知问题。编辑态实际 caret/selection 观感仍需宿主实机截图确认。
+
+### 回滚
+
+若 v0.9.4 出现意外 UI 编译/显示问题，回滚到 v0.9.3；不要回滚 v0.9.2 已加入的 Input/Output Gain 功能。

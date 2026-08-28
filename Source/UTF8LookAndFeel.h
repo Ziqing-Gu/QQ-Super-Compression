@@ -29,6 +29,24 @@ public:
         setColour (juce::Slider::textBoxTextColourId, ui::text());
         setColour (juce::Slider::textBoxBackgroundColourId, ui::panel().withAlpha (0.76f));
         setColour (juce::Slider::textBoxOutlineColourId, ui::border().withAlpha (0.66f));
+
+        // v0.9.4: a Slider text box is a Label while idle, but JUCE creates an
+        // internal TextEditor when the value is double-clicked for direct entry.
+        // The light UI previously styled only the idle Slider text-box colours,
+        // allowing the editor's default white text to become unreadable on the
+        // ivory background.  Explicitly style both Label edit mode and the
+        // TextEditor/caret so direct numeric entry stays visible.
+        setColour (juce::Label::backgroundWhenEditingColourId, ui::panel());
+        setColour (juce::Label::textWhenEditingColourId, ui::text());
+        setColour (juce::Label::outlineWhenEditingColourId, ui::warmAccent().withAlpha (0.72f));
+        setColour (juce::TextEditor::backgroundColourId, ui::panel());
+        setColour (juce::TextEditor::textColourId, ui::text());
+        setColour (juce::TextEditor::highlightColourId, ui::warmAccentSoft().withAlpha (0.58f));
+        setColour (juce::TextEditor::highlightedTextColourId, ui::text());
+        setColour (juce::TextEditor::outlineColourId, ui::border().withAlpha (0.78f));
+        setColour (juce::TextEditor::focusedOutlineColourId, ui::warmAccent().withAlpha (0.72f));
+        setColour (juce::TextEditor::shadowColourId, juce::Colours::transparentBlack);
+        setColour (juce::CaretComponent::caretColourId, ui::warmAccent());
         setColour (juce::Slider::rotarySliderOutlineColourId, ui::border());
         setColour (juce::Slider::rotarySliderFillColourId, ui::warmAccent());
 

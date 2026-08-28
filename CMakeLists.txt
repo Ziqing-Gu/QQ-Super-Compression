@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 0.9.3 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 0.9.4 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -51,7 +51,7 @@ juce_add_plugin(QQSuperCompression
 
 juce_generate_juce_header(QQSuperCompression)
 
-# v0.9.3: bitmap filmstrip UI was rejected by user testing.
+# v0.9.3 onward: bitmap filmstrip UI was rejected by user testing.
 # Rotary controls are again rendered by UTF8LookAndFeel; archived PNG assets remain in source history only.
 
 target_sources(QQSuperCompression PRIVATE

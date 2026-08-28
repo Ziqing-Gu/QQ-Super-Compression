@@ -1,4 +1,4 @@
-name: Build macOS VST3 and AU 0.1.10
+name: Build macOS VST3 and AU 0.9.4
 
 on:
   workflow_dispatch:
@@ -19,11 +19,11 @@ jobs:
           - name: Apple Silicon (arm64)
             runner: macos-14
             expected_arch: arm64
-            artifact_name: QQ-Super-Compression-0.1.10-macOS-Apple-Silicon-VST3
+            artifact_name: QQ-Super-Compression-0.9.4-macOS-Apple-Silicon-VST3
           - name: Intel (x86_64)
             runner: macos-15-intel
             expected_arch: x86_64
-            artifact_name: QQ-Super-Compression-0.1.10-macOS-Intel-VST3
+            artifact_name: QQ-Super-Compression-0.9.4-macOS-Intel-VST3
 
     steps:
       - name: Check out source
@@ -95,12 +95,12 @@ jobs:
           printf '%s\n' "$archs"
           printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx arm64
           printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx x86_64
-          ditto -c -k --keepParent "$au" 'QQ-Super-Compression-0.1.10-macOS-Universal-AU.zip'
+          ditto -c -k --keepParent "$au" 'QQ-Super-Compression-0.9.4-macOS-Universal-AU.zip'
 
       - name: Upload packaged AU
         uses: actions/upload-artifact@v4
         with:
-          name: QQ-Super-Compression-0.1.10-macOS-Universal-AU
-          path: QQ-Super-Compression-0.1.10-macOS-Universal-AU.zip
+          name: QQ-Super-Compression-0.9.4-macOS-Universal-AU
+          path: QQ-Super-Compression-0.9.4-macOS-Universal-AU.zip
           if-no-files-found: error
           retention-days: 7

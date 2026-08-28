@@ -1,4 +1,4 @@
-# QQ Super Compression 0.9.3
+# QQ Super Compression 0.9.4
 
 **Qing Audio 开源动态处理器 / Open-source dynamics processor by Qing Audio**
 
@@ -8,21 +8,34 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 | 项目 / Item | 内容 / Value |
 |---|---|
-| 当前版本 / Current version | 0.9.3 |
+| 当前版本 / Current version | 0.9.4 |
 | 状态 / Status | Stable baseline — Plan D cross-platform verification complete / 稳定基线——Plan D 跨平台验证完成 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | MIT |
 
-> **0.9.3 稳定基线 / Stable baseline:** 按 Plan D 规则，本版本作为稳定基线记录。Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 均已从同一提交 `7cb70ec` 通过 Actions；AU 同时通过 `auval` 与双架构检查。GitHub Release 属于单独的 Plan G，本次 Plan D 未创建新 Release。
+> **0.9.4 稳定基线 / Stable baseline:** 按 Plan D 规则，本版本作为稳定基线记录。Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 均将从同一 0.9.4 Plan D 提交通过 Actions；AU 同时通过 `auval` 与双架构检查。GitHub Release 属于单独的 Plan G，本次 Plan D 未创建新 Release。
 >
-> **Stable baseline:** Under the Plan D policy, this version is recorded as the stable baseline. Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU all passed Actions from commit `7cb70ec`; the AU also passed `auval` and dual-architecture checks. A GitHub Release belongs to the separate Plan G and was not created by this Plan D run.
+> **Stable baseline:** Under the Plan D policy, this version is recorded as the stable baseline. Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU all pass Actions from the same 0.9.4 Plan D commit; the AU also passed `auval` and dual-architecture checks. A GitHub Release belongs to the separate Plan G and was not created by this Plan D run.
 
+
+## 0.9.4 更新 / 0.9.4 update
+
+本版本只修复浅色界面中双击旋钮数值直接输入时的文字对比度：JUCE 编辑态文字、背景、选区、边框和光标现在使用明确的深色/暖色配色。DSP、参数范围、布局、Input/Output Gain、Display、A/B、Undo/Redo、Lookahead、Oversampling、PDC、LUFS Match 和 GR Hold 均未改变。
+
+This version makes a focused light-theme UI correction: direct numeric entry now has explicit readable text, background, selection, outline and caret colours in the JUCE edit state. DSP, parameter ranges, layout, Input/Output Gain, Display, A/B, Undo/Redo, Lookahead, Oversampling, PDC, LUFS Match and GR Hold are unchanged.
+
+Plan D marks 0.9.4 as the current stable baseline under the project's release policy. The public GitHub Release remains a separate Plan G action; this Plan BCD run does not publish a Release.
+
+Plan D 按项目发布规则将 0.9.4 记录为当前稳定基线。公开 GitHub Release 属于单独的 Plan G；本次 Plan BCD 不发布 Release。
+
+- [0.9.4 English installation guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/main/docs/QQ-Super-Compression-0.9.4-Windows-macOS-INSTALL.txt)
+- [0.9.4 中文安装说明](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/main/docs/QQ%20Super%20Compression%200.9.4%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
 
 ## 下载 / Download
 
-- [最新 Release / Latest Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
+- [上一份公开 Release（0.9.3） / Previous public Release (0.9.3)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
 - [QQ Super Compression 0.9.3 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.3)
 - [直接下载 0.9.3 完整包 / Direct download of the 0.9.3 complete package](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.9.3/QQ.Super.Compression.0.9.3.Plan.D.20260827.zip)
 
@@ -251,26 +264,34 @@ These are the four plug-in subpackages inside the complete Release ZIP, not four
 
 ## 验证状态 / Validation status
 
-0.1.10 Windows x64 Release 已使用 JUCE 8.0.15 完成真实构建；源码 manifest、DLL/VST3 入口、x64 PE、moduleinfo、Steinberg validator 和 BS.1770 自测均通过。系统安装文件与交付文件 SHA-256 一致。
+0.9.4 Windows x64 Release 已使用 JUCE 8.0.15 完成真实构建；源码 manifest、DLL/VST3 入口、x64 PE、moduleinfo 和 BS.1770 自测均通过；当前环境未找到 Steinberg validator。系统安装文件与交付文件 SHA-256 一致。
 
-The 0.1.10 Windows x64 Release was built with JUCE 8.0.15. Source-manifest verification, DLL/VST3 entry points, x64 PE inspection, moduleinfo, Steinberg validator, and the BS.1770 self-test all passed. Installed and delivered module SHA-256 values match.
+The 0.9.4 Windows x64 Release was built with JUCE 8.0.15. Source-manifest verification, DLL/VST3 entry points, x64 PE inspection, moduleinfo, and the BS.1770 self-test passed; the Steinberg validator was not available in the current environment. Installed and delivered module SHA-256 values match.
 
-Cubase 的 0 ms 1x/8x/16x 听感、CPU、PDC、50% Mix、Bypass、自动化、状态迁移与最终用户确认仍需手动完成，因此本版本保持 Candidate/Test。
+0.9.4 的 Cubase 双击数值输入可读性、光标/选区和 Enter 提交仍建议由用户手动复核；Plan D 按项目规则将本版本记录为稳定基线。
 
-Manual Cubase validation of 0 ms 1x/8x/16x sound, CPU, PDC, 50% Mix, Bypass, automation, state migration, and final user acceptance is still required, so this release remains Candidate/Test.
+A manual Cubase check of 0.9.4 direct numeric entry, caret/selection visibility, and Enter commit is still recommended; under the project policy, Plan D records this version as the stable baseline.
 
 ## 完整版本历史 / Complete version history
 
-下面记录从首个原型到当前版本的全部真实版本。0.9.3 是本次 Plan D 指定的稳定基线；此前版本保留各自的 Candidate/Test 历史标签。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
+下面记录从首个原型到当前版本的全部真实版本。0.9.4 是本次 Plan D 指定的稳定基线；此前版本保留各自的 Candidate/Test 历史标签。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
 
-Every real version from the first prototype through the current build is recorded below. Version 0.9.3 is the stable baseline requested for this Plan D run; earlier entries retain their historical Candidate/Test labels. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+Every real version from the first prototype through the current build is recorded below. Version 0.9.4 is the stable baseline requested for this Plan D run; earlier entries retain their historical Candidate/Test labels. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+
+### 0.9.4 — 2026-08-28 — Editable numeric text contrast / 编辑态数值文字对比度
+
+- 中文：修复浅色 UI 中双击 Ratio、Makeup、Mix、Input Gain、Output Gain 数值进入编辑态后白字不可读的问题；明确设置 Label/TextEditor 的文字、背景、选区、边框和光标配色。
+- English: Fixed unreadable white text when directly editing Ratio, Makeup, Mix, Input Gain, and Output Gain values on the light UI by explicitly styling Label/TextEditor text, background, selection, outline, and caret colours.
+- 中文：DSP、参数范围、布局、Input/Output Gain、Display、A/B、Undo/Redo、Lookahead、Oversampling、PDC、LUFS Match 和 GR Hold 均保持不变。
+- English: DSP, parameter ranges, layout, Input/Output Gain, Display, A/B, Undo/Redo, Lookahead, Oversampling, PDC, LUFS Match, and GR Hold are unchanged.
+- 状态 / Status：Plan D stable baseline under the user release policy；Windows Plan A 已通过，跨平台 Actions 将由本次同步提交验证。
 
 ### 0.9.3 — 2026-08-27 — Stable baseline / 稳定基线
 
 - 中文：恢复 v0.9.1 矢量暖光旋钮，保留 v0.9.2 Input/Output Gain、A/B、工程状态和 Undo/Redo；Windows x64 VST3 已完成 Release 构建与安装校验。
 - English: Restored the v0.9.1 vector warm-light rotary while retaining v0.9.2 Input/Output Gain, A/B, project state, and Undo/Redo; Windows x64 VST3 passed Release build and install verification.
 - 中文：按 Plan D 规则记录为稳定基线；Windows x64 VST3、macOS arm64 VST3、x86_64 VST3 和 Universal 2 AU 均已从提交 `7cb70ec` 通过 Actions，AU 同时通过 `auval`。
-- English: Recorded as the stable baseline under the Plan D policy; Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU all passed Actions from commit `7cb70ec`, including `auval` for the AU.
+- English: Recorded as the stable baseline under the Plan D policy; Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU passed Actions from commit `7cb70ec`, including `auval` for the AU.
 
 ### 0.9.2 — 2026-08-27 — Candidate / Test
 

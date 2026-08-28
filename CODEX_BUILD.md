@@ -1,4 +1,4 @@
-# QQ Super Compression 0.9.3 — Codex build / validation brief
+# QQ Super Compression 0.1.10 — Codex build / validation brief
 
 Before changing code, read these files in this order:
 
@@ -206,7 +206,7 @@ Append results to `AI_DEVELOPMENT_HANDOFF.md` / `DEVELOPMENT_HISTORY.md`. Separa
 - Cubase/PDC result;
 - user confirmation.
 
-For this Plan D run, v0.9.3 is the requested stable baseline; retain Candidate labels for historical versions unless explicitly changed.
+Do not mark v0.1.10 Stable unless the user explicitly says it is Stable.
 
 ## v0.9.0 UI-specific verification
 
@@ -285,3 +285,17 @@ This Candidate intentionally keeps v0.9.2 DSP/state features but restores v0.9.1
 - Ratio / Lookahead / Oversampling / PDC / Bypass / LUFS Match / GR Hold regressions remain unchanged.
 
 Do not remove the archived v0.9.2 asset-history documents merely because they are no longer active.
+
+
+## v0.9.4 editable numeric-text verification
+
+This is a minimal UI-only Candidate based on v0.9.3. Verify:
+
+- panel/version metadata reports `v0.9.4`;
+- double-click Ratio, Makeup, Mix, Input Gain and Output Gain value fields; typed numbers are clearly visible in dark warm text on the ivory edit background;
+- caret/focus outline is visible and selection remains readable;
+- Enter commits and Escape/click-away follows the same JUCE behaviour as before;
+- ordinary non-editing value text remains visually unchanged;
+- no DSP/state/layout regression from v0.9.3.
+
+Do not promote to Stable/Release until the user explicitly confirms it.

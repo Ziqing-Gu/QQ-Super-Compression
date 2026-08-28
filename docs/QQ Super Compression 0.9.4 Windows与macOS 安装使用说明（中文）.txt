@@ -1,0 +1,199 @@
+QQ Super Compression 0.9.4 安装与使用说明（中文）
+==================================================
+
+一、产品与发布信息
+------------------
+
+产品：QQ Super Compression
+厂商：Qing Audio
+版本：0.9.4
+状态：Stable baseline under Plan D policy（按 Plan D 规则记录为稳定基线）
+发布日期：2026-08-28
+许可证：MIT
+公开源码：https://github.com/Ziqing-Gu/QQ-Super-Compression
+
+这是开源项目的用户二进制发布包。桌面 Plan D 包不内含源代码；完整源代码、构建说明、版本记录和许可证在上述公开仓库中。
+
+发布包只有一个插件：
+- VST3 bundle：QQ Super Compression.vst3
+- AU bundle：QQ Super Compression.component
+
+二、选择正确的压缩包
+--------------------
+
+1. Windows 64 位 VST3
+   QQ-Super-Compression-0.9.4-Windows-x64.zip
+
+2. macOS Apple Silicon 原生 VST3（M1/M2/M3/M4 等）
+   QQ-Super-Compression-0.9.4-macOS-Apple-Silicon-VST3.zip
+
+3. macOS Intel 原生 VST3
+   QQ-Super-Compression-0.9.4-macOS-Intel-VST3.zip
+
+4. macOS Universal 2 AU（同时包含 arm64 和 x86_64）
+   QQ-Super-Compression-0.9.4-macOS-Universal-AU.zip
+
+Windows 包已在 GitHub Actions windows-2022 环境构建验证，适用于 64 位 Windows 10/11 的 VST3 宿主；更旧 Windows 未验证。
+
+Apple Silicon VST3 已在 macOS 14 arm64 环境构建验证；Intel VST3 已在 macos-15-intel x86_64 环境构建验证；Universal 2 AU 已验证同时包含 arm64 和 x86_64，并通过 auval。Info.plist 没有声明最低 macOS 版本，因此不要把未测试的旧系统理解为已支持。
+
+macOS 包是临时签名（ad-hoc signed），不是 Apple Developer ID 签名，也没有经过 Apple 公证。
+
+三、安装前必须做的事
+--------------------
+
+1. 保存工程。
+2. 完全退出 Cubase、Nuendo、Studio One、REAPER、Logic Pro 及其他所有 DAW/插件扫描器。
+3. 如已安装旧版本，先备份需要回退的旧 bundle。
+4. 搜索并移除同名旧副本，避免宿主扫到多个位置后显示重复项或继续加载旧缓存。
+5. 解压时保持整个 .vst3 或 .component bundle 完整；它们在文件系统中是文件夹，不能只复制内部二进制。
+
+四、Windows 64 位 VST3 安装
+---------------------------
+
+1. 解压：
+   QQ-Super-Compression-0.9.4-Windows-x64.zip
+
+2. 确认得到完整 bundle：
+   QQ Super Compression.vst3
+
+3. 以管理员权限复制到系统 VST3 目录：
+   C:\Program Files\Common Files\VST3\
+
+4. 最终路径应为：
+   C:\Program Files\Common Files\VST3\QQ Super Compression.vst3
+
+5. 如果系统询问合并或覆盖，请先确认 DAW 已完全关闭，然后覆盖同名旧 bundle。若覆盖失败，先手动移走旧 bundle，再复制新 bundle；不要同时保留 “QQ Super Compression.vst3”、带版本后缀的副本和其他目录中的重复副本。
+
+6. 启动 DAW，执行完整 VST3 重新扫描。Cubase 可在“插件管理器”中重新扫描；若仍显示旧版本，关闭 Cubase，清理该宿主的插件黑名单/缓存后重新启动并扫描。
+
+7. 在插件信息或界面版本标签中确认版本为 0.9.4。
+
+五、macOS VST3 安装
+------------------
+
+重要：Apple Silicon VST3 和 Intel VST3 是同一格式的两个架构版本，只选择一个安装，不要同时安装。
+
+- Apple Silicon Mac 以原生模式运行 DAW：优先安装 Apple Silicon VST3。
+- Intel Mac：安装 Intel VST3。
+- Apple Silicon Mac 只有在明确需要 Rosetta 运行 Intel DAW 时才考虑 Intel VST3；此时 DAW 与插件架构必须匹配。
+- AU 是独立格式，可以与所选 VST3 同时安装。
+
+1. 解压所选 VST3 压缩包，得到：
+   QQ Super Compression.vst3
+
+2. 在 Finder 中按住 Option 打开“前往”菜单，可显示用户“资源库”。也可以使用“前往文件夹”。
+
+3. 二选一安装位置：
+
+   当前用户（通常不需要管理员权限）：
+   ~/Library/Audio/Plug-Ins/VST3/
+
+   所有用户（通常需要管理员密码）：
+   /Library/Audio/Plug-Ins/VST3/
+
+4. 最终路径示例：
+
+   ~/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3
+
+   或：
+
+   /Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3
+
+5. 安装前删除或移走两个位置中的同名旧副本，并检查自定义 VST3 目录，确保系统里只保留一个所需架构的 VST3。
+
+6. 重新启动 DAW 并执行完整 VST3 扫描。若使用 Rosetta，请确认 DAW 的“使用 Rosetta 打开”状态与所装 VST3 架构一致。
+
+六、macOS Universal 2 AU 安装
+----------------------------
+
+AU 与 VST3 是独立格式。Logic Pro 主要使用 AU；安装 AU 不会替代 VST3。
+
+1. 解压：
+   QQ-Super-Compression-0.9.4-macOS-Universal-AU.zip
+
+2. 得到：
+   QQ Super Compression.component
+
+3. 二选一复制到：
+
+   当前用户：
+   ~/Library/Audio/Plug-Ins/Components/
+
+   所有用户（通常需要管理员密码）：
+   /Library/Audio/Plug-Ins/Components/
+
+4. 移除同名旧 component，重新启动 Logic Pro 或其他 AU 宿主。
+
+5. Logic Pro 中可打开“插件管理器”，找到 Qing Audio / QQ Super Compression 并执行重置与重新扫描。该 AU 的标识为：
+   Type: aufx
+   Subtype: Qscp
+   Manufacturer: Qing
+
+七、macOS 隔离属性与未公证提示
+------------------------------
+
+由于包没有 Apple 公证，首次加载时 macOS 可能阻止插件。如果系统明确提示开发者无法验证，并且你确认压缩包来自本项目的可信公开发布/交付，可只对这个插件 bundle 移除 quarantine 属性。
+
+当前用户 VST3：
+
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+
+系统级 VST3：
+
+sudo xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+
+当前用户 AU：
+
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+系统级 AU：
+
+sudo xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+安全警告：
+- 只有在你确认文件来源和 SHA-256 后才运行这些命令。
+- 路径必须精确指向 QQ Super Compression 的单个 bundle。
+- 不要对整个 Downloads、Library、VST3 或 Components 目录递归移除 quarantine。
+- 不要关闭 Gatekeeper，也不要使用更宽泛的系统安全绕过。
+- 执行后重新启动 DAW 并重扫插件。
+
+八、升级、重复项与兼容性
+------------------------
+
+- 从旧版升级时可以覆盖同名 bundle；参数 ID 和状态兼容设计保持不变。
+- 0.1.4 的任意 Lookahead 值会迁移到最近的 0/10/26/40/80/100 ms 预设，等距时选择更长值。
+- 新实例记住用户最后选择的 Lookahead；没有历史记录时默认 26 ms。
+- 0.9.4 的 Oversampling 仅在 Lookahead=0 ms 显示并生效，按钮循环 1x/8x/16x；新实例记忆默认值为 8x。
+- Lookahead=10/26/40/80/100 ms 时 Oversampling 控件隐藏且 DSP 固定 1x；返回 0 ms 会恢复先前选择。
+- 0.1.8 或更早状态没有 Oversampling 参数时迁移到 8x；0.1.9 的旧 1x 保持 1x，旧 2x/4x/8x 迁移到 8x。
+- 不要在用户 VST3 目录和系统 VST3 目录各放一个副本，也不要同时安装 arm64 和 x86_64 VST3。
+- DAW 仍显示旧版时，应先关闭 DAW、移除重复 bundle、清理宿主缓存/黑名单，再重新扫描。
+- 0 ms Lookahead 有意保留可测谐波失真风格；它不是隐藏故障。
+- 改变 Lookahead 会改变插件报告的延迟，宿主可能在播放期间进行一次 PDC 重对齐。
+- Bypass 使用相同延迟路径，不会偷偷变成零延迟。
+- 0.9.4 仍为 Candidate/Test；Cubase GUI、听感、自动化、工程恢复和最终用户确认完成前不能标记 Stable。
+
+九、首次验证建议
+----------------
+
+1. 在宿主中确认插件显示为 QQ Super Compression 0.9.4。
+2. 测试 ST、LR、MS 三种模式。
+3. 逐一切换 0/10/26/40/80/100 ms 并观察宿主延迟补偿。
+4. 在 0 ms 下确认 Oversampling 按钮只显示 1x/8x/16x，并检查 8x/16x 的 CPU、PDC、Mix 与 Bypass 对齐；切到非零 Lookahead 时按钮应隐藏。
+5. 检查 Ratio 增大时 Gain Reduction 增加，Makeup、Mix 和 Bypass 正常。
+6. 检查 Integrated LUFS Match 在至少一个完整 400 ms 测量块后工作。
+7. 检查 GR 的 2 秒 Peak Hold，以及切换 Mode/Lookahead 后旧标记清除。
+8. 缩放界面，确认完整 UI 始终按 1020x670 的原始比例放大或缩小。
+9. 保存并重开工程，确认参数、A/B、模式、Lookahead 和窗口尺寸恢复。
+10. 与旧版工程一起测试前先制作工程副本。
+
+十、故障排查
+------------
+
+- 扫描不到：确认 bundle 位于正确目录、架构与 DAW 匹配、没有只复制内部模块，并执行完整重扫。
+- 被列入黑名单：关闭 DAW，清理该宿主的黑名单/缓存，再扫描。
+- macOS 阻止：先确认来源与哈希，再仅对单个 bundle 使用上面的 xattr 命令。
+- 出现两个插件：删除用户/系统目录或自定义目录中的重复副本，只保留一个 VST3 架构。
+- 版本仍是旧的：关闭 DAW，删除旧 bundle 和缓存，复制 0.9.4 后重新启动。
+- 行为或声音异常：记录 DAW、系统、架构、采样率、缓冲区、模式、Lookahead、复现步骤和工程片段，再提交到公开仓库 Issues。

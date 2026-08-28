@@ -189,3 +189,12 @@ After real v0.9.2 testing and repeated asset-generation attempts, the user decid
 Important: this is a **visual implementation rollback only**. v0.9.2 Input Gain / Output Gain and their behaviour remain. Input/Output are displayed as smaller secondary trims; Ratio / Makeup / Mix remain the main controls.
 
 The v0.9.2 asset experiment remains documented and archived so a future AI does not mistake it for an unfinished task and silently re-enable it. Do not reintroduce bitmap knobs unless the user explicitly asks again.
+
+
+---
+
+## v0.9.4 — Direct numeric-entry contrast
+
+The v0.9.3 light UI was visually accepted, but the user found a small interaction-state defect: double-clicking a slider value creates JUCE's temporary text editor, whose default editable text was white and therefore unreadable on the ivory surface.
+
+This is not a redesign. The active colour language stays unchanged. The fix explicitly styles the edit state as dark warm text on ivory, with a warm-accent caret/focus outline and a soft warm selection highlight. Slider values remain live/editable text and are not converted to bitmap assets.

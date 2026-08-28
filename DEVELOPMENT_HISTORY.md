@@ -909,26 +909,26 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 
 
-## v0.9.3 — Plan D AU Target Fix / Plan D AU 目标修复
+---
 
-**日期 / Date:** 2026-08-27
-**状态 / Status:** Stable baseline, Plan D cross-platform verification complete
+## v0.9.4 — Editable Numeric Text Contrast
 
-### 问题与根因 / Problem and root cause
+**日期：** 2026-08-28  
+**状态：** Stable baseline（Plan D policy）  
+**基于：** v0.9.3
 
-- 中文：首轮 macOS Actions 中，两套 VST3 均成功，但 Universal 2 AU 任务报错 `No rule to make target 'QQSuperCompression_AU'`。根因是 `juce_add_plugin` 仅声明了 `FORMATS VST3`，CMake 从未生成 AU target。
-- English: In the first macOS Actions run, both VST3 jobs succeeded but the Universal 2 AU job failed with `No rule to make target 'QQSuperCompression_AU'`. The root cause was that `juce_add_plugin` declared only `FORMATS VST3`, so CMake never generated an AU target.
+### 用户反馈
 
-### 修复与边界 / Fix and boundaries
+当前界面和功能已基本达到预期，但双击旋钮数值进行直接输入时，JUCE 编辑状态中的数字为白色，在浅色背景上不可读。
 
-- 中文：新增 `QQSC_PLUGIN_FORMATS`，默认只有 VST3；仅在 `APPLE` 平台追加 AU。Windows 的目标集合保持 VST3-only。
-- English: Added `QQSC_PLUGIN_FORMATS`, defaulting to VST3 and appending AU only when `APPLE` is true. Windows remains VST3-only.
-- 中文：本次仅修改构建目标，不修改 DSP、UI、参数 ID、状态 schema、延迟、旁路或音频路径。
-- English: This is a build-target-only change. DSP, UI, parameter IDs, state schema, latency, bypass, and signal flow are unchanged.
+### 根因与修复
 
-### 验证 / Verification
+普通 Slider TextBox 颜色已经设置正确，但编辑时 JUCE 切换到 Label/TextEditor 编辑态，旧 LookAndFeel 没有覆盖这些编辑态 ColourIds。v0.9.4 只补齐 `Label::...WhenEditingColourId`、`TextEditor` text/background/highlight 和 caret 配色。
 
-- [x] Windows x64 Release 回归编译 / regression build.
-- [x] VST3 moduleinfo version remains `0.9.3`.
-- [x] 修复提交 `7cb70ec` 的 Windows 与 macOS Actions 四生成物 / four artifacts from fixed commit `7cb70ec`（runs `33040246933` / `33040244828`）。
-- [x] Universal 2 AU `auval` and architecture verification.
+### 非回归边界
+
+不改 DSP、参数、布局、Input/Output Gain、Display/Meter、A/B/state、Lookahead/Oversampling/PDC、LUFS Match 或 GR Hold。
+
+### 验证级别
+
+Plan A Windows 编译、安装、BS.1770 自测与哈希核对已通过；Plan D 跨平台 Actions 和桌面用户包将在本次发布流程中完成。Cubase 双击输入仍建议由用户复核。

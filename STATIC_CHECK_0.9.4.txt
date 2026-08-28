@@ -1,0 +1,52 @@
+QQ Super Compression v0.9.4 static verification
+Date: 2026-08-28
+Status: Candidate / Test
+Base: v0.9.3 — UI Rollback / Features Retained
+
+User-reported defect
+- Double-clicking a slider value for direct numeric entry created an edit state whose text was white/unreadable on the light ivory UI.
+
+Root cause identified in source
+- Idle Slider text-box colours were already explicitly set.
+- JUCE Slider direct entry transitions through Label/TextEditor edit-state colours, which v0.9.3 did not explicitly style for the light theme.
+
+Code change scope
+- Source/UTF8LookAndFeel.h is the ONLY changed file under Source/ versus v0.9.3.
+- Added explicit light-theme colours for:
+  * Label::backgroundWhenEditingColourId
+  * Label::textWhenEditingColourId
+  * Label::outlineWhenEditingColourId
+  * TextEditor::backgroundColourId
+  * TextEditor::textColourId
+  * TextEditor::highlightColourId
+  * TextEditor::highlightedTextColourId
+  * TextEditor::outlineColourId
+  * TextEditor::focusedOutlineColourId
+  * CaretComponent::caretColourId
+- No custom TextEditor implementation or input behaviour rewrite was introduced.
+
+Non-regression static checks
+- PluginProcessor.cpp/.h: byte-identical to v0.9.3.
+- Parameters.h: byte-identical to v0.9.3.
+- StaticCompressionEngine.h: byte-identical to v0.9.3.
+- BS1770LoudnessMatch.h: byte-identical to v0.9.3.
+- DynamicDisplay.cpp/.h: byte-identical to v0.9.3.
+- LevelMeters.cpp/.h + MeterState.h: byte-identical to v0.9.3.
+- PluginEditor.cpp/.h: byte-identical to v0.9.3.
+- No QQSCAssets BinaryData target/link is active.
+- CMake project version: 0.9.4.
+
+JUCE API verification
+- Official JUCE docs confirm Label has backgroundWhenEditingColourId, textWhenEditingColourId and outlineWhenEditingColourId.
+- Official JUCE docs confirm TextEditor has background/text/highlight/highlightedText/outline/focusedOutline colour IDs.
+- Official JUCE docs confirm CaretComponent::caretColourId.
+
+JUCE-free DSP regression self-test
+- 1 kHz 0 dBFS mono: -3.0036 LUFS
+- Fixed 6 dB Dry/Wet difference, ST Match: 6 dB
+- PASS
+
+Verification boundary
+- NO full JUCE/VST3 build was performed in this AI environment.
+- NO Cubase/DAW direct-entry visual test was performed here.
+- Codex/user must compile and confirm that direct numeric entry is visibly dark/readable and that normal commit/cancel behaviour remains unchanged.
