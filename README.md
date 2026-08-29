@@ -1,3 +1,16 @@
+这是一个AI开发项目，大部分文字是由ChatGpt编辑，这些文字同时供用户和AI阅读。
+
+所以如果你看到命令用语，那是给AI看的。
+
+
+This is an AI‑development project. Most of the text was edited by ChatGPT, and these texts are meant to be read by both users and the AI.
+if you see command‑style phrasing, those are intended for the AI.
+
+
+↑↑↑↑↑↑↑↑↑↑这是作者自己写的 Wtitten By Author↑↑↑↑↑↑↑↑↑↑
+
+
+
 # QQ Super Compression 0.9.4
 
 **Qing Audio 开源动态处理器 / Open-source dynamics processor by Qing Audio**
