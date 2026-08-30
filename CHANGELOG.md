@@ -1,8 +1,9 @@
 # Changelog
 
-## 1.0.3 — Centered Domain Monitor — Candidate
+## 1.0.3 — Centered Domain Monitor — STABLE
 
 - Built directly from the user-confirmed **v1.0.2 Stable** baseline.
+- Enabled `FORMATS VST3 AU` so the documented Universal 2 AU target is generated; this is build configuration only, not a DSP or UI change.
 - Added LR `ALL/L/R` and MS `ALL/M/S` audition Monitor; ST hides Monitor.
 - L/R centered audition copies the selected channel to both outputs at `1/sqrt(2)` (-3.0103 dB).
 - M centered audition uses `M=(L+R)/2` at unity; **no** additional -3.01 dB.
@@ -10,7 +11,7 @@
 - Monitor is final audible-only: Display/Meter/Match and the actual compression/Mix/Output Gain result remain pre-monitor.
 - Monitor is project-persistent workflow state, excluded from APVTS host automation and A/B snapshots. LR and MS remember separately. State schema `7 -> 8`.
 - UI adds a compact three-button Monitor row without reducing the 550 px Display/Meter row. Mode/Lookahead remain 108x23; LINK geometry is unchanged.
-- Existing regression tests plus `monitor_audition_selftest.py`: PASS. Plan A subsequently passed a JUCE 8.0.15 / MSVC Windows x64 Release build, BS.1770 self-test, and Steinberg validator; Plan D macOS delivery validation remains pending.
+- Existing regression tests plus `monitor_audition_selftest.py`: PASS. Plan A passed JUCE 8.0.15 / MSVC Windows x64 Release, BS.1770, and Steinberg validation. Plan D passed Actions for Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, and Universal 2 AU; the AU passed `auval`.
 
 ## 1.0.2 — Complete Relative LINK — STABLE
 

@@ -3,7 +3,7 @@
 ## v1.0.3 — Centered Domain Monitor
 
 **日期：** 2026-08-30  
-**状态：** Candidate / Test  
+**状态：** Stable baseline / Plan D complete
 **基于：** v1.0.2 Complete Relative LINK Stable
 
 ### 目标与实现
@@ -22,10 +22,10 @@ Version 1.0.3 adds a centered audition Monitor only. It does not alter the trans
 
 - [x] source manifest 与七项 Python/source/math 自测。
 - [x] JUCE 8.0.15 / MSVC Windows x64 Release、BS.1770 与 Steinberg validator。
-- [ ] Plan D 同一 commit 的 macOS arm64 VST3、Intel VST3、Universal 2 AU 与 `auval`。
+- [x] Plan D：最终提交 0ef89e19 的 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3、Universal 2 AU 与 auval 全部通过。
 - [ ] 用户 Cubase 试听、Display/Meter/Match 隔离、工程恢复、A/B、自动化和旧工程迁移复核。
 
-在 Plan D 与用户试听完成前，本版保持 Candidate/Test；v1.0.2 是稳定回滚基线。
+Plan D 的四个最终成品、Actions、Windows validator、macOS 架构与 AU auval 均已验证；按既定规则本版已晋升为 Stable baseline。v1.0.2 保留为已验证回滚参考，Cubase 最终试听仍由用户完成。
 
 ---
 

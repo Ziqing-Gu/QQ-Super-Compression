@@ -51,15 +51,15 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 | 项目 / Item | 内容 / Value |
 |---|---|
 | 当前版本 / Current version | 1.0.3 |
-| 状态 / Status | Candidate — Plan A verified; Plan B/C in progress; Plan D pending / 候选版本——Plan A 已验证，正在执行 Plan B/C，等待 Plan D |
+| 状态 / Status | Stable baseline — Plan A/B/C/D completed; four final artifacts verified / 稳定基线——Plan A/B/C/D 已完成；四类最终成品已核验 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | MIT |
 
-> **1.0.2 稳定基线 / Stable baseline:** 按用户本次明确指定与既定 Plan D 规则，Complete Relative LINK 版本是当前稳定源码基线。它保留 1.0.1 的透明 DSP、Threshold、分域处理与 0…-90 dB Display，只补全 LR/MS 的四组 Relative LINK 交互。Windows 与 macOS 成品必须来自同一 1.0.2 提交；Cubase 中的最终听感、界面与自动化复核仍由用户完成。
+> **1.0.3 稳定基线 / Stable baseline:** 按既定 Plan D 规则，Centered Domain Monitor 版本现为稳定源码基线。最终构建源码为 [`0ef89e19`](https://github.com/Ziqing-Gu/QQ-Super-Compression/commit/0ef89e19dd7e74ec5588f64501a951c8487efb9c)，对应 `v1.0.3` 标签。Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3 与 Universal 2 AU 均由该提交的 Actions 成功构建；AU 同时通过 `auval`。Cubase 中的最终试听、界面与自动化复核仍由用户完成。
 >
-> **Stable baseline:** By the user's explicit designation and the established Plan D rule, Complete Relative LINK is the current stable source baseline. It retains the 1.0.1 transparent DSP, Threshold, domain processing, and 0…-90 dB Display while completing all four LR/MS Relative LINK interactions. Windows and macOS artifacts must come from the same 1.0.2 commit; final Cubase listening, UI, and automation checks remain user-side verification.
+> **Stable baseline:** Under the established Plan D rule, Centered Domain Monitor is now the stable source baseline. The final build source is [`0ef89e19`](https://github.com/Ziqing-Gu/QQ-Super-Compression/commit/0ef89e19dd7e74ec5588f64501a951c8487efb9c), tagged `v1.0.3`. Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, and Universal 2 AU all passed Actions from that commit; the AU also passed `auval`. Final Cubase listening, UI, and automation checks remain user-side verification.
 
 
 ## 1.0.3 更新 / 1.0.3 update
@@ -72,18 +72,18 @@ Monitor 只作用于最终可听输出。Dynamic Display、meters、Match、压�
 
 Monitor affects only the final audible output. Dynamic Display, meters, Match, and the compression/Makeup/Mix/Output Gain analysis results remain the normal pre-monitor stereo result; True Bypass does not apply Monitor. LR and MS selections persist independently with the project, but are outside A/B sound snapshots and are not APVTS/host-automation parameters.
 
-Plan A 已完成 Windows x64 VST3 的 JUCE 8.0.15 / MSVC Release 构建、七项源码/数学自测、BS.1770 自测与 Steinberg validator；Plan D 的 macOS Actions、四类跨平台成品与用户包仍待本轮执行。1.0.3 在此阶段仍标记为 Candidate/Test；1.0.2 继续是稳定回滚基线。
+Plan A 已完成 JUCE 8.0.15 / MSVC Windows x64 VST3 Release 构建、七项源码/数学自测、BS.1770 自测与 Steinberg validator。Plan D 已从同一最终提交完成 Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3 与 Universal 2 AU 的 Actions 构建和成品核验；AU 已通过 `auval`。因此 1.0.3 已记录为稳定基线，1.0.2 保留为已验证的回滚参考。
 
-Plan A completed the JUCE 8.0.15 / MSVC Windows x64 VST3 Release build, seven source/math self-tests, the BS.1770 self-test, and Steinberg validation. This run still needs the Plan D macOS Actions, four cross-platform artifacts, and end-user package. Version 1.0.3 remains Candidate/Test at this stage; 1.0.2 remains the stable rollback baseline.
+Plan A completed the JUCE 8.0.15 / MSVC Windows x64 VST3 Release build, seven source/math self-tests, the BS.1770 self-test, and Steinberg validation. Plan D completed Actions builds and artifact verification for Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, and Universal 2 AU from the same final commit; the AU passed `auval`. Version 1.0.3 is therefore recorded as the stable baseline, while 1.0.2 remains a verified rollback reference.
 
 - [1.0.3 English installation guide](docs/QQ-Super-Compression-1.0.3-Windows-macOS-INSTALL.txt)
 - [1.0.3 中文安装说明](docs/QQ%20Super%20Compression%201.0.3%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
 
 ## 下载 / Download
 
-> 当前源码候选版本是 1.0.3；当前正式 GitHub Release 仍是 1.0.2，直到单独执行新的 Plan G。
+> 当前稳定源码版本为 1.0.3；当前正式 GitHub Release 仍是 1.0.2，直到单独执行新的 Plan G。
 >
-> The current source candidate is 1.0.3. The current formal GitHub Release remains 1.0.2 until a separate new Plan G run.
+> The current stable source version is 1.0.3. The current formal GitHub Release remains 1.0.2 until a separate new Plan G run.
 
 - [最新正式 Release / Latest formal Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
 - [QQ Super Compression 1.0.2 Release（当前公开成品 / current public build）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.2)
@@ -304,9 +304,9 @@ Match compares delayed Dry with compressed Wet before Makeup and Mix, then write
 | `QQ-Super-Compression-1.0.3-macOS-Intel-VST3.zip` | macOS x86_64 VST3 |
 | `QQ-Super-Compression-1.0.3-macOS-Universal-AU.zip` | macOS Universal 2 AU, arm64 + x86_64 |
 
-这些是完整 Release ZIP 内的四个插件子包，并不是四个独立的 Release 资产。macOS 包使用 ad-hoc 签名，没有 Apple Developer ID 公证。安装与 quarantine 处理见下方说明。
+这些是 Plan D 桌面交付包内的四个插件子包，并不是四个独立的 GitHub Release 资产。macOS 包使用 ad-hoc 签名，没有 Apple Developer ID 公证。安装与 quarantine 处理见下方说明。
 
-These are the four plug-in subpackages inside the complete Release ZIP, not four separate Release assets. macOS bundles are ad-hoc signed and are not Apple Developer ID notarized. See the installation guides for installation and quarantine handling.
+These are the four plug-in subpackages in the Plan D desktop handoff, not four separate GitHub Release assets. macOS bundles are ad-hoc signed and are not Apple Developer ID notarized. See the installation guides for installation and quarantine handling.
 
 ## 安装说明 / Installation guides
 
@@ -319,23 +319,23 @@ These are the four plug-in subpackages inside the complete Release ZIP, not four
 
 The 1.0.3 source manifest was verified. A JUCE 8.0.15 / MSVC Windows x64 Release build passed x64 PE inspection, moduleinfo, BS.1770, Transparent Core, Threshold, Domain LINK, Complete Relative LINK, Independent Mix, Display Scale, and the new Centered Domain Monitor self-test; Steinberg's VST3 validator returned 0. Per-file SHA-256 values match across the Windows build, output, and system-installed copies.
 
-本次 Plan D 将从同一公开 1.0.3 commit 构建 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU，并对 AU 执行 `auval`。在四类成品、架构、版本、字节数与 SHA-256 全部核验前，1.0.3 保持 Candidate/Test。Cubase 中的试听、PDC、Mix/Bypass、自动化、Monitor 状态恢复与旧工程迁移仍建议用户手动复核。
+本次 Plan D 已从最终公开提交 `0ef89e19dd7e74ec5588f64501a951c8487efb9c` 构建并核验 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU。最终 Windows 包通过 x64 PE、moduleinfo 和 Steinberg validator；Apple Silicon/Intel VST3 与 Universal AU 的实际 Mach-O 架构已核验，AU Actions 同时通过 `auval`。四个 ZIP 的字节数和 SHA-256 已记录在 Plan D 内部证据中。Cubase 中的试听、PDC、Mix/Bypass、自动化、Monitor 状态恢复与旧工程迁移仍建议用户手动复核。
 
-This Plan D run will build Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU from the same public 1.0.3 commit and run `auval` on the AU. Until all four artifacts, architectures, versions, byte counts, and SHA-256 values are verified, 1.0.3 remains Candidate/Test. Manual Cubase checks of auditioning, PDC, Mix/Bypass, automation, Monitor-state restoration, and legacy-project migration remain recommended.
+This Plan D run built and verified Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU from final public commit `0ef89e19dd7e74ec5588f64501a951c8487efb9c`. The final Windows package passed x64 PE, moduleinfo, and Steinberg validation; the actual Mach-O architectures of Apple Silicon/Intel VST3 and the Universal AU were checked, and the AU Actions job passed `auval`. Byte counts and SHA-256 values for all four ZIPs are recorded in internal Plan D evidence. Manual Cubase checks of auditioning, PDC, Mix/Bypass, automation, Monitor-state restoration, and legacy-project migration remain recommended.
 
 ## 完整版本历史 / Complete version history
 
-下面记录从首个原型到当前版本的全部真实版本。1.0.3 Centered Domain Monitor 是基于 1.0.2 Stable 的当前 Candidate/Test；失败实验与此前候选版本继续保留，不改写历史。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
+下面记录从首个原型到当前版本的全部真实版本。1.0.3 Centered Domain Monitor 已按 Plan D 规则晋升为当前 Stable baseline；失败实验与此前候选版本继续保留，不改写历史。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
 
-Every real version from the first prototype through the current build is recorded below. Version 1.0.3 Centered Domain Monitor is the current Candidate/Test based on 1.0.2 Stable; rejected experiments and earlier candidates remain in history. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+Every real version from the first prototype through the current build is recorded below. Version 1.0.3 Centered Domain Monitor has been promoted to the current Stable baseline under the Plan D rule; rejected experiments and earlier candidates remain in history. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
 
-### 1.0.3 — 2026-08-30 — Centered Domain Monitor — Candidate / 居中分域监听——候选版本
+### 1.0.3 — 2026-08-30 — Centered Domain Monitor — Stable baseline / 居中分域监听——稳定基线
 
 - 中文：LR 增加 ALL/L/R，MS 增加 ALL/M/S 的居中监听；L/R/S 复制到双输出时采用 1/sqrt(2)（-3.0103 dB）补偿，M 保持 unity。ST 隐藏 Monitor。
 - English: Adds ALL/L/R centered monitoring in LR and ALL/M/S in MS. L/R/S are copied to both outputs with 1/sqrt(2) (-3.0103 dB) compensation; M remains unity. Monitor is hidden in ST.
 - 中文：Monitor 仅改变最终试听输出；Display、meters、Match 与处理结果保持 Monitor 前信号。LR/MS 选择分别随工程保存，不进入 A/B，也不进入宿主自动化。
 - English: Monitor changes only the final audition output; Display, meters, Match, and processing results remain pre-monitor. LR/MS selections persist separately with the project, stay outside A/B, and are not host-automatable.
-- 状态 / Status：Windows 本机构建、七项自测、BS.1770 与 validator 已通过；Plan D 跨平台 Actions、四类成品与 Cubase 最终试听仍待核验，故本阶段为 Candidate/Test。
+- 状态 / Status：Plan A/B/C/D 已完成。最终提交 `0ef89e19` 的 Windows x64、macOS Apple Silicon、macOS Intel VST3 与 Universal 2 AU Actions 均成功；AU 通过 `auval`，四包已完成实际架构、版本、字节数与 SHA-256 核验。按既定规则，本版为 Stable baseline；Cubase 最终试听仍建议用户手动完成。
 ### 1.0.2 — 2026-08-30 — Complete Relative LINK — Stable baseline / 完整相对联动——稳定基线
 
 - 中文：在 1.0.1 稳定声音与显示基线上补全 LR/MS 的 Ratio、Threshold、Makeup、Mix 四组 LINK；拖动、Shift 精调和直接数值输入均保留两侧差值，边界处共同停止。

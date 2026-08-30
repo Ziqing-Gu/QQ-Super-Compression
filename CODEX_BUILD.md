@@ -1,7 +1,7 @@
 # QQ Super Compression 1.0.3 — Codex build / validation brief
 
-**Stable baseline:** v1.0.2 Complete Relative LINK (user-confirmed Stable)  
-**Current candidate:** v1.0.3 Centered Domain Monitor
+**Stable baseline:** v1.0.3 Centered Domain Monitor (Plan A/B/C/D complete; tag v1.0.3 -> 0ef89e19)  
+**Previous stable rollback reference:** v1.0.2 Complete Relative LINK
 
 Read first:
 
@@ -116,7 +116,7 @@ Threshold OFF is conceptual `-inf`; if exactly one threshold starts OFF, keep th
 - regression: transparent core/Threshold/Lookahead/Oversampling/PDC/Display/A-B/Undo-Redo match v1.0.1 Stable;
 - old project state loads without migration changes (v1.0.2 adds no parameter/state schema).
 
-Current environment validation may be static/math only. Historical note: v1.0.2 was subsequently validated and promoted Stable. v1.0.3 is the current Candidate until Plan D validation and user-side Cubase monitoring checks.
+Final validation: local JUCE 8.0.15 / MSVC Windows x64 VST3 build, source/math and BS.1770 tests, Steinberg validation, Windows/macOS Actions, four final artifacts, macOS architectures, and AU auval all passed. v1.0.3 is the current Stable baseline; user-side Cubase monitoring checks remain recommended.
 
 ---
 
