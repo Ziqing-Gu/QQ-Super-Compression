@@ -40,7 +40,7 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 
 
-# QQ Super Compression 1.0.1
+# QQ Super Compression 1.0.2
 
 **Qing Audio 开源动态处理器 / Open-source dynamics processor by Qing Audio**
 
@@ -50,40 +50,40 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 | 项目 / Item | 内容 / Value |
 |---|---|
-| 当前版本 / Current version | 1.0.1 |
-| 状态 / Status | Stable baseline — Plan D cross-platform verification complete / 稳定基线——Plan D 跨平台验证完成 |
+| 当前版本 / Current version | 1.0.2 |
+| 状态 / Status | Stable baseline — Plan A verified; Plan B/C/D in this release run / 稳定基线——Plan A 已验证，本次执行 Plan B/C/D |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | MIT |
 
-> **1.0.1 稳定基线 / Stable baseline:** 按既定 Plan D 规则，Display 0…-90 dB Scale Polish 版本是当前稳定源码与跨平台构建基线。Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 均由同一 1.0.1 提交构建；AU 工作流同时检查 `auval` 与双架构。Cubase 中的最终听感、界面与自动化复核仍由用户完成。
+> **1.0.2 稳定基线 / Stable baseline:** 按用户本次明确指定与既定 Plan D 规则，Complete Relative LINK 版本是当前稳定源码基线。它保留 1.0.1 的透明 DSP、Threshold、分域处理与 0…-90 dB Display，只补全 LR/MS 的四组 Relative LINK 交互。Windows 与 macOS 成品必须来自同一 1.0.2 提交；Cubase 中的最终听感、界面与自动化复核仍由用户完成。
 >
-> **Stable baseline:** Under the established Plan D rule, the Display 0…-90 dB Scale Polish build is the current stable source and cross-platform build baseline. Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU are built from the same 1.0.1 commit; the AU workflow also checks `auval` and both architectures. Final listening, UI, and automation checks in Cubase remain user-side verification.
+> **Stable baseline:** By the user's explicit designation and the established Plan D rule, Complete Relative LINK is the current stable source baseline. It retains the 1.0.1 transparent DSP, Threshold, domain processing, and 0…-90 dB Display while completing all four LR/MS Relative LINK interactions. Windows and macOS artifacts must come from the same 1.0.2 commit; final Cubase listening, UI, and automation checks remain user-side verification.
 
 
-## 1.0.1 更新 / 1.0.1 update
+## 1.0.2 更新 / 1.0.2 update
 
-1.0.1 回到已经证明更干净的 future-window peak / Lookahead 核心，并把 Threshold 作为连续、可关闭的作用下限加入原 QQ Ratio law。Threshold OFF 精确保留旧公式；没有加入传统 Attack、Release、knee、分段 detector 或隐藏平滑。ST 使用共同参数；LR 与 MS 提供独立 Ratio、Threshold、Makeup 和 Mix，Relative LINK 只联动 Ratio、Threshold 与 Makeup，并保持通道间原有差值。
+1.0.2 是从用户确认的 1.0.1 稳定基线出发的交互补全版本。透明 DSP 核心、Threshold 规律、Lookahead、分域音频处理、参数 ID、状态结构与 0…-90 dB Display 均不改变。LR/MS 的 Relative LINK 现在完整覆盖 Ratio、Threshold、Makeup 与 Mix 四组配对控制，并在旋钮拖动、Shift 精调和直接数值输入时采用同一套相对差值规则。
 
-Version 1.0.1 returns to the cleaner future-window peak / Lookahead core and adds Threshold as a continuous, optional lower boundary around the original QQ Ratio law. Threshold OFF preserves the legacy formula exactly; no conventional Attack, Release, knee, segmented detector, or hidden smoothing is introduced. ST uses common controls, while LR and MS provide independent Ratio, Threshold, Makeup, and Mix. Relative LINK covers Ratio, Threshold, and Makeup while preserving existing inter-channel offsets.
+Version 1.0.2 is a focused interaction completion built from the user-confirmed 1.0.1 stable baseline. The transparent DSP core, Threshold law, Lookahead, domain audio processing, parameter IDs, state structure, and 0…-90 dB Display are unchanged. In LR/MS, Relative LINK now covers all four paired controls—Ratio, Threshold, Makeup, and Mix—and applies the same relative-offset rule to knob drag, Shift-fine adjustment, and direct numeric entry.
 
-界面采用 1020×820 的 Display-first 布局，LR/MS 使用上下分域历史图；Dynamic Display 的工作范围固定为 0…-90 dB，刻度间隔 15 dB。该裁剪只作用于绘图，不改变 DSP、Meter、Threshold OFF 的 -120 dB sentinel、参数范围或响度计算。此前 0.9.5/0.9.6 detector 实验和 1.0.0 Direct/Analytic/Hilbert 路线均保留为失败历史，不属于当前核心。
+LINK 保留两侧原有差值，不强制相等；到达参数边界时两侧共同停止，避免差值被压扁。ST 仍使用共同控制。LINK 作为工作流状态随工程保存，但不进入 A/B 声音快照。
 
-The UI uses a 1020×820 display-first layout with stacked domain histories in LR/MS. Dynamic Display is fixed to a 0…-90 dB working range with 15 dB grid spacing. This clipping is drawing-only and does not change DSP, meters, the -120 dB Threshold OFF sentinel, parameter ranges, or loudness calculations. The earlier 0.9.5/0.9.6 detector experiments and the 1.0.0 Direct/Analytic/Hilbert route remain documented rejected history and are not part of the active core.
+LINK preserves the existing offset rather than forcing equality. Both sides stop together at a parameter boundary so the offset is not collapsed. ST continues to use shared controls. LINK is saved as workflow state but remains outside A/B sound snapshots.
 
-Plan D 将 1.0.1 记录为当前稳定基线。Plan G 尚未执行，因此下方公开 Release 下载仍指向 0.9.4；本次 Plan C 只同步开源源码和说明，不制造不存在的 1.0.1 Release 链接。
+Plan D 将 1.0.2 记录为当前稳定基线。Plan G 尚未执行，因此下方公开 Release 下载仍指向 0.9.4；本次 Plan C 只同步开源源码和说明，不制造不存在的 1.0.2 Release 链接。
 
-Plan D records 1.0.1 as the current stable baseline. Plan G has not been executed, so the public Release downloads below still point to 0.9.4. This Plan C synchronises the open-source code and documentation without inventing a nonexistent 1.0.1 Release link.
+Plan D records 1.0.2 as the current stable baseline. Plan G has not been executed, so the public Release downloads below still point to 0.9.4. This Plan C synchronises the open-source code and documentation without inventing a nonexistent 1.0.2 Release link.
 
-- [1.0.1 English installation guide](docs/QQ-Super-Compression-1.0.1-Windows-macOS-INSTALL.txt)
-- [1.0.1 中文安装说明](docs/QQ%20Super%20Compression%201.0.1%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+- [1.0.2 English installation guide](docs/QQ-Super-Compression-1.0.2-Windows-macOS-INSTALL.txt)
+- [1.0.2 中文安装说明](docs/QQ%20Super%20Compression%201.0.2%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
 
 ## 下载 / Download
 
-> 当前稳定源码与 Plan D 构建基线是 1.0.1；最新公开 Release 暂时仍是 0.9.4，直到单独执行 Plan G。
+> 当前稳定源码与 Plan D 构建基线是 1.0.2；最新公开 Release 暂时仍是 0.9.4，直到单独执行 Plan G。
 >
-> The current stable source and Plan D build baseline is 1.0.1; the latest public Release remains 0.9.4 until a separate Plan G run.
+> The current stable source and Plan D build baseline is 1.0.2; the latest public Release remains 0.9.4 until a separate Plan G run.
 
 - [最新正式 Release / Latest formal Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
 - [QQ Super Compression 0.9.4 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.4)
@@ -245,8 +245,8 @@ At 0 ms the detector collapses to instantaneous sample magnitude, producing deli
 ## 处理模式 / Processing modes
 
 - **ST — Stereo Linked：**L/R 分析独立，较强衰减控制共同增益，一个共享 Makeup。/ L/R are analysed independently; the stronger reduction drives one common gain and one shared Makeup.
-- **LR — Left/Right Independent：**L/R 独立压缩与独立 Makeup。/ L/R compression and Makeup are independent.
-- **MS — Mid/Side Independent：**`M=(L+R)*0.5`、`S=(L-R)*0.5`，M/S 独立处理后解码。/ M/S are processed independently before decoding.
+- **LR — Left/Right Independent：**L/R 的 Ratio、Threshold、Makeup 与 Mix 均可独立；LINK 开启时保留两侧相对差值。 / L/R Ratio, Threshold, Makeup, and Mix are independent; LINK preserves their relative offsets when enabled.
+- **MS — Mid/Side Independent：**`M=(L+R)*0.5`、`S=(L-R)*0.5`，M/S 的 Ratio、Threshold、Makeup 与 Mix 独立处理后解码；LINK 可保留相对差值。 / M/S Ratio, Threshold, Makeup, and Mix are processed independently before decoding; LINK can preserve relative offsets.
 - 模式按钮循环 `ST -> MS -> LR -> ST`。/ The Mode button cycles `ST -> MS -> LR -> ST`.
 
 ## 严格 Integrated LUFS Match / Strict Integrated LUFS Match
@@ -266,21 +266,21 @@ Match compares delayed Dry with compressed Wet before Makeup and Mix, then write
 
 ## A/B、界面与工作流 / A/B, UI, and workflow
 
-- A/B 保存 Ratio、全部 Makeup、Mix、Lookahead、0 ms Oversampling 记忆值和 Mode；Bypass 保持全局。
+- A/B 保存 Ratio、Threshold、全部 Makeup、Mix、Lookahead、0 ms Oversampling 记忆值和 Mode；Bypass 与 LINK 保持全局工作流状态。
 - A→B / B→A 参数复制。
 - Shift-drag 精调，Alt+左键恢复默认，Ctrl/Cmd+Z Undo，Ctrl/Cmd+Shift+Z Redo。
 - Dynamic Display：灰色为延迟 Dry/Input，青色为 Makeup 前 Wet，黄色为 Makeup/Mix 后 Output。
 - Input、Output、Gain Reduction 三组双通道表；ST/LR 显示 L/R，MS 显示 M/S。
 - 每路 Gain Reduction 有 2 秒自动 Peak Hold，仅用于显示。
-- 完整 1020x670 设计空间按固定比例统一缩放。
+- 完整 1020x820 设计空间按固定比例统一缩放。
 
-- A/B stores Ratio, all Makeup values, Mix, Lookahead, the remembered 0 ms Oversampling choice, and Mode; Bypass remains global.
+- A/B stores Ratio, Threshold, all Makeup values, Mix, Lookahead, the remembered 0 ms Oversampling choice, and Mode; Bypass and LINK remain global workflow state.
 - A→B / B→A parameter copy.
 - Shift-drag fine adjustment, Alt+left-click reset, Undo, and Redo.
 - Dynamic Display: grey delayed Dry/Input, cyan pre-Makeup Wet, yellow post-Makeup/post-Mix Output.
 - Dual-channel Input, Output, and Gain Reduction meters; ST/LR show L/R and MS shows M/S.
 - Each Gain Reduction meter has a display-only 2-second automatic Peak Hold.
-- The complete 1020x670 design space scales uniformly at a fixed aspect ratio.
+- The complete 1020x820 design space scales uniformly at a fixed aspect ratio.
 
 ## 状态迁移 / State migration
 
@@ -300,10 +300,10 @@ Match compares delayed Dry with compressed Wet before Makeup and Mix, then write
 
 | 包 / Package | 内容 / Contents |
 |---|---|
-| `QQ-Super-Compression-1.0.1-Windows-x64.zip` | Windows x64 VST3 |
-| `QQ-Super-Compression-1.0.1-macOS-Apple-Silicon-VST3.zip` | macOS arm64 VST3 |
-| `QQ-Super-Compression-1.0.1-macOS-Intel-VST3.zip` | macOS x86_64 VST3 |
-| `QQ-Super-Compression-1.0.1-macOS-Universal-AU.zip` | macOS Universal 2 AU, arm64 + x86_64 |
+| `QQ-Super-Compression-1.0.2-Windows-x64.zip` | Windows x64 VST3 |
+| `QQ-Super-Compression-1.0.2-macOS-Apple-Silicon-VST3.zip` | macOS arm64 VST3 |
+| `QQ-Super-Compression-1.0.2-macOS-Intel-VST3.zip` | macOS x86_64 VST3 |
+| `QQ-Super-Compression-1.0.2-macOS-Universal-AU.zip` | macOS Universal 2 AU, arm64 + x86_64 |
 
 这些是完整 Release ZIP 内的四个插件子包，并不是四个独立的 Release 资产。macOS 包使用 ad-hoc 签名，没有 Apple Developer ID 公证。安装与 quarantine 处理见下方说明。
 
@@ -311,24 +311,33 @@ These are the four plug-in subpackages inside the complete Release ZIP, not four
 
 ## 安装说明 / Installation guides
 
-- [中文安装与使用说明](docs/QQ%20Super%20Compression%201.0.1%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
-- [English installation and usage guide](docs/QQ-Super-Compression-1.0.1-Windows-macOS-INSTALL.txt)
+- [中文安装说明](docs/QQ%20Super%20Compression%201.0.2%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+- [English installation guide](docs/QQ-Super-Compression-1.0.2-Windows-macOS-INSTALL.txt)
 
 ## 验证状态 / Validation status
 
-1.0.1 Windows x64 Release 已使用 JUCE 8.0.15 完成真实构建；源码 manifest、x64 PE、moduleinfo、BS.1770、自定义 Threshold/Transparent Core/Domain LINK/Independent Mix/Display Scale 自测均通过。系统安装文件与本地交付二进制 SHA-256 一致。当前环境未找到 Steinberg validator，因此未虚构该项结果。
+1.0.2 最终仓库源码已使用 JUCE 8.0.15 完成 Windows x64 Release 重建；源码 manifest、x64 PE、moduleinfo、BS.1770，以及 Threshold、Transparent Core、Domain LINK、Complete Relative LINK、Independent Mix 与 Display Scale 自测均通过，Steinberg VST3 validator 返回 0。此前 Plan A 安装包使用本机当时选中的 JUCE 8.0.14 构建，其构建、交付与系统安装 SHA-256 一致且 validator 也返回 0；本次 B/C/D 未在未重新确认 DAW 关闭的情况下覆盖系统插件。
 
-The 1.0.1 Windows x64 Release was built with JUCE 8.0.15. Source-manifest verification, x64 PE inspection, moduleinfo, BS.1770, and the project-specific Threshold, Transparent Core, Domain LINK, Independent Mix, and Display Scale self-tests passed. Installed and locally delivered binaries have matching SHA-256 values. Steinberg's validator was not available, so no validator result is claimed.
+The final 1.0.2 repository source was rebuilt as a Windows x64 Release with JUCE 8.0.15. Source-manifest verification, x64 PE inspection, moduleinfo, BS.1770, and the Threshold, Transparent Core, Domain LINK, Complete Relative LINK, Independent Mix, and Display Scale self-tests passed; Steinberg's VST3 validator returned 0. The earlier Plan A installation used the local JUCE 8.0.14 checkout selected at that time; its build, delivered, and installed hashes matched and validator also returned 0. Plan B/C/D did not overwrite the system plug-in without reconfirming that the DAW was closed.
 
-Plan D 的 Windows/macOS Actions 从同一提交构建 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU，并对 AU 执行 `auval`。Cubase 中的 1.0.1 Display 视觉、听感、PDC、Mix/Bypass、自动化与旧工程迁移仍建议由用户手动复核。
+本次 Plan D 的 Windows/macOS Actions 从同一 1.0.2 提交构建 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU，并对 AU 执行 `auval`。Actions 与四个下载包须在本次执行中另行核验。Cubase 中的听感、PDC、Mix/Bypass、自动化、LINK 交互与旧工程迁移仍建议由用户手动复核。
 
-Plan D builds Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU from the same commit and runs `auval` on the AU. Manual Cubase checks of the 1.0.1 display, sound, PDC, Mix/Bypass, automation, and legacy-project migration are still recommended.
+This Plan D run builds Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU from the same 1.0.2 commit and runs `auval` on the AU. The Actions jobs and four downloaded packages must be verified separately in this run. Manual Cubase checks of sound, PDC, Mix/Bypass, automation, LINK interaction, and legacy-project migration are still recommended.
 
 ## 完整版本历史 / Complete version history
 
-下面记录从首个原型到当前版本的全部真实版本。1.0.1 Display 0…-90 dB Scale Polish 是本次 Plan D 指定的稳定基线；失败实验与此前候选版本继续保留，不改写历史。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
+下面记录从首个原型到当前版本的全部真实版本。1.0.2 Complete Relative LINK 是本次 Plan D 指定的稳定基线；失败实验与此前候选版本继续保留，不改写历史。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
 
-Every real version from the first prototype through the current build is recorded below. Version 1.0.1 Display 0…-90 dB Scale Polish is the stable baseline for this Plan D run; rejected experiments and earlier candidates remain in history. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+Every real version from the first prototype through the current build is recorded below. Version 1.0.2 Complete Relative LINK is the stable baseline for this Plan D run; rejected experiments and earlier candidates remain in history. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+
+### 1.0.2 — 2026-08-30 — Complete Relative LINK — Stable baseline / 完整相对联动——稳定基线
+
+- 中文：在 1.0.1 稳定声音与显示基线上补全 LR/MS 的 Ratio、Threshold、Makeup、Mix 四组 LINK；拖动、Shift 精调和直接数值输入均保留两侧差值，边界处共同停止。
+- English: Completes LINK for Ratio, Threshold, Makeup, and Mix in LR/MS; drag, Shift-fine, and direct numeric entry preserve offsets and stop both sides together at boundaries.
+- 中文：仅修改编辑器交互与测试；DSP、参数 ID、状态结构、A/B 声音快照、Lookahead、Threshold 与 Display 绘图规则不变。
+- English: Editor interaction and tests only; DSP, parameter IDs, state structure, A/B sound snapshots, Lookahead, Threshold, and Display drawing rules are unchanged.
+- 状态 / Status：用户明确指定并按 Plan D 规则设为稳定基线；Windows 本地验证通过，本次提交的跨平台 Actions 通过后完成 Plan D。
+
 ### 1.0.1 — 2026-08-30 — Transparent core, independent domains and 0…-90 dB Display / 透明核心、独立分域与 0…-90 dB 显示
 
 - 中文：回到 future-window peak / Lookahead 核心；Threshold OFF 精确保留旧 QQ law，有限 Threshold 只增加连续作用下限。

@@ -1,5 +1,14 @@
 # QQ Super Compression — Development History
 
+## v1.0.2 — Complete Relative LINK — Stable baseline — 2026-08-30
+
+**状态 / Status:** Stable baseline（用户明确指定；本次执行 Plan B/C/D）  
+
+在 1.0.1 的透明 DSP、Threshold、独立 LR/MS 分域和 Display-first 0…-90 dB 显示基线上，1.0.2 只补全编辑器联动。LR/MS 的 LINK 现在覆盖 Ratio、Threshold、Makeup、Mix；drag、Shift 精调、直接输入均保存相对差值，任一侧触及边界时双方共同停止。ST 共同控制、DSP、参数 ID、状态结构、A/B 声音快照、Lookahead 与绘图规则均不改变。
+
+Version 1.0.2 completes offset-preserving Relative LINK for all four LR/MS paired controls. It is an editor-interaction and test change only; the 1.0.1 audio core and compatibility boundary remain intact.
+
+
 ## 0.1.1 Ratio Engine Fix / Meter & UI Pass — 2026-08-25
 
 ### Why 0.1.0 was wrong

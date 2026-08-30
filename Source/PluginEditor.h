@@ -114,10 +114,19 @@ private:
     void setChoiceParameter (const char* parameterID, int value);
     void registerKeyboardListener (juce::Component&);
 
-    enum class LinkedPair { none, ratioLR, ratioMS, thresholdLR, thresholdMS, makeupLR, makeupMS };
+    enum class LinkedPair
+    {
+        none,
+        ratioLR, ratioMS,
+        thresholdLR, thresholdMS,
+        makeupLR, makeupMS,
+        mixLR, mixMS
+    };
     void beginLinkedGesture (LinkedPair, FineKnob& source, FineKnob& target, const juce::String& undoName);
     void endLinkedGesture();
     void handleLinkedValueChange (LinkedPair, FineKnob& source, FineKnob& target);
+    double handleLinkedTextEntry (LinkedPair, FineKnob& source, FineKnob& target,
+                                  const juce::String& text, const juce::String& undoName);
 
     QQSuperCompressionAudioProcessor& processor;
     qqsc::UTF8LookAndFeel utf8LookAndFeel;

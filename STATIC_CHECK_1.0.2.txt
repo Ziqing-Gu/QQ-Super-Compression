@@ -1,0 +1,57 @@
+QQ Super Compression 1.0.2 — STATIC CHECK
+Date: 2026-08-30
+Status: static/math/source validation passed; the separate Plan A JUCE/MSVC build and Steinberg validator results are recorded in PLAN_A_VERIFICATION_1.0.2.md.
+Stable baseline: v1.0.2 Complete Relative LINK (explicitly designated by the user for this Plan B/C/D release run).
+
+PASS: v1.0.1 transparent future-window core @400 Hz / 26 ms THD -294.69 dB
+PASS: 0 ms remains intentionally more nonlinear; ST linked uses stronger L/R level with independent ST Ratio.
+PASS: v1.0.1 Threshold OFF is exactly the pre-Threshold QQ future-window gain law.
+PASS: finite Threshold is unity below/at the boundary and continuous above it.
+PASS: v1.0.2 relative Link covers Ratio/Threshold/Makeup/Mix, direct entry and shared boundaries.
+PASS: v1.0.2 UI source wires Mix into relative LINK and routes direct text entry through shared-delta linking.
+PASS: independent LR/MS Mix math; equal M/S Mix is legacy-equivalent, unequal values remain independent.
+display_scale_selftest: PASS
+
+Identity check:
+3:project(QQSuperCompression VERSION 1.0.2 LANGUAGES C CXX)
+
+Active Direct/Hilbert symbol scan:
+PASS: no rejected Direct/Hilbert engine references in active Source.
+
+LINK source checks:
+Source/PluginEditor.h:123:        mixLR, mixMS
+Source/PluginEditor.h:128:    double handleLinkedTextEntry (LinkedPair, FineKnob& source, FineKnob& target,
+Source/PluginEditor.h:179:    FineKnob mixMSlider { 100.0 };
+Source/PluginEditor.cpp:122:    for (auto* mix : { &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider })
+Source/PluginEditor.cpp:140:    for (auto* mix : { &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider })
+Source/PluginEditor.cpp:148:                          &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider, &outputGainSlider, &thresholdSlider, &thresholdLSlider, &thresholdRSlider,
+Source/PluginEditor.cpp:196:    linkButton.setTooltip ("Relative Link: Ratio / Threshold / Makeup / Mix");
+Source/PluginEditor.cpp:221:    mixMAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::mixM, mixMSlider);
+Source/PluginEditor.cpp:254:    mixLSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::mixLR, mixLSlider, mixRSlider, "Mix L/R"); };
+Source/PluginEditor.cpp:255:    mixRSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::mixLR, mixRSlider, mixLSlider, "Mix L/R"); };
+Source/PluginEditor.cpp:256:    mixMSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::mixMS, mixMSlider, mixSSlider, "Mix M/S"); };
+Source/PluginEditor.cpp:257:    mixSSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::mixMS, mixSSlider, mixMSlider, "Mix M/S"); };
+Source/PluginEditor.cpp:262:                          &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider })
+Source/PluginEditor.cpp:277:    mixLSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::mixLR, mixLSlider, mixRSlider); };
+Source/PluginEditor.cpp:278:    mixRSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::mixLR, mixRSlider, mixLSlider); };
+Source/PluginEditor.cpp:279:    mixMSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::mixMS, mixMSlider, mixSSlider); };
+Source/PluginEditor.cpp:280:    mixSSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::mixMS, mixSSlider, mixMSlider); };
+Source/PluginEditor.cpp:287:    ratioLSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::ratioLR, ratioLSlider, ratioRSlider, text, "Ratio L/R"); };
+Source/PluginEditor.cpp:288:    ratioRSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::ratioLR, ratioRSlider, ratioLSlider, text, "Ratio L/R"); };
+Source/PluginEditor.cpp:289:    ratioMSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::ratioMS, ratioMSlider, ratioSSlider, text, "Ratio M/S"); };
+Source/PluginEditor.cpp:290:    ratioSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::ratioMS, ratioSSlider, ratioMSlider, text, "Ratio M/S"); };
+Source/PluginEditor.cpp:292:    thresholdLSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::thresholdLR, thresholdLSlider, thresholdRSlider, text, "Threshold L/R"); };
+Source/PluginEditor.cpp:293:    thresholdRSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::thresholdLR, thresholdRSlider, thresholdLSlider, text, "Threshold L/R"); };
+Source/PluginEditor.cpp:294:    thresholdMSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::thresholdMS, thresholdMSlider, thresholdSSlider, text, "Threshold M/S"); };
+Source/PluginEditor.cpp:295:    thresholdSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::thresholdMS, thresholdSSlider, thresholdMSlider, text, "Threshold M/S"); };
+Source/PluginEditor.cpp:297:    makeupLSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::makeupLR, makeupLSlider, makeupRSlider, text, "Makeup L/R"); };
+Source/PluginEditor.cpp:298:    makeupRSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::makeupLR, makeupRSlider, makeupLSlider, text, "Makeup L/R"); };
+Source/PluginEditor.cpp:299:    makeupMSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::makeupMS, makeupMSlider, makeupSSlider, text, "Makeup M/S"); };
+Source/PluginEditor.cpp:300:    makeupSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::makeupMS, makeupSSlider, makeupMSlider, text, "Makeup M/S"); };
+Source/PluginEditor.cpp:302:    mixLSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixLR, mixLSlider, mixRSlider, text, "Mix L/R"); };
+Source/PluginEditor.cpp:303:    mixRSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixLR, mixRSlider, mixLSlider, text, "Mix L/R"); };
+Source/PluginEditor.cpp:304:    mixMSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixMS, mixMSlider, mixSSlider, text, "Mix M/S"); };
+Source/PluginEditor.cpp:305:    mixSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixMS, mixSSlider, mixMSlider, text, "Mix M/S"); };
+Source/PluginEditor.cpp:448:double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair pair, FineKnob& source,
+Source/PluginEditor.cpp:712:    mixMSlider.setVisible (ms);
+Source/PluginEditor.cpp:935:    mixMSlider.setBounds (mixFirstKnob);

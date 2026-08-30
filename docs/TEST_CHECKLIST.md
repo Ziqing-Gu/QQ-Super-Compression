@@ -1,5 +1,21 @@
 # QQ Super Compression 0.1.9 Test Checklist
 
+## 1.0.2 Complete Relative LINK — Stable baseline
+
+Automated/local checks:
+- [x] Source-level LINK self-test covers Ratio, Threshold, Makeup, and Mix.
+- [x] Drag, Shift-fine, direct numeric entry, offset preservation, and common boundary rules are represented in editor source/tests.
+- [x] Windows x64 Release build, PE/moduleinfo inspection, project self-tests, and Steinberg validator pass.
+
+Manual host follow-up:
+- [ ] In LR and MS, verify LINK preserves Ratio, Threshold, Makeup, and Mix offsets during normal drag.
+- [ ] Verify Shift-fine adjustment preserves the same offsets.
+- [ ] Verify direct numeric entry produces the same linked delta.
+- [ ] Verify both sides stop together at minimum/maximum boundaries without collapsing the offset.
+- [ ] Verify LINK is restored with the project but does not change A/B sound snapshots.
+- [ ] Recheck Cubase sound, PDC, Mix/Bypass alignment, automation, and legacy-project migration.
+
+
 ## 1.0.1 Display 0…-90 dB Scale Polish
 
 - [x] Source manifest passes with no missing or mismatched files.

@@ -1,0 +1,103 @@
+QQ Super Compression 1.0.2 — Windows 与 macOS 安装说明
+
+厂商：Qing Audio
+版本：1.0.2 Complete Relative LINK
+发布日期：2026-08-30
+状态：用户明确确认的稳定基线
+许可证：MIT
+
+这是开源项目的用户成品包。Plan D 桌面目录只包含可安装插件压缩包和中英文说明；源码保存在公开 GitHub 仓库，不重复塞入插件 ZIP。
+
+本版只有一个插件/组件名称：
+
+  QQ Super Compression
+
+所有已安装格式必须保持 1.0.2。不要在用户目录和系统目录中同时保留旧版重复副本。
+
+四类压缩包与选择方式
+
+  Win/QQ-Super-Compression-1.0.2-Windows-x64.zip
+    Windows 64 位宿主使用的 x64 VST3。
+
+  Mac/QQ-Super-Compression-1.0.2-macOS-Apple-Silicon-VST3.zip
+    Apple Silicon / M 系列 Mac 使用的 arm64 原生 VST3。
+
+  Mac/QQ-Super-Compression-1.0.2-macOS-Intel-VST3.zip
+    Intel Mac 使用的 x86_64 原生 VST3。
+
+  Mac/QQ-Super-Compression-1.0.2-macOS-Universal-AU.zip
+    同时包含 arm64 和 x86_64 的 Universal 2 Audio Unit。
+
+Windows 成品为 x64，并通过 Windows 2022 构建环境及本机 Windows 验证。macOS 成品分别由 macOS 14 arm64 与 macOS 15 Intel runner 构建。未单独测试的更旧系统不作兼容性承诺。
+
+Windows x64 / VST3 安装
+
+1. 完全退出 Cubase、Nuendo、REAPER、Studio One、WaveLab，以及所有可能正在扫描或占用 VST3 的程序。
+2. 解压 Win/QQ-Super-Compression-1.0.2-Windows-x64.zip。
+3. 确认解压后得到完整 bundle：
+
+     QQ Super Compression.vst3
+
+4. 把整个 bundle 复制到：
+
+     C:\Program Files\Common Files\VST3
+
+5. Windows 请求时批准管理员权限。覆盖旧的 QQ Super Compression.vst3；不要把新 bundle 复制进旧 bundle 内部，形成嵌套目录。
+6. 重新打开宿主并执行完整 VST3 rescan。如果仍显示旧版，请关闭宿主，按宿主说明清理插件缓存，再重启并扫描。
+
+macOS / VST3 安装
+
+1. 完全退出 DAW 和插件扫描程序。
+2. 只选择一个 VST3 架构包：
+   - Apple Silicon/M 系列 Mac：Apple-Silicon-VST3.zip
+   - Intel Mac：Intel-VST3.zip
+   不要同时安装两套 VST3。
+3. 解压后确认得到：
+
+     QQ Super Compression.vst3
+
+4. 复制到下列一个目录：
+
+     ~/Library/Audio/Plug-Ins/VST3
+     /Library/Audio/Plug-Ins/VST3
+
+   Finder 中按住 Option 打开“前往”菜单可显示用户 Library。系统目录可能需要管理员权限。
+5. 删除或覆盖旧版重复副本，重新打开宿主并扫描 VST3；注册缓存未刷新时重启 Mac。
+
+macOS / Audio Unit（AU）安装
+
+1. 解压 Mac/QQ-Super-Compression-1.0.2-macOS-Universal-AU.zip。
+2. 确认得到：
+
+     QQ Super Compression.component
+
+3. 复制到下列一个目录：
+
+     ~/Library/Audio/Plug-Ins/Components
+     /Library/Audio/Plug-Ins/Components
+
+4. AU 与 VST3 是两套独立格式，只安装宿主需要的格式。重新打开 Logic Pro 或其他 AU 宿主并重新扫描 Audio Units。
+
+macOS 安全与加载失败处理
+
+macOS bundle 使用 ad-hoc 临时签名，没有 Apple Developer ID 公证。macOS 可能隔离下载文件。只有确认来源可信时，才对实际安装的 bundle 解除隔离，例如：
+
+  xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+  xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+系统级目录请把 $HOME/Library 替换为 /Library，并仅在确有需要时使用 sudo。来源不可信时不要绕过 macOS 安全机制。执行后重新打开宿主、重新扫描，必要时重启 Mac。
+
+升级与重复安装警告
+
+- 顺序必须是：关闭 DAW → 删除或覆盖旧 bundle → 复制 1.0.2 → 重新扫描。
+- 同一 VST3 不要同时存在于用户目录和系统目录。
+- 一台 Mac 不要同时安装 Apple Silicon 与 Intel 两套 VST3。
+- 如果同时安装 VST3 与 AU，两种格式应保持相同版本。
+
+1.0.2 更新与人工验证
+
+1.0.2 补全 LR/MS 的 Relative LINK：Ratio、Threshold、Makeup 和 Mix 均保持相对差值联动；拖动、Shift 微调和直接输入使用相同的共同边界规则。DSP、Detector、参数和 state schema 与 1.0.1 相同。
+
+安装后请人工检查：版本显示 1.0.2；ST/LR/MS；四组 LINK 的拖动和数值输入；共同边界停止；Threshold OFF 情况；PDC；Mix/Bypass 对齐；自动化与旧工程恢复。
+
+Windows 本机构建、项目自测、Steinberg VST3 validator、系统安装与 SHA-256 一致性均已通过。Plan D 的 Windows/macOS 成品另行从同一公开源码提交验证。最终听感和 Cubase 交互仍属于用户侧验证。

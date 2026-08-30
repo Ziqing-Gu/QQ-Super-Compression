@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 1.0.2 — Complete Relative LINK — Stable baseline
+
+- 用户本次明确指定 1.0.2 为稳定基线；按既定规则，本次继续完成 Plan B、Plan C 与 Plan D。
+- LR/MS 的 Relative LINK 由 Ratio、Threshold、Makeup 扩展为完整覆盖 Ratio、Threshold、Makeup、Mix。
+- 旋钮拖动、Shift 精调和直接数值输入使用同一相对差值规则；任一侧到达参数边界时两侧共同停止，避免差值被压扁。
+- ST 共同控制逻辑不变；LINK 作为工程工作流状态保存，仍不进入 A/B 声音快照。
+- 只修改编辑器交互和对应源码测试；DSP、参数 ID、状态结构、Lookahead、Threshold 与 Display 规则不变。
+
+- The user explicitly designated 1.0.2 as the stable baseline; this run continues with Plan B, Plan C, and Plan D under the established policy.
+- Relative LINK in LR/MS now covers all four paired controls: Ratio, Threshold, Makeup, and Mix.
+- Knob drag, Shift-fine adjustment, and direct numeric entry share the same relative-offset rule; both sides stop together at boundaries so the offset is preserved.
+- ST shared-control behaviour is unchanged. LINK remains saved workflow state and stays outside A/B sound snapshots.
+- Editor interaction and source tests only; DSP, parameter IDs, state structure, Lookahead, Threshold, and Display rules are unchanged.
+
 ## 1.0.1 — Display 0…-90 dB Scale Polish — Stable baseline
 
 - Returned to the clean future-window peak / Lookahead core after rejecting the 1.0.0 Direct/Analytic/Hilbert experiment for harmonic colour and high CPU/ASIO Guard cost.

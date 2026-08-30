@@ -1,5 +1,14 @@
 # QQ Super Compression 0.1.10 — Codex build / validation brief
 
+## 1.0.2 Stable Plan B/C/D build status
+
+- 1.0.2 is the user-designated Stable baseline for this run.
+- Complete Relative LINK covers Ratio, Threshold, Makeup, and Mix in LR/MS, including direct numeric entry and shared boundary stopping.
+- This version changes editor interaction and tests only; the 1.0.1 DSP/state/parameter foundation must remain unchanged.
+- Local Plan A Windows x64 VST3 Release build, project tests, PE/moduleinfo checks, and Steinberg validator passed before Plan B/C/D.
+- Plan D must use the Windows and macOS artifacts generated from the same public v1.0.2 commit.
+
+
 ## 1.0.1 Plan A/Plan D build status
 
 - Local Windows x64 VST3 Release build: passed with JUCE 8.0.15 and MSVC.

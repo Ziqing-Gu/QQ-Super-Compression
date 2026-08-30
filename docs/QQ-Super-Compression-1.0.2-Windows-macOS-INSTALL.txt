@@ -1,0 +1,130 @@
+QQ Super Compression 1.0.2 — Windows and macOS Installation Guide
+
+Vendor: Qing Audio
+Version: 1.0.2 Complete Relative LINK
+Release date: 2026-08-30
+Status: Stable baseline, explicitly confirmed by the user
+License: MIT
+
+This is the user package for an open-source project. The Plan D desktop package
+contains installable plug-in archives and these guides; source code remains in
+the public GitHub repository and is not duplicated inside the plug-in ZIPs.
+
+Included plug-in/component name:
+
+  QQ Super Compression
+
+All installed formats must use version 1.0.2. Do not keep an older duplicate in
+another user or system plug-in directory.
+
+PACKAGE CHOICE
+
+  Win/QQ-Super-Compression-1.0.2-Windows-x64.zip
+    Windows x64 VST3 for 64-bit Windows hosts.
+
+  Mac/QQ-Super-Compression-1.0.2-macOS-Apple-Silicon-VST3.zip
+    Native arm64 VST3 for Apple Silicon / M-series Macs.
+
+  Mac/QQ-Super-Compression-1.0.2-macOS-Intel-VST3.zip
+    Native x86_64 VST3 for Intel Macs.
+
+  Mac/QQ-Super-Compression-1.0.2-macOS-Universal-AU.zip
+    Universal 2 Audio Unit containing arm64 and x86_64.
+
+Windows is built for x64 and tested through the Windows 2022 build environment
+plus local Windows validation. macOS artifacts are built on macOS 14 arm64 and
+macOS 15 Intel runners. Compatibility with older operating systems is not
+claimed unless independently tested.
+
+WINDOWS x64 / VST3
+
+1. Fully quit Cubase, Nuendo, REAPER, Studio One, WaveLab and any other host or
+   scanner that may be using VST3 plug-ins.
+2. Extract Win/QQ-Super-Compression-1.0.2-Windows-x64.zip.
+3. Confirm that extraction produces exactly this bundle:
+
+     QQ Super Compression.vst3
+
+4. Copy that complete bundle to:
+
+     C:\Program Files\Common Files\VST3
+
+5. Approve administrator permission if Windows requests it. Replace the older
+   QQ Super Compression.vst3 bundle; do not copy the new bundle inside the old
+   bundle directory.
+6. Reopen the host and perform a full VST3 rescan. If the host still shows an
+   old version, close it, remove its plug-in cache according to the host manual,
+   restart the host and rescan.
+
+macOS / VST3
+
+1. Fully quit the DAW and plug-in scanners.
+2. Choose only one VST3 architecture package:
+   - Apple Silicon/M-series Mac: Apple-Silicon-VST3.zip
+   - Intel Mac: Intel-VST3.zip
+   Do not install both VST3 architecture packages.
+3. Extract the selected ZIP and confirm it contains:
+
+     QQ Super Compression.vst3
+
+4. Copy the bundle to one of these locations:
+
+     ~/Library/Audio/Plug-Ins/VST3
+     /Library/Audio/Plug-Ins/VST3
+
+   Use Finder > Go while holding Option to reveal the user Library. The system
+   location may require administrator permission.
+5. Remove or replace older duplicate copies, reopen the host and rescan VST3.
+   Restart the Mac if the plug-in registrar remains stale.
+
+macOS / AUDIO UNIT
+
+1. Extract Mac/QQ-Super-Compression-1.0.2-macOS-Universal-AU.zip.
+2. Confirm it contains:
+
+     QQ Super Compression.component
+
+3. Copy the component to one of these locations:
+
+     ~/Library/Audio/Plug-Ins/Components
+     /Library/Audio/Plug-Ins/Components
+
+4. AU and VST3 are independent formats. Install only the formats your host
+   needs. Reopen Logic Pro or the AU host and run its Audio Unit rescan.
+
+macOS SECURITY / LOAD FAILURE
+
+The macOS bundles use ad-hoc signing and are not Apple Developer ID notarized.
+macOS may quarantine a downloaded archive. Only if you trust the source, remove
+quarantine from the actual installed bundle, for example:
+
+  xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+  xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+For system-wide locations, substitute /Library for $HOME/Library and use sudo
+only when required. Do not bypass macOS security for files from an untrusted
+source. Reopen the host, rescan, and restart the Mac if necessary.
+
+UPGRADE AND DUPLICATE WARNINGS
+
+- Close the DAW first, remove or replace the older bundle, copy 1.0.2, then
+  rescan. Do not retain old and new copies of the same format.
+- Do not install a VST3 simultaneously in both user and system directories.
+- Do not install both Apple Silicon and Intel VST3 packages on one Mac.
+- Keep VST3 and AU at the same version if both formats are installed.
+
+1.0.2 CHANGE AND MANUAL CHECKS
+
+Version 1.0.2 completes Relative LINK for LR/MS Ratio, Threshold, Makeup and
+Mix. Drag, Shift-fine adjustment and direct numeric entry use the same
+offset-preserving boundary rules. DSP, detector, parameters and state schema
+are unchanged from 1.0.1.
+
+After installation, manually check version 1.0.2, ST/LR/MS mode switching,
+LINK drag and typed entry for all four control pairs, shared-boundary stopping,
+Threshold OFF cases, PDC, Mix/Bypass alignment, automation and old projects.
+
+Windows local build, project tests, Steinberg VST3 validator, system install and
+SHA-256 parity passed. Plan D macOS/Windows artifacts are separately verified
+from one public source commit. Final listening and Cubase interaction checks are
+user-side validation.

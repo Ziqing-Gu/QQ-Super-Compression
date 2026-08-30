@@ -193,7 +193,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     bypassButton.setClickingTogglesState (true);
     linkButton.setClickingTogglesState (true);
     linkButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
-    linkButton.setTooltip ("Relative Link: Ratio / Threshold / Makeup");
+    linkButton.setTooltip ("Relative Link: Ratio / Threshold / Makeup / Mix");
     aButton.setClickingTogglesState (false);
     bButton.setClickingTogglesState (false);
 
@@ -233,10 +233,6 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     ratioSlider.onGestureStart = [this] { beginUndoTransaction ("Ratio ST"); };
     makeupSTSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup ST"); };
     mixSlider.onGestureStart = [this] { beginUndoTransaction ("Mix ST"); };
-    mixLSlider.onGestureStart = [this] { beginUndoTransaction ("Mix L"); };
-    mixRSlider.onGestureStart = [this] { beginUndoTransaction ("Mix R"); };
-    mixMSlider.onGestureStart = [this] { beginUndoTransaction ("Mix M"); };
-    mixSSlider.onGestureStart = [this] { beginUndoTransaction ("Mix S"); };
     outputGainSlider.onGestureStart = [this] { beginUndoTransaction ("Output Gain"); };
     thresholdSlider.onGestureStart = [this] { beginUndoTransaction ("Threshold ST"); };
 
@@ -255,9 +251,15 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     makeupMSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::makeupMS, makeupMSlider, makeupSSlider, "Makeup M/S"); };
     makeupSSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::makeupMS, makeupSSlider, makeupMSlider, "Makeup M/S"); };
 
+    mixLSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::mixLR, mixLSlider, mixRSlider, "Mix L/R"); };
+    mixRSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::mixLR, mixRSlider, mixLSlider, "Mix L/R"); };
+    mixMSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::mixMS, mixMSlider, mixSSlider, "Mix M/S"); };
+    mixSSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::mixMS, mixSSlider, mixMSlider, "Mix M/S"); };
+
     for (auto* slider : { &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider,
                           &thresholdLSlider, &thresholdRSlider, &thresholdMSlider, &thresholdSSlider,
-                          &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider })
+                          &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider,
+                          &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider })
         slider->onGestureEnd = [this] { endLinkedGesture(); };
 
     ratioLSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::ratioLR, ratioLSlider, ratioRSlider); };
@@ -272,6 +274,35 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     makeupRSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::makeupLR, makeupRSlider, makeupLSlider); };
     makeupMSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::makeupMS, makeupMSlider, makeupSSlider); };
     makeupSSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::makeupMS, makeupSSlider, makeupMSlider); };
+    mixLSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::mixLR, mixLSlider, mixRSlider); };
+    mixRSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::mixLR, mixRSlider, mixLSlider); };
+    mixMSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::mixMS, mixMSlider, mixSSlider); };
+    mixSSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::mixMS, mixSSlider, mixMSlider); };
+
+    // A JUCE Slider text edit does not travel through mouseDown/mouseDrag, so
+    // the normal gesture-start snapshot used by relative LINK is not available.
+    // Route the four paired parameter families through the same relative-delta
+    // law at text-parse/commit time. This makes direct numeric entry behave like
+    // normal dragging and Shift-fine dragging instead of silently bypassing LINK.
+    ratioLSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::ratioLR, ratioLSlider, ratioRSlider, text, "Ratio L/R"); };
+    ratioRSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::ratioLR, ratioRSlider, ratioLSlider, text, "Ratio L/R"); };
+    ratioMSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::ratioMS, ratioMSlider, ratioSSlider, text, "Ratio M/S"); };
+    ratioSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::ratioMS, ratioSSlider, ratioMSlider, text, "Ratio M/S"); };
+
+    thresholdLSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::thresholdLR, thresholdLSlider, thresholdRSlider, text, "Threshold L/R"); };
+    thresholdRSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::thresholdLR, thresholdRSlider, thresholdLSlider, text, "Threshold L/R"); };
+    thresholdMSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::thresholdMS, thresholdMSlider, thresholdSSlider, text, "Threshold M/S"); };
+    thresholdSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::thresholdMS, thresholdSSlider, thresholdMSlider, text, "Threshold M/S"); };
+
+    makeupLSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::makeupLR, makeupLSlider, makeupRSlider, text, "Makeup L/R"); };
+    makeupRSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::makeupLR, makeupRSlider, makeupLSlider, text, "Makeup L/R"); };
+    makeupMSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::makeupMS, makeupMSlider, makeupSSlider, text, "Makeup M/S"); };
+    makeupSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::makeupMS, makeupSSlider, makeupMSlider, text, "Makeup M/S"); };
+
+    mixLSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixLR, mixLSlider, mixRSlider, text, "Mix L/R"); };
+    mixRSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixLR, mixRSlider, mixLSlider, text, "Mix L/R"); };
+    mixMSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixMS, mixMSlider, mixSSlider, text, "Mix M/S"); };
+    mixSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixMS, mixSSlider, mixMSlider, text, "Mix M/S"); };
 
     modeButton.onClick = [this] { cycleMode(); };
     oversamplingButton.onClick = [this] { cycleOversampling(); };
@@ -379,7 +410,8 @@ void QQSuperCompressionAudioProcessorEditor::handleLinkedValueChange (LinkedPair
 
     // Link never equalises values. It preserves the pair's numeric difference
     // captured at gesture start: 3:1 / 5:1 -> +1 becomes 4:1 / 6:1;
-    // -20 / -10 dB -> +2 becomes -18 / -8 dB. The same rule applies to Makeup.
+    // -20 / -10 dB -> +2 becomes -18 / -8 dB. The same rule applies to Makeup
+    // and Mix percentage points.
     if (activeLinkedPair != pair || activeLinkSource != &source || activeLinkTarget != &target)
         return;
 
@@ -411,6 +443,75 @@ void QQSuperCompressionAudioProcessorEditor::handleLinkedValueChange (LinkedPair
         source.setValue (newSource, juce::sendNotificationSync);
     if (std::abs (target.getValue() - newTarget) > 1.0e-9)
         target.setValue (newTarget, juce::sendNotificationSync);
+}
+
+double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair pair, FineKnob& source,
+                                                                        FineKnob& target,
+                                                                        const juce::String& text,
+                                                                        const juce::String& undoName)
+{
+    if (text.trim().isEmpty())
+        return source.getValue();
+
+    const bool thresholdPair = pair == LinkedPair::thresholdLR || pair == LinkedPair::thresholdMS;
+
+    double requestedSource = 0.0;
+    if (thresholdPair && (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("-inf")))
+        requestedSource = static_cast<double> (qqsc::params::thresholdOffDb);
+    else
+        requestedSource = text.getDoubleValue();
+
+    requestedSource = juce::jlimit (source.getMinimum(), source.getMaximum(), requestedSource);
+
+    // With LINK off, direct entry should remain an ordinary one-parameter edit.
+    if (! linkButton.getToggleState())
+        return requestedSource;
+
+    const auto sourceStart = source.getValue();
+    const auto targetStart = target.getValue();
+
+    beginUndoTransaction (undoName);
+
+    if (thresholdPair)
+    {
+        const bool sourceOff = ! qqsc::params::isThresholdEnabled (static_cast<float> (sourceStart));
+        const bool targetOff = ! qqsc::params::isThresholdEnabled (static_cast<float> (targetStart));
+
+        // OFF is conceptual -infinity. If only one side is OFF there is no
+        // finite dB offset to preserve, so direct entry changes only the edited
+        // side, matching the established drag-gesture rule.
+        if (sourceOff != targetOff)
+            return requestedSource;
+
+        // If both sides are OFF, their finite difference is effectively zero.
+        // Entering a finite Threshold on either side therefore brings both out
+        // together at the entered value. Entering OFF simply leaves both OFF.
+        if (sourceOff && targetOff)
+        {
+            const juce::ScopedValueSetter<bool> guard (linkedValueUpdateInProgress, true);
+            if (std::abs (target.getValue() - requestedSource) > 1.0e-9)
+                target.setValue (requestedSource, juce::sendNotificationSync);
+            return requestedSource;
+        }
+    }
+
+    // Numeric entry follows the identical relative-delta/boundary law as a
+    // drag gesture. If the typed source value would push the paired member past
+    // its range, clamp the *shared delta* rather than clipping just one member.
+    const auto requestedDelta = requestedSource - sourceStart;
+    const auto minDelta = juce::jmax (source.getMinimum() - sourceStart,
+                                      target.getMinimum() - targetStart);
+    const auto maxDelta = juce::jmin (source.getMaximum() - sourceStart,
+                                      target.getMaximum() - targetStart);
+    const auto appliedDelta = juce::jlimit (minDelta, maxDelta, requestedDelta);
+    const auto newSource = sourceStart + appliedDelta;
+    const auto newTarget = targetStart + appliedDelta;
+
+    const juce::ScopedValueSetter<bool> guard (linkedValueUpdateInProgress, true);
+    if (std::abs (target.getValue() - newTarget) > 1.0e-9)
+        target.setValue (newTarget, juce::sendNotificationSync);
+
+    return newSource;
 }
 
 void QQSuperCompressionAudioProcessorEditor::configureLabel (juce::Label& label, const juce::String& text)

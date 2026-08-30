@@ -1,4 +1,4 @@
-name: Build Windows VST3 1.0.1
+name: Build Windows VST3 1.0.2
 
 on:
   workflow_dispatch:
@@ -35,12 +35,12 @@ jobs:
         run: |
           $vst3 = "build-windows/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3"
           if (-not (Test-Path -LiteralPath $vst3)) { throw "Missing VST3 bundle: $vst3" }
-          Compress-Archive -LiteralPath $vst3 -DestinationPath "QQ-Super-Compression-1.0.1-Windows-x64.zip"
+          Compress-Archive -LiteralPath $vst3 -DestinationPath "QQ-Super-Compression-1.0.2-Windows-x64.zip"
 
       - name: Upload packaged VST3
         uses: actions/upload-artifact@v4
         with:
-          name: QQ-Super-Compression-1.0.1-Windows-x64
-          path: QQ-Super-Compression-1.0.1-Windows-x64.zip
+          name: QQ-Super-Compression-1.0.2-Windows-x64
+          path: QQ-Super-Compression-1.0.2-Windows-x64.zip
           if-no-files-found: error
           retention-days: 7

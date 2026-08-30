@@ -1,16 +1,27 @@
 # AI 持续开发交接规范
 
-## 当前稳定基线 / Current stable baseline — 1.0.1 Display 0…-90 dB Scale Polish
+## v1.0.2 — Complete Relative LINK — Stable baseline
+
+- 用户于 2026-08-30 明确要求把此版本设为稳定基线并执行 Plan B/C/D。
+- LR/MS 的 LINK 完整覆盖 Ratio、Threshold、Makeup、Mix；保留相对差值，不强制相等。
+- drag、Shift-fine、直接数值输入共享同一 delta/boundary 规则；任一侧到边界时双方共同停止。
+- LINK 保存为工作流状态但不进入 A/B 声音快照。
+- DSP、参数 ID、状态结构、Lookahead、Threshold 与 Display 绘图规则保持 1.0.1 稳定基线不变。
+- 回滚顺序：先回滚到本次 Plan B 的 1.0.2 快照；若问题来自 LINK 交互，则对照 1.0.1 Display 稳定基线，仅重做编辑器联动。
+
+English: 1.0.2 completes offset-preserving Relative LINK for Ratio, Threshold, Makeup, and Mix across drag, Shift-fine, and direct numeric entry. Both sides stop together at parameter boundaries. This is an editor-interaction change only; DSP and state compatibility remain on the 1.0.1 stable foundation.
+
+## 当前稳定基线 / Current stable baseline — 1.0.2 Complete Relative LINK
 
 **日期 / Date:** 2026-08-30
 **状态 / Status:** Stable baseline under the user's standing Plan D rule
-**回滚基线 / Rollback:** 1.0.1 Mode / Lookahead Alignment Polish Plan B snapshot
+**回滚基线 / Rollback:** 1.0.1 Display 0…-90 dB Scale Polish Plan B snapshot
 
 - 当前 DSP 是 future-window peak / Lookahead 核心。未经用户明确同意，不得恢复已拒绝的 1.0.0 Direct/Analytic/Hilbert 路线。
 - Threshold OFF 必须精确保留旧 QQ law；有限 Threshold 只是连续作用下限，不得偷偷改 detector、Attack、Release、knee 或 smoothing。
-- ST 使用共同控制；LR/MS 具有独立 Ratio、Threshold、Makeup 与 Mix。Relative LINK 只覆盖 Ratio、Threshold 与 Makeup，并保留差值。
+- ST 使用共同控制；LR/MS 具有独立 Ratio、Threshold、Makeup 与 Mix。Relative LINK 完整覆盖四组控制，在拖动、Shift 精调和直接数值输入中保留差值，并在边界共同停止。
 - Dynamic Display 固定绘图范围为 0…-90 dB、15 dB 间隔；不得因此改变 DSP、Meter、参数、LUFS 或 -120 dB Threshold OFF sentinel。
-- Plan A Windows 构建、安装和项目自测已通过；Plan D 四类跨平台成品必须来自同一公开提交。
+- 1.0.2 Plan A 安装包（本机 JUCE 8.0.14）与最终仓库重建包（JUCE 8.0.15）的项目自测和 Steinberg validator 均通过；最终 8.0.15 包未在本次 B/C/D 中重复覆盖系统安装。Plan D 四类跨平台成品必须来自同一公开提交。
 - Cubase 最终听感、界面、PDC、Mix/Bypass、自动化与旧工程迁移仍由用户复核。
 
 English summary: keep the future-window peak/Lookahead core, exact Threshold OFF legacy law, independent LR/MS controls, offset-preserving Relative LINK, and drawing-only 0…-90 dB Display rule. Do not revive rejected detector or Direct/Analytic/Hilbert experiments without explicit user approval.
@@ -363,10 +374,10 @@ Project Root/
 
 ```text
 项目名称：QQ Super Compression
-当前稳定版本：0.9.4 — Editable Numeric Text Contrast（Plan D 稳定基线）
-当前候选版本：无（0.9.4 已完成 Plan D 跨平台交付）
+当前稳定版本：1.0.2 — Complete Relative LINK（用户明确指定；Plan D 稳定基线）
+当前候选版本：无（1.0.2 正在完成本次 Plan D 跨平台交付）
 主要平台：Windows / macOS
-插件/程序格式：VST3
+插件/程序格式：VST3 / AU
 主要开发环境：JUCE 8 / CMake / C++17
 主要测试环境：Windows + Cubase / PluginDoctor（由用户/Codex 实际构建与验证）
 
@@ -397,6 +408,8 @@ Project Root/
 - 0.9.2 加入 Input Gain / Output Gain 与完整 A/B/state/Undo/Display 语义；同版 bitmap filmstrip knob 视觉路线后被用户实机否决。
 - 0.9.3 恢复 v0.9.1 vector UI 绘制，保留 v0.9.2 两只 Gain 和全部功能逻辑；bitmap 资产不再参与 build/runtime。
 - 0.9.4 补齐浅色主题下 Slider 双击直接输入的 Label/TextEditor 编辑态配色，解决白字不可见；仅改 UI LookAndFeel，不改 DSP/参数/布局。
+- 1.0.1 恢复透明 future-window/Threshold 核心，完成独立 LR/MS 分域、1020×820 Display-first 布局与 0…-90 dB 绘图范围，并按 Plan D 成为稳定基线。
+- 1.0.2 在不改 DSP、参数 ID 或 state schema 的前提下，补全 Ratio、Threshold、Makeup、Mix 的 Relative LINK、直接输入与共同边界规则。
 - Ratio law 仍为 gain = 1 / (1 + (Ratio - 1) * level)。
 - UTF-8/CJK 跨平台规则继续保留。
 
@@ -408,29 +421,29 @@ Project Root/
 - 用户实际 Oversampling 结果：10 ms+ 无明显 aliasing 需求；0 ms 的 2x/4x aliasing 仍严重；OS latency 增加不多，因此最终不提供 2x/4x，直接保留 1x/8x/16x。
 - PluginDoctor 0 ms Ratio>1 LinearAnalysis 曾出现 ratio-dependent 高频上翘；Ratio=1:1 控制测试显示 8x FIR 本身基本平坦，仅 Nyquist 附近正常 roll-off。用户后续确认不需要把该现象当成 Oversampling FIR 故障；不要擅自加补偿 EQ。
 - 运行中改变 Lookahead 或 0 ms OS factor 会改变真实 plugin latency，宿主可能做一次 PDC realignment；当前 Candidate 不加入用户未要求的 realtime crossfade。
-- 0.1.10 的 16x JUCE/VST3 路径尚未在当前 AI 环境完成完整编译/DAW 验证；必须由 Codex/用户验证 CPU、PDC、Dry/Wet/Bypass 对齐、A/B/Undo/工程恢复。
+- 1.0.2 的 JUCE/VST3 完整编译、项目自测与 Steinberg validator 已通过；CPU、PDC、Dry/Wet/Bypass 对齐、A/B/Undo/工程恢复仍需 Cubase 用户侧复核。
 - Ctrl/Cmd+Z 是否被宿主优先截获仍需实际 VST3/Cubase 键盘焦点验证。
-- 0.9.4 已按 Plan D 规则记录为 Stable；DAW 直接输入视觉检查仍建议由用户复核。
+- 1.0.2 已由用户明确指定为 Stable；Cubase 中的 LINK 拖动、Shift 精调、直接输入、自动化、工程恢复与声音/PDC 仍建议由用户复核。
 
 当前正在开发：
-- 无（0.9.4 为当前稳定基线）。
+- 无（1.0.2 为当前稳定基线；当前只执行发布与跨平台验证）。
 
 当前回滚基线：
-- 0.9.4 Stable；若后续回归，优先回滚到 Plan B 备份中的 0.9.4，或对照 0.9.3。
+- 1.0.2 Stable；若后续回归，优先回滚到本次 Plan B 的 1.0.2 快照。若问题来自 LINK 交互，则对照 1.0.1 Display Stable，只重做 Editor 联动，不回退 DSP。
 - 若 0.1.10 的 16x / OS UI / state migration 出现问题，优先回滚到 0.1.9 Candidate 只重做 Oversampling；不要回退 0.1.8 UI、0.1.7 Hold、0.1.6 LUFS Match 或 future-window peak。
 - 若通用 0.1.9 Oversampling 架构本身存在根本 PDC/API 问题，可回到用户上传的 0.1.8 Plan B Candidate，只重新实现 0 ms-only Oversampling。
 - 永远不要恢复 0.1.0 waveshaper 或 0.1.1–0.1.3 rolling RMS 作为最终核心。
 
 下一步建议：
-- Codex 首先完整读取 PRODUCT_DESIGN_NOTES.md、OVERSAMPLING_DESIGN_NOTES.md、UI_DESIGN_NOTES.md、UI_ASSET_ARCHITECTURE.md（注意其中 v0.9.2 bitmap 路线已标记 rejected）再编译 0.9.4。
+- 后续开发前先完整读取 PRODUCT_DESIGN_NOTES.md、OVERSAMPLING_DESIGN_NOTES.md、UI_DESIGN_NOTES.md 与本文件，再从 1.0.2 Stable 开始。
 - 确认 build 不再创建/链接 `QQSCAssets`，旋钮使用恢复后的 v0.9.1 vector LookAndFeel。
-- 双击 Ratio / Makeup / Mix / Input Gain / Output Gain 数值，确认编辑文字为深色可见，caret/selection 清晰，提交行为不变。
+- 在 LR/MS 分别验证 Ratio / Threshold / Makeup / Mix 的 LINK：拖动、Shift 精调、直接数值输入与边界停止必须保持相对差值；同时复核编辑文字、caret 与 selection。
 - 重点验证 Input/Output Gain 仍完整存在：Input 改变 detector/compression 与 Input meter，但不移动 Dynamic Display Dry/Input；Output 改变最终 Output meter 与 Display Output。
 - 验证 A/B、Undo/Redo、工程保存/旧 state migration 仍包含两只 Gain。
 - 确认 JUCE 8.0.15 的 8x(3 stage)/16x(4 stage) FIR API、PDC/Bypass、LUFS Match、GR Hold 与 ST/MS/LR 均无回归。
 - PluginDoctor：0 ms 对比 1x/8x/16x aliasing；不要把谐波仍存在误判为 Oversampling 失败。
 - Cubase：0 ms 三档 PDC、Mix 50%、Bypass；10 ms+ 确认 OS 隐藏且 effective 1x/Lookahead-only PDC。
-- v0.9.4 已按 Plan D 规则记录为 Stable；v1.0.0 仍需用户对整体产品状态作最终确认。公开 GitHub Release 仍属于单独的 Plan G。
+- v1.0.2 已由用户明确指定并按 Plan D 规则记录为 Stable。公开 GitHub Release 仍停留在 0.9.4；更新 Release 属于单独的 Plan G。
 ```
 
 ---

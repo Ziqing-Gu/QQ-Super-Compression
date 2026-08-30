@@ -1,5 +1,14 @@
 # QQ Super Compression — UI Design Notes
 
+## v1.0.2 — Complete Relative LINK interaction
+
+- 1020×820 Display-first geometry and visual language remain unchanged.
+- In LR/MS, one LINK state covers Ratio, Threshold, Makeup, and Mix.
+- Drag, Shift-fine, and direct numeric entry preserve the existing pair offset.
+- Both values stop together at boundaries; LINK never silently collapses them to equality.
+- LINK remains outside A/B sound snapshots. No DSP, parameter-ID, or layout redesign is part of this version.
+
+
 ## Why this document exists
 
 Codex / future AI may work from the GitHub repository without access to the original design conversation. This file records the **reasoning behind the v0.9.0 visual direction**, so future UI work does not accidentally move the product toward a style that contradicts its sound and product identity.
