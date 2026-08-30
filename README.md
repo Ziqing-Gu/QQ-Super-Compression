@@ -16,6 +16,8 @@
 
 这个效果器本质上是一个Dynamic Processor，这也是我不称其为“Compressor”而叫“Compression”的原因。
 
+
+
 This is an AI‑development project. Most of the text was edited by ChatGPT, and these texts are meant to be read by both users and the AI.
 
 if you see command‑style phrasing, those are intended for the AI.
