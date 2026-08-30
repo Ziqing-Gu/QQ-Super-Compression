@@ -31,7 +31,7 @@ juce_add_plugin(QQSuperCompression
     BUNDLE_ID "com.qingaudio.qqsupercompression"
     PLUGIN_MANUFACTURER_CODE Qing
     PLUGIN_CODE Qscp
-    FORMATS VST3
+    FORMATS VST3 AU
     PRODUCT_NAME "QQ Super Compression"
     DESCRIPTION "Transparent lookahead dynamics processor with independent ST/LR/MS domains"
     IS_SYNTH FALSE
