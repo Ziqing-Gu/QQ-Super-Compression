@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 0.9.4 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.0.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -39,7 +39,7 @@ juce_add_plugin(QQSuperCompression
     PLUGIN_CODE Qscp
     FORMATS ${QQSC_PLUGIN_FORMATS}
     PRODUCT_NAME "QQ Super Compression"
-    DESCRIPTION "Threshold-free lookahead dynamic-range compressor"
+    DESCRIPTION "Transparent lookahead dynamics processor with independent ST/LR/MS domains"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE

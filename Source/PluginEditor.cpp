@@ -5,11 +5,11 @@
 namespace
 {
 constexpr int defaultEditorWidth = 1020;
-constexpr int defaultEditorHeight = 670;
+constexpr int defaultEditorHeight = 820;
 constexpr double editorAspectRatio = static_cast<double> (defaultEditorWidth) / defaultEditorHeight;
-constexpr int minEditorHeight = 610;
+constexpr int minEditorHeight = 720;
 constexpr int minEditorWidth = static_cast<int> (minEditorHeight * editorAspectRatio + 0.5);
-constexpr int maxEditorHeight = 950;
+constexpr int maxEditorHeight = 1100;
 constexpr int maxEditorWidth = static_cast<int> (maxEditorHeight * editorAspectRatio + 0.5);
 
 juce::String arrowText (const juce::String& left, const juce::String& right)
@@ -33,21 +33,19 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
         editorBoundsConstrainer->setFixedAspectRatio (editorAspectRatio);
 
     int savedWidth = defaultEditorWidth;
-    int savedHeight = defaultEditorHeight;
     if (uiProperties != nullptr)
     {
         savedWidth = uiProperties->getIntValue ("editorWidth", defaultEditorWidth);
-        savedHeight = uiProperties->getIntValue ("editorHeight", defaultEditorHeight);
     }
 
-    // Older builds allowed width and height to drift independently. Migrate
-    // any saved non-proportional size to the largest uniform scale that fits
-    // inside the old saved rectangle, then keep the fixed design aspect ratio.
+    // v1.0.1 intentionally changes the design aspect ratio to make the Display
+    // much taller. Preserve the user's prior *width scale* and let the new
+    // aspect ratio add vertical space; fitting inside an old 1020x670 rectangle
+    // would defeat the Display-first migration by reopening at ~833x670.
     const auto minScale = static_cast<double> (minEditorHeight) / defaultEditorHeight;
     const auto maxScale = static_cast<double> (maxEditorHeight) / defaultEditorHeight;
     const auto savedScale = juce::jlimit (minScale, maxScale,
-                                         juce::jmin (static_cast<double> (savedWidth) / defaultEditorWidth,
-                                                     static_cast<double> (savedHeight) / defaultEditorHeight));
+                                         static_cast<double> (juce::jmax (1, savedWidth)) / defaultEditorWidth);
     setSize (static_cast<int> (std::lround (defaultEditorWidth * savedScale)),
              static_cast<int> (std::lround (defaultEditorHeight * savedScale)));
 
@@ -76,11 +74,18 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
     configureLabel (inputGainLabel, "INPUT GAIN");
     configureLabel (ratioLabel, "RATIO");
+    configureLabel (ratioChannel0Label, "L");
+    configureLabel (ratioChannel1Label, "R");
     configureLabel (makeupLabel, "MAKEUP");
     configureLabel (makeupChannel0Label, "L");
     configureLabel (makeupChannel1Label, "R");
     configureLabel (mixLabel, "MIX");
+    configureLabel (mixChannel0Label, "L");
+    configureLabel (mixChannel1Label, "R");
     configureLabel (outputGainLabel, "OUTPUT GAIN");
+    configureLabel (thresholdLabel, "THRESHOLD");
+    configureLabel (thresholdChannel0Label, "L");
+    configureLabel (thresholdChannel1Label, "R");
     configureLabel (modeLabel, "MODE");
     configureLabel (lookaheadLabel, "LOOKAHEAD (ms)");
     configureLabel (oversamplingLabel, "OVERSAMPLING");
@@ -90,25 +95,38 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     makeupLabel.setColour (juce::Label::textColourId, qqsc::ui::warmAccent().darker (0.36f));
     mixLabel.setColour (juce::Label::textColourId, qqsc::ui::warmAccent().darker (0.36f));
     outputGainLabel.setColour (juce::Label::textColourId, qqsc::ui::textMuted());
+    thresholdLabel.setColour (juce::Label::textColourId, qqsc::ui::warmAccent().darker (0.38f));
+    thresholdLabel.setFont (juce::Font (juce::FontOptions (8.5f, juce::Font::bold)));
     modeLabel.setColour (juce::Label::textColourId, qqsc::ui::warmAccent().darker (0.42f));
     lookaheadLabel.setColour (juce::Label::textColourId, qqsc::ui::cyanAccent().darker (0.42f));
     oversamplingLabel.setColour (juce::Label::textColourId, qqsc::ui::cyanAccent().darker (0.42f));
 
-    for (auto* label : { &inputGainLabel, &ratioLabel, &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
-                          &mixLabel, &outputGainLabel, &modeLabel, &lookaheadLabel, &oversamplingLabel })
+    for (auto* label : { &inputGainLabel, &ratioLabel, &ratioChannel0Label, &ratioChannel1Label,
+                          &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
+                          &mixLabel, &mixChannel0Label, &mixChannel1Label, &outputGainLabel, &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
+                          &modeLabel, &lookaheadLabel, &oversamplingLabel })
         contentRoot.addAndMakeVisible (*label);
 
     configureKnob (inputGainSlider, " dB");
-    configureKnob (ratioSlider);
-    ratioSlider.textFromValueFunction = [] (double v)
+    for (auto* ratio : { &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider })
     {
-        return juce::String (v, v < 10.0 ? 2 : 1) + ":1";
-    };
+        configureKnob (*ratio);
+        ratio->textFromValueFunction = [] (double v)
+        {
+            return juce::String (v, v < 10.0 ? 2 : 1) + ":1";
+        };
+    }
 
     for (auto* makeup : { &makeupSTSlider, &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider })
         configureKnob (*makeup, " dB");
-    configureKnob (mixSlider, " %");
+    for (auto* mix : { &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider })
+        configureKnob (*mix, " %");
     configureKnob (outputGainSlider, " dB");
+
+    // Threshold uses compact vertical faders beside the Display. ST shows one;
+    // LR/MS show two independent faders. FineKnob provides true Shift fine drag.
+    for (auto* threshold : { &thresholdSlider, &thresholdLSlider, &thresholdRSlider, &thresholdMSlider, &thresholdSSlider })
+        configureThresholdSlider (*threshold);
 
     // Input/Output are secondary trims: smaller controls so Ratio / Makeup / Mix
     // remain the visual focus. Their text boxes stay directly editable.
@@ -117,14 +135,18 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
     // Warm/transparent UI: musical gain controls use the warm lamp colour.
     inputGainSlider.setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
-    ratioSlider.setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
-    mixSlider.setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
+    for (auto* ratio : { &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider })
+        ratio->setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
+    for (auto* mix : { &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider })
+        mix->setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
     outputGainSlider.setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
     for (auto* makeup : { &makeupSTSlider, &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider })
         makeup->setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
 
-    for (auto* slider : { &inputGainSlider, &ratioSlider, &makeupSTSlider, &makeupLSlider, &makeupRSlider,
-                          &makeupMSlider, &makeupSSlider, &mixSlider, &outputGainSlider })
+    for (auto* slider : { &inputGainSlider, &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider,
+                          &makeupSTSlider, &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider,
+                          &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider, &outputGainSlider, &thresholdSlider, &thresholdLSlider, &thresholdRSlider,
+                          &thresholdMSlider, &thresholdSSlider })
     {
         contentRoot.addAndMakeVisible (*slider);
         registerKeyboardListener (*slider);
@@ -145,6 +167,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     registerKeyboardListener (lookaheadCombo);
 
     configureActionButton (modeButton);
+    configureActionButton (linkButton);
     configureActionButton (matchButton);
     configureActionButton (bypassButton);
     configureActionButton (aButton);
@@ -168,10 +191,13 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     bToAButton.setButtonText (arrowText ("B", "A"));
 
     bypassButton.setClickingTogglesState (true);
+    linkButton.setClickingTogglesState (true);
+    linkButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
+    linkButton.setTooltip ("Relative Link: Ratio / Threshold / Makeup");
     aButton.setClickingTogglesState (false);
     bButton.setClickingTogglesState (false);
 
-    for (auto* button : { &modeButton, &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton, &oversamplingButton })
+    for (auto* button : { &modeButton, &linkButton, &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton, &oversamplingButton })
     {
         contentRoot.addAndMakeVisible (*button);
         registerKeyboardListener (*button);
@@ -180,24 +206,72 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     auto& state = processor.getAPVTS();
     inputGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::inputGainDb, inputGainSlider);
     ratioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::ratio, ratioSlider);
+    ratioLAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::ratioL, ratioLSlider);
+    ratioRAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::ratioR, ratioRSlider);
+    ratioMAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::ratioM, ratioMSlider);
+    ratioSAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::ratioS, ratioSSlider);
     makeupSTAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::makeupGainDb, makeupSTSlider);
     makeupLAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::makeupGainLDb, makeupLSlider);
     makeupRAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::makeupGainRDb, makeupRSlider);
     makeupMAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::makeupGainMDb, makeupMSlider);
     makeupSAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::makeupGainSDb, makeupSSlider);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::mix, mixSlider);
+    mixLAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::mixL, mixLSlider);
+    mixRAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::mixR, mixRSlider);
+    mixMAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::mixM, mixMSlider);
+    mixSAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::mixS, mixSSlider);
     outputGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::outputGainDb, outputGainSlider);
+    thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::thresholdDb, thresholdSlider);
+    thresholdLAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::thresholdLDb, thresholdLSlider);
+    thresholdRAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::thresholdRDb, thresholdRSlider);
+    thresholdMAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::thresholdMDb, thresholdMSlider);
+    thresholdSAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::thresholdSDb, thresholdSSlider);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, qqsc::params::bypass, bypassButton);
+    linkAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, qqsc::params::domainLink, linkButton);
 
     inputGainSlider.onGestureStart = [this] { beginUndoTransaction ("Input Gain"); };
-    ratioSlider.onGestureStart = [this] { beginUndoTransaction ("Ratio"); };
+    ratioSlider.onGestureStart = [this] { beginUndoTransaction ("Ratio ST"); };
     makeupSTSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup ST"); };
-    makeupLSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup L"); };
-    makeupRSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup R"); };
-    makeupMSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup M"); };
-    makeupSSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup S"); };
-    mixSlider.onGestureStart = [this] { beginUndoTransaction ("Mix"); };
+    mixSlider.onGestureStart = [this] { beginUndoTransaction ("Mix ST"); };
+    mixLSlider.onGestureStart = [this] { beginUndoTransaction ("Mix L"); };
+    mixRSlider.onGestureStart = [this] { beginUndoTransaction ("Mix R"); };
+    mixMSlider.onGestureStart = [this] { beginUndoTransaction ("Mix M"); };
+    mixSSlider.onGestureStart = [this] { beginUndoTransaction ("Mix S"); };
     outputGainSlider.onGestureStart = [this] { beginUndoTransaction ("Output Gain"); };
+    thresholdSlider.onGestureStart = [this] { beginUndoTransaction ("Threshold ST"); };
+
+    ratioLSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::ratioLR, ratioLSlider, ratioRSlider, "Ratio L/R"); };
+    ratioRSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::ratioLR, ratioRSlider, ratioLSlider, "Ratio L/R"); };
+    ratioMSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::ratioMS, ratioMSlider, ratioSSlider, "Ratio M/S"); };
+    ratioSSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::ratioMS, ratioSSlider, ratioMSlider, "Ratio M/S"); };
+
+    thresholdLSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::thresholdLR, thresholdLSlider, thresholdRSlider, "Threshold L/R"); };
+    thresholdRSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::thresholdLR, thresholdRSlider, thresholdLSlider, "Threshold L/R"); };
+    thresholdMSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::thresholdMS, thresholdMSlider, thresholdSSlider, "Threshold M/S"); };
+    thresholdSSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::thresholdMS, thresholdSSlider, thresholdMSlider, "Threshold M/S"); };
+
+    makeupLSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::makeupLR, makeupLSlider, makeupRSlider, "Makeup L/R"); };
+    makeupRSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::makeupLR, makeupRSlider, makeupLSlider, "Makeup L/R"); };
+    makeupMSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::makeupMS, makeupMSlider, makeupSSlider, "Makeup M/S"); };
+    makeupSSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::makeupMS, makeupSSlider, makeupMSlider, "Makeup M/S"); };
+
+    for (auto* slider : { &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider,
+                          &thresholdLSlider, &thresholdRSlider, &thresholdMSlider, &thresholdSSlider,
+                          &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider })
+        slider->onGestureEnd = [this] { endLinkedGesture(); };
+
+    ratioLSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::ratioLR, ratioLSlider, ratioRSlider); };
+    ratioRSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::ratioLR, ratioRSlider, ratioLSlider); };
+    ratioMSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::ratioMS, ratioMSlider, ratioSSlider); };
+    ratioSSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::ratioMS, ratioSSlider, ratioMSlider); };
+    thresholdLSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::thresholdLR, thresholdLSlider, thresholdRSlider); };
+    thresholdRSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::thresholdLR, thresholdRSlider, thresholdLSlider); };
+    thresholdMSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::thresholdMS, thresholdMSlider, thresholdSSlider); };
+    thresholdSSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::thresholdMS, thresholdSSlider, thresholdMSlider); };
+    makeupLSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::makeupLR, makeupLSlider, makeupRSlider); };
+    makeupRSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::makeupLR, makeupRSlider, makeupLSlider); };
+    makeupMSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::makeupMS, makeupMSlider, makeupSSlider); };
+    makeupSSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::makeupMS, makeupSSlider, makeupMSlider); };
 
     modeButton.onClick = [this] { cycleMode(); };
     oversamplingButton.onClick = [this] { cycleOversampling(); };
@@ -253,6 +327,90 @@ void QQSuperCompressionAudioProcessorEditor::configureKnob (FineKnob& slider, co
     slider.setColour (juce::Slider::textBoxBackgroundColourId, qqsc::ui::panel().withAlpha (0.76f));
     slider.setColour (juce::Slider::textBoxOutlineColourId, qqsc::ui::border().withAlpha (0.78f));
     slider.setColour (juce::Slider::rotarySliderOutlineColourId, qqsc::ui::border());
+}
+
+void QQSuperCompressionAudioProcessorEditor::configureThresholdSlider (FineKnob& slider)
+{
+    slider.setSliderStyle (juce::Slider::LinearVertical);
+    slider.setSliderSnapsToMousePosition (false);
+    slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 54, 21);
+    slider.setNumDecimalPlacesToDisplay (2);
+    slider.setColour (juce::Slider::backgroundColourId, qqsc::ui::panelAlt().withAlpha (0.72f));
+    slider.setColour (juce::Slider::trackColourId, qqsc::ui::warmAccentSoft().withAlpha (0.72f));
+    slider.setColour (juce::Slider::thumbColourId, qqsc::ui::warmAccent());
+    slider.setColour (juce::Slider::textBoxTextColourId, qqsc::ui::text());
+    slider.setColour (juce::Slider::textBoxBackgroundColourId, qqsc::ui::panel().withAlpha (0.80f));
+    slider.setColour (juce::Slider::textBoxOutlineColourId, qqsc::ui::border().withAlpha (0.78f));
+    slider.textFromValueFunction = [] (double v)
+    {
+        return qqsc::params::isThresholdEnabled (static_cast<float> (v))
+            ? juce::String (v, 2) + " dB" : juce::String ("OFF");
+    };
+    slider.valueFromTextFunction = [] (const juce::String& text)
+    {
+        return (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("-inf"))
+            ? static_cast<double> (qqsc::params::thresholdOffDb)
+            : juce::jlimit (static_cast<double> (qqsc::params::thresholdOffDb), 0.0, text.getDoubleValue());
+    };
+}
+
+void QQSuperCompressionAudioProcessorEditor::beginLinkedGesture (LinkedPair pair, FineKnob& source,
+                                                                   FineKnob& target, const juce::String& undoName)
+{
+    beginUndoTransaction (undoName);
+    activeLinkedPair = pair;
+    activeLinkSource = &source;
+    activeLinkTarget = &target;
+    activeLinkSourceStart = source.getValue();
+    activeLinkTargetStart = target.getValue();
+}
+
+void QQSuperCompressionAudioProcessorEditor::endLinkedGesture()
+{
+    activeLinkedPair = LinkedPair::none;
+    activeLinkSource = nullptr;
+    activeLinkTarget = nullptr;
+}
+
+void QQSuperCompressionAudioProcessorEditor::handleLinkedValueChange (LinkedPair pair, FineKnob& source, FineKnob& target)
+{
+    if (linkedValueUpdateInProgress || ! linkButton.getToggleState())
+        return;
+
+    // Link never equalises values. It preserves the pair's numeric difference
+    // captured at gesture start: 3:1 / 5:1 -> +1 becomes 4:1 / 6:1;
+    // -20 / -10 dB -> +2 becomes -18 / -8 dB. The same rule applies to Makeup.
+    if (activeLinkedPair != pair || activeLinkSource != &source || activeLinkTarget != &target)
+        return;
+
+    const bool thresholdPair = pair == LinkedPair::thresholdLR || pair == LinkedPair::thresholdMS;
+    if (thresholdPair)
+    {
+        // OFF means -infinity conceptually, not -120 dB. A finite relative
+        // offset to -infinity is undefined, so if exactly one side starts OFF
+        // leave the OFF side untouched for that gesture. If both are OFF they
+        // can be raised together normally.
+        const bool sourceOff = ! qqsc::params::isThresholdEnabled (static_cast<float> (activeLinkSourceStart));
+        const bool targetOff = ! qqsc::params::isThresholdEnabled (static_cast<float> (activeLinkTargetStart));
+        if (sourceOff != targetOff)
+            return;
+    }
+
+    const auto requestedDelta = source.getValue() - activeLinkSourceStart;
+    const auto minDelta = juce::jmax (source.getMinimum() - activeLinkSourceStart,
+                                      target.getMinimum() - activeLinkTargetStart);
+    const auto maxDelta = juce::jmin (source.getMaximum() - activeLinkSourceStart,
+                                      target.getMaximum() - activeLinkTargetStart);
+    const auto appliedDelta = juce::jlimit (minDelta, maxDelta, requestedDelta);
+
+    const auto newSource = activeLinkSourceStart + appliedDelta;
+    const auto newTarget = activeLinkTargetStart + appliedDelta;
+
+    const juce::ScopedValueSetter<bool> guard (linkedValueUpdateInProgress, true);
+    if (std::abs (source.getValue() - newSource) > 1.0e-9)
+        source.setValue (newSource, juce::sendNotificationSync);
+    if (std::abs (target.getValue() - newTarget) > 1.0e-9)
+        target.setValue (newTarget, juce::sendNotificationSync);
 }
 
 void QQSuperCompressionAudioProcessorEditor::configureLabel (juce::Label& label, const juce::String& text)
@@ -367,8 +525,9 @@ void QQSuperCompressionAudioProcessorEditor::updateOversamplingUi()
         processor.getAPVTS().getRawParameterValue (qqsc::params::oversampling)->load()));
     oversamplingButton.setButtonText (qqsc::params::oversamplingNameForChoiceIndex (oversamplingIndex));
 
-    // Non-zero Lookahead uses 1x internally and does not expose a meaningless
-    // Oversampling control. The stored 0 ms choice is preserved while hidden.
+    // Established transparent-engine rule: Oversampling is only meaningful at
+    // 0 ms. 10/26/40/80/100 ms run 1x internally and hide the control while
+    // preserving the user's remembered 0 ms choice.
     oversamplingLabel.setVisible (zeroMs);
     oversamplingButton.setVisible (zeroMs);
 }
@@ -386,28 +545,28 @@ void QQSuperCompressionAudioProcessorEditor::timerCallback()
 {
     updateModeUi();
 
-    bool latencyChoiceChangedOutsideDirectUiGesture = false;
+    bool latencyChoiceChangedOutsideUiGesture = false;
 
     const auto lookaheadIndex = qqsc::params::lookaheadChoiceIndexForMs (
         processor.getAPVTS().getRawParameterValue (qqsc::params::lookaheadMs)->load());
     if (lookaheadCombo.getSelectedItemIndex() != lookaheadIndex)
     {
         lookaheadCombo.setSelectedItemIndex (lookaheadIndex, juce::dontSendNotification);
-        latencyChoiceChangedOutsideDirectUiGesture = true;
+        latencyChoiceChangedOutsideUiGesture = true;
     }
 
     const auto oversamplingIndex = juce::jlimit (0, 2, juce::roundToInt (
         processor.getAPVTS().getRawParameterValue (qqsc::params::oversampling)->load()));
     const auto currentButtonText = qqsc::params::oversamplingNameForChoiceIndex (oversamplingIndex);
     if (oversamplingButton.getButtonText() != currentButtonText)
-        latencyChoiceChangedOutsideDirectUiGesture = true;
+        latencyChoiceChangedOutsideUiGesture = true;
 
     updateOversamplingUi();
 
-    // Direct ComboBox changes notify immediately. This additional path covers
+    // Direct UI control changes notify immediately. This additional path covers
     // Undo/Redo, A/B recall and host-side parameter changes while the editor is
     // open, including when transport is stopped and no audio callback is running.
-    if (latencyChoiceChangedOutsideDirectUiGesture)
+    if (latencyChoiceChangedOutsideUiGesture)
         processor.notifyHostProcessingLatency();
 }
 
@@ -422,6 +581,22 @@ void QQSuperCompressionAudioProcessorEditor::updateModeUi()
     const bool lr = mode == qqsc::params::leftRight;
     const bool ms = mode == qqsc::params::midSide;
 
+    ratioSlider.setVisible (st);
+    ratioLSlider.setVisible (lr);
+    ratioRSlider.setVisible (lr);
+    ratioMSlider.setVisible (ms);
+    ratioSSlider.setVisible (ms);
+    ratioChannel0Label.setVisible (! st);
+    ratioChannel1Label.setVisible (! st);
+
+    thresholdSlider.setVisible (st);
+    thresholdLSlider.setVisible (lr);
+    thresholdRSlider.setVisible (lr);
+    thresholdMSlider.setVisible (ms);
+    thresholdSSlider.setVisible (ms);
+    thresholdChannel0Label.setVisible (! st);
+    thresholdChannel1Label.setVisible (! st);
+
     makeupSTSlider.setVisible (st);
     makeupLSlider.setVisible (lr);
     makeupRSlider.setVisible (lr);
@@ -430,15 +605,34 @@ void QQSuperCompressionAudioProcessorEditor::updateModeUi()
     makeupChannel0Label.setVisible (! st);
     makeupChannel1Label.setVisible (! st);
 
+    mixSlider.setVisible (st);
+    mixLSlider.setVisible (lr);
+    mixRSlider.setVisible (lr);
+    mixMSlider.setVisible (ms);
+    mixSSlider.setVisible (ms);
+    mixChannel0Label.setVisible (! st);
+    mixChannel1Label.setVisible (! st);
+
+    // Keep Mode geometry fixed. v1.0.1 originally mutated Mode/LINK bounds from
+    // timer-driven updateModeUi(), which could leave the buttons effectively
+    // missing after mode changes in some hosts. resized() is now the sole owner
+    // of their bounds; updateModeUi() only controls text/visibility/state.
+    modeButton.setVisible (true);
+    linkButton.setVisible (! st);
+
     if (lr)
     {
-        makeupChannel0Label.setText ("L", juce::dontSendNotification);
-        makeupChannel1Label.setText ("R", juce::dontSendNotification);
+        for (auto* label : { &ratioChannel0Label, &makeupChannel0Label, &mixChannel0Label, &thresholdChannel0Label })
+            label->setText ("L", juce::dontSendNotification);
+        for (auto* label : { &ratioChannel1Label, &makeupChannel1Label, &mixChannel1Label, &thresholdChannel1Label })
+            label->setText ("R", juce::dontSendNotification);
     }
     else if (ms)
     {
-        makeupChannel0Label.setText ("M", juce::dontSendNotification);
-        makeupChannel1Label.setText ("S", juce::dontSendNotification);
+        for (auto* label : { &ratioChannel0Label, &makeupChannel0Label, &mixChannel0Label, &thresholdChannel0Label })
+            label->setText ("M", juce::dontSendNotification);
+        for (auto* label : { &ratioChannel1Label, &makeupChannel1Label, &mixChannel1Label, &thresholdChannel1Label })
+            label->setText ("S", juce::dontSendNotification);
     }
 
     matchButton.setEnabled (processor.hasMatchData());
@@ -470,8 +664,8 @@ void QQSuperCompressionAudioProcessorEditor::paint (juce::Graphics& g)
     // Two quiet chassis panels behind the visual analysis and control rows.
     // They create the warm "instrument under glass" feeling without darkening
     // the product or suggesting heavy distortion/saturation.
-    const auto visualPanel = scaled ({ 16.0f, 74.0f, 988.0f, 364.0f });
-    const auto controlPanel = scaled ({ 16.0f, 452.0f, 988.0f, 190.0f });
+    const auto visualPanel = scaled ({ 16.0f, 74.0f, 988.0f, 562.0f });
+    const auto controlPanel = scaled ({ 16.0f, 640.0f, 988.0f, 162.0f });
 
     for (const auto panelRect : { visualPanel, controlPanel })
     {
@@ -504,9 +698,9 @@ void QQSuperCompressionAudioProcessorEditor::paint (juce::Graphics& g)
 
 void QQSuperCompressionAudioProcessorEditor::resized()
 {
-    // Layout is always calculated in the original 1020x670 design space.
-    // The single parent transform then scales every child, font, stroke and
-    // meter together by the same X/Y factor.
+    // Layout is calculated in the enlarged 1020x820 v1.0.1 design space. The
+    // single parent transform still scales every child, font, stroke and meter
+    // uniformly, preserving the established 1:1 X/Y resize behaviour.
     const auto uiScale = static_cast<float> (getWidth()) / defaultEditorWidth;
     contentRoot.setTransform (juce::AffineTransform());
     contentRoot.setBounds (0, 0, defaultEditorWidth, defaultEditorHeight);
@@ -537,53 +731,88 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     auto area = juce::Rectangle<int> (0, 0, defaultEditorWidth, defaultEditorHeight).reduced (margin);
     area.removeFromTop (58);
 
-    auto visualRow = area.removeFromTop (350);
+    // v1.0.1 is deliberately Display-first. Threshold decisions require enough
+    // vertical resolution to read dynamics clearly, especially when LR/MS split
+    // the history into two stacked domains.
+    auto visualRow = area.removeFromTop (550);
 
-    // 0.1.3 deliberately slims the meter panel while keeping its full height,
-    // giving the Dynamic Display substantially more horizontal room.
-    const int meterWidth = juce::jlimit (190, 220, visualRow.getWidth() / 4);
+    const int meterWidth = juce::jlimit (180, 200, visualRow.getWidth() / 5);
     meters.setBounds (visualRow.removeFromRight (meterWidth));
-    visualRow.removeFromRight (10);
+    visualRow.removeFromRight (8);
+
+    // Threshold sits between Display and meters. ST uses one full-height fader.
+    // LR/MS follow the Display's stacked visual grammar: top-domain Threshold
+    // (L/M) above bottom-domain Threshold (R/S), instead of side-by-side faders.
+    auto thresholdArea = visualRow.removeFromRight (76);
+    thresholdLabel.setBounds (thresholdArea.removeFromTop (18));
+
+    auto thresholdSTArea = thresholdArea;
+    thresholdSlider.setBounds (thresholdSTArea.withSizeKeepingCentre (58, thresholdSTArea.getHeight()));
+
+    auto thresholdFirst = thresholdArea.removeFromTop (thresholdArea.getHeight() / 2);
+    auto thresholdSecond = thresholdArea;
+    thresholdChannel0Label.setBounds (thresholdFirst.removeFromTop (14));
+    thresholdChannel1Label.setBounds (thresholdSecond.removeFromTop (14));
+    const auto thresholdFirstBounds = thresholdFirst.withSizeKeepingCentre (58, thresholdFirst.getHeight());
+    const auto thresholdSecondBounds = thresholdSecond.withSizeKeepingCentre (58, thresholdSecond.getHeight());
+    thresholdLSlider.setBounds (thresholdFirstBounds);
+    thresholdMSlider.setBounds (thresholdFirstBounds);
+    thresholdRSlider.setBounds (thresholdSecondBounds);
+    thresholdSSlider.setBounds (thresholdSecondBounds);
+
+    visualRow.removeFromRight (6);
     display.setBounds (visualRow);
 
-    area.removeFromTop (16);
+    area.removeFromTop (10);
 
-    auto controls = area.removeFromTop (166);
+    // Controls remain compact and functionally unchanged; the extra editor height
+    // is intentionally spent on Display/Meters rather than larger knobs.
+    auto controls = area.removeFromTop (140);
     constexpr int controlGap = 6;
-    constexpr int smallTrimW = 122;
-    constexpr int modeW = 176;
+    constexpr int smallTrimW = 116;
+    constexpr int modeW = 170;
     const int mainW = (controls.getWidth() - smallTrimW * 2 - modeW - controlGap * 5) / 3;
 
     auto inputArea = controls.removeFromLeft (smallTrimW);
-    inputGainLabel.setBounds (inputArea.removeFromTop (22));
-    inputGainSlider.setBounds (inputArea.withSizeKeepingCentre (112, 138));
+    inputGainLabel.setBounds (inputArea.removeFromTop (18));
+    inputGainSlider.setBounds (inputArea.withSizeKeepingCentre (100, 116));
     controls.removeFromLeft (controlGap);
 
     auto ratioArea = controls.removeFromLeft (mainW);
-    ratioLabel.setBounds (ratioArea.removeFromTop (22));
-    ratioSlider.setBounds (ratioArea.withSizeKeepingCentre (150, 140));
+    ratioLabel.setBounds (ratioArea.removeFromTop (18));
+    ratioSlider.setBounds (ratioArea.withSizeKeepingCentre (130, 119));
+
+    auto dualRatio = ratioArea;
+    auto ratioFirst = dualRatio.removeFromLeft (dualRatio.getWidth() / 2);
+    auto ratioSecond = dualRatio;
+    ratioChannel0Label.setBounds (ratioFirst.removeFromTop (14));
+    ratioChannel1Label.setBounds (ratioSecond.removeFromTop (14));
+    const auto ratioFirstKnob = ratioFirst.withSizeKeepingCentre (76, 100);
+    const auto ratioSecondKnob = ratioSecond.withSizeKeepingCentre (76, 100);
+    ratioLSlider.setBounds (ratioFirstKnob);
+    ratioMSlider.setBounds (ratioFirstKnob);
+    ratioRSlider.setBounds (ratioSecondKnob);
+    ratioSSlider.setBounds (ratioSecondKnob);
     controls.removeFromLeft (controlGap);
 
     auto makeupArea = controls.removeFromLeft (mainW);
-    auto makeupHeader = makeupArea.removeFromTop (24);
-    auto matchArea = makeupHeader.removeFromRight (62).reduced (2, 1);
+    auto makeupHeader = makeupArea.removeFromTop (20);
+    auto matchArea = makeupHeader.removeFromRight (58).reduced (2, 0);
     makeupLabel.setBounds (makeupHeader);
     matchButton.setBounds (matchArea);
 
-    // ST shows one common Makeup knob. LR and MS retain the established two
-    // independent knobs, using the restored vector-drawn 0.9.1 control style.
-    makeupSTSlider.setBounds (makeupArea.withSizeKeepingCentre (150, 138));
+    makeupSTSlider.setBounds (makeupArea.withSizeKeepingCentre (130, 117));
 
     auto dualMakeup = makeupArea;
     const int dualW = dualMakeup.getWidth() / 2;
     auto first = dualMakeup.removeFromLeft (dualW);
     auto second = dualMakeup;
 
-    makeupChannel0Label.setBounds (first.removeFromTop (16));
-    makeupChannel1Label.setBounds (second.removeFromTop (16));
+    makeupChannel0Label.setBounds (first.removeFromTop (14));
+    makeupChannel1Label.setBounds (second.removeFromTop (14));
 
-    const auto firstKnob = first.withSizeKeepingCentre (82, 118);
-    const auto secondKnob = second.withSizeKeepingCentre (82, 118);
+    const auto firstKnob = first.withSizeKeepingCentre (76, 100);
+    const auto secondKnob = second.withSizeKeepingCentre (76, 100);
     makeupLSlider.setBounds (firstKnob);
     makeupMSlider.setBounds (firstKnob);
     makeupRSlider.setBounds (secondKnob);
@@ -591,25 +820,55 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     controls.removeFromLeft (controlGap);
 
     auto mixArea = controls.removeFromLeft (mainW);
-    mixLabel.setBounds (mixArea.removeFromTop (22));
-    mixSlider.setBounds (mixArea.withSizeKeepingCentre (150, 140));
+    mixLabel.setBounds (mixArea.removeFromTop (18));
+    mixSlider.setBounds (mixArea.withSizeKeepingCentre (130, 119));
+
+    auto dualMix = mixArea;
+    auto mixFirst = dualMix.removeFromLeft (dualMix.getWidth() / 2);
+    auto mixSecond = dualMix;
+    mixChannel0Label.setBounds (mixFirst.removeFromTop (14));
+    mixChannel1Label.setBounds (mixSecond.removeFromTop (14));
+    const auto mixFirstKnob = mixFirst.withSizeKeepingCentre (76, 100);
+    const auto mixSecondKnob = mixSecond.withSizeKeepingCentre (76, 100);
+    mixLSlider.setBounds (mixFirstKnob);
+    mixMSlider.setBounds (mixFirstKnob);
+    mixRSlider.setBounds (mixSecondKnob);
+    mixSSlider.setBounds (mixSecondKnob);
     controls.removeFromLeft (controlGap);
 
     auto outputArea = controls.removeFromLeft (smallTrimW);
-    outputGainLabel.setBounds (outputArea.removeFromTop (22));
-    outputGainSlider.setBounds (outputArea.withSizeKeepingCentre (112, 138));
+    outputGainLabel.setBounds (outputArea.removeFromTop (18));
+    outputGainSlider.setBounds (outputArea.withSizeKeepingCentre (100, 116));
     controls.removeFromLeft (controlGap);
 
     auto modeArea = controls;
-    modeLabel.setBounds (modeArea.removeFromTop (20));
-    auto modeButtonArea = modeArea.removeFromTop (40);
-    modeButton.setBounds (modeButtonArea.withSizeKeepingCentre (juce::jmin (120, modeButtonArea.getWidth() - 20), 36));
-    modeArea.removeFromTop (2);
-    lookaheadLabel.setBounds (modeArea.removeFromTop (16));
-    auto lookaheadComboArea = modeArea.removeFromTop (28);
-    lookaheadCombo.setBounds (lookaheadComboArea.withSizeKeepingCentre (112, 26));
-    modeArea.removeFromTop (2);
-    oversamplingLabel.setBounds (modeArea.removeFromTop (16));
-    auto oversamplingButtonArea = modeArea.removeFromTop (28);
-    oversamplingButton.setBounds (oversamplingButtonArea.withSizeKeepingCentre (112, 26));
+
+    // v1.0.1 UI polish: Mode and Lookahead are the two primary controls in this
+    // column, so their main control rectangles must be visually identical.
+    // LINK is an auxiliary control that sits to the right of Mode and must not
+    // steal width from the Mode button. Keep these fixed bounds owned only by
+    // resized(); updateModeUi() changes visibility/state only.
+    constexpr int primaryChoiceW = 108;
+    constexpr int primaryChoiceH = 23;
+    constexpr int linkChoiceW = 34;
+    constexpr int linkChoiceGap = 6;
+    const int choiceGroupW = primaryChoiceW + linkChoiceGap + linkChoiceW;
+    const int choiceX = modeArea.getX() + juce::jmax (0, (modeArea.getWidth() - choiceGroupW) / 2);
+
+    auto modeLabelArea = modeArea.removeFromTop (16);
+    modeLabel.setBounds (choiceX, modeLabelArea.getY(), primaryChoiceW, modeLabelArea.getHeight());
+    auto modeButtonRow = modeArea.removeFromTop (25);
+    modeButton.setBounds (choiceX, modeButtonRow.getY() + 1, primaryChoiceW, primaryChoiceH);
+    linkButton.setBounds (choiceX + primaryChoiceW + linkChoiceGap,
+                          modeButtonRow.getY() + 1, linkChoiceW, primaryChoiceH);
+
+    auto lookaheadLabelArea = modeArea.removeFromTop (14);
+    lookaheadLabel.setBounds (choiceX, lookaheadLabelArea.getY(), primaryChoiceW, lookaheadLabelArea.getHeight());
+    auto lookaheadComboRow = modeArea.removeFromTop (25);
+    lookaheadCombo.setBounds (choiceX, lookaheadComboRow.getY() + 1, primaryChoiceW, primaryChoiceH);
+
+    auto oversamplingLabelArea = modeArea.removeFromTop (14);
+    oversamplingLabel.setBounds (choiceX, oversamplingLabelArea.getY(), primaryChoiceW, oversamplingLabelArea.getHeight());
+    auto oversamplingButtonRow = modeArea.removeFromTop (25);
+    oversamplingButton.setBounds (choiceX, oversamplingButtonRow.getY() + 1, primaryChoiceW, primaryChoiceH);
 }

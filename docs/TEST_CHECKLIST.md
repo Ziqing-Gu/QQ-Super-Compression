@@ -1,5 +1,15 @@
 # QQ Super Compression 0.1.9 Test Checklist
 
+## 1.0.1 Display 0…-90 dB Scale Polish
+
+- [x] Source manifest passes with no missing or mismatched files.
+- [x] Threshold rebuild self-test passes, including exact Threshold OFF legacy-law parity.
+- [x] Transparent future-window core self-test passes.
+- [x] Domain LINK and independent Mix self-tests pass.
+- [x] Dynamic Display source test confirms fixed 0…-90 dB range and 15 dB grid spacing.
+- [x] Windows x64 VST3 Release build and install hash parity pass.
+- [ ] Cubase: UI scale, 0…-90 dB graph, Threshold lines, ST/LR/MS, Mode/Lookahead alignment.
+- [ ] Cubase: listening, PDC, Mix/Bypass alignment, automation, A/B, Undo/Redo, and legacy-state migration.
 ## 0.1.9 Oversampling / PDC / warning cleanup
 
 - [ ] Panel version reads small/low-contrast `v0.1.9`.

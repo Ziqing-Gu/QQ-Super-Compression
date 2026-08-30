@@ -1,5 +1,20 @@
 # AI 持续开发交接规范
 
+## 当前稳定基线 / Current stable baseline — 1.0.1 Display 0…-90 dB Scale Polish
+
+**日期 / Date:** 2026-08-30
+**状态 / Status:** Stable baseline under the user's standing Plan D rule
+**回滚基线 / Rollback:** 1.0.1 Mode / Lookahead Alignment Polish Plan B snapshot
+
+- 当前 DSP 是 future-window peak / Lookahead 核心。未经用户明确同意，不得恢复已拒绝的 1.0.0 Direct/Analytic/Hilbert 路线。
+- Threshold OFF 必须精确保留旧 QQ law；有限 Threshold 只是连续作用下限，不得偷偷改 detector、Attack、Release、knee 或 smoothing。
+- ST 使用共同控制；LR/MS 具有独立 Ratio、Threshold、Makeup 与 Mix。Relative LINK 只覆盖 Ratio、Threshold 与 Makeup，并保留差值。
+- Dynamic Display 固定绘图范围为 0…-90 dB、15 dB 间隔；不得因此改变 DSP、Meter、参数、LUFS 或 -120 dB Threshold OFF sentinel。
+- Plan A Windows 构建、安装和项目自测已通过；Plan D 四类跨平台成品必须来自同一公开提交。
+- Cubase 最终听感、界面、PDC、Mix/Bypass、自动化与旧工程迁移仍由用户复核。
+
+English summary: keep the future-window peak/Lookahead core, exact Threshold OFF legacy law, independent LR/MS controls, offset-preserving Relative LINK, and drawing-only 0…-90 dB Display rule. Do not revive rejected detector or Direct/Analytic/Hilbert experiments without explicit user approval.
+
 > 本文件用于让不同 AI、不同开发者在接手同一个软件项目时，能够快速理解项目当前状态、历史决策、已解决问题、已知风险和后续开发方向。
 >
 > **本文件必须长期保留在项目源代码根目录中，并随着项目持续更新。**

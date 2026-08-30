@@ -7,36 +7,28 @@
 
 namespace qqsc
 {
-// QQ Super Compression lookahead level engine.
+// QQ Super Compression transparent lookahead level engine.
 //
-// 0.1.4+ FUTURE-WINDOW CORE (0.1.5+ uses fixed Lookahead presets):
-// The rejected 0.1.0 engine directly waveshaped each sample. The 0.1.1-0.1.3
-// replacement used a fixed 20 ms rolling RMS detector, which user PluginDoctor
-// tests later showed still had two unwanted behaviours: a visible time-window
-// attack/release-like response and residual harmonic distortion caused by the
-// RMS window moving against the carrier waveform.
+// v1.0.1 returns to the approved v0.9.4/v0.9.7 FUTURE-WINDOW PEAK core.
+// The audible path is delayed by N samples while the detector sees the complete
+// future window for the delayed sample and uses that window's peak as the level
+// estimate. This deliberately trades a small microscopic pre-influence around
+// abrupt level changes for much lower carrier-following harmonic distortion.
 //
-// This engine deliberately uses a different experiment: while the audio path is
-// delayed by N samples, it looks at the complete [current-N ... current] future
-// window for the delayed sample and takes the WINDOW PEAK as the level estimate.
-// The window length is exactly the user Lookahead value. A steady sine whose
-// lookahead window contains enough waveform cycles should therefore produce a
-// nearly constant level estimate instead of a carrier-following RMS ripple.
-//
-// There is intentionally NO compressor Attack or Release envelope in this class.
+// There is intentionally NO compressor Attack or Release envelope here.
 // Gain is derived directly from the current lookahead-window level:
 //
-//     gain = 1 / (1 + (ratio - 1) * level)
+//     legacy gain = 1 / (1 + (ratio - 1) * level)
 //
-// where level is the 0..1 window peak. Ratio=1 is unity; larger Ratio creates
-// more attenuation. The gain curve itself is the existing 0.1.1 user-approved
-// direction and is not redesigned here.
+// Threshold is only a lower operating boundary around that existing law.
+// Threshold OFF maps to linear 0 (-inf) and therefore executes the exact legacy
+// equation. A finite Threshold leaves levels at/below it untouched and re-anchors
+// the same curve to unity at the boundary. It does not change detector/window
+// semantics and does not introduce Attack, Release, knee or segmentation.
 //
-// NOTE: Lookahead=0 means a one-sample analysis window and therefore intentionally
-// degenerates toward instantaneous sample-domain behaviour. It is now a deliberate
-// colour/flavour mode rather than a transparency mode. v0.1.10 lets that 0 ms core
-// run at 1x/8x/16x externally to reduce alias fold-back without hiding the harmonic
-// character behind smoothing or secret Lookahead.
+// Lookahead=0 degenerates to a one-sample window. The established product logic
+// therefore keeps the old 0 ms-only 1x/8x/16x Oversampling choices to reduce
+// alias fold-back without changing the intended nonlinear character.
 class StaticCompressionEngine
 {
 public:
@@ -60,14 +52,15 @@ public:
     {
         queueHead = 0;
         queueCount = 0;
+        currentLevel = 0.0f;
         currentGain = 1.0f;
         currentGainReductionDb = 0.0f;
     }
 
-    // Feed the *current, non-delayed* domain sample. The returned gain belongs to
-    // the sample delayed by lookaheadSamples, because the queue now contains the
-    // future window that starts at that delayed sample and ends at currentSampleIndex.
-    float processSample (float sample, float ratio, int64_t currentSampleIndex) noexcept
+    // Feed the current non-delayed domain sample. The returned gain belongs to
+    // the sample delayed by lookaheadSamples, because the monotonic queue contains
+    // the complete future window ending at currentSampleIndex.
+    float processSample (float sample, float ratio, float thresholdLinear, int64_t currentSampleIndex) noexcept
     {
         const auto magnitude = juce::jlimit (0.0f, 1.0f, std::abs (sample));
         ratio = juce::jmax (1.0f, ratio);
@@ -75,7 +68,6 @@ public:
         if (queueValues.empty())
             return 1.0f;
 
-        // Monotonic maximum queue. No allocations occur on the audio thread.
         while (queueCount > 0 && backValue() <= magnitude)
             popBack();
 
@@ -85,13 +77,34 @@ public:
         while (queueCount > 0 && frontIndex() < oldestAllowed)
             popFront();
 
-        const auto level = queueCount > 0 ? frontValue() : magnitude;
-        currentGain = 1.0f / (1.0f + (ratio - 1.0f) * level);
+        currentLevel = queueCount > 0 ? frontValue() : magnitude;
+        currentGain = gainForLevel (currentLevel, ratio, thresholdLinear);
         currentGainReductionDb = juce::jmax (0.0f,
             -juce::Decibels::gainToDecibels (juce::jmax (currentGain, 1.0e-9f), -180.0f));
         return currentGain;
     }
 
+    static float gainForLevel (float level, float ratio, float thresholdLinear) noexcept
+    {
+        level = juce::jlimit (0.0f, 1.0f, level);
+        ratio = juce::jmax (1.0f, ratio);
+        thresholdLinear = juce::jlimit (0.0f, 1.0f, thresholdLinear);
+
+        // Threshold OFF: exact pre-Threshold QQ law.
+        if (thresholdLinear <= 0.0f)
+            return 1.0f / (1.0f + (ratio - 1.0f) * level);
+
+        if (level <= thresholdLinear)
+            return 1.0f;
+
+        // Same law re-anchored at Threshold so the transition is continuous and
+        // exactly unity at the boundary.
+        const auto numerator = 1.0f + (ratio - 1.0f) * thresholdLinear;
+        const auto denominator = 1.0f + (ratio - 1.0f) * level;
+        return numerator / juce::jmax (1.0e-9f, denominator);
+    }
+
+    float getCurrentLevel() const noexcept { return currentLevel; }
     float getCurrentGain() const noexcept { return currentGain; }
     float getCurrentGainReductionDb() const noexcept { return currentGainReductionDb; }
     int getLookaheadSamples() const noexcept { return lookaheadSamples; }
@@ -126,8 +139,6 @@ private:
 
     void pushBack (int64_t index, float value) noexcept
     {
-        // Capacity is maxLookahead + 4 while the logical queue can contain at
-        // most lookahead + 1 items, so this should never overflow.
         if (queueCount >= queueValues.size())
             popFront();
 
@@ -145,6 +156,7 @@ private:
     size_t queueHead = 0;
     size_t queueCount = 0;
 
+    float currentLevel = 0.0f;
     float currentGain = 1.0f;
     float currentGainReductionDb = 0.0f;
 };

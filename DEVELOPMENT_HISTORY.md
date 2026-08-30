@@ -932,3 +932,32 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 ### 验证级别
 
 Plan A Windows 编译、安装、BS.1770 自测与哈希核对已通过；Plan D 跨平台 Actions 和桌面用户包将在本次发布流程中完成。Cubase 双击输入仍建议由用户复核。
+
+---
+
+## v1.0.1 — Display 0…-90 dB Scale Polish — Stable baseline
+
+**日期：** 2026-08-30
+**状态：** Stable baseline（Plan D policy）
+**基于：** v1.0.1 Mode / Lookahead Alignment Polish；DSP 回滚参考 v0.9.4/v0.9.7 future-window core
+
+### 决策与修改
+
+- 拒绝并移除 v1.0.0 Direct/Analytic/Hilbert 路线；其非线性映射仍产生谐波，4095-tap Hilbert FIR 带来高 ASIO Guard/CPU，多实例价值不足。
+- 保留 future-window peak / Lookahead 核心；Threshold OFF 精确走旧 QQ law，有限 Threshold 只增加连续作用下限。
+- ST 使用共同 Ratio/Threshold/Makeup/Mix；LR/MS 使用独立 Ratio/Threshold/Makeup/Mix。
+- Relative LINK 只覆盖 Ratio、Threshold、Makeup，并保持原有相对差值；Mix 不加入 LINK。
+- 采用 1020×820 Display-first UI；LR/MS 为上下分域历史图。
+- Dynamic Display 固定绘图范围 0…-90 dB，刻度 0/-15/-30/-45/-60/-75/-90；不改变 DSP、Meter、参数、LUFS 或 -120 dB OFF sentinel。
+
+### 验证
+
+- [x] 源码 manifest。
+- [x] Threshold、Transparent Core、Domain LINK、Independent Mix、Display Scale 自测。
+- [x] JUCE 8.0.15 / MSVC Windows x64 VST3 Release 构建。
+- [x] 系统安装副本与交付副本 SHA-256 一致。
+- [ ] Cubase 最终听感、界面、PDC、Mix/Bypass、自动化与旧工程迁移由用户复核。
+
+### 稳定基线与回滚
+
+按用户既定规则，Plan D 完成的版本默认成为稳定基线。本版失败时，优先回滚到正式备份中的 v1.0.1 Mode / Lookahead Alignment Polish Stable；不要恢复 v1.0.0 Direct/Analytic，也不要使用 v0.9.5/v0.9.6 失败 detector 实验。

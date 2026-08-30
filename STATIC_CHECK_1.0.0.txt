@@ -1,0 +1,29 @@
+QQ Super Compression 1.0.0 static validation
+Date UTC: 2026-08-30T01:54:07Z
+
+PASS: v1.0.0 analytic amplitude/sample mapping self-test
+Hilbert taps=4095, fixed group delay=2047 samples (42.65 ms @48k)
+Ratio 8:1 @    20.0 Hz: THD   -65.58 dB
+Ratio 8:1 @    50.0 Hz: THD   -73.50 dB
+Ratio 8:1 @   100.0 Hz: THD  -124.05 dB
+Ratio 8:1 @   400.0 Hz: THD  -126.59 dB
+Ratio 8:1 @  1000.0 Hz: THD  -154.15 dB
+PASS: v1.0.0 Threshold is only the lower edge of the analytic-amplitude Ratio map.
+PASS: Threshold OFF is exactly the threshold-free amplitude mapping.
+PASS: v1.0.0 relative Link preserves Ratio/Threshold/Makeup offsets and shared boundaries.
+
+PASS: CMake version 1.0.0
+PASS: independent Ratio IDs
+PASS: independent Threshold IDs
+PASS: Domain Link ID
+PASS: LR/MS DSP ratios
+PASS: LR/MS DSP thresholds
+PASS: split display histories
+PASS: relative link implementation
+PASS: pair boundary limiting
+PASS: Threshold Shift path
+PASS: crude brace balance on Source/*.cpp and Source/*.h
+
+BUILD STATUS: NOT COMPILED in this environment.
+Reason: no local JUCE checkout; shell network access cannot resolve github.com.
+Required next step: JUCE 8.0.15 / MSVC Release VST3 build, then Cubase + PluginDoctor validation.

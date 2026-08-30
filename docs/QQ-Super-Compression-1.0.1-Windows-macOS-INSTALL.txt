@@ -1,0 +1,84 @@
+QQ Super Compression 1.0.1 — Windows and macOS Installation Guide
+==================================================================
+
+Stable baseline
+---------------
+
+This package is the 1.0.1 Display 0…-90 dB Scale Polish Plan D baseline.
+All four plug-in archives must originate from the same public commit.
+
+Included archives
+-----------------
+
+Win/QQ-Super-Compression-1.0.1-Windows-x64.zip
+Mac/QQ-Super-Compression-1.0.1-macOS-Apple-Silicon-VST3.zip
+Mac/QQ-Super-Compression-1.0.1-macOS-Intel-VST3.zip
+Mac/QQ-Super-Compression-1.0.1-macOS-Universal-AU.zip
+
+Windows x64 VST3
+----------------
+
+1. Close Cubase and every other DAW or plug-in host.
+2. Extract QQ-Super-Compression-1.0.1-Windows-x64.zip.
+3. Copy "QQ Super Compression.vst3" to:
+
+   C:\Program Files\Common Files\VST3\
+
+4. Replace the older bundle if Windows asks for confirmation.
+5. Reopen the DAW and rescan VST3 plug-ins if necessary.
+
+macOS VST3
+----------
+
+Choose exactly one VST3 architecture:
+
+- Apple Silicon / M-series Mac: Apple-Silicon arm64 archive.
+- Intel Mac: Intel x86_64 archive.
+
+Close all audio hosts, extract the chosen archive, and copy
+"QQ Super Compression.vst3" to one of these locations:
+
+  ~/Library/Audio/Plug-Ins/VST3/
+  /Library/Audio/Plug-Ins/VST3/
+
+Do not install both architecture-specific VST3 bundles at the same time.
+
+macOS Universal 2 AU
+--------------------
+
+For Logic Pro and other AU hosts, extract the Universal AU archive and copy
+"QQ Super Compression.component" to one of these locations:
+
+  ~/Library/Audio/Plug-Ins/Components/
+  /Library/Audio/Plug-Ins/Components/
+
+The AU contains arm64 and x86_64 architectures and is checked with auval in
+the Plan D workflow.
+
+macOS security note
+-------------------
+
+The macOS bundles use ad-hoc signing and are not Apple Developer ID notarized.
+If macOS blocks a trusted downloaded copy, remove quarantine only from the exact
+bundle you installed, for example:
+
+  xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+
+or:
+
+  xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+Upgrade and rollback
+--------------------
+
+Close the host before replacing a previous version. Keep only one active copy
+of each plug-in format. If 1.0.1 must be rolled back, restore the previous
+verified Stable bundle and rescan the host.
+
+Known verification boundary
+---------------------------
+
+Automated builds, architecture checks, AU validation, local Windows tests and
+hash checks do not replace listening and project-state testing. Verify the
+0…-90 dB Display, Threshold lines, ST/LR/MS, LINK, PDC, Mix/Bypass, automation,
+A/B, Undo/Redo and legacy project migration in your DAW.

@@ -40,7 +40,7 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 
 
-# QQ Super Compression 0.9.4
+# QQ Super Compression 1.0.1
 
 **Qing Audio 开源动态处理器 / Open-source dynamics processor by Qing Audio**
 
@@ -50,32 +50,40 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 | 项目 / Item | 内容 / Value |
 |---|---|
-| 当前版本 / Current version | 0.9.4 |
+| 当前版本 / Current version | 1.0.1 |
 | 状态 / Status | Stable baseline — Plan D cross-platform verification complete / 稳定基线——Plan D 跨平台验证完成 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | MIT |
 
-> **0.9.4 稳定基线 / Stable baseline:** 按 Plan D 规则，本版本作为稳定基线记录。Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 均已从同一 0.9.4 Plan D 提交通过 Actions；AU 同时通过 `auval` 与双架构检查。Plan G 已发布正式 GitHub Release。
+> **1.0.1 稳定基线 / Stable baseline:** 按既定 Plan D 规则，Display 0…-90 dB Scale Polish 版本是当前稳定源码与跨平台构建基线。Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU 均由同一 1.0.1 提交构建；AU 工作流同时检查 `auval` 与双架构。Cubase 中的最终听感、界面与自动化复核仍由用户完成。
 >
-> **Stable baseline:** Under the Plan D policy, this version is recorded as the stable baseline. Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU all passed Actions from the same 0.9.4 Plan D commit; the AU also passed `auval` and dual-architecture checks. Plan G has published the formal GitHub Release.
+> **Stable baseline:** Under the established Plan D rule, the Display 0…-90 dB Scale Polish build is the current stable source and cross-platform build baseline. Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU are built from the same 1.0.1 commit; the AU workflow also checks `auval` and both architectures. Final listening, UI, and automation checks in Cubase remain user-side verification.
 
 
-## 0.9.4 更新 / 0.9.4 update
+## 1.0.1 更新 / 1.0.1 update
 
-本版本只修复浅色界面中双击旋钮数值直接输入时的文字对比度：JUCE 编辑态文字、背景、选区、边框和光标现在使用明确的深色/暖色配色。DSP、参数范围、布局、Input/Output Gain、Display、A/B、Undo/Redo、Lookahead、Oversampling、PDC、LUFS Match 和 GR Hold 均未改变。
+1.0.1 回到已经证明更干净的 future-window peak / Lookahead 核心，并把 Threshold 作为连续、可关闭的作用下限加入原 QQ Ratio law。Threshold OFF 精确保留旧公式；没有加入传统 Attack、Release、knee、分段 detector 或隐藏平滑。ST 使用共同参数；LR 与 MS 提供独立 Ratio、Threshold、Makeup 和 Mix，Relative LINK 只联动 Ratio、Threshold 与 Makeup，并保持通道间原有差值。
 
-This version makes a focused light-theme UI correction: direct numeric entry now has explicit readable text, background, selection, outline and caret colours in the JUCE edit state. DSP, parameter ranges, layout, Input/Output Gain, Display, A/B, Undo/Redo, Lookahead, Oversampling, PDC, LUFS Match and GR Hold are unchanged.
+Version 1.0.1 returns to the cleaner future-window peak / Lookahead core and adds Threshold as a continuous, optional lower boundary around the original QQ Ratio law. Threshold OFF preserves the legacy formula exactly; no conventional Attack, Release, knee, segmented detector, or hidden smoothing is introduced. ST uses common controls, while LR and MS provide independent Ratio, Threshold, Makeup, and Mix. Relative LINK covers Ratio, Threshold, and Makeup while preserving existing inter-channel offsets.
 
-Plan D marks 0.9.4 as the current stable baseline under the project's release policy. Plan G publishes the verified Plan D package through the formal GitHub Release linked below.
+界面采用 1020×820 的 Display-first 布局，LR/MS 使用上下分域历史图；Dynamic Display 的工作范围固定为 0…-90 dB，刻度间隔 15 dB。该裁剪只作用于绘图，不改变 DSP、Meter、Threshold OFF 的 -120 dB sentinel、参数范围或响度计算。此前 0.9.5/0.9.6 detector 实验和 1.0.0 Direct/Analytic/Hilbert 路线均保留为失败历史，不属于当前核心。
 
-Plan D 按项目发布规则将 0.9.4 记录为当前稳定基线。Plan G 已通过下方正式 GitHub Release 发布经过验证的 Plan D 完整包。
+The UI uses a 1020×820 display-first layout with stacked domain histories in LR/MS. Dynamic Display is fixed to a 0…-90 dB working range with 15 dB grid spacing. This clipping is drawing-only and does not change DSP, meters, the -120 dB Threshold OFF sentinel, parameter ranges, or loudness calculations. The earlier 0.9.5/0.9.6 detector experiments and the 1.0.0 Direct/Analytic/Hilbert route remain documented rejected history and are not part of the active core.
 
-- [0.9.4 English installation guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/main/docs/QQ-Super-Compression-0.9.4-Windows-macOS-INSTALL.txt)
-- [0.9.4 中文安装说明](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/main/docs/QQ%20Super%20Compression%200.9.4%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+Plan D 将 1.0.1 记录为当前稳定基线。Plan G 尚未执行，因此下方公开 Release 下载仍指向 0.9.4；本次 Plan C 只同步开源源码和说明，不制造不存在的 1.0.1 Release 链接。
+
+Plan D records 1.0.1 as the current stable baseline. Plan G has not been executed, so the public Release downloads below still point to 0.9.4. This Plan C synchronises the open-source code and documentation without inventing a nonexistent 1.0.1 Release link.
+
+- [1.0.1 English installation guide](docs/QQ-Super-Compression-1.0.1-Windows-macOS-INSTALL.txt)
+- [1.0.1 中文安装说明](docs/QQ%20Super%20Compression%201.0.1%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
 
 ## 下载 / Download
+
+> 当前稳定源码与 Plan D 构建基线是 1.0.1；最新公开 Release 暂时仍是 0.9.4，直到单独执行 Plan G。
+>
+> The current stable source and Plan D build baseline is 1.0.1; the latest public Release remains 0.9.4 until a separate Plan G run.
 
 - [最新正式 Release / Latest formal Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
 - [QQ Super Compression 0.9.4 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.4)
@@ -292,10 +300,10 @@ Match compares delayed Dry with compressed Wet before Makeup and Mix, then write
 
 | 包 / Package | 内容 / Contents |
 |---|---|
-| `QQ-Super-Compression-0.1.10-Windows-x64.zip` | Windows x64 VST3 |
-| `QQ-Super-Compression-0.1.10-macOS-Apple-Silicon-VST3.zip` | macOS arm64 VST3 |
-| `QQ-Super-Compression-0.1.10-macOS-Intel-VST3.zip` | macOS x86_64 VST3 |
-| `QQ-Super-Compression-0.1.10-macOS-Universal-AU.zip` | macOS Universal 2 AU, arm64 + x86_64 |
+| `QQ-Super-Compression-1.0.1-Windows-x64.zip` | Windows x64 VST3 |
+| `QQ-Super-Compression-1.0.1-macOS-Apple-Silicon-VST3.zip` | macOS arm64 VST3 |
+| `QQ-Super-Compression-1.0.1-macOS-Intel-VST3.zip` | macOS x86_64 VST3 |
+| `QQ-Super-Compression-1.0.1-macOS-Universal-AU.zip` | macOS Universal 2 AU, arm64 + x86_64 |
 
 这些是完整 Release ZIP 内的四个插件子包，并不是四个独立的 Release 资产。macOS 包使用 ad-hoc 签名，没有 Apple Developer ID 公证。安装与 quarantine 处理见下方说明。
 
@@ -303,24 +311,54 @@ These are the four plug-in subpackages inside the complete Release ZIP, not four
 
 ## 安装说明 / Installation guides
 
-- [中文安装与使用说明](docs/QQ%20Super%20Compression%200.1.10%20Windows%E4%B8%8EmacOS%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
-- [English installation and usage guide](docs/QQ-Super-Compression-0.1.10-Windows-macOS-INSTALL.txt)
+- [中文安装与使用说明](docs/QQ%20Super%20Compression%201.0.1%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+- [English installation and usage guide](docs/QQ-Super-Compression-1.0.1-Windows-macOS-INSTALL.txt)
 
 ## 验证状态 / Validation status
 
-0.9.4 Windows x64 Release 已使用 JUCE 8.0.15 完成真实构建；源码 manifest、DLL/VST3 入口、x64 PE、moduleinfo 和 BS.1770 自测均通过；当前环境未找到 Steinberg validator。系统安装文件与交付文件 SHA-256 一致。
+1.0.1 Windows x64 Release 已使用 JUCE 8.0.15 完成真实构建；源码 manifest、x64 PE、moduleinfo、BS.1770、自定义 Threshold/Transparent Core/Domain LINK/Independent Mix/Display Scale 自测均通过。系统安装文件与本地交付二进制 SHA-256 一致。当前环境未找到 Steinberg validator，因此未虚构该项结果。
 
-The 0.9.4 Windows x64 Release was built with JUCE 8.0.15. Source-manifest verification, DLL/VST3 entry points, x64 PE inspection, moduleinfo, and the BS.1770 self-test passed; the Steinberg validator was not available in the current environment. Installed and delivered module SHA-256 values match.
+The 1.0.1 Windows x64 Release was built with JUCE 8.0.15. Source-manifest verification, x64 PE inspection, moduleinfo, BS.1770, and the project-specific Threshold, Transparent Core, Domain LINK, Independent Mix, and Display Scale self-tests passed. Installed and locally delivered binaries have matching SHA-256 values. Steinberg's validator was not available, so no validator result is claimed.
 
-0.9.4 的 Cubase 双击数值输入可读性、光标/选区和 Enter 提交仍建议由用户手动复核；Plan D 按项目规则将本版本记录为稳定基线。
+Plan D 的 Windows/macOS Actions 从同一提交构建 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU，并对 AU 执行 `auval`。Cubase 中的 1.0.1 Display 视觉、听感、PDC、Mix/Bypass、自动化与旧工程迁移仍建议由用户手动复核。
 
-A manual Cubase check of 0.9.4 direct numeric entry, caret/selection visibility, and Enter commit is still recommended; under the project policy, Plan D records this version as the stable baseline.
+Plan D builds Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU from the same commit and runs `auval` on the AU. Manual Cubase checks of the 1.0.1 display, sound, PDC, Mix/Bypass, automation, and legacy-project migration are still recommended.
 
 ## 完整版本历史 / Complete version history
 
-下面记录从首个原型到当前版本的全部真实版本。0.9.4 是本次 Plan D 指定的稳定基线；此前版本保留各自的 Candidate/Test 历史标签。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
+下面记录从首个原型到当前版本的全部真实版本。1.0.1 Display 0…-90 dB Scale Polish 是本次 Plan D 指定的稳定基线；失败实验与此前候选版本继续保留，不改写历史。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
 
-Every real version from the first prototype through the current build is recorded below. Version 0.9.4 is the stable baseline requested for this Plan D run; earlier entries retain their historical Candidate/Test labels. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+Every real version from the first prototype through the current build is recorded below. Version 1.0.1 Display 0…-90 dB Scale Polish is the stable baseline for this Plan D run; rejected experiments and earlier candidates remain in history. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+### 1.0.1 — 2026-08-30 — Transparent core, independent domains and 0…-90 dB Display / 透明核心、独立分域与 0…-90 dB 显示
+
+- 中文：回到 future-window peak / Lookahead 核心；Threshold OFF 精确保留旧 QQ law，有限 Threshold 只增加连续作用下限。
+- English: Returned to the future-window peak / Lookahead core; Threshold OFF preserves the legacy QQ law exactly, while finite Threshold only adds a continuous lower boundary.
+- 中文：ST 使用共同控制；LR/MS 支持独立 Ratio、Threshold、Makeup 与 Mix；Relative LINK 保留差值且不联动 Mix。
+- English: ST uses common controls; LR/MS have independent Ratio, Threshold, Makeup, and Mix; Relative LINK preserves offsets and does not link Mix.
+- 中文：Display-first 1020×820 布局；LR/MS 上下分域显示；可视范围固定 0…-90 dB、15 dB 刻度，仅影响绘图。
+- English: Display-first 1020×820 layout with stacked LR/MS domains; fixed 0…-90 dB visible range and 15 dB grid spacing, affecting drawing only.
+- 状态 / Status：Plan D stable baseline；Windows 本地构建/安装与项目自测通过；同提交跨平台 Actions 通过后完成 Plan D。
+
+### 1.0.0 — 2026-08-30 — Direct/Analytic/Hilbert experiment — Rejected / 失败实验
+
+- 中文：尝试让用户 Lookahead 不影响映射结果，但非线性映射仍有谐波，4095-tap Hilbert FIR 导致较高 ASIO Guard/CPU，多实例价值不足，因此删除。
+- English: Tried to decouple mapping from user Lookahead, but nonlinear mapping still produced harmonics and the 4095-tap Hilbert FIR caused high ASIO Guard/CPU cost; the route was rejected and removed.
+
+### 0.9.7 — 2026-08-30 — Threshold rebuild — Candidate / Test
+
+- 中文：从 0.9.4 future-window detector 重建 Threshold；OFF 精确回到旧公式，有限 Threshold 只重锚定作用下限。
+- English: Rebuilt Threshold on the 0.9.4 future-window detector; OFF returns exactly to the old formula and finite Threshold only re-anchors the lower boundary.
+
+### 0.9.6 — 2026-08-30 — Lookahead detector test — Rejected / 失败实验
+
+- 中文：Threshold OFF 仍改变 detector 行为，破坏声音基线，未采用。
+- English: Threshold OFF still changed detector behaviour and broke the sonic baseline; rejected.
+
+### 0.9.5 — 2026-08-30 — Threshold test — Rejected / 失败实验
+
+- 中文：把新增作用下限与 detector 重构混在一起，未作为后续基线。
+- English: Mixed the new lower boundary with a detector redesign and was not used as the later baseline.
+
 
 ### 0.9.4 — 2026-08-28 — Editable numeric text contrast / 编辑态数值文字对比度
 

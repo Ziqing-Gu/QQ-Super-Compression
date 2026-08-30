@@ -1,5 +1,13 @@
 # QQ Super Compression 0.1.10 — Codex build / validation brief
 
+## 1.0.1 Plan A/Plan D build status
+
+- Local Windows x64 VST3 Release build: passed with JUCE 8.0.15 and MSVC.
+- Local source manifest and project self-tests: passed.
+- Installed and delivered Windows binaries: SHA-256 parity verified.
+- Plan D workflows produce Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU from the same commit; the AU job runs `auval -v aufx Qscp Qing`.
+- Steinberg validator was not available locally; do not claim it passed.
+- Manual Cubase checks remain user-side verification.
 Before changing code, read these files in this order:
 
 1. `AI_DEVELOPMENT_HANDOFF.md`

@@ -198,3 +198,7 @@ The v0.9.2 asset experiment remains documented and archived so a future AI does 
 The v0.9.3 light UI was visually accepted, but the user found a small interaction-state defect: double-clicking a slider value creates JUCE's temporary text editor, whose default editable text was white and therefore unreadable on the ivory surface.
 
 This is not a redesign. The active colour language stays unchanged. The fix explicitly styles the edit state as dark warm text on ivory, with a warm-accent caret/focus outline and a soft warm selection highlight. Slider values remain live/editable text and are not converted to bitmap assets.
+
+## 1.0.1 Display working range
+
+The Dynamic Display uses a fixed `0…-90 dB` visible range with grid labels at `0 / -15 / -30 / -45 / -60 / -75 / -90 dB`. This is a Threshold-workflow presentation rule only. Values may be clamped at the drawing boundary, but DSP, meters, loudness, parameter limits, and the `-120 dB` Threshold OFF sentinel must remain independent from the graph floor.

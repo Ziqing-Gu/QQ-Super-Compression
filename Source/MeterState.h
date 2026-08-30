@@ -18,6 +18,18 @@ struct MeterState
     std::atomic<float> inputDb1  { -120.0f };
     std::atomic<float> outputDb0 { -120.0f };
     std::atomic<float> outputDb1 { -120.0f };
+
+    // v1.0.0 Dynamic Display domain histories. In ST, channel 0 is the single
+    // linked display and channel 1 is ignored. In LR these are L/R; in MS M/S.
+    // Wet is always pre-Makeup so each panel shows the actual Ratio/Threshold
+    // mapping separately from the user compensation stage.
+    std::atomic<float> displayInputDb0  { -120.0f };
+    std::atomic<float> displayInputDb1  { -120.0f };
+    std::atomic<float> displayWetDb0    { -120.0f };
+    std::atomic<float> displayWetDb1    { -120.0f };
+    std::atomic<float> displayOutputDb0 { -120.0f };
+    std::atomic<float> displayOutputDb1 { -120.0f };
+
     std::atomic<float> gainReductionDb0 { 0.0f };
     std::atomic<float> gainReductionDb1 { 0.0f };
 

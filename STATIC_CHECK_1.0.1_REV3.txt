@@ -1,0 +1,13 @@
+QQ Super Compression 1.0.1 Candidate Revision 3 — Mode / Lookahead Alignment Polish
+Date: 2026-08-30
+
+Static geometry checks:
+- Mode primary button: 108 x 23 design px
+- Lookahead ComboBox: 108 x 23 design px
+- Both share the same choiceX
+- LINK: 34 x 23 design px, 6 px to the right of Mode
+- LINK visibility remains ST=hidden, LR/MS=visible
+- updateModeUi() does not mutate Mode/LINK bounds
+- No DSP/parameter/state code intentionally changed in this revision
+
+Validation level: STATIC / SOURCE ONLY. No JUCE/MSVC build or Cubase visual validation in this environment.

@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 1.0.1 — Display 0…-90 dB Scale Polish — Stable baseline
+
+- Returned to the clean future-window peak / Lookahead core after rejecting the 1.0.0 Direct/Analytic/Hilbert experiment for harmonic colour and high CPU/ASIO Guard cost.
+- Added optional Threshold as a continuous lower boundary; Threshold OFF preserves the legacy QQ gain law exactly and does not change the detector.
+- Added independent LR/MS Ratio, Threshold, Makeup, and Mix while ST remains a common linked domain.
+- Added Relative LINK for Ratio, Threshold, and Makeup with offset preservation; Mix remains independent.
+- Enlarged the editor to a 1020×820 display-first layout with stacked LR/MS histories.
+- Fixed the Dynamic Display to a drawing-only 0…-90 dB range with 15 dB grid spacing; DSP, meters, loudness, parameter ranges, and the -120 dB OFF sentinel are unchanged.
+- Windows JUCE/MSVC build, source manifest, project self-tests, installation, and hash parity passed before Plan C.
+- Promoted to Stable by the user's standing Plan D rule; final Cubase listening/UI/automation/state-migration checks remain user-side verification.
 
 ## 0.9.4 — Editable Numeric Text Contrast — Stable baseline
 

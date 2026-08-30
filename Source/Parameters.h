@@ -7,18 +7,56 @@
 namespace qqsc::params
 {
     inline constexpr auto inputGainDb    = "inputGainDb";
-    inline constexpr auto ratio          = "ratio";
+    inline constexpr auto ratio          = "ratio";          // ST / legacy Ratio
+    inline constexpr auto ratioL         = "ratioL";
+    inline constexpr auto ratioR         = "ratioR";
+    inline constexpr auto ratioM         = "ratioM";
+    inline constexpr auto ratioS         = "ratioS";
     inline constexpr auto makeupGainDb   = "makeupGainDb";   // ST / legacy shared Makeup
     inline constexpr auto makeupGainLDb  = "makeupGainLDb";
     inline constexpr auto makeupGainRDb  = "makeupGainRDb";
     inline constexpr auto makeupGainMDb  = "makeupGainMDb";
     inline constexpr auto makeupGainSDb  = "makeupGainSDb";
-    inline constexpr auto mix            = "mix";
+    inline constexpr auto mix            = "mix";            // ST / legacy Mix
+    inline constexpr auto mixL           = "mixL";
+    inline constexpr auto mixR           = "mixR";
+    inline constexpr auto mixM           = "mixM";
+    inline constexpr auto mixS           = "mixS";
     inline constexpr auto outputGainDb   = "outputGainDb";
     inline constexpr auto lookaheadMs    = "lookaheadMs";
     inline constexpr auto oversampling   = "oversampling";
     inline constexpr auto processingMode = "processingMode";
     inline constexpr auto bypass         = "bypass";
+    inline constexpr auto thresholdDb    = "thresholdDb";    // ST / legacy Threshold
+    inline constexpr auto thresholdLDb   = "thresholdLDb";
+    inline constexpr auto thresholdRDb   = "thresholdRDb";
+    inline constexpr auto thresholdMDb   = "thresholdMDb";
+    inline constexpr auto thresholdSDb   = "thresholdSDb";
+    inline constexpr auto domainLink     = "domainLink";
+
+    // Threshold OFF is represented by the bottom endpoint. DSP maps this sentinel
+    // to a true zero-linear threshold, i.e. the exact pre-Threshold (-inf) law.
+    inline constexpr float thresholdOffDb = -120.0f;
+
+    inline bool isThresholdEnabled (float db) noexcept
+    {
+        return db > thresholdOffDb + 0.0001f;
+    }
+
+    inline float thresholdLinear (float db) noexcept
+    {
+        if (! isThresholdEnabled (db))
+            return 0.0f;
+
+        return juce::Decibels::decibelsToGain (juce::jlimit (thresholdOffDb, 0.0f, db));
+    }
+
+    // Dynamic Display Dry is intentionally pre-Input-Gain, while the detector
+    // sees post-Input-Gain audio. Shift the visual line into the Display reference.
+    inline float effectiveDisplayThresholdDb (float threshold, float inputGain) noexcept
+    {
+        return threshold - inputGain;
+    }
 
     enum ProcessingMode
     {

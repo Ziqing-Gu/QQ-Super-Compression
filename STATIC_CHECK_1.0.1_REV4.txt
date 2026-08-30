@@ -1,0 +1,21 @@
+QQ Super Compression 1.0.1 Candidate Revision 4 — Display 0…-90 dB Scale
+Date: 2026-08-30
+
+Scope:
+- Dynamic Display visible range only.
+- maxDb = 0 dB
+- minDb = -90 dB
+- grid = 0/-15/-30/-45/-60/-75/-90 dB
+- no DSP/parameter/meter changes
+
+Static checks:
+PASS transparent_core_selftest.py
+PASS threshold_rebuild_selftest.py
+PASS domain_link_selftest.py
+PASS independent_mix_selftest.py
+PASS display_scale_selftest.py
+
+Not verified here:
+- JUCE/MSVC VST3 build
+- Cubase visual/UI behavior
+- user acceptance

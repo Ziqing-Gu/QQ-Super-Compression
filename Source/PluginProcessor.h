@@ -53,7 +53,7 @@ public:
     void notifyHostProcessingLatency();
 
     // UI A/B comparison. A/B stores the complete user sound-setting state
-    // (Input/Output Gain, Ratio, all Makeup values, Mix, Lookahead, Oversampling and Mode). Bypass is intentionally global
+    // (Input/Output Gain, all Ratio/Threshold/Makeup/Mix domain values, Lookahead, Oversampling and Mode). Bypass is intentionally global
     // and is not part of A/B snapshots.
     int getActiveABSlot() const noexcept { return activeABSlot.load (std::memory_order_relaxed); }
     void selectABSlot (int slot);
@@ -73,12 +73,25 @@ private:
     {
         float inputGainDb = 0.0f;
         float ratio = 8.0f;
+        float ratioL = 8.0f;
+        float ratioR = 8.0f;
+        float ratioM = 8.0f;
+        float ratioS = 8.0f;
+        float thresholdDb = qqsc::params::thresholdOffDb;
+        float thresholdLDb = qqsc::params::thresholdOffDb;
+        float thresholdRDb = qqsc::params::thresholdOffDb;
+        float thresholdMDb = qqsc::params::thresholdOffDb;
+        float thresholdSDb = qqsc::params::thresholdOffDb;
         float makeupST = 0.0f;
         float makeupL = 0.0f;
         float makeupR = 0.0f;
         float makeupM = 0.0f;
         float makeupS = 0.0f;
         float mix = 100.0f;
+        float mixL = 100.0f;
+        float mixR = 100.0f;
+        float mixM = 100.0f;
+        float mixS = 100.0f;
         float outputGainDb = 0.0f;
         float lookaheadMs = 26.0f;
         int oversampling = 1;
@@ -111,8 +124,9 @@ private:
     juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState apvts;
 
-    // All four domain lookahead peak analysers run continuously so ST/MS/LR
-    // switching uses the same future-window definition in every domain.
+    // All four future-window peak analysers run continuously so ST/MS/LR
+    // switching uses the same transparent detector semantics in every domain.
+    // ST derives its linked gain from the current L/R window levels.
     qqsc::StaticCompressionEngine leftEngine;
     qqsc::StaticCompressionEngine rightEngine;
     qqsc::StaticCompressionEngine midEngine;
@@ -132,10 +146,10 @@ private:
     // Display Dry/Input reference and true bypass remain pre-Input-Gain.
     juce::AudioBuffer<float> originalInputBuffer;
 
-    // The detector and Ratio gain application run in the effective internal
-    // domain. Only 0 ms may be 8x/16x; every non-zero Lookahead is forced 1x.
-    // Thus the oversampled mode never needs a non-zero internal Lookahead delay,
-    // while the established 10-100 ms future-window semantics stay host-rate.
+    // Internal detector/audio delay ring. Only the original L/R input is stored;
+    // the corresponding delayed samples are multiplied by the gains derived from
+    // the same future window. Non-zero Lookahead is always 1x; only 0 ms may use
+    // 8x/16x.
     juce::AudioBuffer<float> oversampledLookaheadDelayBuffer;
     int oversampledDelayCapacity = 1;
     int oversampledDelayWriteIndex = 0;
@@ -146,8 +160,8 @@ private:
     int64_t detectorSampleCounter = 0;
 
     // Dry stays at host sample rate. It is delayed by Lookahead plus the exact
-    // integer latency reported by the selected oversampling filter, so Dry, Wet,
-    // Mix and Bypass remain sample-aligned.
+    // integer latency of the selected 0 ms Oversampling filter, so Dry, Wet, Mix
+    // and Bypass remain sample-aligned.
     juce::AudioBuffer<float> dryDelayBuffer;
     juce::AudioBuffer<float> originalDryDelayBuffer;
     int dryDelayCapacity = 1;
@@ -162,12 +176,20 @@ private:
     // not the compressor's user Attack/Release behaviour.
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> inputGainSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioLSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioRSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioMSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioSSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupSTSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupLSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupRSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupMSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupSSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mixSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mixLSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mixRSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mixMSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mixSSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGainSmoother;
 
     mutable juce::CriticalSection abLock;

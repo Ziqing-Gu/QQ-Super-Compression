@@ -1,4 +1,4 @@
-# QQ Super Compression 0.1.10 Plan D release checklist
+# QQ Super Compression 1.0.1 Plan D release checklist
 
 ## Cumulative gates
 
@@ -11,10 +11,10 @@
 
 ## Required archives
 
-- [ ] `Win/QQ-Super-Compression-0.1.10-Windows-x64.zip`
-- [ ] `Mac/QQ-Super-Compression-0.1.10-macOS-Apple-Silicon-VST3.zip`
-- [ ] `Mac/QQ-Super-Compression-0.1.10-macOS-Intel-VST3.zip`
-- [ ] `Mac/QQ-Super-Compression-0.1.10-macOS-Universal-AU.zip`
+- [ ] `Win/QQ-Super-Compression-1.0.1-Windows-x64.zip`
+- [ ] `Mac/QQ-Super-Compression-1.0.1-macOS-Apple-Silicon-VST3.zip`
+- [ ] `Mac/QQ-Super-Compression-1.0.1-macOS-Intel-VST3.zip`
+- [ ] `Mac/QQ-Super-Compression-1.0.1-macOS-Universal-AU.zip`
 
 ## macOS checks
 
@@ -34,6 +34,6 @@ The final end-user folder contains only:
 
 Checksums, workflow logs, build directories, architecture proofs, and other internal evidence belong in a separate `InternalVerification/` sibling folder, never inside the end-user folder.
 
-## Candidate boundary
+## Stable baseline boundary
 
-Plan D packaging does not promote 0.1.10 to Stable. Cubase listening, CPU, PDC, Mix/Bypass alignment, automation, state migration, and final user acceptance remain separate manual checks.
+Under the user's standing rule, completing Plan D promotes this exact 1.0.1 Display 0…-90 dB Scale Polish source and its same-commit artifacts to the Stable baseline. Cubase listening, UI inspection, CPU, PDC, Mix/Bypass alignment, automation, and state-migration checks remain explicit manual follow-up items rather than unperformed automated claims.

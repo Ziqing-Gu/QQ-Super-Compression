@@ -1,0 +1,38 @@
+QQ Super Compression 1.0.1 — static/math validation
+Date: 2026-08-30
+Status: Candidate/Test only. NOT a successful VST3 build.
+
+PASS: tests/threshold_rebuild_selftest.py
+- Threshold OFF exactly matches the pre-Threshold future-window QQ gain law over 200000 random cases.
+- finite Threshold is unity below/at the boundary and continuous above it.
+
+PASS: tests/domain_link_selftest.py
+- Ratio/Threshold/Makeup relative offsets are preserved.
+- pair boundaries stop both values.
+- one-OFF/one-finite Threshold rule is preserved.
+
+PASS: tests/transparent_core_selftest.py
+- 400 Hz / Ratio 8 / 26 ms future-window reference remains steady-sine clean in offline math simulation.
+- 0 ms remains intentionally more nonlinear.
+- ST linked reference uses stronger L/R level with an independent ST Ratio.
+
+PASS: active Source token scan
+- no active hilbertTapCount/getIntrinsicLatencySamples/mapAmplitude/reconstructReal/setMeterAmplitudes symbols.
+- rejected Direct/Analytic DSP is not active Source code.
+
+PASS: modified C++ raw delimiter counts
+- StaticCompressionEngine.h
+- PluginProcessor.cpp/.h
+- PluginEditor.cpp/.h
+- DynamicDisplay.cpp
+
+PASS: StaticCompressionEngine C++17 syntax/runtime stub test
+- compiled with g++ against a minimal local JUCE helper stub sufficient for this isolated header.
+- verifies future-window engine header syntax/basic runtime only.
+
+NOT RUN / NOT CLAIMED:
+- full JUCE/MSVC VST3 build (no JUCE checkout in current environment)
+- Cubase scan/open/project restore
+- PluginDoctor dynamics/harmonic/PDC tests
+- real ASIO Guard/CPU measurement
+- user UI readability confirmation

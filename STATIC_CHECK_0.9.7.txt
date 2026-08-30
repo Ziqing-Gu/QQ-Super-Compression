@@ -1,0 +1,49 @@
+QQ Super Compression v0.9.7 static verification
+Date: 2026-08-30
+Status: Candidate / Test
+Base: v0.9.4 — user-selected last-good/stable rebuild baseline
+
+User requirements in this rebuild
+- Reject v0.9.5 and v0.9.6 as development baselines.
+- Threshold should be a small extension of the original QQ Super Compression law: OFF = original -inf behaviour; a finite value only creates a lower operating boundary.
+- Do not redesign the future-window detector merely to add Threshold.
+- Threshold must support Shift fine adjustment.
+- Make Dynamic Display + meters taller and compact the lower control section.
+
+DSP implementation scope
+- StaticCompressionEngine retains the v0.9.4 monotonic future-window maximum queue.
+- No half-wave/full-cycle/segment detector exists in active Source.
+- No manual Threshold monitor crossfade exists in active Source.
+- No Attack, Release, knee, hidden smoothing or hidden Lookahead was introduced.
+- Threshold OFF maps to thresholdLinear=0 and executes the exact old equation:
+    gain = 1 / (1 + (ratio - 1) * level)
+- Finite Threshold:
+    level <= threshold -> gain = 1
+    level > threshold  -> same QQSC law re-anchored continuously at the boundary.
+
+Automated reference checks
+PASS: Threshold OFF is exactly the legacy gain law for 200000 random cases.
+PASS: Enabled Threshold is unity at/below boundary and continuous at boundary.
+- PASS: lightweight C++ delimiter balance across Source/*.cpp and Source/*.h.
+- PASS: all 8 StaticCompressionEngine calls (4 warmup + 4 live) pass the same Threshold boundary into the unchanged future-window detector.
+- PASS: rejected v0.9.5/v0.9.6 monitor/segment identifiers are absent from active Source.
+
+Parameter / state checks
+- Parameter ID: thresholdDb, appended after established v0.9.4 parameter order.
+- Range: OFF sentinel (-120 dB UI endpoint) to 0 dB, 0.01 dB parameter resolution.
+- Direct entry accepts OFF and -inf.
+- Pre-Threshold state migrates Threshold to OFF.
+- A/B capture/apply/read/write includes Threshold.
+
+UI checks
+- Threshold uses a LinearVertical control between Display and meters.
+- FineKnob implements a dedicated LinearVertical relative drag path because JUCE setMouseDragSensitivity is rotary-only in the existing design.
+- Shift uses 8x finer vertical drag; Alt+left-click resets to OFF; direct numeric entry remains available.
+- Visual row: 405 design px (v0.9.4 was 350).
+- Lower control row: 145 design px (v0.9.4 was 166).
+- Fixed 1020x670 root and uniform aspect-ratio scaling remain.
+
+Verification boundary
+- NO full JUCE/VST3 build was possible in this environment: no local JUCE checkout is installed and outbound git/network is unavailable.
+- NO Cubase/PluginDoctor test was performed here.
+- User/Codex should build and verify: Threshold OFF vs v0.9.4, 3:1/8:1/16:1/32:1 distortion, Shift fine drag, state/A-B, and the new UI proportions.
