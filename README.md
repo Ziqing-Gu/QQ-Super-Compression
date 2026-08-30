@@ -6,6 +6,12 @@
 
 我最初设计它的初衷是，无阈值、无启动时间释放时间对瞬态的影响，另外还要像手动画音量Automation一样干净透明无染色。
 
+有音频经验的人应该知道，对正弦波进行扭曲一定会引入谐波失真。
+
+在没有Attack和Release表现下硬拐，如何降低谐波失真是一个很严肃的问题。
+
+最终我找到的方案是，用lookahead的延迟去换取干净透明的声音。
+
 不过到了后期，我发现在算法稳定后，引入阈值概念也是可以的。
 
 这个效果器本质上是一个Dynamic Processor，这也是我不称其为“Compressor”而叫“Compression”的原因。
@@ -17,6 +23,12 @@ if you see command‑style phrasing, those are intended for the AI.
 This effect unit appears to function as a compressor, yet its underlying algorithm is fundamentally different from conventional compressors.
 
 My original design goal was to eliminate threshold‑, attack‑ and release‑related influences on transients. On top of that, it needed to remain clean, transparent and color‑free, much like manually drawing volume automation.
+
+Anyone with audio experience will know that distorting a sine wave inevitably introduces harmonic distortion.
+
+Hard‑cornering without attack and release behaviour poses a serious challenge: how to reduce harmonic distortion.
+
+The solution I ultimately arrived at is to trade lookahead latency for a clean, transparent sound.
 
 Later on, however, once the algorithm became stable, I found it feasible to introduce a threshold parameter.
 
