@@ -51,7 +51,7 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 | 项目 / Item | 内容 / Value |
 |---|---|
 | 当前版本 / Current version | 1.0.2 |
-| 状态 / Status | Stable baseline — Plan A verified; Plan B/C/D in this release run / 稳定基线——Plan A 已验证，本次执行 Plan B/C/D |
+| 状态 / Status | Stable baseline — Plan A/B/C/D verified; Plan G public Release published / 稳定基线——Plan A/B/C/D 已验证，Plan G 已公开发布 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
@@ -72,34 +72,47 @@ LINK 保留两侧原有差值，不强制相等；到达参数边界时两侧共
 
 LINK preserves the existing offset rather than forcing equality. Both sides stop together at a parameter boundary so the offset is not collapsed. ST continues to use shared controls. LINK is saved as workflow state but remains outside A/B sound snapshots.
 
-Plan D 将 1.0.2 记录为当前稳定基线。Plan G 尚未执行，因此下方公开 Release 下载仍指向 0.9.4；本次 Plan C 只同步开源源码和说明，不制造不存在的 1.0.2 Release 链接。
+Plan D 已将 1.0.2 记录为当前稳定基线；Plan G 现已把用户指定的完整成品包发布到本仓库的 v1.0.2 Release，并按 GitHub API 返回的真实资产名更新下方下载入口。
 
-Plan D records 1.0.2 as the current stable baseline. Plan G has not been executed, so the public Release downloads below still point to 0.9.4. This Plan C synchronises the open-source code and documentation without inventing a nonexistent 1.0.2 Release link.
+Plan D records 1.0.2 as the current stable baseline. Plan G has now published the user-specified complete package in this repository's v1.0.2 Release, and the download section below uses the real asset name returned by the GitHub API.
 
 - [1.0.2 English installation guide](docs/QQ-Super-Compression-1.0.2-Windows-macOS-INSTALL.txt)
 - [1.0.2 中文安装说明](docs/QQ%20Super%20Compression%201.0.2%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
 
 ## 下载 / Download
 
-> 当前稳定源码与 Plan D 构建基线是 1.0.2；最新公开 Release 暂时仍是 0.9.4，直到单独执行 Plan G。
+> **当前正式版本 / Current formal release: QQ Super Compression 1.0.2**
 >
-> The current stable source and Plan D build baseline is 1.0.2; the latest public Release remains 0.9.4 until a separate Plan G run.
+> 本次 Plan G 直接发布用户指定的完整 ZIP；没有在 Plan G 中重新构建插件。
+>
+> This Plan G release publishes the complete ZIP specified by the user; the plug-in was not rebuilt during Plan G.
 
 - [最新正式 Release / Latest formal Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
-- [QQ Super Compression 0.9.4 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.4)
-- [直接下载 0.9.4 完整包 / Direct download of the 0.9.4 complete package](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.9.4/QQ.Super.Compression.0.9.4.Plan.D.20260828.zip)
-- [中文 PDF 用户手册 / Chinese PDF user manual](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.9.4/QQ-Super-Compression-User-Manual-Chinese-v0.9.4.pdf)
-- [English PDF user manual / 英文 PDF 用户手册](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.9.4/QQ-Super-Compression-User-Manual-English-v0.9.4.pdf)
+- [QQ Super Compression 1.0.2 Release（固定版本 / fixed version）](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.2)
+- [直接下载完整包 / Direct download — `QQ.Super.Compression.1.0.2.zip`](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.0.2/QQ.Super.Compression.1.0.2.zip)
 
-正式 Release 提供一个完整 ZIP：`QQ.Super.Compression.0.9.4.Plan.D.20260828.zip`，以及中英文两份独立 PDF 用户手册。它包含 Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3、macOS Universal 2 AU，以及中英文安装说明。Windows 用户解压后使用 `Win/QQ-Super-Compression-0.9.4-Windows-x64.zip`；Apple Silicon/M 系列 Mac 使用 Apple Silicon arm64 VST3；Intel Mac 使用 Intel x86_64 VST3；Logic Pro 等 AU 宿主可使用 Universal 2 AU。不要同时安装两套不同架构的 macOS VST3。Linux、AAX 与独立应用版本不提供。
+下载后先解压外层 `QQ.Super.Compression.1.0.2.zip`，再按平台选择内部文件：
 
-The formal Release contains one complete ZIP, `QQ.Super.Compression.0.9.4.Plan.D.20260828.zip`, plus standalone Chinese and English PDF user manuals. It includes Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, macOS Universal 2 AU, and both installation guides. Windows users should choose `Win/QQ-Super-Compression-0.9.4-Windows-x64.zip`. Apple Silicon/M-series Macs should use the Apple Silicon arm64 VST3; Intel Macs should use the Intel x86_64 VST3. Logic Pro and other AU hosts can use the Universal 2 AU. Do not install both macOS VST3 architectures. Linux, AAX, and standalone application builds are not provided.
+After downloading, extract the outer `QQ.Super.Compression.1.0.2.zip`, then choose the matching inner file:
 
-- [0.9.4 中文安装与使用说明 / Chinese installation guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.9.4/docs/QQ%20Super%20Compression%200.9.4%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
-- [0.9.4 English installation and usage guide](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/v0.9.4/docs/QQ-Super-Compression-0.9.4-Windows-macOS-INSTALL.txt)
+| 平台 / Platform | 应选择的内部文件 / Inner file to choose |
+|---|---|
+| Windows x64 VST3 | `Win/QQ-Super-Compression-1.0.2-Windows-x64.zip` |
+| Apple Silicon / M-series Mac VST3 | `Mac/QQ-Super-Compression-1.0.2-macOS-Apple-Silicon-VST3.zip` |
+| Intel Mac VST3 | `Mac/QQ-Super-Compression-1.0.2-macOS-Intel-VST3.zip` |
+| Logic Pro 或其他 AU 宿主 / Logic Pro or another AU host | `Mac/QQ-Super-Compression-1.0.2-macOS-Universal-AU.zip` |
+| Linux / AAX / Standalone | 不提供 / Not provided |
 
-> **注意 / Important:** GitHub 自动生成的 **Source code (zip)** 和 **Source code (tar.gz)** 只是源码快照，不是可安装插件。请下载上面的 `QQ.Super.Compression.0.9.4.Plan.D.20260828.zip`。
-> GitHub's automatically generated **Source code (zip)** and **Source code (tar.gz)** files are source snapshots, not installable plug-ins. Download `QQ.Super.Compression.0.9.4.Plan.D.20260828.zip` above.
+完整包还包含中英文安装说明和两份 PDF 用户手册。PDF 手册沿用 `v1.0.1` 文件名；1.0.2 的 Complete Relative LINK 变化请以本 Release、README、CHANGELOG 与 1.0.2 安装说明为准。macOS VST3 只安装与本机架构匹配的一套，不要同时安装 Apple Silicon 与 Intel 两套。
+
+The package also includes Chinese and English installation guides and two PDF user manuals. The PDF manuals retain their `v1.0.1` filenames; consult this Release, README, CHANGELOG, and the 1.0.2 installation guides for the Complete Relative LINK changes. Install only the macOS VST3 architecture that matches the Mac; do not install both variants.
+
+- [1.0.2 中文安装说明 / Chinese installation guide](docs/QQ%20Super%20Compression%201.0.2%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+- [1.0.2 English installation guide](docs/QQ-Super-Compression-1.0.2-Windows-macOS-INSTALL.txt)
+- [上一正式版本 v0.9.4 / Previous formal Release v0.9.4](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.4)
+
+> **注意 / Important:** GitHub 自动生成的 **Source code (zip)** 和 **Source code (tar.gz)** 只是源码快照，不是可安装插件。请下载上面的 `QQ.Super.Compression.1.0.2.zip`。
+> GitHub's automatically generated **Source code (zip)** and **Source code (tar.gz)** files are source snapshots, not installable plug-ins. Download `QQ.Super.Compression.1.0.2.zip` above.
 
 ## 界面预览 / Interface preview
 
@@ -320,9 +333,9 @@ These are the four plug-in subpackages inside the complete Release ZIP, not four
 
 The final 1.0.2 repository source was rebuilt as a Windows x64 Release with JUCE 8.0.15. Source-manifest verification, x64 PE inspection, moduleinfo, BS.1770, and the Threshold, Transparent Core, Domain LINK, Complete Relative LINK, Independent Mix, and Display Scale self-tests passed; Steinberg's VST3 validator returned 0. The earlier Plan A installation used the local JUCE 8.0.14 checkout selected at that time; its build, delivered, and installed hashes matched and validator also returned 0. Plan B/C/D did not overwrite the system plug-in without reconfirming that the DAW was closed.
 
-本次 Plan D 的 Windows/macOS Actions 从同一 1.0.2 提交构建 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU，并对 AU 执行 `auval`。Actions 与四个下载包须在本次执行中另行核验。Cubase 中的听感、PDC、Mix/Bypass、自动化、LINK 交互与旧工程迁移仍建议由用户手动复核。
+本次 Plan D 的 Windows/macOS Actions 已从同一 1.0.2 提交构建并核验 Windows x64 VST3、macOS arm64 VST3、macOS x86_64 VST3 与 Universal 2 AU，AU 已通过 `auval`；四个内部插件包的字节数与 SHA-256 均已核对。Cubase 中的听感、PDC、Mix/Bypass、自动化、LINK 交互与旧工程迁移仍建议由用户手动复核。
 
-This Plan D run builds Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU from the same 1.0.2 commit and runs `auval` on the AU. The Actions jobs and four downloaded packages must be verified separately in this run. Manual Cubase checks of sound, PDC, Mix/Bypass, automation, LINK interaction, and legacy-project migration are still recommended.
+This Plan D run built and verified Windows x64 VST3, macOS arm64 VST3, macOS x86_64 VST3, and Universal 2 AU from the same 1.0.2 commit; the AU passed `auval`, and the byte counts and SHA-256 hashes of all four inner plug-in packages were checked. Manual Cubase checks of sound, PDC, Mix/Bypass, automation, LINK interaction, and legacy-project migration are still recommended.
 
 ## 完整版本历史 / Complete version history
 
@@ -336,7 +349,7 @@ Every real version from the first prototype through the current build is recorde
 - English: Completes LINK for Ratio, Threshold, Makeup, and Mix in LR/MS; drag, Shift-fine, and direct numeric entry preserve offsets and stop both sides together at boundaries.
 - 中文：仅修改编辑器交互与测试；DSP、参数 ID、状态结构、A/B 声音快照、Lookahead、Threshold 与 Display 绘图规则不变。
 - English: Editor interaction and tests only; DSP, parameter IDs, state structure, A/B sound snapshots, Lookahead, Threshold, and Display drawing rules are unchanged.
-- 状态 / Status：用户明确指定并按 Plan D 规则设为稳定基线；Windows 本地验证通过，本次提交的跨平台 Actions 通过后完成 Plan D。
+- 状态 / Status：用户明确指定并按 Plan D 规则设为稳定基线；Windows 本地验证与同提交跨平台 Actions 均通过，Plan D 已完成，Plan G 正式 Release 已发布。
 
 ### 1.0.1 — 2026-08-30 — Transparent core, independent domains and 0…-90 dB Display / 透明核心、独立分域与 0…-90 dB 显示
 
@@ -346,7 +359,7 @@ Every real version from the first prototype through the current build is recorde
 - English: ST uses common controls; LR/MS have independent Ratio, Threshold, Makeup, and Mix; Relative LINK preserves offsets and does not link Mix.
 - 中文：Display-first 1020×820 布局；LR/MS 上下分域显示；可视范围固定 0…-90 dB、15 dB 刻度，仅影响绘图。
 - English: Display-first 1020×820 layout with stacked LR/MS domains; fixed 0…-90 dB visible range and 15 dB grid spacing, affecting drawing only.
-- 状态 / Status：Plan D stable baseline；Windows 本地构建/安装与项目自测通过；同提交跨平台 Actions 通过后完成 Plan D。
+- 状态 / Status：Plan D stable baseline；Windows 本地构建/安装、项目自测与同提交跨平台 Actions 均通过；1.0.2 已取代本版成为当前稳定基线。
 
 ### 1.0.0 — 2026-08-30 — Direct/Analytic/Hilbert experiment — Rejected / 失败实验
 
