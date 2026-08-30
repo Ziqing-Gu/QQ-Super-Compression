@@ -1,31 +1,46 @@
+# QQ Super Compression 1.0.3 — Current Candidate Checklist
+
+**Stable baseline:** v1.0.2 Complete Relative LINK (user-confirmed Stable).
+
+## Build / identity
+
+- [ ] Windows Release VST3 compiles without new warnings.
+- [ ] Cubase scans and loads it.
+- [ ] Panel and binary metadata show `v1.0.3`.
+
+## Centered Domain Monitor
+
+- [ ] ST hides Monitor.
+- [ ] LR shows `ALL / L / R`; MS shows `ALL / M / S`.
+- [ ] LR ALL and MS ALL reproduce the normal v1.0.2 stereo result.
+- [ ] L is centered same-polarity to both outputs and uses -3.0103 dB (`1/sqrt(2)`) listening compensation.
+- [ ] R is centered same-polarity to both outputs and uses the same compensation.
+- [ ] M is centered same-polarity at **unity**, with no extra -3.01 dB.
+- [ ] S uses `(L-R)/2`, is centered same-polarity, and uses -3.0103 dB compensation.
+- [ ] Display/Meter levels do not drop merely because L/R/S centered monitor compensation is active.
+- [ ] Match result is unchanged by Monitor selection.
+- [ ] True Bypass ignores Monitor and stays the normal latency-aligned bypass.
+- [ ] LR and MS remember different Monitor selections when switching modes.
+- [ ] Save/reopen project restores both selections.
+- [ ] A/B switch and A<->B copy do not change Monitor selection.
+- [ ] DAW automation/parameter list has no new Monitor parameter.
+- [ ] Mode and Lookahead remain 108x23 and aligned; LINK remains 34x23; Display height is unchanged.
+- [ ] At 0 ms, Monitor row and Oversampling control both fit without overlap.
+
+## v1.0.2 regression
+
+- [ ] LINK covers Ratio / Threshold / Makeup / Mix in LR/MS.
+- [ ] LINK drag, Shift fine drag and direct numeric entry preserve relative differences and shared boundaries.
+- [ ] Threshold OFF migration/semantics unchanged.
+- [ ] Independent LR/MS Mix unchanged.
+- [ ] Transparent future-window DSP / Lookahead unchanged.
+- [ ] 0 ms 1x/8x/16x Oversampling and PDC unchanged.
+- [ ] Display 0…-90 dB scale unchanged.
+
+--- HISTORICAL CHECKLIST BELOW ---
+
 # QQ Super Compression 0.1.9 Test Checklist
 
-## 1.0.2 Complete Relative LINK — Stable baseline
-
-Automated/local checks:
-- [x] Source-level LINK self-test covers Ratio, Threshold, Makeup, and Mix.
-- [x] Drag, Shift-fine, direct numeric entry, offset preservation, and common boundary rules are represented in editor source/tests.
-- [x] Windows x64 Release build, PE/moduleinfo inspection, project self-tests, and Steinberg validator pass.
-
-Manual host follow-up:
-- [ ] In LR and MS, verify LINK preserves Ratio, Threshold, Makeup, and Mix offsets during normal drag.
-- [ ] Verify Shift-fine adjustment preserves the same offsets.
-- [ ] Verify direct numeric entry produces the same linked delta.
-- [ ] Verify both sides stop together at minimum/maximum boundaries without collapsing the offset.
-- [ ] Verify LINK is restored with the project but does not change A/B sound snapshots.
-- [ ] Recheck Cubase sound, PDC, Mix/Bypass alignment, automation, and legacy-project migration.
-
-
-## 1.0.1 Display 0…-90 dB Scale Polish
-
-- [x] Source manifest passes with no missing or mismatched files.
-- [x] Threshold rebuild self-test passes, including exact Threshold OFF legacy-law parity.
-- [x] Transparent future-window core self-test passes.
-- [x] Domain LINK and independent Mix self-tests pass.
-- [x] Dynamic Display source test confirms fixed 0…-90 dB range and 15 dB grid spacing.
-- [x] Windows x64 VST3 Release build and install hash parity pass.
-- [ ] Cubase: UI scale, 0…-90 dB graph, Threshold lines, ST/LR/MS, Mode/Lookahead alignment.
-- [ ] Cubase: listening, PDC, Mix/Bypass alignment, automation, A/B, Undo/Redo, and legacy-state migration.
 ## 0.1.9 Oversampling / PDC / warning cleanup
 
 - [ ] Panel version reads small/low-contrast `v0.1.9`.
@@ -396,3 +411,33 @@ For Ratio, all active/inactive mode Makeup knobs, and Mix:
 - [ ] Enter commits direct input normally.
 - [ ] Normal non-editing text colours are unchanged.
 - [ ] Audio DSP/state/PDC/LUFS Match/GR Hold regression checks remain unchanged from v0.9.3.
+
+## v0.9.7 — Threshold Rebuild / UI proportion
+
+### Core regression against v0.9.4
+
+- [ ] Threshold OFF nulls / behaves identically to v0.9.4 at the same settings.
+- [ ] PluginDoctor Dynamics with Threshold OFF matches v0.9.4; especially compare Ratio 3:1 / 8:1 / 16:1 / 32:1.
+- [ ] No v0.9.6 half-wave/segment detector behaviour remains.
+- [ ] Lookahead 0 / 10 / 26 / 40 / 80 / 100 ms retains the v0.9.4 detector/window behaviour.
+- [ ] 0 ms 1x/8x/16x behaviour and PDC remain unchanged.
+
+### Threshold
+
+- [ ] OFF is default and is displayed as OFF.
+- [ ] Below finite Threshold: no compression.
+- [ ] At Threshold boundary: no discontinuous gain jump in the static curve.
+- [ ] Above Threshold: same QQ Super Compression Ratio character, not classic above-threshold compressor timing.
+- [ ] Shift-drag on Threshold is visibly finer than normal drag and can set 0.01 dB values.
+- [ ] Alt+left-click returns Threshold to OFF.
+- [ ] Double-click accepts exact values and `OFF`.
+- [ ] Undo/Redo includes Threshold.
+- [ ] A/B + A→B/B→A includes Threshold.
+- [ ] Save/reload restores Threshold; old v0.9.4 project loads Threshold OFF.
+
+### Layout
+
+- [ ] Display and meters are noticeably taller than v0.9.4/v0.9.5.
+- [ ] Lower knobs/buttons are smaller but remain readable and easy to hit.
+- [ ] Threshold strip does not overlap Display or meters.
+- [ ] Fixed aspect-ratio resize keeps all hit targets aligned.

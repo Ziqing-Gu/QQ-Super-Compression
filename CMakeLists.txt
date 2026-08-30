@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.0.2 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.0.3 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,18 +26,12 @@ else()
     message(FATAL_ERROR "JUCE was not found. Set -DJUCE_PATH=/path/to/JUCE or enable QQSC_FETCH_JUCE.")
 endif()
 
-set(QQSC_PLUGIN_FORMATS VST3)
-
-if (APPLE)
-    list(APPEND QQSC_PLUGIN_FORMATS AU)
-endif()
-
 juce_add_plugin(QQSuperCompression
     COMPANY_NAME "Qing Audio"
     BUNDLE_ID "com.qingaudio.qqsupercompression"
     PLUGIN_MANUFACTURER_CODE Qing
     PLUGIN_CODE Qscp
-    FORMATS ${QQSC_PLUGIN_FORMATS}
+    FORMATS VST3
     PRODUCT_NAME "QQ Super Compression"
     DESCRIPTION "Transparent lookahead dynamics processor with independent ST/LR/MS domains"
     IS_SYNTH FALSE

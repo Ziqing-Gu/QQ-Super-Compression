@@ -52,6 +52,13 @@ public:
     // the next process block.
     void notifyHostProcessingLatency();
 
+    // Headphone-reference audition monitor for the independent LR/MS domains.
+    // This is deliberately not an APVTS parameter: it affects only the final
+    // audible monitoring path, is excluded from A/B and host automation, and is
+    // persisted as project-local workflow state. LR and MS remember separately.
+    int getDomainMonitorSelection (int processingMode) const noexcept;
+    void setDomainMonitorSelection (int processingMode, int selection) noexcept;
+
     // UI A/B comparison. A/B stores the complete user sound-setting state
     // (Input/Output Gain, all Ratio/Threshold/Makeup/Mix domain values, Lookahead, Oversampling and Mode). Bypass is intentionally global
     // and is not part of A/B snapshots.
@@ -196,6 +203,12 @@ private:
     ParameterSnapshot snapshotA;
     ParameterSnapshot snapshotB;
     std::atomic<int> activeABSlot { 0 };
+
+    // v1.0.3: final audible-only centered monitor state. Keep LR and MS
+    // selections independent so changing processing mode never silently maps
+    // an L solo into M (or R into S). Defaults are ALL.
+    std::atomic<int> monitorLRSelection { qqsc::params::monitorAll };
+    std::atomic<int> monitorMSSelection { qqsc::params::monitorAll };
 
     qqsc::BS1770LoudnessMatch loudnessMatch;
     std::atomic<float> matchSTDb { 0.0f };

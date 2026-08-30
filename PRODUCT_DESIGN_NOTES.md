@@ -1,114 +1,110 @@
-# QQ Super Compression — Product Design Notes
+# QQ Super Compression — Product / DSP Design Notes
 
-> This file exists so future Codex/AI/developers can understand **why this plug-in exists**, not only how the code works. Do not remove it when refactoring or preparing GitHub/Release documentation.
+## Current product goal (v1.0.3)
 
-## 1. The original problem
+**Stable baseline:** v1.0.2 Complete Relative LINK (user-confirmed Stable on 2026-08-30). v1.0.3 only adds centered LR/MS audition monitoring and does not change the approved audio core.
 
-QQ Super Compression was designed for a specific mixing problem:
+QQ Super Compression is not designed by starting from a conventional Attack/Release compressor. The practical goal is to reduce dynamics while keeping audible waveform/tone changes as small as possible.
 
-> Sometimes a source needs dynamic compression, but the engineer does **not** want conventional Attack / Release behaviour to reshape the source's original transient or note onset.
+The project explored direct sample/amplitude remapping, but user testing established an important trade-off: attempting to eliminate the microscopic Lookahead boundary effect introduced more harmonic colour and much higher CPU/ASIO Guard load. The user therefore chose the older future-window peak design because it is substantially cleaner in real use.
 
-This is not an argument that traditional compressors are bad. Attack and Release are powerful sound-shaping tools, and changing transients is often exactly what a mix engineer wants. The problem is that there are also cases where the engineer wants **dynamic control without intentionally changing the transient character**.
+**Priority:** clean/transparent result first. A small future-window pre-influence around abrupt level changes is acceptable and is not treated as a release-blocking defect.
 
-Typical examples include:
+## v1.0.1 transparent core
 
-- **Guitar** — pick attack and the front edge of a note can become softer, harder, or more exposed depending on compressor timing.
-- **Vocals** — consonants, plosives and the beginning of syllables can be reshaped, changing articulation and perceived immediacy.
-- **Piano** — the hammer attack is a major part of the instrument's identity; fast/slow compression timing can noticeably alter the perceived strike.
-- **Bass** — finger/pick attack strongly affects definition, groove and articulation; conventional timing can change that front edge.
-
-The design target is therefore:
-
-> **Compress the dynamic range while preserving the original transient / onset character as much as practical.**
-
-## 2. Why there is no conventional Attack / Release
-
-Traditional compressors react with a time envelope. If the Attack is slow, some transient may pass before the gain reduction reaches its target. If Attack is fast, the front edge can be reduced more aggressively. Release then determines how the gain recovers after the event.
-
-QQ Super Compression deliberately does not expose that conventional Attack / Release envelope. Instead, it delays the audible path and analyses a future window, so it can know how large the upcoming waveform is **before the corresponding delayed audio reaches the output**.
-
-Conceptually:
+The audible path is delayed by the selected Lookahead. For each delayed sample, the detector uses the maximum magnitude in the matching future window.
 
 ```text
-future waveform window
-        -> estimate level / peak for the delayed sample
-        -> derive Ratio gain directly
-        -> apply that gain to the correspondingly delayed original waveform
-```
+level = peak of the future window
 
-The point of Lookahead here is not merely "a faster compressor". It is a way to avoid depending on a conventional Attack envelope to catch a transient after it has already arrived.
-
-## 3. Ratio is not a classic threshold slope
-
-The current Ratio law is:
-
-```text
 gain = 1 / (1 + (Ratio - 1) * level)
 ```
 
-where `level` is the future-window peak, normalised to 0..1.
+There is no Attack or Release envelope. The window peak is deliberately used to avoid following the carrier sample-by-sample.
 
-There is no conventional Threshold control. Ratio is best understood as the strength of the dynamic reduction curve rather than a classic "above-threshold 4:1" slope.
+### Accepted Lookahead trade-off
 
-Do not replace this law casually. The rejected v0.1.0 sample-domain waveshaper and the rejected v0.1.1-v0.1.3 rolling-RMS direction are retained in development history for a reason.
+Because the detector sees the future window, a sudden larger event can influence a short region before the event. Longer Lookahead expands that microscopic region. This behaviour is accepted because the same mechanism stabilises the gain over waveform cycles and greatly reduces the waveshaper-like harmonic distortion that appears when instantaneous sample height drives a nonlinear mapping.
 
-## 4. Why Lookahead changes the character
+## Threshold
 
-At 0 ms, the detector collapses to instantaneous sample magnitude. That makes the gain sample-dependent and therefore nonlinear in a way that creates audible/measurable harmonic coloration.
+Threshold is only a lower boundary around the same QQ law.
 
-As Lookahead becomes longer, the future-window peak becomes more stable across each waveform cycle. A stable tone is then more likely to receive a near-constant gain rather than gain that follows the carrier waveform itself. This is why the longer Lookahead settings progressively approach the intended "dynamic shaping without conventional transient-envelope behaviour" concept.
+- OFF -> exact pre-Threshold law.
+- finite Threshold -> level at/below boundary is unity; above it the same QQ curve is re-anchored continuously at the boundary.
+- Threshold must never replace the future-window detector or introduce Attack, Release, knee, RMS smoothing, half-wave segmentation or any other alternate engine.
 
-User PluginDoctor testing established a clear practical relationship:
+## Lookahead / Oversampling
 
-- 5 ms: distortion boundary about 99.6 Hz;
-- 10 ms: about 49.8 Hz;
-- 20 ms: about 24.9 Hz;
-- 26 ms: boundary moved to roughly the 20 Hz region;
-- 40 ms: 20 Hz visibly cleaner than 26 ms;
-- 80 ms: cleaner again.
+Lookahead remains `0 / 10 / 26 / 40 / 80 / 100 ms`.
 
-The approved user-facing Lookahead presets remain:
+0 ms intentionally degenerates toward instantaneous sample-domain behaviour. The established anti-aliasing choice is therefore retained only there:
 
-`0 / 10 / 26 / 40 / 80 / 100 ms`.
+```text
+0 ms -> 1x / 8x / 16x
+10 ms+ -> fixed 1x
+```
 
-## 5. 0 ms is intentionally retained as a colour mode
+Do not add 2x/4x back unless explicitly requested; prior user PluginDoctor tests rejected them as insufficient in the old 0 ms flavour mode.
 
-0 ms does **not** represent the most transparent interpretation of the original design goal. It is intentionally retained because the user found its nonlinear sound musically useful.
+## ST / LR / MS domains
 
-That distinction matters:
+ST:
+- one Ratio / Threshold / Makeup / Mix;
+- linked L/R gain determined from the stronger current L/R future-window level.
 
-- 10-100 ms are primarily the "dynamic control while preserving transient character" direction.
-- 0 ms is a deliberate additional colour/flavour derived from the same Ratio concept.
+LR:
+- independent L/R Ratio / Threshold / Makeup / Mix.
 
-Future developers must not silently add smoothing or hidden Lookahead to 0 ms in an attempt to "fix" it. If 0 ms is changed, the user must explicitly approve the new sonic meaning first.
+MS:
+- independent M/S Ratio / Threshold / Makeup / Mix.
 
-## 6. LUFS Match is for fair comparison, not an always-on Auto Gain
+All domains use the same future-window detector semantics. ST has its own Ratio/Threshold even though it reuses the already-computed L/R window levels.
 
-Strict BS.1770 / EBU R128 Integrated LUFS Match was added so the engineer can remove loudness bias when judging the compression result.
+## v1.0.3 centered domain Monitor
 
-It compares delayed Dry with compressed Wet **before Makeup and before Mix**, then writes Makeup. The purpose is to let the user judge changes in dynamic shape and transient feel without "louder sounds better" bias.
+QQ Super Compression uses a **centered-only** domain audition monitor for normal plug-in/headphone reference. Do not copy QQ ChainScope's full SIP/in-place speaker-monitoring feature set into this product: ChainScope is intentionally special because it also serves studio loudspeaker monitoring.
 
-It is not intended as an automatic gain-riding stage that continuously controls loudness.
+- LR: ALL / L / R. L or R is copied to both outputs with `1/sqrt(2)` (-3.0103 dB) final listening compensation.
+- MS: ALL / M / S. `M=(L+R)/2` is copied to both outputs at unity; `S=(L-R)/2` is copied to both outputs with `1/sqrt(2)`.
+- The user explicitly rejected applying -3.01 dB to M.
+- Monitor acts after the normal Output Gain result only for audible output. Display/Meter/Match remain pre-monitor.
+- Monitor is project workflow state, not an automatable sound parameter and not an A/B snapshot member. LR and MS selections are stored separately.
 
-## 7. Mix and Ratio are intentionally separate
+## Relative LINK
 
-Ratio defines the shape/intensity of the compressed Wet result. Mix defines how much of that result is blended with the compensated Dry path.
+One LINK button covers Ratio, Threshold, Makeup **and Mix** pairs in LR/MS.
 
-A high Ratio at partial Mix is not mathematically identical to a lower Ratio at 100% Mix; this is an intentional creative degree of freedom, not a bug.
+LINK means equal **delta**, not equal **value**. Capture the pair at edit start, preserve their existing numerical difference, and stop both when either reaches a legal boundary. The same rule applies to normal drag, Shift fine drag and direct numeric entry.
 
-## 8. What the plug-in is *not* claiming
+Threshold OFF is conceptual `-inf`; exactly-one-OFF pairs cannot define a finite offset, so the OFF member stays OFF for that gesture.
 
-Do not market QQ Super Compression as:
+## Dynamic Display
 
-- "perfect transient preservation" in every possible signal;
-- a replacement for all conventional compressors;
-- a mathematically scale-invariant compressor (the current Ratio law depends on absolute normalised detector level);
-- an Attack/Release compressor with hidden timing controls.
+Display is a working part of Threshold operation. Users need to see the dynamic history clearly while choosing a boundary.
 
-A more accurate product statement is:
+- v1.0.1 default design space is 1020x820.
+- upper Display/Meter region gets 550 design px.
+- lower controls remain compact at 140 design px.
+- LR/MS use two stacked full-width histories.
+- each active Threshold line shows its numeric value on the graph.
 
-> **QQ Super Compression is designed for situations where dynamic compression is needed, but conventional Attack / Release transient reshaping is not desired. It uses future-window analysis to reduce dependence on a conventional attack/release envelope, while also retaining a deliberately coloured 0 ms mode.**
+## Rejected Direct / Analytic experiment (v1.0.0)
 
-## 9. Documentation rule
+The Direct experiment used analytic amplitude from a 4095-tap Hilbert FIR, mapped that amplitude nonlinearly, then reconstructed the sample phase/sign. It successfully made the user Lookahead irrelevant to the mapped sound, but user tests showed:
 
-When Codex/AI writes the GitHub README, Release text or product introduction, lead with the **mixing problem and use case** above. Do not describe the product merely as "a threshold-free compressor" or "a compressor with Lookahead"; those are implementation details, not the reason the product exists.
+- audible/measurable harmonic colour remained;
+- the Hilbert implementation caused large ASIO Guard / CPU load;
+- two simultaneous instances could become very sluggish;
+- the Direct mode offered no practical advantage over the cleaner legacy core.
+
+The user explicitly chose to remove it. Keep this history so a future AI does not repeat the same experiment by accident.
+
+
+---
+
+## v1.0.1 domain Mix clarification
+
+LR and MS are full independent processing domains, so Mix follows the same domain split as Ratio/Threshold/Makeup. In LR, L and R have separate Dry/Wet Mix. In MS, M and S have separate Dry/Wet Mix and the blend occurs before M/S decoding. ST keeps one shared Mix.
+
+As of v1.0.2, the single LINK workflow button also covers Mix. Mix uses the same percentage-point relative-delta rule as Ratio/Threshold/Makeup, so independent domain balances can be moved together without collapsing their existing difference.

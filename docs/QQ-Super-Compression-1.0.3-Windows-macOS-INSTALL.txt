@@ -1,0 +1,46 @@
+QQ Super Compression 1.0.3 — Windows and macOS Installation Guide
+Release date: 2026-08-30
+Vendor: Qing Audio
+Formats: Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU
+
+This Plan D package contains installable plug-ins and installation guides only; it does not contain source code, build caches, or internal verification logs. All plug-ins should be kept at version 1.0.3. Quit Cubase, Nuendo, REAPER, Studio One, Logic Pro, and any other host that may scan plug-ins before upgrading.
+
+What changed in 1.0.3
+1. LR adds ALL / L / R and MS adds ALL / M / S centered monitoring.
+2. L, R, and S use 1/sqrt(2) (-3.0103 dB) monitoring compensation when copied to both outputs; M is copied at unity.
+3. Monitor changes only the final audition output. Display, meters, Match, A/B sound snapshots, host automation, and True Bypass are unaffected by Monitor; LR and MS selections persist independently with the project.
+
+Choose the package
+- Windows x64 VST3: Win\QQ-Super-Compression-1.0.3-Windows-x64.zip
+- Apple Silicon / M-series Mac VST3: Mac\QQ-Super-Compression-1.0.3-macOS-Apple-Silicon-VST3.zip
+- Intel Mac VST3: Mac\QQ-Super-Compression-1.0.3-macOS-Intel-VST3.zip
+- Universal 2 AU: Mac\QQ-Super-Compression-1.0.3-macOS-Universal-AU.zip
+- Linux, AAX, and standalone builds: not provided.
+
+Windows x64 VST3
+1. Extract the Windows ZIP. Its root should contain `QQ Super Compression.vst3`.
+2. Copy that bundle to `C:\Program Files\Common Files\VST3`. Administrator permission may be required.
+3. With every DAW closed, replace an existing `QQ Super Compression.vst3` of the same name. Do not retain duplicate same-name versions in different VST3 locations.
+4. Reopen the host and run a VST3 rescan. If it does not appear, restart the host or clear its plug-in cache and scan again.
+
+macOS VST3
+1. Choose one VST3 architecture only: arm64 for Apple Silicon/M-series Macs, x86_64 for Intel Macs. Do not install both.
+2. Extraction should produce `QQ Super Compression.vst3`.
+3. Copy it to `~/Library/Audio/Plug-Ins/VST3`; `/Library/Audio/Plug-Ins/VST3` is an optional system location that normally requires administrator permission. In Finder, hold Option while opening Go to reveal the user Library.
+4. Reopen the host and rescan VST3 plug-ins; restart the computer if necessary.
+
+macOS Audio Unit
+1. The Universal 2 AU contains both arm64 and x86_64. Extraction should produce `QQ Super Compression.component`.
+2. Copy it to `~/Library/Audio/Plug-Ins/Components`; `/Library/Audio/Plug-Ins/Components` is the optional system location.
+3. AU and VST3 are separate formats. Install only the format you need, then reopen Logic Pro or rescan Audio Units.
+
+macOS security note
+The macOS artifacts are CI-built ad-hoc signed packages, not Apple Developer ID notarized packages. Once you have confirmed the file source is trusted, Gatekeeper quarantine can be removed from the actual bundle path, for example:
+`xattr -dr com.apple.quarantine "~/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"`
+Replace the path for an AU component when applicable. Do not remove quarantine from files whose source you do not trust.
+
+Compatibility and troubleshooting
+- Do not retain duplicate copies in both user and system plug-in locations, and do not retain an old same-function version alongside the new one.
+- If the host uses an old cache, quit it fully and rescan.
+- Monitor is an audition-workflow feature: LR/MS selections persist, ST hides the control, and it does not appear in host automation.
+- Existing compression, Threshold, LINK, Mix, Lookahead, Oversampling, PDC, and Bypass behaviour is retained for older projects.

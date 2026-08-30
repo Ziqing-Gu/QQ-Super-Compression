@@ -1,13 +1,263 @@
 # QQ Super Compression — Development History
 
-## v1.0.2 — Complete Relative LINK — Stable baseline — 2026-08-30
+## v1.0.3 — Centered Domain Monitor
 
-**状态 / Status:** Stable baseline（用户明确指定；本次执行 Plan B/C/D）  
+**日期：** 2026-08-30  
+**状态：** Candidate / Test  
+**基于：** v1.0.2 Complete Relative LINK Stable
 
-在 1.0.1 的透明 DSP、Threshold、独立 LR/MS 分域和 Display-first 0…-90 dB 显示基线上，1.0.2 只补全编辑器联动。LR/MS 的 LINK 现在覆盖 Ratio、Threshold、Makeup、Mix；drag、Shift 精调、直接输入均保存相对差值，任一侧触及边界时双方共同停止。ST 共同控制、DSP、参数 ID、状态结构、A/B 声音快照、Lookahead 与绘图规则均不改变。
+### 目标与实现
 
-Version 1.0.2 completes offset-preserving Relative LINK for all four LR/MS paired controls. It is an editor-interaction and test change only; the 1.0.1 audio core and compatibility boundary remain intact.
+本版只增加 LR/MS 的居中试听工作流，不改透明 future-window Peak/Lookahead 压缩核心、Threshold、独立域控制、Relative LINK、Match、Display、meters、Oversampling、PDC 或 Bypass。
 
+- LR：`ALL / L / R`；选择 L 或 R 时把选中通道乘以 `1/sqrt(2)` 后同相复制到双输出。
+- MS：`ALL / M / S`；M 以 unity 同相复制到双输出，S 以 `1/sqrt(2)` 同相复制到双输出。
+- ST：不显示 Monitor。
+- Monitor 位于最终可听输出；Display、meters、Match 和正常处理结果仍使用 Monitor 前的信号。
+- LR 与 MS 分别保存选择；状态 schema 由 7 升至 8。Monitor 不进入 APVTS、宿主自动化或 A/B 声音快照；True Bypass 不应用 Monitor。
+
+Version 1.0.3 adds a centered audition Monitor only. It does not alter the transparent future-window Peak/Lookahead compressor core, Threshold, domain controls, Relative LINK, Match, Display, meters, Oversampling, PDC, or Bypass. LR offers ALL/L/R and MS offers ALL/M/S; L/R/S use `1/sqrt(2)` compensation when copied to both outputs, while M remains unity. Monitor is final-audible-only and persists separately for LR/MS outside host automation and A/B snapshots.
+
+### 验证与限制
+
+- [x] source manifest 与七项 Python/source/math 自测。
+- [x] JUCE 8.0.15 / MSVC Windows x64 Release、BS.1770 与 Steinberg validator。
+- [ ] Plan D 同一 commit 的 macOS arm64 VST3、Intel VST3、Universal 2 AU 与 `auval`。
+- [ ] 用户 Cubase 试听、Display/Meter/Match 隔离、工程恢复、A/B、自动化和旧工程迁移复核。
+
+在 Plan D 与用户试听完成前，本版保持 Candidate/Test；v1.0.2 是稳定回滚基线。
+
+---
+
+## v1.0.2 — Complete Relative LINK
+
+**日期：** 2026-08-30  
+**状态：** Candidate / Test  
+**基于：** v1.0.1 Stable — Display 0…-90 dB Scale / Transparent Core / Independent Domains  
+**稳定回滚基线：** v1.0.1 Stable（用户已确认，Plan A/B/C/D 已执行）
+
+### 用户需求
+
+在完善 v1.0.1 中英文说明书时，用户实测发现两处 LINK 工作流缺口：
+
+1. LR/MS 的 Mix 已经拆成独立双参数，但 LINK 仍只联动 Ratio / Threshold / Makeup；用户明确要求 LINK 必须同时控制 Mix。
+2. LINK 开启时，鼠标拖动可保持相对关系，但双击数值框直接输入新值不会联动另一侧；用户明确要求直接输入也必须遵守 LINK。
+
+### 根因
+
+- v1.0.1 Revision 2 新增独立 LR/MS Mix 时，为了遵守当时已确认的三参数 LINK 规格，没有把 Mix 注册进 `LinkedPair`、gesture-start 和 value-change 路径。
+- 现有 LINK 依赖 `FineKnob::mouseDown()` 调用 `beginLinkedGesture()` 来捕获 source/target 起始值；JUCE 的 TextBox 数值提交不经过 mouse-drag gesture，因此 `onValueChange` 发生时 `activeLinkedPair` 为 none，LINK 正常地提前返回。
+
+### 修改内容
+
+- `LinkedPair` 新增 `mixLR / mixMS`。
+- LR/MS Mix 加入与 Ratio/Threshold/Makeup 相同的 relative-link drag/Shift gesture 路由。
+- LINK tooltip 更新为 `Ratio / Threshold / Makeup / Mix`。
+- 新增 `handleLinkedTextEntry()`：在 Slider `valueFromTextFunction` 提交直接输入时，捕获当前 source/target 值并应用同一 shared-delta / shared-boundary 规则。
+- Ratio、Threshold、Makeup、Mix 的 L/R 与 M/S 数值输入全部经过这条路径。
+- Threshold OFF 继续使用既有特殊语义：若仅一侧 OFF，不制造有限 dB offset；若两侧都 OFF，可从相同有限值一起进入。
+- 版本号更新为 1.0.2。
+
+### 保持不变
+
+- Future-window Peak / Lookahead DSP 完全不改。
+- Threshold DSP law、0 ms Oversampling、PDC、Mix DSP 位置、LR/MS 域路由、Display、Meter、LUFS Match、A/B sound snapshot 和 state schema 不改。
+- LINK 仍然是“保持相对差值”，绝不在开启时强制两侧变成相同数值。
+- v1.0.1 继续作为 Stable 回滚基线。
+
+### 验证
+
+- [x] `domain_link_selftest.py`：新增 Mix、direct-entry、boundary 用例通过。
+- [x] `link_ui_source_selftest.py`：确认 Mix gesture/value wiring 与四组 direct-entry routing 存在。
+- [x] 既有 transparent core / Threshold / independent Mix / Display self-test 计划回归。
+- [ ] JUCE/MSVC VST3 实际编译。
+- [ ] Cubase：LINK + Mix 鼠标/Shift 联动。
+- [ ] Cubase：LINK + Ratio/Threshold/Makeup/Mix 双击直接输入。
+- [ ] 用户确认并决定是否晋升 Stable。
+
+### 回滚
+
+若 v1.0.2 LINK 完整化出现问题，直接回滚到 **v1.0.1 Stable**。不得因此回滚透明 DSP、Threshold、独立 LR/MS Mix、Display 0…-90 dB 或 Mode/Lookahead 已确认 UI。
+
+---
+
+## v1.0.1 — Stable Baseline Promotion
+
+**日期：** 2026-08-30  
+**状态：** Stable  
+
+用户明确将 Display `0…-90 dB` 的 v1.0.1 设为新的稳定基线，并报告已执行 Plan A/B/C/D。此前 v1.0.1 各 Candidate Revision 的历史记录继续保留在下方；从此后续开发和失败回滚优先以该 Stable 包为基准。
+
+## v1.0.1 Candidate Revision 3 — Mode / Lookahead Alignment Polish
+
+**日期：** 2026-08-30  
+**状态：** Candidate / Test（仍为 1.0.1，不晋升 Stable）  
+**基于：** v1.0.1 Candidate Revision 2
+
+### 用户需求
+
+用户确认右下技术控制区功能已经恢复，但视觉比例过于笨重。经讨论后明确规格：Mode 仍为单击循环按钮，不改成下拉；Lookahead 因选项较多继续保留下拉菜单；Mode 主按钮必须与 Lookahead 菜单**完全同宽、同高、同一水平起点**；LINK 只是 Mode 右侧的小型辅助按钮，不能挤占 Mode 主按钮长度。用户明确要求先讨论确认后再修改 UI。
+
+### 修改内容
+
+- Mode 主按钮固定为 `108 x 23` design px。
+- Lookahead ComboBox 固定为完全相同的 `108 x 23` design px，并与 Mode 主按钮共享同一个 `choiceX`。
+- LINK 改为独立 `34 x 23` 小按钮，与 Mode 间隔 6 px；ST 隐藏，LR/MS 显示。
+- Oversampling（仅 0 ms 显示）也沿用相同主控件水平对齐，保持技术控制列规整。
+- `resized()` 仍是这些控件唯一的 bounds owner；`updateModeUi()` 不改变 geometry。
+
+### 保持不变
+
+- Transparent Future-Window Peak / Lookahead DSP 完全不改。
+- Threshold、LR/MS 独立 Ratio/Threshold/Makeup/Mix、Relative LINK 语义、Display/Meter 尺寸、Oversampling 算法、PDC、A/B、Undo/Redo、项目兼容均不改。
+- Mode 交互仍为 `ST -> MS -> LR -> ST` 单击循环；Lookahead 仍为下拉菜单。
+
+### 验证
+
+- [x] 源码静态检查：Mode 与 Lookahead 使用同一 `primaryChoiceW/H` 和 `choiceX`。
+- [x] LINK 不再从 Mode bounds 中 `removeFromRight()`，因此不会改变 Mode 长度。
+- [x] 现有 Python math/source self-tests 继续通过。
+- [ ] JUCE/MSVC VST3 完整编译。
+- [ ] Cubase 实际视觉确认。
+
+### 回滚
+
+如本轮纯 UI 对齐修改失败，回滚至 v1.0.1 Candidate Revision 2；不要回滚 DSP、独立 Mix、Threshold 上下布局或 Relative LINK 语义。
+
+---
+
+## v1.0.1 Candidate Revision 2 — Mode/LINK UI Fix + Independent LR/MS Mix
+
+**日期：** 2026-08-30  
+**状态：** Candidate / Test（仍为 1.0.1，不晋升 Stable）  
+**基于：** v1.0.1 Transparent Core / Independent Domains / Display-First Candidate
+
+### 用户需求
+
+用户在实际构建截图中发现：Mode 切换控件和 LINK 按钮没有显示；同时要求 LR/MS 模式下 Mix 也和 Ratio/Threshold/Makeup 一样按两个域独立。用户进一步指出，LR/MS Display 已经是上下排列，因此 Threshold 两个控制也应上下排列而不是左右并排。
+
+### 根因 / 设计判断
+
+- Mode/LINK 在 `resized()` 先分配 bounds，但 `updateModeUi()` 又由 Timer 周期性重新根据当前 bounds 做 union/split，造成几何归属不唯一；在宿主实际 UI 生命周期中出现按钮不可见/不可用的回归。修复原则是让 `resized()` 成为唯一 bounds owner。
+- 旧 Mix 是一个共享参数。若 LR/MS 已经允许两个域独立 Ratio/Threshold/Makeup，那么共享 Mix 会阻止两个域真正独立的 Dry/Wet 比例。
+- MS 独立 Mix 必须在 M/S 域内分别混合 Dry/Wet 后再 decode 到 L/R；不能先 decode 再用两个 L/R Mix，否则语义会错误。
+- 用户此前明确 LINK 是一个按钮同时锁 Ratio/Threshold/Makeup 的相对变化；本次没有擅自把新增 Mix 纳入 LINK。
+
+### 修改内容
+
+- Mode 按钮使用固定 geometry，并在所有模式始终可见；LINK 固定占 Mode 行右侧，在 LR/MS 显示，ST 隐藏。`updateModeUi()` 不再修改两者 bounds。
+- 新增 `mixL/mixR/mixM/mixS` 参数；旧 `mix` 保留为 ST/legacy ID。
+- LR：L/R Mix 独立。
+- MS：M/S Mix 独立，并在 M/S 域分别完成 Dry/Wet mix 后再重建 L/R。
+- 新增四个 Mix smoother、UI knob、APVTS attachment、A/B snapshot/state 字段。
+- 旧工程若缺少新 Mix 参数，则从旧共享 Mix 精确复制到 L/R/M/S；旧 A/B 若缺少新属性也从各槽旧 Mix 回填。
+- Threshold UI 由左右双 fader 改为上下双 fader：上方对应 L/M Display，下方对应 R/S Display；ST 仍使用一个全高 Threshold。
+- Mix UI 在 LR/MS 使用两只小旋钮并显示 L/R 或 M/S 标签；ST 仍显示单一 Mix。
+
+### 保持不变
+
+- Future-window Peak / Lookahead DSP、Threshold 数学、0 ms Oversampling、PDC、Input/Output Gain、LUFS Match、A/B、GR Hold 均不改。
+- Display 大小维持 1020x820 design root / 550 px visual row，不缩小。
+- LINK 仍只联动 Ratio / Threshold / Makeup，并保持相对差值，不强制相等。
+
+### 验证
+
+- [x] 原 Threshold / Relative LINK / Transparent Core Python 自测继续通过。
+- [x] 新 `independent_mix_selftest.py`：200000 随机样本验证 M/S 两边 Mix 相等时与旧共享 Mix 数学等价；验证不等 Mix 时两个域保持独立。
+- [x] Source 静态检查确认新 Mix 参数已贯穿 APVTS / smoother / A-B / migration / UI。
+- [ ] JUCE/MSVC VST3 完整编译。
+- [ ] Cubase 中 Mode/LINK 可见性实测。
+- [ ] LR/MS 独立 Mix 声音与 automation 实测。
+- [ ] Threshold 上下布局用户视觉确认。
+
+### 回滚
+
+如果本轮 UI/Mix 修改失败，回滚到前一份 v1.0.1 Candidate 源码；不要回滚透明 DSP 核心，不恢复 Direct/Analytic，也不要回到 v0.9.5/v0.9.6。
+
+---
+
+## v1.0.1 — Transparent Core / Independent Domains / Display-First
+
+**日期：** 2026-08-30  
+**状态：** Candidate / Test  
+**基于：** v0.9.4/v0.9.7 transparent future-window core + v1.0.0 domain/UI workflow work
+
+### 用户需求
+
+用户实际验证 v1.0.0 Direct/Analytic 方案后确认：Lookahead 的确不再改变声音，但 Direct 模式仍产生谐波失真，而且 ASIO Guard / CPU 负担明显变大，多开实例会卡。用户明确表示 Direct 模式没有保留必要，希望只保留旧的透明 Lookahead 算法。
+
+同时保留刚刚确定的正式功能：ST/LR/MS 独立域参数、LR/MS 双 Ratio/双 Threshold/双 Makeup、一个保持相对差值的 LINK、LR/MS 独立 Display。用户再次强调 Display 太小，使用 Threshold 时需要清晰观察动态并寻找阈值点。版本号指定为 1.0.1。
+
+### 问题表现 / 根因
+
+- Direct/Analytic 路线虽然让用户 Lookahead 只剩纯延迟，但非线性幅度映射仍会产生谐波；4095-tap Hilbert FIR 还带来很高持续计算成本。
+- 旧 future-window peak 路线在突然电平变化前存在 Lookahead 微观预影响，但用户明确接受这一点，因为实际目标是更干净透明的声音，而不是追求微观边界几何绝对不变。
+- v1.0.0 的 Oversampling 被隐藏；恢复旧核心后必须恢复 0 ms-only 1x/8x/16x 逻辑。
+- v1.0.0 LINK 与 Oversampling 共用同一 UI bounds；恢复 Oversampling 后在 LR/MS + 0 ms 会发生重叠，因此 LINK 改放 Mode 行。
+- 1020x670 / 405 px visual row 即使已经比旧版放大，LR/MS 双 Display 仍然太窄高，不利于 Threshold 工作。
+
+### 修改内容
+
+- 删除活动 Direct/Analytic/Hilbert DSP；`StaticCompressionEngine` 恢复 future-window monotonic peak queue。
+- Threshold OFF 精确恢复旧 QQ gain law；有限 Threshold 只作为下边界，不改变 detector。
+- LR/MS 四个域继续独立 Ratio/Threshold；ST 使用自己的 Ratio/Threshold，并从当前 L/R window peak 中取更强 level 计算单一 linked gain。
+- 0 ms 恢复 1x/8x/16x Oversampling；10 ms+ 固定 1x并隐藏 Oversampling UI；PDC/Dry/Bypass 恢复旧总延迟逻辑。
+- 保留 Relative LINK：相同数值 delta、保持原差值、任一端触边即一起停止；不把两个值强制变相同。
+- Editor 设计空间改为 1020x820；visual row 550 px，controls 140 px；Meter/Threshold 侧栏略缩窄。
+- LR/MS 继续上下两条全宽 Display；Threshold 虚线增加数值标签。
+- LINK 移到 Mode 行，避免与 0 ms Oversampling 重叠。
+- 1.0.0 Direct/Analytic self-test 移入 `tests/archive/`，保留失败实验历史；新增 transparent core 自测。
+
+### 保持不变
+
+- Input Gain / Output Gain、Mix、LUFS Match、A/B、Undo/Redo、GR Hold、Mode 循环、工程状态迁移逻辑保持。
+- Threshold 0.01 dB、Shift fine、Alt reset、双击输入保持。
+- 失败的 v0.9.5/v0.9.6 不重新作为算法基线。
+
+### 验证
+
+- [x] Threshold OFF 200000 组随机数学回归通过。
+- [x] Threshold 边界连续性自测通过。
+- [x] Relative LINK 自测通过。
+- [x] Future-window 400 Hz / 26 ms 稳态正弦透明度参考自测通过；0 ms 明显更非线性，符合既有产品定义。
+- [x] 源码静态 grep：活动 Source 中无 Analytic/Hilbert/mapAmplitude/reconstructReal 路径。
+- [ ] JUCE/MSVC VST3 完整编译。
+- [ ] Cubase 扫描/工程恢复。
+- [ ] PluginDoctor 动态/谐波/0 ms Oversampling。
+- [ ] 用户确认 Display 可读性、LR/MS/Link/Threshold 实际行为。
+
+### 已知问题
+
+- Future-window detector 的 Lookahead 微观预影响是当前明确接受的设计取舍，不应再当作必须消除的 Bug。
+- 当前环境没有 JUCE checkout，因此尚未完成真实插件编译。
+
+### 回滚
+
+若 v1.0.1 新域/界面整合失败，DSP 优先回滚到 v0.9.4/v0.9.7 future-window 核心；不要回到 v1.0.0 Direct/Analytic，也不要使用 v0.9.5/v0.9.6 作为回滚点。
+
+---
+
+## 1.0.0 — Independent domains + relative Link / Direct-Analytic experiment (REJECTED)
+
+User clarified the intended architecture: the processor should not be designed as a conventional compressor and should not use `abs(sample)` as the sound amplitude. At that time the analytic-amplitude candidate was used as the experimental core with Lookahead isolated as pure delay. User testing later rejected this DSP path in v1.0.1.
+
+For 1.0.0 the user specified that LR and MS each require **two Ratio, two Threshold and two Makeup** values, and that their Dynamic Displays must also be split by domain. A single LINK button covers all three pair types. Critically, Link means **relative movement**, not equality: existing offsets are preserved.
+
+Implementation notes:
+
+- legacy `ratio` / `thresholdDb` remain ST IDs; new LR/MS IDs are appended for migration safety;
+- old projects copy their common Ratio/Threshold into all missing domain values;
+- A/B stores all sound values but not Link workflow state; project state stores Link;
+- LR/MS display uses stacked full-width histories rather than narrow side-by-side plots;
+- pair-boundary logic stops both linked parameters to prevent offset collapse;
+- Threshold OFF is conceptual `-inf`, so one-OFF/one-finite pairs do not fabricate a finite offset.
+
+Known test note: finite-Hilbert low-frequency accuracy remains a Candidate issue and must be evaluated before Stable promotion.
+
+
+---
+
+# QQ Super Compression — Development History
 
 ## 0.1.1 Ratio Engine Fix / Meter & UI Pass — 2026-08-25
 
@@ -923,7 +1173,7 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 ## v0.9.4 — Editable Numeric Text Contrast
 
 **日期：** 2026-08-28  
-**状态：** Stable baseline（Plan D policy）  
+**状态：** Candidate / Test  
 **基于：** v0.9.3
 
 ### 用户反馈
@@ -940,33 +1190,142 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 ### 验证级别
 
-Plan A Windows 编译、安装、BS.1770 自测与哈希核对已通过；Plan D 跨平台 Actions 和桌面用户包将在本次发布流程中完成。Cubase 双击输入仍建议由用户复核。
+当前仅静态检查；需要 Codex 实际编译和 Cubase 双击输入确认。
 
 ---
 
-## v1.0.1 — Display 0…-90 dB Scale Polish — Stable baseline
+## v0.9.7 — Threshold Rebuild
 
-**日期：** 2026-08-30
-**状态：** Stable baseline（Plan D policy）
-**基于：** v1.0.1 Mode / Lookahead Alignment Polish；DSP 回滚参考 v0.9.4/v0.9.7 future-window core
+**日期：** 2026-08-30  
+**状态：** Candidate / Test  
+**基于：** v0.9.4
 
-### 决策与修改
+### 用户需求
 
-- 拒绝并移除 v1.0.0 Direct/Analytic/Hilbert 路线；其非线性映射仍产生谐波，4095-tap Hilbert FIR 带来高 ASIO Guard/CPU，多实例价值不足。
-- 保留 future-window peak / Lookahead 核心；Threshold OFF 精确走旧 QQ law，有限 Threshold 只增加连续作用下限。
-- ST 使用共同 Ratio/Threshold/Makeup/Mix；LR/MS 使用独立 Ratio/Threshold/Makeup/Mix。
-- Relative LINK 只覆盖 Ratio、Threshold、Makeup，并保持原有相对差值；Mix 不加入 LINK。
-- 采用 1020×820 Display-first UI；LR/MS 为上下分域历史图。
-- Dynamic Display 固定绘图范围 0…-90 dB，刻度 0/-15/-30/-45/-60/-75/-90；不改变 DSP、Meter、参数、LUFS 或 -120 dB OFF sentinel。
+从 v0.9.4 可靠基线重做 Threshold。用户明确指出 Threshold 只是把原始 `-inf` 作用下限改成具体数值，不应该借此重构 QQ Super Compression 的 future-window 核心。v0.9.5 / v0.9.6 均被用户判定有问题。
+
+另外扩大 Display/Meter 上半区，压缩下方控件高度，并补齐 Threshold 的 Shift 微调。
+
+### 根因
+
+前两版把“新增作用下限”和“重新设计 Detector”混在了一起。尤其 v0.9.6 使 Threshold OFF 也改变了 Detector 行为，破坏了旧版声音基线。另一个 UI 缺陷是 Threshold 使用 LinearVertical Slider，而既有 FineKnob 只通过 rotary mouse sensitivity 实现 Shift，因此 Threshold 实际没有获得 Shift fine。
+
+### 修改
+
+- 直接从 v0.9.4 重开分支。
+- 原 Detector/queue 不变；只在最终 gain law 增加 Threshold boundary。
+- OFF 精确走旧公式。
+- Threshold 0.01 dB，支持 LinearVertical Shift 8x fine drag、Alt reset、Undo/Redo、双击输入。
+- A/B 和 state 增加 Threshold；旧状态默认 OFF。
+- Dynamic Display 增加 effective Threshold 虚线。
+- visual row 350 -> 405；controls 166 -> 145，并缩小下方控件。
 
 ### 验证
 
-- [x] 源码 manifest。
-- [x] Threshold、Transparent Core、Domain LINK、Independent Mix、Display Scale 自测。
-- [x] JUCE 8.0.15 / MSVC Windows x64 VST3 Release 构建。
-- [x] 系统安装副本与交付副本 SHA-256 一致。
-- [ ] Cubase 最终听感、界面、PDC、Mix/Bypass、自动化与旧工程迁移由用户复核。
+- Threshold OFF 200000 随机数学回归：PASS。
+- Threshold 边界连续性自测：PASS。
+- 当前仅静态/参考测试，尚未在 Windows/Cubase/PluginDoctor 实测。
 
-### 稳定基线与回滚
+### 回滚
 
-按用户既定规则，Plan D 完成的版本默认成为稳定基线。本版失败时，优先回滚到正式备份中的 v1.0.1 Mode / Lookahead Alignment Polish Stable；不要恢复 v1.0.0 Direct/Analytic，也不要使用 v0.9.5/v0.9.6 失败 detector 实验。
+失败时回滚 v0.9.4；v0.9.5 / v0.9.6 不作为回滚点。
+
+
+---
+
+## v1.0.1 Candidate Revision 4 — Display 0…-90 dB Working Scale
+
+**日期：** 2026-08-30  
+**状态：** Candidate / Test  
+**基于：** v1.0.1 Mode / Lookahead Alignment Polish
+
+### 用户需求
+
+用户确认放大的 Display 布局方向正确，但指出 `-90 dB` 以下的显示区域几乎没有用于寻找 Threshold 的实际价值，导致主 Display 视觉上过于空旷。
+
+### 修改
+
+- Dynamic Display 可视纵轴改为固定 `0…-90 dB`。
+- 刻度改为 `0 / -15 / -30 / -45 / -60 / -75 / -90 dB`。
+- 小于 -90 dB 或大于 0 dB 的历史值只在绘图坐标阶段钳制到边界。
+- 不删除底层数据，也不改变 Threshold 参数范围、Meter、DSP、LUFS、Lookahead、Ratio、Mix、Makeup、LR/MS 或 LINK 行为。
+
+### 为什么这样改
+
+Threshold 已经成为主要工作功能之一。固定 `0…-90 dB` 可以让常用动态范围占据更多像素高度，并保持跨素材一致的视觉参考；不采用自动缩放，避免同一 Threshold 在不同素材上视觉位置漂移。
+
+### 验证
+
+- [x] 源码静态检查：Display 常量为 `0 / -90 dB`。
+- [x] 刻度静态检查：`0/-15/-30/-45/-60/-75/-90`。
+- [x] 既有 Python DSP/Threshold/LINK/Mix self-test。
+- [ ] JUCE/MSVC VST3 编译。
+- [ ] Cubase 实际 UI 检查。
+- [ ] 用户确认。
+
+### 回滚
+
+若视觉结果不合适，只回滚 `DynamicDisplay.cpp` 的可视范围与刻度；不要回滚 v1.0.1 已确认的 Transparent Core、Threshold、LR/MS、LINK、独立 Mix 和 Mode/Lookahead 对齐。
+
+---
+
+## v1.0.3 — Centered Domain Monitor
+
+**日期：** 2026-08-30  
+**状态：** Candidate / Test  
+**基于：** v1.0.2 — Complete Relative LINK **Stable**（用户于 2026-08-30 明确设为稳定基线）
+
+### 用户需求与设计澄清
+
+用户发现 LR / MS 独立处理已经完整，但缺少单独监听各域的功能。用户进一步明确：QQ Super Compression 与 QQ ChainScope 的用途不同。ChainScope 为工作室音箱监听设计，因此有 SIP / 原位扬声器监听等特殊能力；普通插件更常见的用途是耳机参考，所以 QQ Super Compression 的 L/R/M/S 单独监听都应居中。
+
+用户特别指出居中复制会产生音量增加，要求参考 QQ ChainScope Mixboard 已成熟的居中方案。讨论中用户明确纠正：M 不能机械套用 `0.7071`。最终批准的定义为：
+
+- L Monitor: `L * 0.70710678` 同极性复制到左右，居中。
+- R Monitor: `R * 0.70710678` 同极性复制到左右，居中。
+- M Monitor: `M=(L+R)/2` 直接同极性复制到左右，**不额外 -3.01 dB**。
+- S Monitor: 按 ChainScope Mixboard 成熟规则，`S=(L-R)/2` 后乘 `0.70710678`，同极性复制到左右，居中。
+- ALL 保持正常 stereo。
+
+### 实现
+
+- 新增非 APVTS 的 LR/MS Monitor workflow state；LR 与 MS 分别保存 ALL/First/Second，切换模式互不覆盖。
+- Monitor 只作用于写入 DAW 的最终 audible output。正常 `outL/outR` 仍用于 Display、Meter、Match，避免 -3.0103 dB 试听补偿污染分析。
+- L/R/S 使用 `1/sqrt(2)=0.707106781...`；M 保持 unity。
+- True Bypass 不经过 Monitor，维持“真正 bypass”语义。
+- 工程状态 schema 7 -> 8，新增 `qqscMonitorLRSelection` / `qqscMonitorMSSelection`；旧工程默认 ALL。
+- Monitor 不进入 A/B，也不进入 DAW automation 参数列表。
+- UI 在 Mode 与 Lookahead 之间加入 `MONITOR` 三按钮行。LR=ALL/L/R，MS=ALL/M/S，ST 隐藏。
+- 三按钮占用与 primary choice 相同的 108 px 宽度：34+3+34+3+34。Mode/Lookahead 仍为 108x23，LINK 仍为 34x23。
+- 下方 control row 从 140 增至 158 px，只使用原本空着的底部余量；550 px Display/Meter row 完全不缩小。
+
+### 为什么这样做
+
+居中监听是 audition/reference 层，不应重写压缩结果。L/R/Side 从一个单独分量复制到双耳时使用等功率 -3.0103 dB 可避免明显监听增益；Mid 在本插件 `M=(L+R)/2` 定义下本身就是中心分量，再减 3 dB 会错误地让中心内容变小。
+
+### 保持不变
+
+- Future-window Peak / Lookahead 核心。
+- Ratio/Threshold law、Threshold OFF。
+- LR/MS 独立 Ratio/Threshold/Makeup/Mix。
+- v1.0.2 Complete Relative LINK，包括 direct numeric entry。
+- Match、A/B sound snapshots、Output Gain 参数本体、Display/Meter 数据语义。
+- 0 ms Oversampling / PDC / Dynamic Display 0…-90 dB。
+
+### 验证
+
+- [x] `transparent_core_selftest.py` PASS。
+- [x] `threshold_rebuild_selftest.py` PASS。
+- [x] `domain_link_selftest.py` PASS。
+- [x] `link_ui_source_selftest.py` PASS。
+- [x] `independent_mix_selftest.py` PASS。
+- [x] `display_scale_selftest.py` PASS。
+- [x] 新增 `monitor_audition_selftest.py`：L/R/M/S 数学、source wiring、analysis isolation、state/UI 检查 PASS。
+- [ ] JUCE/VST3 编译：当前容器尝试 CMake configure，但 github.com DNS 无法解析，JUCE 8.0.15 无法 Fetch，因此未进入 C++ compile 阶段。
+- [ ] Cubase 实际监听/界面/工程恢复验证。
+- [ ] 用户确认并决定是否提升 Stable。
+
+### 回滚
+
+若 v1.0.3 Monitor 有问题，完整回滚到 **v1.0.2 Complete Relative LINK Stable**。不要回退或改写 v1.0.2 已确认的 LINK、Threshold、独立 Mix、Transparent Core 或 Display。
+

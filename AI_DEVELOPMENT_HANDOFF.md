@@ -1,30 +1,66 @@
+# AI Development Handoff — QQ Super Compression 1.0.3
+
+## Current status
+
+**Stable baseline:** `1.0.2 — Complete Relative LINK`  
+User explicitly promoted v1.0.2 to **Stable** on 2026-08-30. v1.0.1 remains the previous Stable rollback point.
+
+**Current candidate:** `1.0.3 — Centered Domain Monitor`  
+Built directly from the user-confirmed v1.0.2 Stable baseline. It adds an audition-only LR/MS monitor path and must remain Candidate until the user builds/tests and explicitly promotes it.
+
+### Non-negotiable product decisions
+
+- Active DSP is the approved v0.9.4/v0.9.7-style future-window Peak / Lookahead core. The rejected Direct/Analytic/Hilbert engine must stay archived only.
+- The microscopic pre-influence before abrupt level jumps is an accepted trade-off. The user prioritises clean/transparent sound.
+- No conventional Attack/Release envelope is to be added.
+- Threshold OFF must execute the exact pre-Threshold QQ law. A finite Threshold is only a lower active boundary; it must not replace/change detector semantics.
+- 0 ms only: `1x / 8x / 16x` Oversampling. 10 ms+ is fixed 1x.
+- ST: one Ratio / Threshold / Makeup / Mix.
+- LR: independent L/R Ratio / Threshold / Makeup / Mix, with stacked L/R Display.
+- MS: independent M/S Ratio / Threshold / Makeup / Mix, with stacked M/S Display.
+- v1.0.2 LINK is Stable: Ratio + Threshold + Makeup + Mix, same-delta relative linking, shared boundary stop, and direct numeric entry support.
+- Display working scale is fixed `0…-90 dB`; this is drawing-only and must not alter DSP/Meter/Threshold data.
+
+### v1.0.3 Centered Domain Monitor — approved specification
+
+This monitor is for normal plug-in/headphone reference. It intentionally differs from QQ ChainScope, whose Mixboard has the extra SIP/in-place speaker-monitoring workflow for studio loudspeakers. QQ Super Compression only needs the centered audition behaviour.
+
+LR mode exposes `ALL / L / R`; MS mode exposes `ALL / M / S`; ST hides the Monitor row. LR and MS remember their selections separately.
+
+Final audible matrix:
+
+- `LR ALL`: normal stereo result.
+- `L`: `L * 1/sqrt(2)` copied same-polarity to both outputs (centered, -3.0103 dB listening compensation).
+- `R`: `R * 1/sqrt(2)` copied same-polarity to both outputs.
+- `MS ALL`: normal decoded stereo result.
+- `M`: `M=(L+R)/2` copied same-polarity to both outputs **without** extra -3.01 dB. User explicitly corrected this point.
+- `S`: `S=(L-R)/2`, then `S * 1/sqrt(2)` copied same-polarity to both outputs, following the established QQ ChainScope centered-Side convention.
+
+Important boundaries:
+
+- Monitor is a **final audible-only audition layer**. Display, Meter, Match, compression, Makeup, Mix and Output Gain calculations continue to use the normal pre-monitor result.
+- The -3.0103 dB factor is listening compensation only; it must not make graphs/meters fall by 3 dB.
+- Monitor is not an APVTS/host-automation parameter and is excluded from A/B snapshots. It is saved/restored as project workflow state.
+- True Bypass remains true bypass; Monitor is not applied while `forceBypass` is active.
+- Do not add a second ChainScope-style SIP/in-place mode unless the user explicitly requests it.
+
+### UI rules
+
+- Mode remains click-cycle `ST -> MS -> LR -> ST`; no Mode dropdown.
+- Lookahead remains a ComboBox.
+- Mode and Lookahead remain exactly `108 x 23` design px with identical left/right alignment.
+- LINK remains `34 x 23`, 6 px to the right of Mode.
+- New Monitor uses three compact buttons across the same 108 px primary width: `34 + 3 + 34 + 3 + 34 = 108`.
+- The lower control row uses the previously unused bottom slack (`140 -> 158` design px); **do not reduce the 550 px Display/Meter row** to make room.
+- Monitor is hidden in ST and visible in LR/MS.
+
+### Validation terminology
+
+The v1.0.2 baseline is user-confirmed Stable. In the current AI environment all Python math/source regression tests pass, including the new monitor self-test. A JUCE build could not even configure because github.com could not be resolved to fetch JUCE; therefore v1.0.3 is **not** compiled or DAW-validated here.
+
+--- PREVIOUS HANDOFF BELOW ---
+
 # AI 持续开发交接规范
-
-## v1.0.2 — Complete Relative LINK — Stable baseline
-
-- 用户于 2026-08-30 明确要求把此版本设为稳定基线并执行 Plan B/C/D。
-- LR/MS 的 LINK 完整覆盖 Ratio、Threshold、Makeup、Mix；保留相对差值，不强制相等。
-- drag、Shift-fine、直接数值输入共享同一 delta/boundary 规则；任一侧到边界时双方共同停止。
-- LINK 保存为工作流状态但不进入 A/B 声音快照。
-- DSP、参数 ID、状态结构、Lookahead、Threshold 与 Display 绘图规则保持 1.0.1 稳定基线不变。
-- 回滚顺序：先回滚到本次 Plan B 的 1.0.2 快照；若问题来自 LINK 交互，则对照 1.0.1 Display 稳定基线，仅重做编辑器联动。
-
-English: 1.0.2 completes offset-preserving Relative LINK for Ratio, Threshold, Makeup, and Mix across drag, Shift-fine, and direct numeric entry. Both sides stop together at parameter boundaries. This is an editor-interaction change only; DSP and state compatibility remain on the 1.0.1 stable foundation.
-
-## 当前稳定基线 / Current stable baseline — 1.0.2 Complete Relative LINK
-
-**日期 / Date:** 2026-08-30
-**状态 / Status:** Stable baseline under the user's standing Plan D rule
-**回滚基线 / Rollback:** 1.0.1 Display 0…-90 dB Scale Polish Plan B snapshot
-
-- 当前 DSP 是 future-window peak / Lookahead 核心。未经用户明确同意，不得恢复已拒绝的 1.0.0 Direct/Analytic/Hilbert 路线。
-- Threshold OFF 必须精确保留旧 QQ law；有限 Threshold 只是连续作用下限，不得偷偷改 detector、Attack、Release、knee 或 smoothing。
-- ST 使用共同控制；LR/MS 具有独立 Ratio、Threshold、Makeup 与 Mix。Relative LINK 完整覆盖四组控制，在拖动、Shift 精调和直接数值输入中保留差值，并在边界共同停止。
-- Dynamic Display 固定绘图范围为 0…-90 dB、15 dB 间隔；不得因此改变 DSP、Meter、参数、LUFS 或 -120 dB Threshold OFF sentinel。
-- 1.0.2 Plan A 安装包（本机 JUCE 8.0.14）与最终仓库重建包（JUCE 8.0.15）的项目自测和 Steinberg validator 均通过；最终 8.0.15 包未在本次 B/C/D 中重复覆盖系统安装。Plan D 四类跨平台成品必须来自同一公开提交。
-- Cubase 最终听感、界面、PDC、Mix/Bypass、自动化与旧工程迁移仍由用户复核。
-
-English summary: keep the future-window peak/Lookahead core, exact Threshold OFF legacy law, independent LR/MS controls, offset-preserving Relative LINK, and drawing-only 0…-90 dB Display rule. Do not revive rejected detector or Direct/Analytic/Hilbert experiments without explicit user approval.
 
 > 本文件用于让不同 AI、不同开发者在接手同一个软件项目时，能够快速理解项目当前状态、历史决策、已解决问题、已知风险和后续开发方向。
 >
@@ -374,10 +410,10 @@ Project Root/
 
 ```text
 项目名称：QQ Super Compression
-当前稳定版本：1.0.2 — Complete Relative LINK（用户明确指定；Plan D 稳定基线）
-当前候选版本：无（1.0.2 正在完成本次 Plan D 跨平台交付）
+当前稳定版本：暂无（尚未由用户明确指定 Stable）
+当前候选版本：0.9.4 — Editable Numeric Text Contrast Candidate（pre-release UI stage）
 主要平台：Windows / macOS
-插件/程序格式：VST3 / AU
+插件/程序格式：VST3
 主要开发环境：JUCE 8 / CMake / C++17
 主要测试环境：Windows + Cubase / PluginDoctor（由用户/Codex 实际构建与验证）
 
@@ -408,8 +444,6 @@ Project Root/
 - 0.9.2 加入 Input Gain / Output Gain 与完整 A/B/state/Undo/Display 语义；同版 bitmap filmstrip knob 视觉路线后被用户实机否决。
 - 0.9.3 恢复 v0.9.1 vector UI 绘制，保留 v0.9.2 两只 Gain 和全部功能逻辑；bitmap 资产不再参与 build/runtime。
 - 0.9.4 补齐浅色主题下 Slider 双击直接输入的 Label/TextEditor 编辑态配色，解决白字不可见；仅改 UI LookAndFeel，不改 DSP/参数/布局。
-- 1.0.1 恢复透明 future-window/Threshold 核心，完成独立 LR/MS 分域、1020×820 Display-first 布局与 0…-90 dB 绘图范围，并按 Plan D 成为稳定基线。
-- 1.0.2 在不改 DSP、参数 ID 或 state schema 的前提下，补全 Ratio、Threshold、Makeup、Mix 的 Relative LINK、直接输入与共同边界规则。
 - Ratio law 仍为 gain = 1 / (1 + (Ratio - 1) * level)。
 - UTF-8/CJK 跨平台规则继续保留。
 
@@ -421,29 +455,29 @@ Project Root/
 - 用户实际 Oversampling 结果：10 ms+ 无明显 aliasing 需求；0 ms 的 2x/4x aliasing 仍严重；OS latency 增加不多，因此最终不提供 2x/4x，直接保留 1x/8x/16x。
 - PluginDoctor 0 ms Ratio>1 LinearAnalysis 曾出现 ratio-dependent 高频上翘；Ratio=1:1 控制测试显示 8x FIR 本身基本平坦，仅 Nyquist 附近正常 roll-off。用户后续确认不需要把该现象当成 Oversampling FIR 故障；不要擅自加补偿 EQ。
 - 运行中改变 Lookahead 或 0 ms OS factor 会改变真实 plugin latency，宿主可能做一次 PDC realignment；当前 Candidate 不加入用户未要求的 realtime crossfade。
-- 1.0.2 的 JUCE/VST3 完整编译、项目自测与 Steinberg validator 已通过；CPU、PDC、Dry/Wet/Bypass 对齐、A/B/Undo/工程恢复仍需 Cubase 用户侧复核。
+- 0.1.10 的 16x JUCE/VST3 路径尚未在当前 AI 环境完成完整编译/DAW 验证；必须由 Codex/用户验证 CPU、PDC、Dry/Wet/Bypass 对齐、A/B/Undo/工程恢复。
 - Ctrl/Cmd+Z 是否被宿主优先截获仍需实际 VST3/Cubase 键盘焦点验证。
-- 1.0.2 已由用户明确指定为 Stable；Cubase 中的 LINK 拖动、Shift 精调、直接输入、自动化、工程恢复与声音/PDC 仍建议由用户复核。
+- 尚无用户明确确认的 Stable 版本。
 
 当前正在开发：
-- 无（1.0.2 为当前稳定基线；当前只执行发布与跨平台验证）。
+- 0.9.4 Candidate：在用户基本确认 v0.9.3 UI/功能后，仅修复双击数值输入时 JUCE 临时 TextEditor 白字在浅色背景上不可见的问题；继续使用 v0.9.1-style vector UI，并保留 v0.9.2 Input/Output Gain 及全部 signal/state 功能。
 
 当前回滚基线：
-- 1.0.2 Stable；若后续回归，优先回滚到本次 Plan B 的 1.0.2 快照。若问题来自 LINK 交互，则对照 1.0.1 Display Stable，只重做 Editor 联动，不回退 DSP。
+- 没有用户明确指定的 Stable。
 - 若 0.1.10 的 16x / OS UI / state migration 出现问题，优先回滚到 0.1.9 Candidate 只重做 Oversampling；不要回退 0.1.8 UI、0.1.7 Hold、0.1.6 LUFS Match 或 future-window peak。
 - 若通用 0.1.9 Oversampling 架构本身存在根本 PDC/API 问题，可回到用户上传的 0.1.8 Plan B Candidate，只重新实现 0 ms-only Oversampling。
 - 永远不要恢复 0.1.0 waveshaper 或 0.1.1–0.1.3 rolling RMS 作为最终核心。
 
 下一步建议：
-- 后续开发前先完整读取 PRODUCT_DESIGN_NOTES.md、OVERSAMPLING_DESIGN_NOTES.md、UI_DESIGN_NOTES.md 与本文件，再从 1.0.2 Stable 开始。
+- Codex 首先完整读取 PRODUCT_DESIGN_NOTES.md、OVERSAMPLING_DESIGN_NOTES.md、UI_DESIGN_NOTES.md、UI_ASSET_ARCHITECTURE.md（注意其中 v0.9.2 bitmap 路线已标记 rejected）再编译 0.9.4。
 - 确认 build 不再创建/链接 `QQSCAssets`，旋钮使用恢复后的 v0.9.1 vector LookAndFeel。
-- 在 LR/MS 分别验证 Ratio / Threshold / Makeup / Mix 的 LINK：拖动、Shift 精调、直接数值输入与边界停止必须保持相对差值；同时复核编辑文字、caret 与 selection。
+- 双击 Ratio / Makeup / Mix / Input Gain / Output Gain 数值，确认编辑文字为深色可见，caret/selection 清晰，提交行为不变。
 - 重点验证 Input/Output Gain 仍完整存在：Input 改变 detector/compression 与 Input meter，但不移动 Dynamic Display Dry/Input；Output 改变最终 Output meter 与 Display Output。
 - 验证 A/B、Undo/Redo、工程保存/旧 state migration 仍包含两只 Gain。
 - 确认 JUCE 8.0.15 的 8x(3 stage)/16x(4 stage) FIR API、PDC/Bypass、LUFS Match、GR Hold 与 ST/MS/LR 均无回归。
 - PluginDoctor：0 ms 对比 1x/8x/16x aliasing；不要把谐波仍存在误判为 Oversampling 失败。
 - Cubase：0 ms 三档 PDC、Mix 50%、Bypass；10 ms+ 确认 OS 隐藏且 effective 1x/Lookahead-only PDC。
-- v1.0.2 已由用户明确指定并按 Plan D 规则记录为 Stable。公开 GitHub Release 仍停留在 0.9.4；更新 Release 属于单独的 Plan G。
+- v0.9.4 只作为 Candidate；只有用户最终确认 UI/整体状态后，才进入 v1.0.0 Release。不要擅自提前标 Stable/Release。
 ```
 
 ---
@@ -1390,7 +1424,7 @@ v0.9.2 128-frame bitmap knob 在真实插件中的视觉被用户明确否决；
 ## v0.9.4 — Editable Numeric Text Contrast
 
 **日期：** 2026-08-28  
-**状态：** Stable baseline（Plan D policy）  
+**状态：** Candidate / Test  
 **基于：** v0.9.3 — UI Rollback / Features Retained
 
 ### 用户需求
@@ -1427,7 +1461,7 @@ Slider 非编辑状态的数值颜色正常；只有双击后进入 JUCE 临时�
 ### 验证
 
 - [x] 源码静态检查：新增编辑态颜色 ID，DSP/Processor/Parameters 未修改。
-- [x] JUCE/VST3 实际编译、安装、BS.1770 自测与 SHA-256 核对（Plan A）。
+- [ ] JUCE/VST3 实际编译（需 Codex/用户）。
 - [ ] Cubase 双击数值输入实测。
 - [ ] 用户最终确认。
 
@@ -1438,3 +1472,132 @@ Slider 非编辑状态的数值颜色正常；只有双击后进入 JUCE 临时�
 ### 回滚
 
 若 v0.9.4 出现意外 UI 编译/显示问题，回滚到 v0.9.3；不要回滚 v0.9.2 已加入的 Input/Output Gain 功能。
+
+---
+
+## v0.9.7 — Threshold Rebuild from v0.9.4 Last-Good Baseline
+
+**日期：** 2026-08-30  
+**状态：** Candidate / Test  
+**基于：** v0.9.4 — Editable Text Contrast（用户指定为本次重做基准）
+
+### 用户需求
+
+用户否决 v0.9.5 / v0.9.6 的 Threshold / Detector 方向，要求从上一个可靠版本 v0.9.4 重新做 Threshold。核心要求是：QQ Super Compression 不是传统 Attack/Release 压缩器，不应因为新增 Threshold 而重做 Detector。Threshold 本质上只是把原先的 `-inf` 下限提高到一个具体值。
+
+同时用户要求：
+
+- Threshold OFF 时必须恢复 v0.9.4 原始行为；
+- Threshold 必须支持 Shift 微调；
+- Display + Meter 所在上半区加高；
+- 下方旋钮/按钮区可以缩小，为 Display/Meter 让出纵向空间。
+
+### v0.9.5 / v0.9.6 为什么作废
+
+- v0.9.5 把一个本应简单的 Threshold 扩展加入了额外的 monitor crossfade / 状态逻辑，复杂度过高。
+- v0.9.6 更进一步改写 Lookahead Detector/分段行为，使 Threshold OFF 也不再等价于旧版核心；用户实测高 Ratio 时出现明显失真。
+- 这两版均不作为后续算法基线。
+
+### 修改内容
+
+- 从 v0.9.4 源码重新开始，而不是在 v0.9.5 / v0.9.6 上继续修。
+- 保留 v0.9.4 monotonic future-window peak Detector、Lookahead、延迟映射、Ratio smoothing、ST/MS/LR、Oversampling、LUFS Match 等原行为。
+- 新增唯一 DSP 条件：
+  - Threshold OFF -> `thresholdLinear = 0` -> 执行 v0.9.4 原公式；
+  - 有效 Threshold 以下 -> unity；
+  - Threshold 以上 -> 使用同一 QQ Super Compression Ratio 曲线，只在 Threshold 处重新锚定到 unity。
+- 不加入 Attack / Release / knee / detector segmentation / half-wave / full-cycle / hidden smoothing / hidden Lookahead / monitor crossfade。
+- Threshold 参数追加在既有参数序列末尾；旧工程无该参数时迁移为 OFF。
+- Threshold 加入 A/B、工程保存/恢复、Undo/Redo。
+- Threshold 参数分辨率改为 0.01 dB。
+- Threshold 继续使用 Display 与 Meter 之间的竖直控制，但实现真正的 LinearVertical Shift fine drag；不能依赖只对 rotary 有效的 `setMouseDragSensitivity()`。
+- Display/Meter visual row 从 350 提高到 405 design px；下方 control row 从 166 缩到 145 design px，并同步缩小旋钮/Mode/Lookahead/Oversampling 控件。
+
+### 保持不变
+
+- v0.9.4 Detector/window queue 本身不改。
+- Ratio=1、Lookahead presets、0 ms Oversampling 1x/8x/16x、PDC、Mix、Makeup、Input/Output Gain、LUFS Match、GR Hold 语义不改。
+- 0 ms 仍是故意保留的 colour mode。
+- UI 仍使用固定 1020x670 design root + 等比例缩放。
+
+### 验证
+
+- [x] `tests/threshold_rebuild_selftest.py`：200000 组随机 level/Ratio 验证 Threshold OFF 与 v0.9.4 legacy gain 公式逐值完全相等。
+- [x] 自测 Threshold 边界：Threshold 以下/等于 Threshold 为 unity，边界连续。
+- [x] 静态确认所有 StaticCompressionEngine 调用均继续使用 v0.9.4 future-window detector，只多传入一个 thresholdLinear。
+- [ ] Windows VST3 编译。
+- [ ] Cubase 扫描/加载。
+- [ ] PluginDoctor Dynamics / Harmonic Analysis。
+- [ ] 用户实测确认。
+
+### 回滚
+
+若 v0.9.7 不通过，优先回滚到：
+
+> v0.9.4 — 本次用户指定的 last-good / stable baseline
+
+不要回滚到 v0.9.5 或 v0.9.6。
+
+---
+
+## v1.0.1 — Transparent Core / Independent Domains / Display-First
+
+**日期：** 2026-08-30  
+**状态：** Candidate / Test  
+**DSP 回滚基线：** v0.9.4 future-window core；Threshold 参考 v0.9.7 rebuild  
+
+### 用户最终决定
+
+- Direct/Analytic/Hilbert 模式无保留必要，删除。
+- 只保留旧的 future-window Lookahead 算法，因为实际目标是干净透明，而不是消除突然电平变化前那一点微观 Lookahead 影响。
+- 继续保留 Threshold、独立 LR/MS Ratio/Threshold/Makeup、Relative LINK 和分域 Display。
+- Display 必须显著变大，Threshold 工作时要能清楚看动态。
+
+### 失败实验必须记住
+
+v1.0.0 Direct/Analytic 测试证明了“用户 Lookahead 可以不影响映射结果”，但同时暴露：
+
+1. 非线性 amplitude mapping 仍产生谐波；
+2. 4095-tap Hilbert FIR 造成很高 ASIO Guard / CPU；
+3. 多开实例明显卡顿；
+4. 用户实际比较后认为没有产品价值。
+
+因此不要以后再次把这个路线当作“更正确的透明算法”恢复。
+
+### v1.0.1 实现
+
+- `StaticCompressionEngine.h` 回到 monotonic future-window peak queue，只增加只读 `currentLevel` 供 ST 复用检测结果。
+- LR/MS engine 各自按自己的 Ratio/Threshold 计算 gain。
+- ST 不使用隐藏 LR Ratio：取 L/R 当前 window level 中更强者，再用 ST Ratio/Threshold 单独调用同一 gain law。
+- 0 ms 恢复 1x/8x/16x Oversampling；10 ms+ fixed 1x。
+- PDC = Lookahead + 仅在 0 ms 有效的 Oversampling FIR latency。
+- LINK 保持相对差值，不变成相同数值。
+- LINK 移到 Mode 行，避免与 0 ms Oversampling 重叠。
+- UI design root 1020x670 -> 1020x820；visual row 550；controls 140。
+- Threshold line 加直接可见的 dB 数字标签。
+- 旧 1.0.0 analytic self-test 移到 `tests/archive/`，保留失败历史。
+
+### 验证状态
+
+- Threshold OFF 200000 随机数学回归：PASS。
+- finite Threshold boundary continuity：PASS。
+- Relative LINK self-test：PASS。
+- future-window 400 Hz / 26 ms 透明参考：PASS。
+- `StaticCompressionEngine.h` 使用临时最小 JUCE stub 通过 g++ C++17 语法/运行测试。
+- 尚未完成 JUCE/MSVC VST3 实际编译、Cubase/PluginDoctor 验证。
+
+### 回滚
+
+如果 v1.0.1 整合失败：
+
+- DSP 回到 v0.9.4 future-window core；
+- Threshold 可参考 v0.9.7 rebuild；
+- 不回滚到 v0.9.5/v0.9.6；
+- 不恢复 v1.0.0 Direct/Analytic。
+
+
+---
+
+## v1.0.1 Candidate Revision 4 — Display Scale Rule
+
+用户要求 Dynamic Display 作为 Threshold 工作区时不要浪费大量高度给 <-90 dB 内容。当前可视纵轴固定为 `0…-90 dB`，刻度为 `0/-15/-30/-45/-60/-75/-90`。这是**纯显示层裁剪**：不要据此修改 DSP、Threshold OFF sentinel (-120 dB)、Meter 或参数范围。未来若调整显示范围，应继续保持“显示范围 != DSP/参数范围”的边界。

@@ -1,5 +1,9 @@
 # QQ Super Compression — Oversampling Design Notes
 
+## v1.0.1 status
+
+The v1.0.0 Direct/Analytic experiment temporarily hid Oversampling because that experimental core ran at host rate. The user rejected Direct mode. v1.0.1 restores the established transparent future-window engine, so the **v0.1.10 final product rule below is active again unchanged**: 0 ms exposes 1x/8x/16x; 10 ms+ is fixed 1x.
+
 > This file records the product decision behind Oversampling so future Codex/AI/developers do not "restore" discarded 2x/4x choices or enable Oversampling at every Lookahead simply because it seems conventional.
 
 ## Final product rule (v0.1.10 direction)

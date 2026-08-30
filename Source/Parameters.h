@@ -65,6 +65,16 @@ namespace qqsc::params
         leftRight    = 2
     };
 
+    // LR/MS audition monitor is intentionally a local workflow state rather than
+    // a host-automatable sound parameter. ALL preserves the normal stereo result;
+    // FIRST/SECOND select L/R or M/S depending on the current processing mode.
+    enum DomainMonitorSelection
+    {
+        monitorAll    = 0,
+        monitorFirst  = 1,
+        monitorSecond = 2
+    };
+
 
     inline constexpr std::array<float, 6> lookaheadPresetMs { 0.0f, 10.0f, 26.0f, 40.0f, 80.0f, 100.0f };
     inline constexpr std::array<int, 3> oversamplingFactors { 1, 8, 16 };

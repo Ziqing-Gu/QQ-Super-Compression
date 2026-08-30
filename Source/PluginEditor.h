@@ -106,6 +106,8 @@ private:
     void timerCallback() override;
     bool keyPressed (const juce::KeyPress&, juce::Component*) override;
     void updateModeUi();
+    void updateMonitorUi();
+    void selectMonitor (int selection);
     void beginUndoTransaction (const juce::String& name);
     void cycleMode();
     void commitLookaheadChoice();
@@ -157,6 +159,7 @@ private:
     juce::Label thresholdChannel0Label;
     juce::Label thresholdChannel1Label;
     juce::Label modeLabel;
+    juce::Label monitorLabel;
     juce::Label lookaheadLabel;
     juce::ComboBox lookaheadCombo;
     juce::Label oversamplingLabel;
@@ -187,6 +190,9 @@ private:
 
     juce::TextButton modeButton { "ST" };
     juce::TextButton linkButton { "LINK" };
+    juce::TextButton monitorAllButton { "ALL" };
+    juce::TextButton monitorFirstButton { "L" };
+    juce::TextButton monitorSecondButton { "R" };
     juce::TextButton matchButton { "MATCH" };
     juce::TextButton bypassButton { "BYPASS" };
     juce::TextButton aButton { "A" };

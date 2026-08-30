@@ -1,36 +1,93 @@
-# CHANGELOG
+# Changelog
 
-## 1.0.2 — Complete Relative LINK — Stable baseline
+## 1.0.3 — Centered Domain Monitor — Candidate
 
-- 用户本次明确指定 1.0.2 为稳定基线；按既定规则，本次继续完成 Plan B、Plan C 与 Plan D。
-- LR/MS 的 Relative LINK 由 Ratio、Threshold、Makeup 扩展为完整覆盖 Ratio、Threshold、Makeup、Mix。
-- 旋钮拖动、Shift 精调和直接数值输入使用同一相对差值规则；任一侧到达参数边界时两侧共同停止，避免差值被压扁。
-- ST 共同控制逻辑不变；LINK 作为工程工作流状态保存，仍不进入 A/B 声音快照。
-- 只修改编辑器交互和对应源码测试；DSP、参数 ID、状态结构、Lookahead、Threshold 与 Display 规则不变。
+- Built directly from the user-confirmed **v1.0.2 Stable** baseline.
+- Added LR `ALL/L/R` and MS `ALL/M/S` audition Monitor; ST hides Monitor.
+- L/R centered audition copies the selected channel to both outputs at `1/sqrt(2)` (-3.0103 dB).
+- M centered audition uses `M=(L+R)/2` at unity; **no** additional -3.01 dB.
+- S centered audition uses `S=(L-R)/2`, copied to both outputs at `1/sqrt(2)`, matching the mature QQ ChainScope Mixboard centered-Side convention.
+- Monitor is final audible-only: Display/Meter/Match and the actual compression/Mix/Output Gain result remain pre-monitor.
+- Monitor is project-persistent workflow state, excluded from APVTS host automation and A/B snapshots. LR and MS remember separately. State schema `7 -> 8`.
+- UI adds a compact three-button Monitor row without reducing the 550 px Display/Meter row. Mode/Lookahead remain 108x23; LINK geometry is unchanged.
+- Existing regression tests plus `monitor_audition_selftest.py`: PASS. Plan A subsequently passed a JUCE 8.0.15 / MSVC Windows x64 Release build, BS.1770 self-test, and Steinberg validator; Plan D macOS delivery validation remains pending.
 
-- The user explicitly designated 1.0.2 as the stable baseline; this run continues with Plan B, Plan C, and Plan D under the established policy.
-- Relative LINK in LR/MS now covers all four paired controls: Ratio, Threshold, Makeup, and Mix.
-- Knob drag, Shift-fine adjustment, and direct numeric entry share the same relative-offset rule; both sides stop together at boundaries so the offset is preserved.
-- ST shared-control behaviour is unchanged. LINK remains saved workflow state and stays outside A/B sound snapshots.
-- Editor interaction and source tests only; DSP, parameter IDs, state structure, Lookahead, Threshold, and Display rules are unchanged.
+## 1.0.2 — Complete Relative LINK — STABLE
 
-## 1.0.1 — Display 0…-90 dB Scale Polish — Stable baseline
+- User explicitly promoted v1.0.2 to the new Stable baseline on 2026-08-30.
+- v1.0.1 remains the previous Stable rollback point.
+- Based directly on the user-confirmed **v1.0.1 Stable** baseline (Plan A/B/C/D completed).
+- LINK now covers all four LR/MS paired controls: **Ratio / Threshold / Makeup / Mix**.
+- Mix uses the same relative-delta rule as the existing pairs; e.g. `100% / 70%` moved by `-10` becomes `90% / 60%`.
+- Direct numeric entry now participates in LINK for Ratio, Threshold, Makeup and Mix instead of bypassing the linked gesture logic.
+- Typed values use the same shared-boundary clamp as dragging/Shift fine adjustment: when either member reaches a legal limit, both stop while preserving the current offset.
+- Threshold OFF retains the established `-inf` semantics: one-OFF/one-finite pairs do not invent a finite dB offset; both-OFF may be brought out together.
+- No DSP, detector, Ratio law, Lookahead, Oversampling, PDC, Display, Meter, LR/MS signal routing, state schema or A/B sound-snapshot behaviour is changed.
+- Version metadata updated to `1.0.2`; user subsequently built/verified and promoted this revision to Stable.
 
-- Returned to the clean future-window peak / Lookahead core after rejecting the 1.0.0 Direct/Analytic/Hilbert experiment for harmonic colour and high CPU/ASIO Guard cost.
-- Added optional Threshold as a continuous lower boundary; Threshold OFF preserves the legacy QQ gain law exactly and does not change the detector.
-- Added independent LR/MS Ratio, Threshold, Makeup, and Mix while ST remains a common linked domain.
-- Added Relative LINK for Ratio, Threshold, and Makeup with offset preservation; Mix remains independent.
-- Enlarged the editor to a 1020×820 display-first layout with stacked LR/MS histories.
-- Fixed the Dynamic Display to a drawing-only 0…-90 dB range with 15 dB grid spacing; DSP, meters, loudness, parameter ranges, and the -120 dB OFF sentinel are unchanged.
-- Windows JUCE/MSVC build, source manifest, project self-tests, installation, and hash parity passed before Plan C.
-- Promoted to Stable by the user's standing Plan D rule; final Cubase listening/UI/automation/state-migration checks remain user-side verification.
+## 1.0.1 — Transparent Core / Independent Domains / Display-First — STABLE
 
-## 0.9.4 — Editable Numeric Text Contrast — Stable baseline
+- User promoted the Display `0…-90 dB` v1.0.1 revision to the new Stable baseline on 2026-08-30 and reported Plan A/B/C/D completed.
+- The historical Candidate revision notes below are preserved unchanged.
+
+## 1.0.1 — Transparent Core / Independent Domains / Display-First — Candidate
+
+### Candidate revision — Mode / Lookahead alignment polish
+
+- User-approved compact technical-column layout: the Mode cycle button and Lookahead ComboBox now use the **same 108 x 23 design-pixel rectangle** and exactly the same horizontal alignment.
+- LINK is no longer allowed to steal width from Mode. It is a separate **34 x 23** auxiliary button placed 6 px to the right of Mode and remains hidden in ST / visible in LR-MS.
+- Mode remains a click-to-cycle button (`ST -> MS -> LR -> ST`); Lookahead remains a ComboBox because it has many choices.
+- Oversampling uses the same primary-control alignment as Lookahead when visible at 0 ms.
+- No DSP, parameter, Threshold, Mix, Display, Meter, LINK semantics, PDC or project-state behaviour changed.
+- Static geometry checks and existing Python self-tests pass; real JUCE/MSVC/Cubase visual verification is still required.
+
+### Candidate revision — Mode/LINK visibility + independent LR/MS Mix
+
+- Fixed the user-reported missing Mode control: Mode/LINK bounds are now owned only by `resized()`; timer-driven `updateModeUi()` no longer mutates button geometry. Mode remains visible in ST/LR/MS and LINK appears in LR/MS.
+- LR/MS Mix is now independent per domain: L/R Mix in LR, M/S Mix in MS; ST retains the legacy shared `mix` parameter.
+- Equal M/S Mix values are mathematically equivalent to the previous shared post-decode Mix. Unequal values are applied in the M/S domain before decoding, preserving true component independence.
+- New LR/MS Mix parameters are appended for project compatibility; older states and A/B snapshots migrate the legacy shared Mix into all missing domain Mix values.
+- LINK remains exactly the agreed three-parameter workflow link (Ratio / Threshold / Makeup); Mix is not silently added to LINK.
+- LR/MS Threshold faders are now stacked top/bottom to mirror the stacked L/R or M/S Dynamic Displays instead of appearing side-by-side.
+- Display dimensions and transparent future-window DSP are unchanged from the prior 1.0.1 Candidate.
+- Added `independent_mix_selftest.py`; math/source tests pass. Real JUCE/MSVC/Cubase verification is still required.
+
+- Rejected and removed the v1.0.0 Direct/Analytic/Hilbert DSP path after user testing showed no practical value, measurable harmonic colour and very high ASIO Guard/CPU cost.
+- Restored the cleaner v0.9.4/v0.9.7 future-window peak / Lookahead core and the established 0 ms-only `1x / 8x / 16x` Oversampling logic.
+- Threshold remains a lower boundary around the old QQ law; Threshold OFF executes the exact pre-Threshold equation.
+- Retains v1.0.0 domain features: ST one Ratio/Threshold/Makeup; LR and MS independent paired Ratio/Threshold/Makeup values.
+- ST now derives linked gain from the stronger current L/R window peak using the ST Ratio/Threshold, so hidden LR Ratio values cannot affect ST.
+- Retains one relative LINK button for Ratio/Threshold/Makeup. LINK preserves offsets and stops both members at pair boundaries.
+- Restored Oversampling UI at 0 ms; moved LINK to the Mode row so both controls can coexist without overlap.
+- Enlarged design root from `1020x670` to `1020x820`; visual row is now `550` design px and lower controls `140` px.
+- Narrowed Meter/Threshold side strips slightly to give the Dynamic Display more horizontal room.
+- Active Threshold lines now show their numeric dB values directly inside the Display.
+- Added `transparent_core_selftest.py`; archived the rejected v1.0.0 analytic self-test under `tests/archive/`.
+- Static/math tests pass; real JUCE VST3 build/Cubase/PluginDoctor validation is still required.
+
+## 1.0.0 — Analytic Sample Mapping / Independent LR-MS Domains / Relative Link — REJECTED EXPERIMENT
+
+- Promotes the analytic-amplitude/sample-reconstruction experiment to the user-requested `1.0.0` Candidate version number.
+- Lookahead remains a pure post-map delay and no longer determines an analysis window.
+- ST keeps one Ratio / Threshold / Makeup.
+- LR adds independent L/R Ratio and Threshold alongside the existing independent Makeups.
+- MS adds independent M/S Ratio and Threshold alongside the existing independent Makeups.
+- Added one LR/MS `LINK` state covering Ratio, Threshold and Makeup pairs. LINK preserves the existing numerical difference; it never equalises values.
+- Linked movement stops both controls when either member reaches its legal boundary.
+- Threshold OFF is treated conceptually as `-inf`; if only one side starts OFF, that side remains OFF for that gesture.
+- LR/MS Dynamic Display now uses two stacked domain histories, each with its own Dry/Input, Wet pre-Makeup, Output post-Mix and Threshold line.
+- Keeps the enlarged 405 px visual row / compact 145 px lower control row.
+- Added migration: old common Ratio/Threshold values copy into missing LR/MS domain parameters.
+- Added `domain_link_selftest.py`; corrected harmonic-projection leakage in the analytic self-test.
+- Known Candidate limitation: the 4095-tap Hilbert prototype is expensive and is less accurate at 20–50 Hz than at 100 Hz+.
+- Not yet a Stable release; requires JUCE/MSVC build, Cubase and PluginDoctor verification.
+
+## 0.9.4 — Editable Numeric Text Contrast — Candidate
 
 - Fixed unreadable white text when double-clicking a slider value for direct numeric entry on the light ivory UI.
 - Explicitly styled JUCE `Label` edit-state and internal `TextEditor` colours: dark warm text, ivory background, warm focus/caret, and a readable warm selection highlight.
 - No layout, parameter, DSP, Input/Output Gain, Display, meter, state, A/B, Undo/Redo, Lookahead, Oversampling, PDC, LUFS Match or GR Hold behaviour changed.
-- Plan D stable baseline under the user release policy; Windows build/install checks passed, and cross-platform Actions validation is recorded by the release commit.
+- Candidate only; requires Codex/MSVC build and a quick DAW direct-entry visual check.
 
 ## 0.9.3 — UI Rollback / Features Retained — Candidate
 
@@ -194,3 +251,22 @@
 - Input/Output Gain are included in project state, A/B snapshots and Undo/Redo; pre-0.9.2 states migrate both trims to 0 dB.
 - Existing DSP Ratio/Lookahead/Oversampling/LUFS Match/GR Hold design is otherwise unchanged.
 - Button visuals remain vector/JUCE in this candidate pending separate asset approval.
+
+## v0.9.7 — Threshold Rebuild from v0.9.4 — Candidate / Test
+
+- Rebased the Threshold work directly on v0.9.4; v0.9.5 and v0.9.6 are rejected experimental branches and are not the new baseline.
+- Keeps the v0.9.4 future-window peak detector unchanged.
+- Threshold OFF maps to the exact legacy `gain = 1 / (1 + (Ratio - 1) * level)` law.
+- Enabled Threshold only adds a lower operating boundary and re-anchors the same Ratio curve to unity at that boundary.
+- No Attack, Release, knee, detector segmentation, hidden smoothing or monitor-output crossfade was added.
+- Threshold resolution is 0.01 dB and the vertical Threshold control now has real Shift fine drag plus existing Alt reset/Undo/direct entry workflow.
+- Threshold is included in project state and A/B; pre-Threshold projects migrate to OFF.
+- Enlarged the Display/Meter row vertically and compacted the lower control row.
+
+
+## v1.0.1 — Display 0…-90 dB Scale Polish — Candidate Revision 4
+
+- Dynamic Display vertical view changed from the old +6…-120 dB presentation to a focused `0…-90 dB` working range.
+- Grid labels are now `0 / -15 / -30 / -45 / -60 / -75 / -90 dB`.
+- Values outside the visible range are only clamped for drawing; DSP, meters, loudness, Threshold state and processing are unchanged.
+- This change is specifically for Threshold workflow: useful programme dynamics occupy more of the available height instead of leaving a large visually empty <-90 dB area.

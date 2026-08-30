@@ -19,8 +19,11 @@ float maxAbs (float a, float b) noexcept
 
 constexpr auto abPrefix = "qqscAB_";
 constexpr auto stateSchemaProperty = "qqscStateSchemaVersion";
+constexpr auto monitorLRProperty = "qqscMonitorLRSelection";
+constexpr auto monitorMSProperty = "qqscMonitorMSSelection";
 constexpr int oversamplingSchemaVersion = 2; // v0.1.10: 0 ms-only 1x/8x/16x Oversampling schema
-constexpr int currentStateSchemaVersion = 7; // v1.0.1 revision: independent LR/MS Mix + UI routing fixes
+constexpr int currentStateSchemaVersion = 8; // v1.0.3: persisted LR/MS centered audition monitor state
+constexpr float centeredChannelMonitorGain = 0.70710678118654752440f; // 1/sqrt(2), -3.0103 dB
 
 juce::Identifier abProperty (const juce::String& suffix)
 {
@@ -878,9 +881,43 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         const float outL = forceBypass ? displayDryL : activeOutL;
         const float outR = forceBypass ? displayDryR : activeOutR;
 
-        buffer.setSample (0, i, outL);
+        // v1.0.3 centered domain monitor: audition affects only what reaches the
+        // headphones/speakers. Display, meters, Match and stored processing result
+        // continue to use the normal pre-monitor outL/outR below. This mirrors the
+        // mature QQ ChainScope Mixboard convention for centered L/R/Side audition.
+        float audibleOutL = outL;
+        float audibleOutR = outR;
+
+        if (! forceBypass && stereoBus)
+        {
+            const auto monitorSelection = getDomainMonitorSelection (mode);
+
+            if (mode == qqsc::params::leftRight)
+            {
+                if (monitorSelection == qqsc::params::monitorFirst)
+                    audibleOutL = audibleOutR = outL * centeredChannelMonitorGain;
+                else if (monitorSelection == qqsc::params::monitorSecond)
+                    audibleOutL = audibleOutR = outR * centeredChannelMonitorGain;
+            }
+            else if (mode == qqsc::params::midSide)
+            {
+                const float activeM = 0.5f * (outL + outR);
+                const float activeS = 0.5f * (outL - outR);
+
+                // Mid is already the centre component under this plug-in's
+                // M=(L+R)/2 matrix, so no extra -3.01 dB is applied. Side is a
+                // single derived component copied to both ears and therefore uses
+                // the same 1/sqrt(2) centered-listening compensation as L/R.
+                if (monitorSelection == qqsc::params::monitorFirst)
+                    audibleOutL = audibleOutR = activeM;
+                else if (monitorSelection == qqsc::params::monitorSecond)
+                    audibleOutL = audibleOutR = activeS * centeredChannelMonitorGain;
+            }
+        }
+
+        buffer.setSample (0, i, audibleOutL);
         if (stereoBus)
-            buffer.setSample (1, i, outR);
+            buffer.setSample (1, i, audibleOutR);
 
         graphInputPeak = juce::jmax (graphInputPeak, stereoBus ? maxAbs (displayDryL, displayDryR) : std::abs (displayDryL));
         graphWetPeak = juce::jmax (graphWetPeak, stereoBus ? maxAbs (wetL, wetR) : std::abs (wetL));
@@ -1335,6 +1372,27 @@ bool QQSuperCompressionAudioProcessor::applyMatchForCurrentMode()
     return true;
 }
 
+int QQSuperCompressionAudioProcessor::getDomainMonitorSelection (int processingMode) const noexcept
+{
+    if (processingMode == qqsc::params::leftRight)
+        return juce::jlimit (0, 2, monitorLRSelection.load (std::memory_order_relaxed));
+
+    if (processingMode == qqsc::params::midSide)
+        return juce::jlimit (0, 2, monitorMSSelection.load (std::memory_order_relaxed));
+
+    return qqsc::params::monitorAll;
+}
+
+void QQSuperCompressionAudioProcessor::setDomainMonitorSelection (int processingMode, int selection) noexcept
+{
+    const auto clamped = juce::jlimit (0, 2, selection);
+
+    if (processingMode == qqsc::params::leftRight)
+        monitorLRSelection.store (clamped, std::memory_order_relaxed);
+    else if (processingMode == qqsc::params::midSide)
+        monitorMSSelection.store (clamped, std::memory_order_relaxed);
+}
+
 juce::AudioProcessorParameter* QQSuperCompressionAudioProcessor::getBypassParameter() const
 {
     return apvts.getParameter (qqsc::params::bypass);
@@ -1344,6 +1402,8 @@ void QQSuperCompressionAudioProcessor::getStateInformation (juce::MemoryBlock& d
 {
     auto state = apvts.copyState();
     state.setProperty (stateSchemaProperty, currentStateSchemaVersion, nullptr);
+    state.setProperty (monitorLRProperty, getDomainMonitorSelection (qqsc::params::leftRight), nullptr);
+    state.setProperty (monitorMSProperty, getDomainMonitorSelection (qqsc::params::midSide), nullptr);
     writeABStateTo (state);
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
@@ -1376,7 +1436,11 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
             const bool stateHasMixM = stateContainsParameter (state, qqsc::params::mixM);
             const bool stateHasMixS = stateContainsParameter (state, qqsc::params::mixS);
             const auto legacyOversamplingNormalised = stateParameterNormalisedValue (state, qqsc::params::oversampling);
+            const auto restoredMonitorLR = static_cast<int> (state.getProperty (monitorLRProperty, qqsc::params::monitorAll));
+            const auto restoredMonitorMS = static_cast<int> (state.getProperty (monitorMSProperty, qqsc::params::monitorAll));
             apvts.replaceState (state);
+            setDomainMonitorSelection (qqsc::params::leftRight, restoredMonitorLR);
+            setDomainMonitorSelection (qqsc::params::midSide, restoredMonitorMS);
 
             // Pre-0.9.2 projects have no trim parameters. They migrate explicitly
             // to unity gain so loading an older project cannot acquire a hidden

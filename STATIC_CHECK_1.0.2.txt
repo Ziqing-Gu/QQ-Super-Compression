@@ -1,7 +1,7 @@
 QQ Super Compression 1.0.2 — STATIC CHECK
 Date: 2026-08-30
-Status: static/math/source validation passed; the separate Plan A JUCE/MSVC build and Steinberg validator results are recorded in PLAN_A_VERIFICATION_1.0.2.md.
-Stable baseline: v1.0.2 Complete Relative LINK (explicitly designated by the user for this Plan B/C/D release run).
+Status: static/math/source validation only; no JUCE/MSVC VST3 build in this environment.
+Stable baseline: v1.0.1 Display 0…-90 dB Scale (user-confirmed; Plan A/B/C/D completed).
 
 PASS: v1.0.1 transparent future-window core @400 Hz / 26 ms THD -294.69 dB
 PASS: 0 ms remains intentionally more nonlinear; ST linked uses stronger L/R level with independent ST Ratio.

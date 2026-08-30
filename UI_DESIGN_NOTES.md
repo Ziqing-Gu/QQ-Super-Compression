@@ -1,13 +1,70 @@
-# QQ Super Compression — UI Design Notes
+# QQ Super Compression UI Design Notes
 
-## v1.0.2 — Complete Relative LINK interaction
+## v1.0.3 Centered Domain Monitor
 
-- 1020×820 Display-first geometry and visual language remain unchanged.
-- In LR/MS, one LINK state covers Ratio, Threshold, Makeup, and Mix.
-- Drag, Shift-fine, and direct numeric entry preserve the existing pair offset.
-- Both values stop together at boundaries; LINK never silently collapses them to equality.
-- LINK remains outside A/B sound snapshots. No DSP, parameter-ID, or layout redesign is part of this version.
+- Do **not** shrink the Display/Meter row. It stays 550 design px.
+- Lower controls use the previously unused bottom slack: 140 -> 158 design px.
+- Technical column order in LR/MS: `MODE` -> Mode+LINK row -> `MONITOR` -> ALL/L/R or ALL/M/S row -> `LOOKAHEAD` -> Lookahead -> optional `OVERSAMPLING`.
+- ST hides the Monitor label/buttons and LINK; Mode geometry never moves.
+- Mode and Lookahead main rectangles remain exactly **108 x 23** with common left/right edges. LINK remains **34 x 23**, 6 px to the right.
+- Monitor occupies exactly the same 108 px primary width using `34 + 3 + 34 + 3 + 34`.
+- Monitor active state uses the cyan technical accent. It is an audition status, not a second processing mode.
+- Labels change by mode: LR = `ALL / L / R`; MS = `ALL / M / S`.
 
+## v1.0.1 Display-first update
+
+### Revision 3 — compact technical controls
+
+- Mode is **not** a dropdown. It remains a click-cycle button.
+- Lookahead **does** remain a dropdown because there are six choices.
+- Mode and Lookahead primary controls are visually identical: **108 x 23 design px**, same left/right edges.
+- LINK is a small auxiliary control to the right of Mode only; it must not shorten the Mode button. Current geometry: **34 x 23**, 6 px gap.
+- ST hides LINK; LR/MS show LINK without moving the Mode button.
+- Oversampling follows the same primary-control alignment when it appears at 0 ms.
+
+The warm/light visual direction remains unchanged, but the analysis area is now explicitly prioritised because Threshold selection depends on seeing the dynamic history clearly.
+
+- Fixed design root is enlarged from **1020x670** to **1020x820**.
+- Display/Meter row is **550 design px**.
+- Lower control row remains compact at **140 design px**.
+- Meter width is capped slightly narrower and the Threshold strip is reduced to give the Display more horizontal room.
+- ST keeps one full Display.
+- LR/MS keep two stacked full-width Displays so the time axis is not halved.
+- Enabled Threshold lines show the actual Threshold dB value directly on the graph.
+- LINK moves into the Mode row. This is required because the restored transparent core again exposes Oversampling at 0 ms; LINK and Oversampling must never overlap.
+- Threshold faders retain Shift fine drag, Alt reset and direct numeric entry.
+
+The v1.0.0 Direct/Analytic engine is rejected; there is no Engine selector in the product.
+
+
+## v1.0.2 Complete LINK interaction
+
+The visible geometry is unchanged from the user-approved v1.0.1 layout. LINK remains the small auxiliary button beside Mode, but its workflow scope is now complete:
+
+- LR/MS LINK covers Ratio / Threshold / Makeup / Mix.
+- LINK preserves relative differences; it never equalises paired values.
+- Normal drag, Shift fine drag and direct numeric entry must all apply the same shared delta.
+- Shared boundaries stop both values together.
+- This is an interaction fix only; do not enlarge/reposition LINK or reclaim Display space.
+
+--- HISTORICAL UI NOTES BELOW ---
+
+## v1.0.0 additions
+
+The overall warm/light direction remains unchanged. The upper analysis region remains intentionally taller and the lower controls compact.
+
+- ST: one Dynamic Display panel.
+- LR: two stacked full-width panels labelled L/R.
+- MS: two stacked full-width panels labelled M/S.
+- Each domain panel has its own Threshold reference line.
+- LR/MS expose paired Ratio controls, paired Threshold faders and paired Makeup controls.
+- One `LINK` button controls relative linking for all three pair types; it never equalises values.
+- Link lives in the compact technical-control column so it does not consume additional Display width.
+- Threshold faders retain Shift fine drag and direct numeric entry.
+
+The old note below saying the Dynamic Display geometry must not change is historical for v0.9.0; v1.0.0 explicitly supersedes that point for LR/MS domain splitting.
+
+--- HISTORICAL UI NOTES ---
 
 ## Why this document exists
 
@@ -208,6 +265,43 @@ The v0.9.3 light UI was visually accepted, but the user found a small interactio
 
 This is not a redesign. The active colour language stays unchanged. The fix explicitly styles the edit state as dark warm text on ivory, with a warm-accent caret/focus outline and a soft warm selection highlight. Slider values remain live/editable text and are not converted to bitmap assets.
 
-## 1.0.1 Display working range
+---
 
-The Dynamic Display uses a fixed `0…-90 dB` visible range with grid labels at `0 / -15 / -30 / -45 / -60 / -75 / -90 dB`. This is a Threshold-workflow presentation rule only. Values may be clamped at the drawing boundary, but DSP, meters, loudness, parameter limits, and the `-120 dB` Threshold OFF sentinel must remain independent from the graph floor.
+## v0.9.7 — Display/Meter priority + Threshold fine interaction
+
+User feedback: the analysis Display had become too small relative to the lower control area. Keep the fixed 1020x670 design root but allocate more vertical height to the upper Display/Meter region and make the lower knobs/buttons more compact.
+
+v0.9.7 layout target:
+
+- Display/Meter visual row: 405 design px (was 350).
+- Lower control row: 145 design px (was 166).
+- Threshold remains a narrow vertical strip between Dynamic Display and meters.
+- Do not shrink the actual meter/display content to make room for new lower controls; analysis visibility has priority.
+
+Threshold interaction must match the established parameter workflow:
+
+- normal drag;
+- **Shift = fine drag** (must work on the LinearVertical control, not only rotary controls);
+- Alt+left-click = OFF/default;
+- double-click numeric entry, including `OFF`;
+- Undo/Redo and A/B/state persistence.
+
+
+---
+
+## v1.0.1 Candidate Revision 2 — Domain Alignment Rules
+
+- Mode is a persistent, visible cycle button. LINK shares a fixed row position and appears in LR/MS; UI update timers must never recalculate their geometry.
+- LR/MS visual grammar is vertical: top domain is L/M and bottom domain is R/S. Threshold controls follow that same top/bottom structure.
+- Ratio, Makeup and Mix remain in the compact lower control row; in LR/MS each uses two small domain controls with L/R or M/S labels.
+- The enlarged Display remains the primary workspace. Do not reclaim Display height for the new Mix controls.
+- LINK is intentionally limited to Ratio/Threshold/Makeup relative editing; Mix is independent.
+
+
+---
+
+## v1.0.1 Candidate Revision 4 — Dynamic Display working scale
+
+The Dynamic Display is a Threshold-working surface, so its vertical pixels should be spent on useful programme dynamics. The visible range is fixed at **0 to -90 dB** with `15 dB` grid spacing (`0, -15, -30, -45, -60, -75, -90`).
+
+Do not use automatic vertical scaling: the Threshold line must remain visually comparable across material. Values outside the visible range are clipped only for drawing; this must never change DSP, meter values, the -120 dB Threshold-OFF sentinel, or stored parameter data.

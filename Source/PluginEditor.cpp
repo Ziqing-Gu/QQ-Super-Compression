@@ -87,6 +87,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureLabel (thresholdChannel0Label, "L");
     configureLabel (thresholdChannel1Label, "R");
     configureLabel (modeLabel, "MODE");
+    configureLabel (monitorLabel, "MONITOR");
     configureLabel (lookaheadLabel, "LOOKAHEAD (ms)");
     configureLabel (oversamplingLabel, "OVERSAMPLING");
 
@@ -98,13 +99,14 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     thresholdLabel.setColour (juce::Label::textColourId, qqsc::ui::warmAccent().darker (0.38f));
     thresholdLabel.setFont (juce::Font (juce::FontOptions (8.5f, juce::Font::bold)));
     modeLabel.setColour (juce::Label::textColourId, qqsc::ui::warmAccent().darker (0.42f));
+    monitorLabel.setColour (juce::Label::textColourId, qqsc::ui::cyanAccent().darker (0.42f));
     lookaheadLabel.setColour (juce::Label::textColourId, qqsc::ui::cyanAccent().darker (0.42f));
     oversamplingLabel.setColour (juce::Label::textColourId, qqsc::ui::cyanAccent().darker (0.42f));
 
     for (auto* label : { &inputGainLabel, &ratioLabel, &ratioChannel0Label, &ratioChannel1Label,
                           &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
                           &mixLabel, &mixChannel0Label, &mixChannel1Label, &outputGainLabel, &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
-                          &modeLabel, &lookaheadLabel, &oversamplingLabel })
+                          &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel })
         contentRoot.addAndMakeVisible (*label);
 
     configureKnob (inputGainSlider, " dB");
@@ -168,6 +170,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
     configureActionButton (modeButton);
     configureActionButton (linkButton);
+    configureActionButton (monitorAllButton);
+    configureActionButton (monitorFirstButton);
+    configureActionButton (monitorSecondButton);
     configureActionButton (matchButton);
     configureActionButton (bypassButton);
     configureActionButton (aButton);
@@ -194,10 +199,21 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     linkButton.setClickingTogglesState (true);
     linkButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     linkButton.setTooltip ("Relative Link: Ratio / Threshold / Makeup / Mix");
+
+    for (auto* monitorButton : { &monitorAllButton, &monitorFirstButton, &monitorSecondButton })
+    {
+        monitorButton->setClickingTogglesState (false);
+        monitorButton->setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    }
+    monitorAllButton.setTooltip ("Monitor the normal stereo result");
+    monitorFirstButton.setTooltip ("Centered audition of L or M");
+    monitorSecondButton.setTooltip ("Centered audition of R or S");
+
     aButton.setClickingTogglesState (false);
     bButton.setClickingTogglesState (false);
 
-    for (auto* button : { &modeButton, &linkButton, &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton, &oversamplingButton })
+    for (auto* button : { &modeButton, &linkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
+                          &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton, &oversamplingButton })
     {
         contentRoot.addAndMakeVisible (*button);
         registerKeyboardListener (*button);
@@ -305,6 +321,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     mixSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixMS, mixSSlider, mixMSlider, text, "Mix M/S"); };
 
     modeButton.onClick = [this] { cycleMode(); };
+    monitorAllButton.onClick = [this] { selectMonitor (qqsc::params::monitorAll); };
+    monitorFirstButton.onClick = [this] { selectMonitor (qqsc::params::monitorFirst); };
+    monitorSecondButton.onClick = [this] { selectMonitor (qqsc::params::monitorSecond); };
     oversamplingButton.onClick = [this] { cycleOversampling(); };
     matchButton.onClick = [this] { processor.applyMatchForCurrentMode(); };
     aButton.onClick = [this] { processor.selectABSlot (0); };
@@ -633,6 +652,42 @@ void QQSuperCompressionAudioProcessorEditor::updateOversamplingUi()
     oversamplingButton.setVisible (zeroMs);
 }
 
+void QQSuperCompressionAudioProcessorEditor::selectMonitor (int selection)
+{
+    const auto mode = juce::jlimit (0, 2,
+        juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load()));
+
+    if (mode == qqsc::params::leftRight || mode == qqsc::params::midSide)
+        processor.setDomainMonitorSelection (mode, selection);
+
+    updateMonitorUi();
+}
+
+void QQSuperCompressionAudioProcessorEditor::updateMonitorUi()
+{
+    const auto mode = juce::jlimit (0, 2,
+        juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load()));
+    const bool lr = mode == qqsc::params::leftRight;
+    const bool ms = mode == qqsc::params::midSide;
+    const bool visible = lr || ms;
+
+    monitorLabel.setVisible (visible);
+    monitorAllButton.setVisible (visible);
+    monitorFirstButton.setVisible (visible);
+    monitorSecondButton.setVisible (visible);
+
+    if (! visible)
+        return;
+
+    monitorFirstButton.setButtonText (lr ? "L" : "M");
+    monitorSecondButton.setButtonText (lr ? "R" : "S");
+
+    const auto selected = processor.getDomainMonitorSelection (mode);
+    monitorAllButton.setToggleState (selected == qqsc::params::monitorAll, juce::dontSendNotification);
+    monitorFirstButton.setToggleState (selected == qqsc::params::monitorFirst, juce::dontSendNotification);
+    monitorSecondButton.setToggleState (selected == qqsc::params::monitorSecond, juce::dontSendNotification);
+}
+
 void QQSuperCompressionAudioProcessorEditor::cycleMode()
 {
     const auto current = juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load());
@@ -720,6 +775,7 @@ void QQSuperCompressionAudioProcessorEditor::updateModeUi()
     // of their bounds; updateModeUi() only controls text/visibility/state.
     modeButton.setVisible (true);
     linkButton.setVisible (! st);
+    updateMonitorUi();
 
     if (lr)
     {
@@ -868,7 +924,7 @@ void QQSuperCompressionAudioProcessorEditor::resized()
 
     // Controls remain compact and functionally unchanged; the extra editor height
     // is intentionally spent on Display/Meters rather than larger knobs.
-    auto controls = area.removeFromTop (140);
+    auto controls = area.removeFromTop (158);
     constexpr int controlGap = 6;
     constexpr int smallTrimW = 116;
     constexpr int modeW = 170;
@@ -956,19 +1012,28 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     const int choiceGroupW = primaryChoiceW + linkChoiceGap + linkChoiceW;
     const int choiceX = modeArea.getX() + juce::jmax (0, (modeArea.getWidth() - choiceGroupW) / 2);
 
-    auto modeLabelArea = modeArea.removeFromTop (16);
+    auto modeLabelArea = modeArea.removeFromTop (12);
     modeLabel.setBounds (choiceX, modeLabelArea.getY(), primaryChoiceW, modeLabelArea.getHeight());
     auto modeButtonRow = modeArea.removeFromTop (25);
     modeButton.setBounds (choiceX, modeButtonRow.getY() + 1, primaryChoiceW, primaryChoiceH);
     linkButton.setBounds (choiceX + primaryChoiceW + linkChoiceGap,
                           modeButtonRow.getY() + 1, linkChoiceW, primaryChoiceH);
 
-    auto lookaheadLabelArea = modeArea.removeFromTop (14);
+    auto monitorLabelArea = modeArea.removeFromTop (12);
+    monitorLabel.setBounds (choiceX, monitorLabelArea.getY(), primaryChoiceW, monitorLabelArea.getHeight());
+    auto monitorButtonRow = modeArea.removeFromTop (25);
+    constexpr int monitorButtonW = 34;
+    constexpr int monitorButtonGap = 3;
+    monitorAllButton.setBounds (choiceX, monitorButtonRow.getY() + 1, monitorButtonW, primaryChoiceH);
+    monitorFirstButton.setBounds (choiceX + monitorButtonW + monitorButtonGap, monitorButtonRow.getY() + 1, monitorButtonW, primaryChoiceH);
+    monitorSecondButton.setBounds (choiceX + (monitorButtonW + monitorButtonGap) * 2, monitorButtonRow.getY() + 1, monitorButtonW, primaryChoiceH);
+
+    auto lookaheadLabelArea = modeArea.removeFromTop (12);
     lookaheadLabel.setBounds (choiceX, lookaheadLabelArea.getY(), primaryChoiceW, lookaheadLabelArea.getHeight());
     auto lookaheadComboRow = modeArea.removeFromTop (25);
     lookaheadCombo.setBounds (choiceX, lookaheadComboRow.getY() + 1, primaryChoiceW, primaryChoiceH);
 
-    auto oversamplingLabelArea = modeArea.removeFromTop (14);
+    auto oversamplingLabelArea = modeArea.removeFromTop (12);
     oversamplingLabel.setBounds (choiceX, oversamplingLabelArea.getY(), primaryChoiceW, oversamplingLabelArea.getHeight());
     auto oversamplingButtonRow = modeArea.removeFromTop (25);
     oversamplingButton.setBounds (choiceX, oversamplingButtonRow.getY() + 1, primaryChoiceW, primaryChoiceH);

@@ -1,0 +1,61 @@
+QQ Super Compression 1.0.3 — Centered Domain Monitor
+Static / math / source validation record
+Date: 2026-08-30
+
+BASELINE
+- Stable source baseline: v1.0.2 Complete Relative LINK (user-promoted Stable).
+- v1.0.3 is Candidate/Test until user build + DAW verification + explicit promotion.
+
+APPROVED MONITOR CONTRACT
+- ST: Monitor hidden.
+- LR: ALL / L / R.
+  L -> L * 1/sqrt(2) copied same-polarity to both outputs.
+  R -> R * 1/sqrt(2) copied same-polarity to both outputs.
+- MS: ALL / M / S.
+  M=(L+R)/2 -> copied to both outputs at unity (NO extra -3.01 dB).
+  S=(L-R)/2 -> S * 1/sqrt(2) copied same-polarity to both outputs.
+- 1/sqrt(2) = 0.7071067811865475 = -3.0103 dB listening compensation.
+- Monitor is final audible-only. Display/Meter/Match use the normal pre-monitor output.
+- LR and MS monitor states persist separately in project state.
+- Monitor is not an APVTS/host-automation parameter and is excluded from A/B snapshots.
+- True Bypass remains true bypass and does not apply Monitor.
+
+SOURCE / UI CHECKS
+PASS - CMake product version is 1.0.3.
+PASS - state schema 7 -> 8 with qqscMonitorLRSelection / qqscMonitorMSSelection.
+PASS - L/R/M/S monitor formulas are present in final audible output path.
+PASS - buffer receives audibleOutL/R while graph/meter calculations remain based on outL/outR.
+PASS - UI provides MONITOR + ALL/first/second buttons; labels switch LR=L/R and MS=M/S; hidden in ST.
+PASS - Monitor row is 108 px wide (34+3+34+3+34).
+PASS - Mode/Lookahead remain 108x23; LINK remains 34x23.
+PASS - Display/Meter row remains 550 px; lower controls use former slack and become 158 px.
+
+PYTHON REGRESSION
+PASS - tests/transparent_core_selftest.py
+PASS - tests/threshold_rebuild_selftest.py
+PASS - tests/domain_link_selftest.py
+PASS - tests/link_ui_source_selftest.py
+PASS - tests/independent_mix_selftest.py
+PASS - tests/display_scale_selftest.py
+PASS - tests/monitor_audition_selftest.py
+
+BUILD ATTEMPT
+- CMake configuration was attempted with QQSC_FETCH_JUCE=ON.
+- Configuration did NOT reach C++ compilation because github.com could not be resolved and JUCE 8.0.15 could not be fetched.
+- Therefore this record MUST NOT be described as a successful JUCE/VST3 build.
+
+REQUIRED USER/CODEX VALIDATION
+- Windows Release VST3 compile and warning review.
+- Cubase scan/load; panel/binary version v1.0.3.
+- LR L/R centered listening and -3.0103 dB compensation.
+- MS M centered at unity; S centered with -3.0103 dB compensation.
+- Display/Meter/Match remain unaffected by monitor listening compensation.
+- Save/reopen restores LR/MS Monitor states separately.
+- A/B does not change Monitor; DAW parameter list has no Monitor parameter.
+- Regression of v1.0.2 LINK, Threshold, independent Mix, Lookahead/Oversampling/PDC/Bypass.
+
+RESULT
+STATIC CHECK: PASS
+PLUGIN BUILD: NOT VERIFIED (JUCE unavailable due network/DNS)
+DAW TEST: NOT VERIFIED
+STATUS: Candidate / Test
