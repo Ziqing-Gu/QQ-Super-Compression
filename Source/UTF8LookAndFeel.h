@@ -2,29 +2,92 @@
 
 #include <JuceHeader.h>
 #include <cmath>
+#include <atomic>
 
 namespace qqsc
 {
 namespace ui
 {
-    inline juce::Colour canvas()          { return juce::Colour::fromRGB (247, 243, 237); }
-    inline juce::Colour panel()           { return juce::Colour::fromRGB (253, 249, 244); }
-    inline juce::Colour panelAlt()        { return juce::Colour::fromRGB (243, 236, 227); }
-    inline juce::Colour text()            { return juce::Colour::fromRGB (70, 61, 54); }
-    inline juce::Colour textMuted()       { return juce::Colour::fromRGB (112, 100, 91); }
-    inline juce::Colour border()          { return juce::Colour::fromRGB (214, 201, 188); }
-    inline juce::Colour warmAccent()      { return juce::Colour::fromRGB (241, 139, 82); }
-    inline juce::Colour warmAccentSoft()  { return juce::Colour::fromRGB (250, 184, 143); }
-    inline juce::Colour cyanAccent()      { return juce::Colour::fromRGB (79, 184, 194); }
-    inline juce::Colour dryTrace()        { return juce::Colour::fromRGB (174, 162, 151); }
-    inline juce::Colour outputAccent()    { return juce::Colour::fromRGB (255, 119, 72); }
-    inline juce::Colour grAccent()        { return juce::Colour::fromRGB (240, 116, 92); }
+    inline std::atomic<bool>& classicThemeFlag()
+    {
+        // Theme is a user-level preference (not an audio parameter), so all
+        // open editor instances intentionally share it.
+        static std::atomic<bool> enabled { false };
+        return enabled;
+    }
+
+    inline bool isClassicTheme() noexcept
+    {
+        return classicThemeFlag().load (std::memory_order_relaxed);
+    }
+
+    inline void setClassicTheme (bool enabled) noexcept
+    {
+        classicThemeFlag().store (enabled, std::memory_order_relaxed);
+    }
+
+    inline juce::Colour canvas()
+    {
+        return isClassicTheme() ? juce::Colour::fromRGB (10, 13, 17)
+                                : juce::Colour::fromRGB (247, 243, 237);
+    }
+    inline juce::Colour panel()
+    {
+        return isClassicTheme() ? juce::Colour::fromRGB (16, 20, 26)
+                                : juce::Colour::fromRGB (253, 249, 244);
+    }
+    inline juce::Colour panelAlt()
+    {
+        return isClassicTheme() ? juce::Colour::fromRGB (23, 29, 37)
+                                : juce::Colour::fromRGB (243, 236, 227);
+    }
+    inline juce::Colour text()
+    {
+        return isClassicTheme() ? juce::Colour::fromRGB (232, 237, 242)
+                                : juce::Colour::fromRGB (70, 61, 54);
+    }
+    inline juce::Colour textMuted()
+    {
+        return isClassicTheme() ? juce::Colour::fromRGB (151, 163, 176)
+                                : juce::Colour::fromRGB (112, 100, 91);
+    }
+    inline juce::Colour border()
+    {
+        return isClassicTheme() ? juce::Colour::fromRGB (55, 66, 78)
+                                : juce::Colour::fromRGB (214, 201, 188);
+    }
+    inline juce::Colour warmAccent()
+    {
+        return isClassicTheme() ? juce::Colour::fromRGB (82, 201, 238)
+                                : juce::Colour::fromRGB (241, 139, 82);
+    }
+    inline juce::Colour warmAccentSoft()
+    {
+        return isClassicTheme() ? juce::Colour::fromRGB (110, 216, 244)
+                                : juce::Colour::fromRGB (250, 184, 143);
+    }
+    inline juce::Colour cyanAccent()      { return isClassicTheme() ? warmAccent() : juce::Colour::fromRGB (79, 184, 194); }
+    inline juce::Colour dryTrace()        { return isClassicTheme() ? juce::Colour::fromRGB (139, 151, 164) : juce::Colour::fromRGB (174, 162, 151); }
+    inline juce::Colour outputAccent()    { return isClassicTheme() ? juce::Colour::fromRGB (246, 196, 83) : juce::Colour::fromRGB (255, 119, 72); }
+    inline juce::Colour grAccent()        { return isClassicTheme() ? juce::Colour::fromRGB (255, 99, 125) : juce::Colour::fromRGB (240, 116, 92); }
 }
 
 class UTF8LookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
     UTF8LookAndFeel()
+    {
+        refreshThemeColours();
+    }
+
+    void setClassicTheme (bool enabled)
+    {
+        ui::setClassicTheme (enabled);
+        refreshThemeColours();
+    }
+
+private:
+    void refreshThemeColours()
     {
         setColour (juce::Slider::textBoxTextColourId, ui::text());
         setColour (juce::Slider::textBoxBackgroundColourId, ui::panel().withAlpha (0.76f));
@@ -55,6 +118,8 @@ public:
         setColour (juce::PopupMenu::highlightedBackgroundColourId, ui::warmAccentSoft().withAlpha (0.34f));
         setColour (juce::PopupMenu::highlightedTextColourId, ui::text());
     }
+
+public:
 
     juce::Typeface::Ptr getTypefaceForFont (const juce::Font& font) override
     {
@@ -110,6 +175,36 @@ public:
         juce::Path valueArc;
         valueArc.addCentredArc (centre.x, centre.y, radius, radius, 0.0f,
                                 rotaryStartAngle, angle, true);
+
+        if (ui::isClassicTheme())
+        {
+            // The legacy skin is intentionally calm: a technical dark ring and
+            // one clear cyan position lamp, without the light theme's large glow.
+            const auto knob = juce::Rectangle<float> (diameter * 0.62f, diameter * 0.62f).withCentre (centre);
+            g.setColour (juce::Colours::black.withAlpha (0.30f));
+            g.fillEllipse (knob.translated (0.0f, 2.0f).expanded (1.0f));
+            g.setColour (ui::panelAlt().withAlpha (0.90f));
+            g.fillEllipse (knob);
+            g.setColour (track.withAlpha (0.92f));
+            g.strokePath (fullArc, juce::PathStrokeType (6.0f));
+            g.setColour (accent.withAlpha (0.45f));
+            g.strokePath (valueArc, juce::PathStrokeType (2.5f));
+            g.setColour (ui::border().withAlpha (0.70f));
+            g.drawEllipse (knob, 0.85f);
+
+            const auto pointerEnd = juce::Point<float> (centre.x + std::sin (angle) * knob.getWidth() * 0.30f,
+                                                        centre.y - std::cos (angle) * knob.getHeight() * 0.30f);
+            g.setColour (accent.withAlpha (0.96f));
+            g.drawLine (centre.x, centre.y, pointerEnd.x, pointerEnd.y, 1.7f);
+
+            const auto lamp = juce::Point<float> (centre.x + std::sin (angle) * radius,
+                                                  centre.y - std::cos (angle) * radius);
+            g.setColour (accent.withAlpha (0.20f));
+            g.fillEllipse (lamp.x - 7.0f, lamp.y - 7.0f, 14.0f, 14.0f);
+            g.setColour (accent.withAlpha (0.98f));
+            g.fillEllipse (lamp.x - 4.0f, lamp.y - 4.0f, 8.0f, 8.0f);
+            return;
+        }
 
         // 0.9.1 lighting refinement:
         // The 0.9.0 implementation technically drew transparent orange strokes,
@@ -229,6 +324,23 @@ public:
         const bool enabled = button.isEnabled();
         const auto accent = button.findColour (juce::TextButton::buttonOnColourId);
 
+        if (ui::isClassicTheme())
+        {
+            auto fill = lit ? accent : backgroundColour;
+            if (isDown)
+                fill = fill.darker (0.15f);
+            else if (isHighlighted && ! lit)
+                fill = ui::panelAlt();
+
+            g.setColour (juce::Colours::black.withAlpha (0.24f));
+            g.fillRoundedRectangle (bounds.translated (0.0f, 1.0f), corner);
+            g.setColour (fill);
+            g.fillRoundedRectangle (bounds, corner);
+            g.setColour ((lit ? accent.brighter (0.18f) : ui::border()).withAlpha (enabled ? 0.96f : 0.34f));
+            g.drawRoundedRectangle (bounds, corner, lit ? 1.1f : 0.9f);
+            return;
+        }
+
         if (lit && enabled)
         {
             // Larger soft halo plus a low spill underneath.  This mirrors the
@@ -280,8 +392,10 @@ public:
         const bool alwaysLit = static_cast<bool> (button.getProperties().getWithDefault (juce::Identifier ("qqscAlwaysLit"), false));
         const bool lit = button.getToggleState() || alwaysLit;
         const bool enabled = button.isEnabled();
-        auto textColour = lit ? button.findColour (juce::TextButton::buttonOnColourId).darker (0.38f)
-                              : button.findColour (juce::TextButton::textColourOffId);
+        auto textColour = ui::isClassicTheme() && lit
+                            ? ui::text()
+                            : (lit ? button.findColour (juce::TextButton::buttonOnColourId).darker (0.38f)
+                                   : button.findColour (juce::TextButton::textColourOffId));
         if (! enabled)
             textColour = textColour.withAlpha (0.36f);
         g.setColour (textColour);
@@ -300,7 +414,7 @@ public:
                        juce::ComboBox& box) override
     {
         auto bounds = juce::Rectangle<float> (0.5f, 0.5f, static_cast<float> (width - 1), static_cast<float> (height - 1));
-        g.setColour (juce::Colours::black.withAlpha (0.032f));
+        g.setColour (juce::Colours::black.withAlpha (ui::isClassicTheme() ? 0.20f : 0.032f));
         g.fillRoundedRectangle (bounds.translated (0.0f, 1.0f), 8.0f);
         g.setColour (isButtonDown ? ui::panelAlt() : ui::panel());
         g.fillRoundedRectangle (bounds, 8.0f);

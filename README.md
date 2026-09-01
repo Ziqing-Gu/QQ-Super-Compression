@@ -4,9 +4,9 @@
 
 ### 本项目源码公开，但不属于 OSI 认可的开源软件
 
-> **禁止任何商业使用。** 仅允许个人、学习、教育、研究、评估、爱好及其他非商业用途。发布原版或修改版时，必须同时免费公开完整对应源代码，保留作者、版权和许可证声明，醒目标明原项目名称、作者、来源链接、修改者、修改日期及修改内容，并使整个修改版继续采用同一许可证。完整条款见 [LICENSE](LICENSE)。
+> **禁止任何商业使用。** 仅允许个人、学习、教育、研究、评估、爱好及其他非商业用途。发布原版、二进制版或修改版时，必须同时免费公开完整对应源代码，保留作者、版权和许可证声明，醒目标明原项目名称、作者、来源链接、修改者、修改日期及修改内容，并使整个修改版继续采用同一许可证。完整条款见 [LICENSE](LICENSE)。
 >
-> **NO COMMERCIAL USE.** Use is permitted only for personal, educational, research, evaluation, hobby, charitable, and other non-commercial purposes. Any distributed original or modified version must provide the complete corresponding source without charge, preserve authorship, copyright, and license notices, prominently identify the original project, author, source URL, modifier, date, and changes, and license the entire modified work under the same terms. See [LICENSE](LICENSE).
+> **NO COMMERCIAL USE.** Use is permitted only for personal, educational, research, evaluation, hobby, charitable, and other non-commercial purposes. Any distributed original, binary, or modified version must provide the complete corresponding source without charge, preserve authorship, copyright, and license notices, prominently identify the original project, author, source URL, modifier, date, and changes, and license the entire modified work under the same terms. See [LICENSE](LICENSE).
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 这是一个AI开发项目，大部分文字是由ChatGpt编辑，这些文字同时供用户和AI阅读。
@@ -51,7 +51,7 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 
 
-# QQ Super Compression 1.0.3
+# QQ Super Compression 1.0.4
 
 **Qing Audio 非商业源码公开动态处理器 / Non-commercial source-available dynamics processor by Qing Audio**
 
@@ -61,17 +61,32 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 | 项目 / Item | 内容 / Value |
 |---|---|
-| 当前版本 / Current version | 1.0.3 |
-| 状态 / Status | Stable baseline — Plan A/B/C/D completed; four final artifacts verified / 稳定基线——Plan A/B/C/D 已完成；四类最终成品已核验 |
+| 当前版本 / Current version | 1.0.4 |
+| 状态 / Status | Stable baseline / 稳定基线 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | Qing Audio NC Source-Share 1.0 |
 
-> **1.0.3 稳定基线 / Stable baseline:** 按既定 Plan D 规则，Centered Domain Monitor 版本现为稳定源码基线。最终构建源码为 [`0ef89e19`](https://github.com/Ziqing-Gu/QQ-Super-Compression/commit/0ef89e19dd7e74ec5588f64501a951c8487efb9c)，对应 `v1.0.3` 标签。Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3 与 Universal 2 AU 均由该提交的 Actions 成功构建；AU 同时通过 `auval`。Cubase 中的最终试听、界面与自动化复核仍由用户完成。
+> **1.0.4 稳定基线 / Stable baseline:** 用户于 2026-09-01 明确将 LIGHT / CLASSIC UI 版本提升为当前稳定源码基线，并确认本项目完成 Plan B 的版本即记为 Stable。1.0.4 的 Plan A Windows x64 VST3 构建、安装 bundle 一致性和七项回归测试已通过，Plan B 正式源码镜像已核验。1.0.3 保留为已验证跨平台回滚参考和当前公开 Release。
 >
-> **Stable baseline:** Under the established Plan D rule, Centered Domain Monitor is now the stable source baseline. The final build source is [`0ef89e19`](https://github.com/Ziqing-Gu/QQ-Super-Compression/commit/0ef89e19dd7e74ec5588f64501a951c8487efb9c), tagged `v1.0.3`. Windows x64 VST3, macOS Apple Silicon VST3, macOS Intel VST3, and Universal 2 AU all passed Actions from that commit; the AU also passed `auval`. Final Cubase listening, UI, and automation checks remain user-side verification.
+> **Stable baseline:** On 2026-09-01 the user explicitly promoted the LIGHT / CLASSIC UI revision to the current Stable source baseline and confirmed the project rule that completing Plan B records that version as Stable. The v1.0.4 Plan A Windows x64 VST3 build, installed-bundle parity and seven regression tests passed, and the formal Plan B source mirror was verified. Version 1.0.3 remains the verified cross-platform rollback reference and current public Release.
 
+
+## 1.0.4 更新 / 1.0.4 update
+
+1.0.4 在右上角新增 `LIGHT / CLASSIC` 主题切换。LIGHT 保留当前暖色 ivory 界面；CLASSIC 使用更低亮度的 charcoal / cyan 控件风格。两种主题保持同一 1020x820 布局、全部控件、参数、自动化和声音功能。
+
+Version 1.0.4 adds an upper-right `LIGHT / CLASSIC` theme switch. LIGHT preserves the current warm ivory interface, while CLASSIC uses the lower-luminance charcoal/cyan control style. Both themes keep the same 1020x820 layout, controls, parameters, automation and sound.
+
+插件会在本机保存上次选择的主题，并在下次打开编辑器时恢复。主题不进入 DSP、APVTS、宿主自动化、A/B 声音快照或工程状态。
+
+The plug-in stores the last selected theme locally and restores it the next time the editor opens. Theme state remains outside DSP, APVTS, host automation, A/B snapshots and project state.
+
+- [1.0.4 English user manual](docs/manuals/QQ%20Super%20Compression%20User%20Manual%20English_v1.0.4.pdf)
+- [1.0.4 中文用户手册](docs/manuals/QQ%20Super%20Compression%20%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C%20%E4%B8%AD%E6%96%87%E7%89%88_v1.0.4.pdf)
+- [1.0.4 English installation guide](docs/QQ-Super-Compression-1.0.4-Windows-macOS-INSTALL.txt)
+- [1.0.4 中文安装说明](docs/QQ%20Super%20Compression%201.0.4%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
 
 ## 1.0.3 更新 / 1.0.3 update
 
@@ -341,9 +356,17 @@ This Plan D run built and verified Windows x64 VST3, macOS arm64 VST3, macOS x86
 
 ## 完整版本历史 / Complete version history
 
-下面记录从首个原型到当前版本的全部真实版本。1.0.3 Centered Domain Monitor 已按 Plan D 规则晋升为当前 Stable baseline；失败实验与此前候选版本继续保留，不改写历史。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
+下面记录从首个原型到当前版本的全部真实版本。用户已于 2026-09-01 将 1.0.4 Light / Classic UI switch 明确提升为当前 Stable baseline；1.0.3 保留为上一稳定回滚参考，失败实验与此前候选版本继续保留，不改写历史。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
 
-Every real version from the first prototype through the current build is recorded below. Version 1.0.3 Centered Domain Monitor has been promoted to the current Stable baseline under the Plan D rule; rejected experiments and earlier candidates remain in history. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+Every real version from the first prototype through the current build is recorded below. On 2026-09-01 the user explicitly promoted v1.0.4 Light / Classic UI switch to the current Stable baseline; v1.0.3 remains the previous Stable rollback reference, and rejected experiments and earlier candidates remain in history. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+
+### 1.0.4 — 2026-09-01 — Light / Classic UI switch — Stable baseline / 双主题切换——稳定基线
+
+- 中文：右上角新增 LIGHT / CLASSIC 视觉主题切换；保持现有布局、控件、参数、自动化和声音完全一致。
+- English: Adds an upper-right LIGHT / CLASSIC visual-theme switch while preserving the existing layout, controls, parameters, automation and sound.
+- 中文：主题只保存在本机 UI 设置中，下次打开编辑器时恢复；不进入 DSP、APVTS、A/B 或工程状态。
+- English: Theme is stored only in local UI settings and restored on the next editor open; it remains outside DSP, APVTS, A/B and project state.
+- 状态 / Status：用户明确指定为 Stable baseline；Plan A 与正式 Plan B 已完成，Plan C 尚未完成；v1.0.3 为上一稳定回滚参考和当前公开 Release。
 
 ### 1.0.3 — 2026-08-30 — Centered Domain Monitor — Stable baseline / 居中分域监听——稳定基线
 

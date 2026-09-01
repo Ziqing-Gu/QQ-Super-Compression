@@ -1,12 +1,12 @@
-# AI Development Handoff — QQ Super Compression 1.0.3
+# AI Development Handoff — QQ Super Compression 1.0.4
 
 ## Current status
 
-**Stable baseline:** `1.0.2 — Complete Relative LINK`  
-User explicitly promoted v1.0.2 to **Stable** on 2026-08-30. v1.0.1 remains the previous Stable rollback point.
+**Stable baseline:** `1.0.4 — Light / Classic UI switch`  
+User explicitly promoted v1.0.4 to **Stable** on 2026-09-01 after Plan A and Plan B. Project-specific standing rule: completing Plan B records that exact version as Stable. Candidate/Test revisions do not enter Plan B.
 
-**Current candidate:** `1.0.3 — Centered Domain Monitor`  
-Built directly from the user-confirmed v1.0.2 Stable baseline. It adds an audition-only LR/MS monitor path and must remain Candidate until the user builds/tests and explicitly promotes it.
+**Previous stable rollback reference:** `1.0.3 — Centered Domain Monitor`  
+v1.0.4 keeps the complete v1.0.3 audio engine, Monitor workflow, parameter/state behaviour and 1020x820 layout. It adds only the LIGHT / CLASSIC visual-theme switch and local restoration of the last selected theme.
 
 ### Non-negotiable product decisions
 

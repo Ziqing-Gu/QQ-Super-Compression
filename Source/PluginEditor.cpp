@@ -179,6 +179,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureActionButton (bButton);
     configureActionButton (aToBButton);
     configureActionButton (bToAButton);
+    configureActionButton (themeButton);
     configureActionButton (oversamplingButton);
 
     // Current Mode is always an active state, so it gets the subtle warm lamp
@@ -191,6 +192,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     aButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     bButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     bypassButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
+    themeButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
+    themeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    themeButton.setTooltip ("Switch between Light and Classic Dark UI");
 
     aToBButton.setButtonText (arrowText ("A", "B"));
     bToAButton.setButtonText (arrowText ("B", "A"));
@@ -218,6 +222,8 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
         contentRoot.addAndMakeVisible (*button);
         registerKeyboardListener (*button);
     }
+    contentRoot.addAndMakeVisible (themeButton);
+    registerKeyboardListener (themeButton);
 
     auto& state = processor.getAPVTS();
     inputGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::inputGainDb, inputGainSlider);
@@ -330,9 +336,13 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     bButton.onClick = [this] { processor.selectABSlot (1); };
     aToBButton.onClick = [this] { processor.copyAToB(); };
     bToAButton.onClick = [this] { processor.copyBToA(); };
+    themeButton.onClick = [this] { toggleTheme(); };
 
     registerKeyboardListener (*this);
     setWantsKeyboardFocus (true);
+    classicTheme = uiProperties != nullptr && uiProperties->getBoolValue ("classicTheme", false);
+    applyTheme();
+
 
     updateModeUi();
     updateOversamplingUi();
@@ -364,6 +374,98 @@ std::unique_ptr<juce::PropertiesFile> QQSuperCompressionAudioProcessorEditor::cr
     options.osxLibrarySubFolder = "Application Support";
    #endif
     return std::make_unique<juce::PropertiesFile> (options);
+}
+void QQSuperCompressionAudioProcessorEditor::applyTheme()
+{
+    utf8LookAndFeel.setClassicTheme (classicTheme);
+
+    const auto neutral = qqsc::ui::textMuted();
+    const auto musical = classicTheme ? qqsc::ui::warmAccent()
+                                      : qqsc::ui::warmAccent().darker (0.36f);
+    const auto technical = classicTheme ? qqsc::ui::cyanAccent()
+                                        : qqsc::ui::cyanAccent().darker (0.38f);
+
+    title.setColour (juce::Label::textColourId, qqsc::ui::text());
+    versionLabel.setColour (juce::Label::textColourId, neutral.withAlpha (0.62f));
+
+    for (auto* label : { &inputGainLabel, &ratioLabel, &ratioChannel0Label, &ratioChannel1Label,
+                         &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
+                         &mixLabel, &mixChannel0Label, &mixChannel1Label, &outputGainLabel,
+                         &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
+                         &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel })
+        label->setColour (juce::Label::textColourId, neutral.withAlpha (0.92f));
+
+    inputGainLabel.setColour (juce::Label::textColourId, neutral);
+    outputGainLabel.setColour (juce::Label::textColourId, neutral);
+    ratioLabel.setColour (juce::Label::textColourId, musical);
+    makeupLabel.setColour (juce::Label::textColourId, musical);
+    mixLabel.setColour (juce::Label::textColourId, musical);
+    thresholdLabel.setColour (juce::Label::textColourId, musical);
+    modeLabel.setColour (juce::Label::textColourId, musical);
+    monitorLabel.setColour (juce::Label::textColourId, technical);
+    lookaheadLabel.setColour (juce::Label::textColourId, technical);
+    oversamplingLabel.setColour (juce::Label::textColourId, technical);
+
+    for (auto* slider : { &inputGainSlider, &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider,
+                           &makeupSTSlider, &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider,
+                           &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider, &outputGainSlider })
+    {
+        slider->setColour (juce::Slider::textBoxTextColourId, qqsc::ui::text());
+        slider->setColour (juce::Slider::textBoxBackgroundColourId, qqsc::ui::panel().withAlpha (classicTheme ? 0.96f : 0.76f));
+        slider->setColour (juce::Slider::textBoxOutlineColourId, qqsc::ui::border().withAlpha (classicTheme ? 0.92f : 0.78f));
+        slider->setColour (juce::Slider::rotarySliderOutlineColourId, qqsc::ui::border());
+        slider->setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
+    }
+
+    for (auto* threshold : { &thresholdSlider, &thresholdLSlider, &thresholdRSlider, &thresholdMSlider, &thresholdSSlider })
+    {
+        threshold->setColour (juce::Slider::backgroundColourId, qqsc::ui::panelAlt().withAlpha (classicTheme ? 0.90f : 0.72f));
+        threshold->setColour (juce::Slider::trackColourId, qqsc::ui::warmAccentSoft().withAlpha (0.72f));
+        threshold->setColour (juce::Slider::thumbColourId, qqsc::ui::warmAccent());
+        threshold->setColour (juce::Slider::textBoxTextColourId, qqsc::ui::text());
+        threshold->setColour (juce::Slider::textBoxBackgroundColourId, qqsc::ui::panel().withAlpha (classicTheme ? 0.96f : 0.80f));
+        threshold->setColour (juce::Slider::textBoxOutlineColourId, qqsc::ui::border().withAlpha (classicTheme ? 0.92f : 0.78f));
+    }
+
+    lookaheadCombo.setColour (juce::ComboBox::backgroundColourId, qqsc::ui::panel());
+    lookaheadCombo.setColour (juce::ComboBox::outlineColourId, qqsc::ui::border());
+    lookaheadCombo.setColour (juce::ComboBox::textColourId, qqsc::ui::text());
+    lookaheadCombo.setColour (juce::ComboBox::arrowColourId, technical);
+
+    for (auto* button : { &modeButton, &linkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
+                          &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
+                          &themeButton, &oversamplingButton })
+    {
+        button->setColour (juce::TextButton::buttonColourId, qqsc::ui::panel());
+        button->setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
+        button->setColour (juce::TextButton::textColourOffId, qqsc::ui::text().withAlpha (0.86f));
+        button->setColour (juce::TextButton::textColourOnId, qqsc::ui::text());
+    }
+
+    oversamplingButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    monitorAllButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    monitorFirstButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    monitorSecondButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    themeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    bypassButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
+    themeButton.setButtonText (classicTheme ? "CLASSIC" : "LIGHT");
+
+    display.repaint();
+    meters.repaint();
+    contentRoot.repaint();
+    repaint();
+}
+
+void QQSuperCompressionAudioProcessorEditor::toggleTheme()
+{
+    classicTheme = ! classicTheme;
+    if (uiProperties != nullptr)
+    {
+        uiProperties->setValue ("classicTheme", classicTheme);
+        uiProperties->saveIfNeeded();
+    }
+
+    applyTheme();
 }
 
 void QQSuperCompressionAudioProcessorEditor::configureKnob (FineKnob& slider, const juce::String& suffix)
@@ -881,6 +983,9 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     right -= 36 + smallGap;
     aButton.setBounds (right - 36, headerButtonY, 36, headerButtonH);
     right -= 36 + 12;
+    themeButton.setBounds (right - 76, headerButtonY, 76, headerButtonH);
+    right -= 76 + 12;
+
 
     title.setBounds (margin, 16, juce::jmax (260, right - margin), 34);
     versionLabel.setBounds (margin + 2, 50, 72, 14);

@@ -1,5 +1,28 @@
 # QQ Super Compression — Development History
 
+## v1.0.4 — Light / Classic UI switch
+
+**日期：** 2026-09-01  
+**状态：** Stable baseline / Plan A and Plan B complete  
+**基于：** v1.0.3 Centered Domain Monitor Stable
+
+### 目标与实现
+
+- 在右上角新增 `LIGHT / CLASSIC` 主题切换，不移动现有控件，不改变 1020x820 布局。
+- LIGHT 保留暖色 ivory 界面；CLASSIC 使用低亮度 charcoal、cyan 控件、amber Output 与 pink Gain Reduction。
+- 上次选择的主题保存在本机 `PropertiesFile`，下次打开编辑器时恢复。
+- Theme 不进入 DSP、APVTS、宿主自动化、A/B 声音快照或工程状态。
+- 两份 v1.0.4 中英文手册各保留原 16 页，并追加 1 页主题切换说明。
+
+### 验证与稳定基线
+
+- JUCE/MSVC Windows x64 Release VST3 构建、安装 bundle 一致性与七项回归自测通过。
+- 用户提供了 v1.0.4 CLASSIC 在 Cubase 中的实际界面截图，并于 2026-09-01 明确将当前版本设为 Stable baseline。
+- 项目专属规则：完成 Plan B 的版本即记录为 Stable；Candidate/Test 版本不执行 Plan B。
+- 本次本机环境缺少 Steinberg validator，因此不声称 v1.0.4 已完成该项；v1.0.3 保留为已验证跨平台回滚参考。
+
+---
+
 ## v1.0.3 — Centered Domain Monitor
 
 **日期：** 2026-08-30  

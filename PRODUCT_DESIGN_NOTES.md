@@ -1,8 +1,8 @@
 # QQ Super Compression — Product / DSP Design Notes
 
-## Current product goal (v1.0.3)
+## Current product goal (v1.0.4)
 
-**Stable baseline:** v1.0.2 Complete Relative LINK (user-confirmed Stable on 2026-08-30). v1.0.3 only adds centered LR/MS audition monitoring and does not change the approved audio core.
+**Stable baseline:** v1.0.4 Light / Classic UI switch (user-confirmed Stable on 2026-09-01). v1.0.4 changes only the visual theme system and keeps the v1.0.3 approved audio core, parameters, automation and current layout unchanged. v1.0.3 remains the previous Stable rollback reference.
 
 QQ Super Compression is not designed by starting from a conventional Attack/Release compressor. The practical goal is to reduce dynamics while keeping audible waveform/tone changes as small as possible.
 

@@ -1,7 +1,7 @@
-# QQ Super Compression 1.0.3 — Codex build / validation brief
+# QQ Super Compression 1.0.4 — Codex build / validation brief
 
-**Stable baseline:** v1.0.3 Centered Domain Monitor (Plan A/B/C/D complete; tag v1.0.3 -> 0ef89e19)  
-**Previous stable rollback reference:** v1.0.2 Complete Relative LINK
+**Stable baseline:** v1.0.4 Light / Classic UI switch (Plan A/B complete; user-promoted Stable on 2026-09-01)  
+**Previous stable rollback reference:** v1.0.3 Centered Domain Monitor (tag v1.0.3 -> 0ef89e19)
 
 Read first:
 
@@ -14,7 +14,7 @@ Read first:
 
 ## Scope
 
-Build from v1.0.2 Stable. Do not alter the transparent future-window compressor, Threshold, LINK, independent Mix, Match, Oversampling, PDC or Display behaviour.
+Build from v1.0.4 Stable. The LIGHT / CLASSIC theme choice is visual-only. Do not alter the transparent future-window compressor, Threshold, LINK, independent Mix, Match, Oversampling, PDC, Display or v1.0.3 Monitor behaviour.
 
 Verify the new Monitor exactly:
 
@@ -29,7 +29,7 @@ Verify the new Monitor exactly:
 ## Required validation before Stable claim
 
 - Windows Release VST3 compile with JUCE 8.0.15; no new warnings.
-- Cubase scan/load and panel shows v1.0.3.
+- Cubase scan/load and panel shows v1.0.4.
 - Listen to LR L/R centered and compare level against the established -3.01 dB centered convention.
 - Confirm M is **not** 3.01 dB quieter.
 - Confirm S is centered mono and compensated -3.01 dB.
@@ -37,7 +37,7 @@ Verify the new Monitor exactly:
 - Save/reopen project and verify independent LR/MS Monitor memory.
 - Regression: all v1.0.2 LINK behaviours, future-window DSP, Threshold, Mix, PDC/Bypass, 0 ms Oversampling and Match.
 
-Current AI environment: Python math/source tests pass; CMake could not fetch JUCE because github.com DNS resolution failed. This is **not** a successful VST3 compile.
+Current v1.0.4 environment: JUCE/MSVC Windows x64 Release build, installed-bundle parity and seven source/math regression tests passed. Steinberg validator was unavailable and is not claimed for v1.0.4.
 
 ## Build
 
@@ -45,6 +45,8 @@ Current AI environment: Python math/source tests pass; CMake could not fetch JUC
 - Prefer an existing JUCE checkout with `-DJUCE_PATH=...`.
 - Otherwise CMake is pinned to JUCE 8.0.15 when network access is available.
 - Do not call Python/static checks a successful plug-in build.
+- Plan C reuses the verified Windows x64 VST3 from the formal Plan A output under `D:\Codex\Outputs\QQ Super Compression\1.0.4\Windows`; it does not rebuild Windows in GitHub Actions by default.
+- Plan C manually dispatches `.github/workflows/build-macos-vst3-au.yml` for Apple Silicon VST3, Intel x86_64 VST3 and Universal 2 AU from the confirmed public `v1.0.4` source commit/tag.
 
 ## Non-negotiable DSP baseline
 
@@ -96,7 +98,7 @@ Threshold OFF is conceptual `-inf`; if exactly one threshold starts OFF, keep th
 ## UI regression
 
 - Fixed design space 1020x820, uniformly scaled.
-- Display/Meter row = 550 design px; current v1.0.3 lower row = 158 design px (uses former bottom slack).
+- Display/Meter row = 550 design px; current v1.0.4 lower row = 158 design px (uses former bottom slack).
 - LR/MS use two stacked full-width histories.
 - Display visible range = 0…-90 dB.
 - Mode is a click-cycle button; Lookahead is a ComboBox. Mode and Lookahead are 108x23 and aligned; LINK is 34x23 to the right.
@@ -116,7 +118,7 @@ Threshold OFF is conceptual `-inf`; if exactly one threshold starts OFF, keep th
 - regression: transparent core/Threshold/Lookahead/Oversampling/PDC/Display/A-B/Undo-Redo match v1.0.1 Stable;
 - old project state loads without migration changes (v1.0.2 adds no parameter/state schema).
 
-Final validation: local JUCE 8.0.15 / MSVC Windows x64 VST3 build, source/math and BS.1770 tests, Steinberg validation, Windows/macOS Actions, four final artifacts, macOS architectures, and AU auval all passed. v1.0.3 is the current Stable baseline; user-side Cubase monitoring checks remain recommended.
+v1.0.4 validation: local JUCE 8.0.15 / MSVC Windows x64 VST3 build, installed-bundle parity and seven source/math regression tests passed. The user explicitly promoted this Plan A/Plan B revision to the current Stable baseline on 2026-09-01. Steinberg validator was unavailable for the v1.0.4 local run and remains an explicit validation gap; v1.0.3 remains the verified cross-platform rollback reference.
 
 ---
 

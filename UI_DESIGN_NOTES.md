@@ -1,5 +1,14 @@
 # QQ Super Compression UI Design Notes
 
+## v1.0.4 — Light / Classic UI switch — Stable baseline
+
+- The current warm/light interface and the earlier calm dark interface are both supported without moving any controls or changing DSP behaviour.
+- A compact upper-right button displays `LIGHT` or `CLASSIC`; it switches only colours and LookAndFeel drawing for the existing controls.
+- Classic uses a low-luminance charcoal chassis, cyan controls/technical state, amber Output and pink Gain Reduction. It deliberately avoids the light theme's broad lamp glow.
+- The selected theme is a local `PropertiesFile` preference (`Qing Audio/QQSuperCompression.settings`) and is restored when the editor is reopened.
+- Theme is not an APVTS parameter and is excluded from audio processing, host automation, A/B snapshots and project state.
+- This explicit user decision supersedes the historical note that rejected a predominantly dark interface: dark is now valid only as the optional Classic skin, while the Light skin remains unchanged.
+
 ## v1.0.3 Centered Domain Monitor
 
 - Do **not** shrink the Display/Meter row. It stays 550 design px.

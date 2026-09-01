@@ -1,0 +1,51 @@
+QQ Super Compression 1.0.4 — Windows and macOS Installation Guide
+Release date: 2026-09-01
+Vendor: Qing Audio
+License: Qing Audio Non-Commercial Source-Share License 1.0
+Source repository: https://github.com/Ziqing-Gu/QQ-Super-Compression
+Corresponding source tag: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.0.4
+Formats: Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel x86_64 VST3; macOS Universal 2 AU
+Systems: Windows 10/11 x64; macOS 13 or later
+
+This is the user binary package for a source-available project that prohibits commercial use. It contains installable plug-ins, bilingual installation guides, and bilingual user manuals, but not source code, build caches, or internal validation logs. Non-commercial use is permitted under the license. Distribution of an original, binary, or modified version requires complete corresponding source without charge, preserved authorship, copyright, and license notices, prominent source and change attribution, and the same license for the entire modified work. See the public repository and v1.0.4 tag above for source and full terms. This package contains one plug-in, QQ Super Compression. Keep every installed format at version 1.0.4. Quit Cubase, Nuendo, REAPER, Studio One, Logic Pro, and any other host that may scan plug-ins before upgrading.
+
+What changed in 1.0.4
+1. Added an upper-right LIGHT / CLASSIC theme switch.
+2. LIGHT preserves the warm ivory UI; CLASSIC uses the lower-luminance charcoal/cyan control style.
+3. Both themes keep the same layout, parameters, automation, and sound. The plug-in stores and restores the last locally selected theme.
+
+Choose the package
+- Windows x64 VST3: Win\QQ Super Compression 1.0.4 Windows x64 VST3.zip
+- Apple Silicon / M-series Mac VST3: Mac\QQ Super Compression 1.0.4 macOS Apple Silicon VST3.zip
+- Intel Mac VST3: Mac\QQ Super Compression 1.0.4 macOS Intel x86_64 VST3.zip
+- Universal 2 AU: Mac\QQ Super Compression 1.0.4 macOS Universal 2 AU.zip
+- Linux, AAX, and standalone builds: not provided.
+
+Windows x64 VST3
+1. Quit Cubase, Nuendo, REAPER, Studio One, and every other host that may scan plug-ins.
+2. Extract QQ Super Compression 1.0.4 Windows x64 VST3.zip. Its root should contain `QQ Super Compression.vst3`.
+3. Copy that bundle to `C:\Program Files\Common Files\VST3`. Administrator permission may be required.
+4. With every DAW closed, replace an existing `QQ Super Compression.vst3` of the same name. Do not retain duplicate same-name versions in different VST3 locations.
+5. Reopen the host and run a VST3 rescan. If it does not appear, restart the host or clear its plug-in cache and scan again.
+
+macOS VST3
+1. Quit the host. Choose one VST3 architecture only: arm64 for Apple Silicon/M-series Macs, x86_64 for Intel Macs. Do not install both.
+2. Extraction should produce `QQ Super Compression.vst3`.
+3. Copy it to `~/Library/Audio/Plug-Ins/VST3`; `/Library/Audio/Plug-Ins/VST3` is an optional system location that normally requires administrator permission. In Finder, hold Option while opening Go to reveal the user Library.
+5. Reopen the host and rescan VST3 plug-ins; restart the computer if necessary.
+
+macOS Audio Unit
+1. Quit Logic Pro or any other AU host. QQ Super Compression 1.0.4 macOS Universal 2 AU.zip contains both arm64 and x86_64. Extraction should produce `QQ Super Compression.component`.
+2. Copy it to `~/Library/Audio/Plug-Ins/Components`; `/Library/Audio/Plug-Ins/Components` is the optional system location.
+3. AU and VST3 are separate formats. Install only the format you need, then reopen Logic Pro or rescan Audio Units.
+
+macOS security note
+The macOS artifacts are CI-built ad-hoc signed packages, not Apple Developer ID notarized packages. Once you have confirmed the file source is trusted, Gatekeeper quarantine can be removed from the actual bundle path, for example:
+`xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"`
+Replace the path for an AU component when applicable. Do not remove quarantine from files whose source you do not trust.
+
+Compatibility and troubleshooting
+- Do not retain duplicate copies in both user and system plug-in locations, and do not retain an old same-function version alongside the new one.
+- If the host uses an old cache, quit it fully and rescan.
+- Themes affect appearance only, not DSP, parameters, host automation, A/B, project state, or sound. The new version restores the last locally selected LIGHT/CLASSIC theme.
+- Existing compression, Threshold, LINK, Mix, Lookahead, Oversampling, PDC, and Bypass behaviour is retained for older projects.

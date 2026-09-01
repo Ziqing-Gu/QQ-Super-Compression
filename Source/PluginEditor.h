@@ -102,6 +102,9 @@ private:
     static void configureLabel (juce::Label&, const juce::String& text);
     static void configureActionButton (juce::TextButton&);
     static std::unique_ptr<juce::PropertiesFile> createUiProperties();
+    void applyTheme();
+    void toggleTheme();
+
 
     void timerCallback() override;
     bool keyPressed (const juce::KeyPress&, juce::Component*) override;
@@ -199,6 +202,8 @@ private:
     juce::TextButton bButton { "B" };
     juce::TextButton aToBButton;
     juce::TextButton bToAButton;
+    juce::TextButton themeButton { "LIGHT" };
+
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> inputGainAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> ratioAttachment;
@@ -226,6 +231,8 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> linkAttachment;
 
     LinkedPair activeLinkedPair = LinkedPair::none;
+    bool classicTheme = false;
+
     FineKnob* activeLinkSource = nullptr;
     FineKnob* activeLinkTarget = nullptr;
     double activeLinkSourceStart = 0.0;

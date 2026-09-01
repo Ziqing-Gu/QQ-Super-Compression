@@ -1,12 +1,20 @@
-# QQ Super Compression 1.0.3 — Current Candidate Checklist
+# QQ Super Compression 1.0.4 — Stable Baseline Checklist
 
-**Stable baseline:** v1.0.2 Complete Relative LINK (user-confirmed Stable).
+**Stable baseline:** v1.0.4 Light / Classic UI switch (user-confirmed Stable on 2026-09-01).
 
 ## Build / identity
 
-- [ ] Windows Release VST3 compiles without new warnings.
-- [ ] Cubase scans and loads it.
-- [ ] Panel and binary metadata show `v1.0.3`.
+- [x] Windows Release VST3 compiles without new warnings.
+- [x] Cubase scans and loads it.
+- [x] Panel and binary metadata show `v1.0.4`.
+
+## v1.0.4 visual themes
+
+- [x] The upper-right `LIGHT` / `CLASSIC` control switches only the visual theme.
+- [x] LIGHT preserves the current warm ivory interface and CLASSIC uses the restrained dark charcoal/cyan control style.
+- [x] Both themes keep the same 1020x820 layout, controls, hit targets, parameters and audio behaviour.
+- [x] The last selected theme is stored locally and restored when the editor is reopened.
+- [x] Theme selection remains outside DSP, APVTS, host automation, A/B snapshots and project state.
 
 ## Centered Domain Monitor
 

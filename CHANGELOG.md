@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.4 — Light / Classic UI switch — STABLE
+
+- 用户于 2026-09-01 明确将 v1.0.4 提升为当前稳定基线，并确认本项目完成 Plan B 的版本即记录为 Stable。
+- 右上角新增 `LIGHT` / `CLASSIC` 视觉主题切换；重新打开编辑器时恢复本机上次选择。
+- 主题不进入宿主自动化、A/B、DSP 或工程状态；两种主题保持同一 1020x820 布局、全部控件和声音功能。
+- LIGHT 保留暖色 ivory 界面；CLASSIC 恢复克制的深 charcoal / cyan 控件语言与更简洁的旧版控件绘制。
+- 本机 Windows x64 VST3 Release 构建、系统安装 bundle 一致性和七项回归测试通过。当前环境未安装 Steinberg validator，因此此稳定基线明确保留 validator 验证缺口。
+
+- User explicitly promoted v1.0.4 to the current Stable baseline on 2026-09-01 and confirmed the project rule that completing Plan B records that version as Stable.
+- Added an upper-right `LIGHT` / `CLASSIC` visual-theme switch.
+- The choice is restored from local UI settings on later editor opens; it is not part of host automation, A/B or DSP/project state.
+- Light preserves the approved warm ivory UI. Classic restores the restrained dark charcoal / cyan control language and simpler legacy control drawing while preserving the current 1020x820 layout and every feature.
+- Local Windows x64 VST3 Release build and installed-bundle parity passed. Steinberg validator is not installed in this Codex environment, so validator status remains an explicitly recorded validation gap for this user-promoted Stable baseline.
+
 ## 1.0.3 — Centered Domain Monitor — STABLE
 
 - Built directly from the user-confirmed **v1.0.2 Stable** baseline.
