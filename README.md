@@ -52,7 +52,7 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 
 
-# QQ Super Compression 1.0.4
+# QQ Super Compression 1.1.2
 
 **Qing Audio 非商业源码公开动态处理器 / Non-commercial source-available dynamics processor by Qing Audio**
 
@@ -62,17 +62,88 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 | 项目 / Item | 内容 / Value |
 |---|---|
-| 当前版本 / Current version | 1.0.4 |
-| 状态 / Status | Stable baseline / 稳定基线 |
+| 当前稳定版本 / Current stable version | 1.1.2 Stable - Mix-aware Dynamic Display |
+| 本次 Plan A 成品 / Current Plan A artifact | Windows x64 VST3 |
+| 状态 / Status | v1.1.2 Plan A + Plan B Stable |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | Qing Audio NC Source-Share 1.0 |
 
-> **1.0.4 稳定基线 / Stable baseline:** 用户于 2026-09-01 明确将 LIGHT / CLASSIC UI 版本提升为当前稳定源码基线，并确认本项目完成 Plan B 的版本即记为 Stable。1.0.4 的 Plan A Windows x64 VST3 构建、安装 bundle 一致性和七项回归测试已通过，Plan B 正式源码镜像已核验；Plan C 的三项 macOS Actions 均成功，Universal 2 AU 通过 `auval`；Plan D 已发布正式 Release。1.0.3 保留为上一稳定回滚参考和上一公开 Release。
+> **上一稳定基线 / Previous Stable:** v1.1.1 Side Chain HPF；v1.1.0 External Key / Sidechain 继续作为更早的稳定回滚点保留。
 >
-> **Stable baseline:** On 2026-09-01 the user explicitly promoted the LIGHT / CLASSIC UI revision to the current Stable source baseline and confirmed the project rule that completing Plan B records that version as Stable. The v1.0.4 Plan A Windows x64 VST3 build, installed-bundle parity and seven regression tests passed, and the formal Plan B source mirror was verified. All three Plan C macOS Actions jobs succeeded, and the Universal 2 AU passed `auval`; Plan D has published the formal Release. Version 1.0.3 remains the previous stable rollback reference and previous public Release.
+> **Stable baseline:** On 2026-09-02 Plan B was completed for v1.1.2, so the project standing rule promotes Mix-aware Dynamic Display to the current Stable baseline. Its existing Plan A Windows x64 VST3 build, build/output/install parity, ten source/math checks, and BS.1770 self-test passed. Steinberg validator/pluginval remains unavailable, so no validator pass is claimed. v1.1.1 is the previous Stable rollback; v1.0.4 remains the latest previous public Release.
 
+
+## 1.1.2 更新 / 1.1.2 update - Mix-aware Dynamic Display
+
+v1.1.2 重构 Dynamic Display，使它直接解释当前参数如何改变已经经过的素材。Display 不再记录无法回算的 Wet/Output 结果，而是保留原始 Input 与实际 future-window detector 历史，再用当前 Input、Ratio、Threshold、Mix、Makeup 和 Output Gain 对整个可见窗口重新投影。
+
+Version 1.1.2 rebuilds the Dynamic Display so it explains how the current settings would reshape the material already visible in history. Instead of retaining immutable Wet/Output results, it stores the original Input plus the actual future-window detector history, then reprojects the complete visible window with the current Input, Ratio, Threshold, Mix, Makeup, and Output Gain settings.
+
+- Gain Reduction 现在包含 Mix：0% Mix = 0 dB 有效 GR，100% Mix = 完整核心 GR；中间值在线性增益域计算，不能用“核心 GR dB × Mix”代替。
+- 右侧 Gain Reduction Meter、2 秒 Hold 与 Display 历史统一使用包含 Mix 的有效 GR；Makeup 和 Output Gain 只改变 Output，不计入 GR。
+- 删除 Wet pre-Makeup 曲线。Display 现在显示 Dry/Input、GR（含 Mix）的衰减区域与边界，以及最终 Output post-Mix。
+- EXT 激活并且外部总线可用时，Display 使用较弱、较虚的双层线显示实际 post-Key-Gain/post-HPF future-window Key 轮廓。
+- 调整 Input、Ratio、Threshold、Mix、Makeup 或 Output Gain 时，整个可见历史立即重算；ST、LR、MS 和 LIGHT/CLASSIC 具有相同功能。
+- 本版没有新增声音参数或改变状态 schema；v1.1.2 已完成 Plan A 与 Plan B，并按项目长期规则成为 Stable；v1.1.1 是上一稳定回滚版本。
+
+- Gain Reduction now includes Mix: 0% Mix means 0 dB effective GR, 100% means the full core GR, and intermediate values are calculated in the linear gain domain rather than by multiplying GR dB by Mix.
+- The right-side Gain Reduction meter, two-second Hold, and Display history use the same Mix-aware effective GR. Makeup and Output Gain affect Output only and are excluded from GR.
+- The Wet pre-Makeup trace is removed. Display now shows Dry/Input, the Mix-aware GR area and boundary, and final Output post-Mix.
+- When EXT is active and available, a deliberately soft two-stroke line shows the actual post-Key-Gain/post-HPF future-window Key contour.
+- Changing Input, Ratio, Threshold, Mix, Makeup, or Output Gain immediately reprojects the full visible history in ST, LR, and MS with identical LIGHT/CLASSIC behaviour.
+- No sound parameter or state-schema change is introduced. v1.1.2 completed Plan A and Plan B and is Stable under the project standing rule; v1.1.1 is the previous Stable rollback.
+
+### Display 动态演示 / Display demonstration
+
+![QQ Super Compression 1.1.2 Mix-aware Dynamic Display](docs/images/qq-super-compression-1.1.2-mix-aware-display.gif)
+
+这段动画展示了调整参数时，整个历史窗口如何实时重算 Input、包含 Mix 的 Gain Reduction 与最终 Output；它也展示了侧链浮动面板、Threshold 与各电平表在同一视图中的关系。
+
+This animation shows the visible history being reprojected in real time as parameters change, including Input, Mix-aware Gain Reduction, and final Output. It also shows how the sidechain popup, Threshold, and meters relate within the same view.
+
+- [1.1.2 中文用户手册 / Chinese user manual](docs/manuals/QQ%20Super%20Compression%20%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C%20%E4%B8%AD%E6%96%87%E7%89%88_v1.1.2.pdf)
+- [1.1.2 English user manual](docs/manuals/QQ%20Super%20Compression%20User%20Manual%20English_v1.1.2.pdf)
+
+## 1.1.1 更新 / 1.1.1 update - Side Chain HPF
+
+v1.1.1 在现有 Side Chain 浮动面板中加入 HPF 旋钮。它用于减少低频对检测器的支配，让鼓、贝斯、总线或母带侧链的增益衰减轮廓更容易按频段塑形；它不是 Input/Key Gain 的替代品，因为滤波会改变不同频率成分之间的相对权重。
+
+Version 1.1.1 adds an HPF knob to the existing Side Chain popup. It reduces low-frequency dominance in the detector, allowing the gain-reduction contour to respond more selectively on drums, bass, buses, and mastering material. Unlike Input/Key Gain, filtering changes the relative weighting of frequency components.
+
+- OFF 为默认值，并保持 v1.1.0 完整全频检测行为；旧工程和旧 A/B 快照自动迁移到 OFF。
+- 有效范围为 20-500 Hz，采用二阶 Butterworth 高通；旋钮使用对数频率手感。
+- HPF 作用于当前选择的 INT 或 EXT Key。EXT 中先经过 Key Gain，再经过 HPF。
+- 滤波后的 Key 同时送往检测器、Key Level 表和 SC LISTEN；它永远不进入正常主载波输出。
+- HPF 是可自动化、可保存、支持 Undo/Redo 且进入 A/B 的声音参数。状态 schema 从 9 升至 10。
+- Side Chain 浮动面板由 230x146 扩为 330x146，并从 SC 按钮向左展开；LIGHT 与 CLASSIC 使用完全相同的控件、范围和命中区域，主 1020x820 布局不变。
+- Plan A 已生成、安装并校验 Windows x64 VST3；Plan B 完成时 v1.1.1 曾按项目规则成为 Stable。当前 v1.1.2 已取代它，v1.1.1 现为上一稳定回滚版本。
+
+- OFF is the default and preserves the complete v1.1.0 full-band detector behaviour; legacy projects and A/B snapshots migrate to OFF.
+- The active range is 20-500 Hz, using a second-order Butterworth high-pass and logarithmic knob travel.
+- HPF processes the selected INT or EXT key. In EXT mode it follows Key Gain.
+- The filtered key feeds the detector, Key Level meter, and SC LISTEN; it never enters the normal carrier output.
+- HPF is automatable, persistent, undoable, and included in A/B. State schema advances from 9 to 10.
+- The popup grows from 230x146 to 330x146 and expands leftward from the SC button. LIGHT and CLASSIC keep identical controls, ranges, and hit targets; the main 1020x820 layout is unchanged.
+- Plan A produced, installed, and verified the Windows x64 VST3. Completing Plan B made v1.1.1 Stable at that time. It has now been superseded by v1.1.2 and remains the previous Stable rollback.
+## 1.1.0 稳定版更新 / 1.1.0 Stable update
+
+1.1.0 新增可选外部侧链输入。右上角常驻 `SC: INT / SC: EXT` 按钮；点击后打开紧凑浮动面板，可选择内部或外部 Key、调整独立 `KEY GAIN`、使用 `SC LISTEN` 试听检测信号，并查看 Key 电平。LIGHT 与 CLASSIC 使用完全相同的面板布局和命中区域，只改变配色与控件绘制。
+
+Version 1.1.0 adds an optional external sidechain input. The persistent upper-right `SC: INT / SC: EXT` button opens a compact panel for Internal/External key selection, dedicated `KEY GAIN`, safety audition `SC LISTEN`, and key level metering. LIGHT and CLASSIC share identical geometry and hit targets; only their colours and control rendering differ.
+
+- `INT` 保持 v1.0.4 的完整全频检测路径：检测器继续读取 Input Gain 后的主信号。
+- `EXT` 只替换检测信号，不进入可听载波；没有连接外部总线或外部 Key 静音时，增益衰减为 0，主信号不会被静音。
+- 外部 Key 继续使用同一个 future-window Peak / Lookahead、Ratio 与 Threshold 规律；没有新增 Attack、Release 或包络器。
+- Key Source 与 Key Gain 属于声音参数，可宿主自动化、保存工程并进入 A/B；`SC LISTEN` 是安全试听状态，不自动化、不保存、不进入 A/B，关闭面板或编辑器时自动关闭。
+- 用户已于 2026-09-02 明确将 v1.1.0 提升为 Stable；Plan A 与正式 Plan B 已完成。Cubase 外部侧链、监听、PDC 与旧工程逐项检查继续作为人工复核清单保留；v1.0.4 是上一稳定回滚基线。
+
+- `INT` preserves the complete v1.0.4 full-band detector path: the detector still follows the main signal after Input Gain.
+- `EXT` replaces only the detector signal and never enters the audible carrier. A disconnected or silent external bus produces zero gain reduction without muting the main signal.
+- External Key uses the same future-window Peak/Lookahead detector plus the existing Ratio and Threshold law; no Attack, Release, or envelope stage is added.
+- Key Source and Key Gain are sound parameters included in host automation, project state, and A/B. `SC LISTEN` is a safety audition state excluded from automation, persistence, and A/B, and it switches off when the panel or editor closes.
+- The user explicitly promoted v1.1.0 to Stable on 2026-09-02; Plan A and the formal Plan B are complete. Detailed Cubase external-sidechain, listen, PDC, and legacy-project checks remain recorded as manual follow-up; v1.0.4 is the previous Stable rollback baseline.
 
 ## 1.0.4 更新 / 1.0.4 update
 
@@ -302,7 +373,7 @@ Match compares delayed Dry with compressed Wet before Makeup and Mix, then write
 - A/B 保存 Ratio、Threshold、全部 Makeup、Mix、Lookahead、0 ms Oversampling 记忆值和 Mode；Bypass 与 LINK 保持全局工作流状态。
 - A→B / B→A 参数复制。
 - Shift-drag 精调，Alt+左键恢复默认，Ctrl/Cmd+Z Undo，Ctrl/Cmd+Shift+Z Redo。
-- Dynamic Display：灰色为延迟 Dry/Input，青色为 Makeup 前 Wet，黄色为 Makeup/Mix 后 Output。
+- Dynamic Display：灰色为延迟 Dry/Input，洋红色为包含 Mix 的有效 Gain Reduction 边界与衰减区域，黄色为最终 Output post-Mix；EXT 可用时用弱化双层线显示外部 Key。
 - Input、Output、Gain Reduction 三组双通道表；ST/LR 显示 L/R，MS 显示 M/S。
 - 每路 Gain Reduction 有 2 秒自动 Peak Hold，仅用于显示。
 - 完整 1020x820 设计空间按固定比例统一缩放。
@@ -310,7 +381,7 @@ Match compares delayed Dry with compressed Wet before Makeup and Mix, then write
 - A/B stores Ratio, Threshold, all Makeup values, Mix, Lookahead, the remembered 0 ms Oversampling choice, and Mode; Bypass and LINK remain global workflow state.
 - A→B / B→A parameter copy.
 - Shift-drag fine adjustment, Alt+left-click reset, Undo, and Redo.
-- Dynamic Display: grey delayed Dry/Input, cyan pre-Makeup Wet, yellow post-Makeup/post-Mix Output.
+- Dynamic Display: grey is delayed Dry/Input, magenta is the Mix-aware effective Gain Reduction boundary and attenuation area, and yellow is final Output post-Mix; when EXT is available, a subdued two-stroke line shows the external Key.
 - Dual-channel Input, Output, and Gain Reduction meters; ST/LR show L/R and MS shows M/S.
 - Each Gain Reduction meter has a display-only 2-second automatic Peak Hold.
 - The complete 1020x820 design space scales uniformly at a fixed aspect ratio.
@@ -333,21 +404,27 @@ Match compares delayed Dry with compressed Wet before Makeup and Mix, then write
 
 | 包 / Package | 内容 / Contents |
 |---|---|
-| `QQ-Super-Compression-1.0.3-Windows-x64.zip` | Windows x64 VST3 |
-| `QQ-Super-Compression-1.0.3-macOS-Apple-Silicon-VST3.zip` | macOS arm64 VST3 |
-| `QQ-Super-Compression-1.0.3-macOS-Intel-VST3.zip` | macOS x86_64 VST3 |
-| `QQ-Super-Compression-1.0.3-macOS-Universal-AU.zip` | macOS Universal 2 AU, arm64 + x86_64 |
+| `QQ Super Compression 1.1.2 Windows x64 VST3.zip` | Windows x64 VST3 |
+| `QQ Super Compression 1.1.2 macOS Apple Silicon VST3.zip` | macOS arm64 VST3 |
+| `QQ Super Compression 1.1.2 macOS Intel x86_64 VST3.zip` | macOS x86_64 VST3 |
+| `QQ Super Compression 1.1.2 macOS Universal 2 AU.zip` | macOS Universal 2 AU, arm64 + x86_64 |
 
-这些是 Plan D 桌面交付包内的四个插件子包，并不是四个独立的 GitHub Release 资产。macOS 包使用 ad-hoc 签名，没有 Apple Developer ID 公证。安装与 quarantine 处理见下方说明。
+这些是 v1.1.2 Plan C 桌面交付包内的四个插件子包，不是 GitHub Release 资产。Windows 包复用本机 Plan A 正式输出；三类 macOS 包来自同一 v1.1.2 公开标签的手动 Actions。macOS 包使用 ad-hoc 签名，没有 Apple Developer ID 公证。
 
-These are the four plug-in subpackages in the Plan D desktop handoff, not four separate GitHub Release assets. macOS bundles are ad-hoc signed and are not Apple Developer ID notarized. See the installation guides for installation and quarantine handling.
+These are the four plug-in subpackages in the v1.1.2 Plan C desktop handoff, not GitHub Release assets. The Windows package reuses the local Plan A output; the three macOS packages come from a manual Actions run on the same public v1.1.2 tag. macOS bundles are ad-hoc signed and are not Apple Developer ID notarized.
 
 ## 安装说明 / Installation guides
 
-- [中文安装说明](docs/QQ%20Super%20Compression%201.0.3%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
-- [English installation guide](docs/QQ-Super-Compression-1.0.3-Windows-macOS-INSTALL.txt)
+- [中文安装说明 v1.1.2](docs/QQ%20Super%20Compression%201.1.2%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+- [English installation guide v1.1.2](docs/QQ-Super-Compression-1.1.2-Windows-macOS-INSTALL.txt)
 
 ## 验证状态 / Validation status
+
+v1.1.2 已完成本机 Windows x64 VST3 Plan A 与正式 Plan B，并成为当前 Stable。Plan C 从确定的公开 `v1.1.2` 标签运行三类 macOS jobs，Windows Actions 默认不执行；实际 workflow、架构、版本、字节数与 SHA-256 证据保存在内部 Plan C 验证目录，正式 Release 留待 Plan D。
+
+Version 1.1.2 completed the local Windows x64 VST3 Plan A and formal Plan B and is the current Stable. Plan C runs the three macOS jobs from the fixed public `v1.1.2` tag while leaving Windows Actions unrun by default. Workflow, architecture, version, byte-count, and SHA-256 evidence is retained in the internal Plan C verification directory; a formal Release remains Plan D work.
+
+### 历史验证记录 / Historical validation record
 
 1.0.3 源码 manifest 已核对；Windows x64 Release 已使用 JUCE 8.0.15 / MSVC 构建，x64 PE、moduleinfo、BS.1770、Transparent Core、Threshold、Domain LINK、Complete Relative LINK、Independent Mix、Display Scale 与新增 Centered Domain Monitor 自测均通过，Steinberg VST3 validator 返回 0。Windows 构建、输出与系统安装副本的逐文件 SHA-256 一致。
 
@@ -359,9 +436,36 @@ This Plan D run built and verified Windows x64 VST3, macOS arm64 VST3, macOS x86
 
 ## 完整版本历史 / Complete version history
 
-下面记录从首个原型到当前版本的全部真实版本。用户已于 2026-09-01 将 1.0.4 Light / Classic UI switch 明确提升为当前 Stable baseline；1.0.3 保留为上一稳定回滚参考，失败实验与此前候选版本继续保留，不改写历史。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
+下面记录从首个原型到当前版本的全部真实版本。v1.1.2 已于 2026-09-02 完成 Plan A 与 Plan B，并按项目长期规则成为当前 Stable；v1.1.1 是上一稳定回滚版本，v1.1.0 和 v1.0.4 继续作为更早的稳定历史保留。失败实验与此前候选版本继续保留，不改写历史。更详细的技术记录见 [CHANGELOG.md](CHANGELOG.md)。
 
-Every real version from the first prototype through the current build is recorded below. On 2026-09-01 the user explicitly promoted v1.0.4 Light / Classic UI switch to the current Stable baseline; v1.0.3 remains the previous Stable rollback reference, and rejected experiments and earlier candidates remain in history. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+Every real version from the first prototype through the current build is recorded below. Version 1.1.2 completed Plan A and Plan B on 2026-09-02 and is the current Stable under the standing project rule. Version 1.1.1 is the previous Stable rollback; v1.1.0 and v1.0.4 remain earlier Stable history. Rejected experiments and earlier candidates remain in place. See [CHANGELOG.md](CHANGELOG.md) for the expanded technical record.
+
+### 1.1.2 — 2026-09-02 — Mix-aware Dynamic Display — Current Stable / 含 Mix 的动态显示——当前稳定基线
+
+- 中文：产品层面的 Gain Reduction 在线性增益域包含 Mix；0% Mix 为 0 dB 有效 GR，100% 为完整核心 GR。Makeup 与 Output Gain 不计入 GR。
+- English: Product-facing Gain Reduction includes Mix in the linear gain domain: 0% Mix is 0 dB effective GR and 100% is the full core GR. Makeup and Output Gain remain excluded.
+- 中文：Display 保存原始 Input 与实际 future-window detector 历史，并用当前 Input、Ratio、Threshold、Mix、Makeup 与 Output Gain 重新投影整个可见窗口；删除可见 Wet pre-Makeup 曲线。
+- English: The Display stores raw Input plus actual future-window detector history and reprojects the full visible window with current Input, Ratio, Threshold, Mix, Makeup, and Output Gain; the visible Wet pre-Makeup trace is removed.
+- 中文：EXT 可用时，以较弱双层线显示 post-Key-Gain/post-HPF 外部 Key 轮廓；右侧 GR meter、两秒 Hold 与历史视图共用同一含 Mix 的 GR 定义。
+- English: When EXT is available, a soft two-stroke line shows the post-Key-Gain/post-HPF key contour; the right-side GR meter, two-second Hold, and history share the same Mix-aware GR definition.
+- 状态 / Status：Plan A 与正式 Plan B 已完成，按项目规则成为当前 Stable。Plan C 使用本版确定公开提交与 `v1.1.2` 标签生成三类 macOS 成品；Windows 复用同源 Plan A 正式输出。
+
+### 1.1.1 — 2026-09-02 — Side Chain HPF — Previous Stable / 侧链高通——上一稳定回滚
+
+- 中文：在侧链面板加入默认 OFF、20-500 Hz 的二阶 Butterworth HPF；只改变检测 Key 的频率权重，不滤波可听主载波。
+- English: Adds a default-OFF, 20-500 Hz second-order Butterworth HPF to the sidechain panel; it changes detector-key weighting without filtering the audible carrier.
+- 中文：INT 与 EXT 均可使用；EXT 顺序为 Key Gain → HPF。滤波后 Key 同时进入 detector、Key Level 与延迟对齐的 SC LISTEN。
+- English: INT and EXT are both supported; EXT order is Key Gain → HPF. The filtered key feeds the detector, Key Level, and latency-aligned SC LISTEN.
+- 中文：参数进入宿主自动化、工程状态、Undo/Redo 与 A/B；旧工程迁移到 OFF，状态 schema 从 9 升至 10。
+- English: The parameter participates in host automation, project state, Undo/Redo, and A/B; legacy states migrate to OFF and the state schema advances from 9 to 10.
+- 状态 / Status：Plan A 与正式 Plan B 已完成；曾按项目规则成为 Stable，现由 v1.1.2 取代并保留为上一稳定回滚版本。
+### 1.1.0 — 2026-09-02 — External Key / Sidechain — Stable baseline / 外部侧链——稳定基线
+
+- 中文：新增可选 mono/stereo 外部侧链、INT/EXT Key Source、独立 Key Gain、SC Listen 与 Key 电平显示；外部 Key 只替换检测源，不进入正常可听载波。
+- English: Adds optional mono/stereo external sidechain, INT/EXT Key Source, dedicated Key Gain, SC Listen, and key metering; external key replaces only the detector source and never enters the normal audible carrier.
+- 中文：保留既有 future-window Peak/Lookahead、Ratio、Threshold、ST/LR/MS、Oversampling、PDC、A/B、双主题与旧工程迁移规则；无 Attack/Release 包络器。
+- English: Preserves the existing future-window Peak/Lookahead, Ratio, Threshold, ST/LR/MS, Oversampling, PDC, A/B, dual-theme, and legacy-state rules; no Attack/Release envelope is added.
+- 状态 / Status：历史 Stable；Plan A 与正式 Plan B 已完成。v1.1.2 是当前 Stable，v1.1.1 是上一稳定回滚版本，v1.1.0 继续作为更早的外部侧链稳定历史保留。
 
 ### 1.0.4 — 2026-09-01 — Light / Classic UI switch — Stable baseline / 双主题切换——稳定基线
 
@@ -369,7 +473,7 @@ Every real version from the first prototype through the current build is recorde
 - English: Adds an upper-right LIGHT / CLASSIC visual-theme switch while preserving the existing layout, controls, parameters, automation and sound.
 - 中文：主题只保存在本机 UI 设置中，下次打开编辑器时恢复；不进入 DSP、APVTS、A/B 或工程状态。
 - English: Theme is stored only in local UI settings and restored on the next editor open; it remains outside DSP, APVTS, A/B and project state.
-- 状态 / Status：用户明确指定为 Stable baseline；Plan A、正式 Plan B、Plan C 与 Plan D 均已完成；v1.0.3 为上一稳定回滚参考和上一公开 Release。
+- 状态 / Status：历史 Stable；Plan A、正式 Plan B、Plan C 与 Plan D 均已完成。v1.0.4 现作为更早的稳定历史与上一公开 Release 保留；当前 Stable 为 v1.1.2。
 
 ### 1.0.3 — 2026-08-30 — Centered Domain Monitor — Stable baseline / 居中分域监听——稳定基线
 
@@ -502,6 +606,16 @@ Every real version from the first prototype through the current build is recorde
 - 中文：首个包含 Ratio、Makeup、Makeup Gate、Mix 和 0/10 ms 选项的原型。其样本域 waveshaper 后来被实测否定，因此该版只证明产品方向，不可作为 Stable 或兼容基线。
 - English: Initial prototype with Ratio, Makeup, Makeup Gate, Mix, and 0/10 ms options. Its sample-domain waveshaper was later rejected by testing, so this build established direction only and must not be treated as a Stable or compatibility baseline.
 
+## 兼容性与已知问题 / Compatibility and known issues
+
+- Windows：Windows 10/11 x64，VST3。v1.1.2 的 Steinberg validator/pluginval 在当前本机构建环境不可用，因此只记录 Windows Release 构建、回归自测和 bundle 哈希一致性；Cubase 试听与 UI 检查仍由用户完成。
+- Windows: Windows 10/11 x64, VST3. Steinberg validator/pluginval was unavailable for the local v1.1.2 build, so the recorded evidence is the Release build, regression checks, and bundle-hash parity; Cubase listening and UI checks remain manual.
+- macOS：macOS 13 或更高版本。Apple Silicon VST3 为 arm64，Intel VST3 为 x86_64，AU 为 arm64 + x86_64 Universal 2。两种 VST3 架构只选择一套安装。
+- macOS: macOS 13 or later. Apple Silicon VST3 is arm64, Intel VST3 is x86_64, and AU is arm64 + x86_64 Universal 2. Install only one VST3 architecture.
+- 外部侧链依赖宿主提供并路由 Sidechain bus；未连接或静音 EXT 时 GR 为 0，主载波保持可听。SC LISTEN 只用于临时检查 Key。
+- External sidechain operation depends on host bus support and routing. A missing or silent EXT key produces 0 dB GR while the carrier remains audible. SC LISTEN is a temporary key-audition workflow.
+- macOS CI 成品为 ad-hoc 签名、未经 Apple Developer ID 公证；若系统隔离文件，请只在确认来源可信后按安装说明处理 quarantine。
+- macOS CI artifacts are ad-hoc signed and not Apple Developer ID notarized. Remove quarantine only after verifying that the source is trusted and follow the installation guide.
 ## 构建 / Build
 
 ```text
@@ -511,7 +625,11 @@ cmake --build build --config Release --target QQSuperCompression_VST3
 
 未指定本地 JUCE 时，可使用固定的 JUCE 8.0.15 FetchContent。Windows 使用 MSVC `/utf-8`；macOS 构建会同时启用 AU target。
 
+Plan C 的 Windows x64 VST3 复用本机 Plan A 已验证正式输出，不在 GitHub Actions 中重复构建。公开 workflow 默认仅通过手动触发生成三类 macOS 成品：Apple Silicon VST3、Intel VST3 与 Universal 2 AU。Windows workflow 保留供用户明确要求时手动复现，不随 main 推送自动运行。
+
 When a local JUCE checkout is not supplied, the project can fetch pinned JUCE 8.0.15. Windows uses MSVC `/utf-8`; macOS configuration also enables the AU target.
+
+For Plan C, the Windows x64 VST3 is reused from the locally verified Plan A output and is not rebuilt in GitHub Actions. The public workflow is manually dispatched to produce only the three macOS deliverables: Apple Silicon VST3, Intel VST3, and Universal 2 AU. The Windows workflow remains available for explicit manual reproduction and does not run on pushes to main.
 
 完整构建与验证要求见 [CODEX_BUILD.md](CODEX_BUILD.md)。
 

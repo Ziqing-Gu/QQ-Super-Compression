@@ -104,6 +104,23 @@ public:
         return numerator / juce::jmax (1.0e-9f, denominator);
     }
 
+    // In QQ Super Compression, Mix is part of the user-facing compression
+    // depth. Dry and compressed Wet are blended in the linear gain domain, so
+    // effective GR is deliberately not core GR dB multiplied by Mix.
+    static float effectiveGainForMix (float compressedGain, float wetMix) noexcept
+    {
+        compressedGain = juce::jlimit (0.0f, 1.0f, compressedGain);
+        wetMix = juce::jlimit (0.0f, 1.0f, wetMix);
+        return 1.0f + (compressedGain - 1.0f) * wetMix;
+    }
+
+    static float effectiveGainReductionDb (float compressedGain, float wetMix) noexcept
+    {
+        const auto effectiveGain = effectiveGainForMix (compressedGain, wetMix);
+        return juce::jmax (0.0f,
+            -juce::Decibels::gainToDecibels (juce::jmax (effectiveGain, 1.0e-9f), -180.0f));
+    }
+
     float getCurrentLevel() const noexcept { return currentLevel; }
     float getCurrentGain() const noexcept { return currentGain; }
     float getCurrentGainReductionDb() const noexcept { return currentGainReductionDb; }

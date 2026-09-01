@@ -1,7 +1,33 @@
-# QQ Super Compression 1.0.4 — Codex build / validation brief
+# QQ Super Compression 1.1.2 Stable - Build / validation brief
 
-**Stable baseline:** v1.0.4 Light / Classic UI switch (Plan A/B complete; user-promoted Stable on 2026-09-01)  
-**Previous stable rollback reference:** v1.0.3 Centered Domain Monitor (tag v1.0.3 -> 0ef89e19)
+## v1.1.2 Stable - Mix-aware Dynamic Display
+
+- Build target: Windows x64 VST3 Release, JUCE 8.0.15, MSVC 19.44.
+- Plan A output: verified local formal output; machine-specific path omitted from public source.
+- System install: C:\Program Files\Common Files\VST3\QQ Super Compression.vst3.
+- Build/output/install parity: 2 files, 6,724,699 bytes, tree SHA-256 2D6CE2509C70C9D697756F4AD264BCB6EC284619DB2B341A5A670AE11BDF061C.
+- Main binary SHA-256: 240A9DBEBDE3D88B14A59096218525204CD43B020B486E390A1042330EAA1DE3.
+- Ten Python/source/math checks and standalone BS.1770 pass; validator is unavailable.
+- v1.1.2 completed Plan A and Plan B and is Stable by the project standing rule. Plan C reuses the verified Windows Plan A output and manually dispatches only Apple Silicon VST3, Intel VST3, and Universal 2 AU from the exact public v1.1.2 tag. Windows Actions is retained for explicit reproduction only and is not run by Plan C; Plan D/Release remains separate.
+
+Read AI_DEVELOPMENT_HANDOFF.md and PLAN_A_VERIFICATION_1.1.2.md first for the current Stable contract and Plan A evidence.
+
+--- CURRENT STABLE BUILD BRIEF BELOW ---
+# QQ Super Compression 1.1.1 Stable - Codex build / validation brief
+
+## v1.1.1 Stable - Side Chain HPF
+
+- Build target: Windows x64 VST3 Release, JUCE 8.0.15, MSVC 19.44.
+- Plan A output: verified local formal output; machine-specific path omitted from public source.
+- System install: C:\Program Files\Common Files\VST3\QQ Super Compression.vst3.
+- Build/output/install parity: 2 files, 6,716,507 bytes, tree SHA-256 50FB3109C22DDB55E591941301C81A034CFEC097501C2639BA0E7FF9D273CFB6.
+- Nine Python/source/math checks and standalone BS.1770 pass; validator is unavailable.
+- Plan B source backup: verified internal formal backup; machine-specific path omitted from public source.
+- v1.1.1 is the previous Stable rollback; v1.1.2 is current Stable.
+- No Plan C/D, GitHub, Actions, macOS build, packaging, or Release work is part of this run.
+
+**Stable baseline:** v1.1.0 External Key (Plan A/B complete; user-promoted Stable on 2026-09-02)
+**Previous stable rollback reference:** v1.0.4 Light / Classic UI switch
 
 Read first:
 
@@ -11,6 +37,35 @@ Read first:
 4. `CHANGELOG.md`
 5. `DEVELOPMENT_HISTORY.md`
 6. `docs/TEST_CHECKLIST.md`
+
+## v1.1.0 Stable baseline
+
+**Current Stable target:** `v1.1.0 — External Key` (Plan A and formal Plan B complete)
+
+**Previous Stable rollback baseline:** `v1.0.4 — Light / Classic UI switch`
+
+Build directly from the v1.0.4 Stable code. External Key may replace only the detector source; it must not change the carrier, future-window gain law, Threshold, Lookahead, Oversampling, PDC, Match, Display, Monitor, A/B semantics, or either theme.
+
+Required contract:
+
+- optional mono/stereo input bus named `Sidechain`;
+- INT = exact v1.0.4 post-Input-Gain detector; EXT = sidechain after dedicated Key Gain;
+- disconnected/silent EXT = zero GR, audible carrier intact;
+- ST common key, LR independent key domains, stereo MS matrix, mono EXT common to both M/S;
+- Key Source + Key Gain are appended APVTS parameters and A/B members; old states migrate to INT / 0 dB;
+- SC Listen is non-automatable/non-persistent/non-A/B, latency-aligned, ignored by true Bypass, and resets OFF on panel/editor close/state restore;
+- the same 230x146 floating panel geometry is used in LIGHT and CLASSIC; no main-layout movement.
+
+Verified Plan A evidence inherited by Plan B:
+
+- JUCE 8.0.15 / MSVC Windows x64 Release VST3 build with no new warnings;
+- all eight Python/source/math tests plus standalone BS.1770 test pass;
+- binary and module metadata show 1.1.0;
+- copy the verified bundle to local formal output storage;
+- install only after Cubase/DAW processes are confirmed closed;
+- hash parity between build, output, and system-installed bundle;
+- clearly record Steinberg validator as unavailable if it cannot be found;
+- the user explicitly promoted v1.1.0 to Stable on 2026-09-02; detailed Cubase sidechain/audio/UI/PDC/old-project checks remain recorded as manual follow-up.
 
 ## Scope
 
@@ -45,7 +100,7 @@ Current v1.0.4 environment: JUCE/MSVC Windows x64 Release build, installed-bundl
 - Prefer an existing JUCE checkout with `-DJUCE_PATH=...`.
 - Otherwise CMake is pinned to JUCE 8.0.15 when network access is available.
 - Do not call Python/static checks a successful plug-in build.
-- Plan C reuses the verified Windows x64 VST3 from the formal Plan A output under `D:\Codex\Outputs\QQ Super Compression\1.0.4\Windows`; it does not rebuild Windows in GitHub Actions by default.
+- Plan C reuses the verified Windows x64 VST3 from the formal local Plan A output; it does not rebuild Windows in GitHub Actions by default.
 - Plan C manually dispatches `.github/workflows/build-macos-vst3-au.yml` for Apple Silicon VST3, Intel x86_64 VST3 and Universal 2 AU from the confirmed public `v1.0.4` source commit/tag.
 
 ## Non-negotiable DSP baseline

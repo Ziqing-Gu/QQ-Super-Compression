@@ -3,12 +3,18 @@
 //   c++ -std=c++17 -O2 tests/bs1770_match_selftest.cpp -I. -o bs1770_test
 //   ./bs1770_test
 
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <iostream>
+#include <vector>
+
+// Include the standard-library headers before exposing private members. Modern
+// MSVC rejects macro substitution of the private keyword inside its own headers.
 #define private public
 #include "Source/BS1770LoudnessMatch.h"
 #undef private
-
-#include <cmath>
-#include <iostream>
 
 namespace
 {

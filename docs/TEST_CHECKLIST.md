@@ -1,6 +1,92 @@
-# QQ Super Compression 1.0.4 — Stable Baseline Checklist
+# QQ Super Compression 1.1.2 - Mix-aware Dynamic Display Plan A Checklist
 
-**Stable baseline:** v1.0.4 Light / Classic UI switch (user-confirmed Stable on 2026-09-01).
+**Status:** Windows Plan A candidate complete on 2026-09-02. **Stable baseline remains:** v1.1.1 Side Chain HPF.
+
+## Automated / local evidence
+
+- [x] JUCE 8.0.15 / MSVC 19.44 Windows x64 Release VST3 compiles with no warnings.
+- [x] Binary FileVersion/ProductVersion and moduleinfo.json show 1.1.2.
+- [x] Ten Python/source/math tests pass, including dynamic_projection_selftest.py.
+- [x] Standalone BS.1770 passes (-3.0036 LUFS; 6.00 dB Match).
+- [x] Build/output/install bundles match: 2 files, 6,724,699 bytes, tree SHA-256 2D6CE2509C70C9D697756F4AD264BCB6EC284619DB2B341A5A670AE11BDF061C.
+- [ ] Steinberg validator/pluginval: unavailable; do not claim a pass.
+
+## Cubase / user validation
+
+- [ ] Confirm the visible Wet pre-Makeup trace and readout are gone in ST, LR, and MS.
+- [ ] Confirm Mix=0% shows 0 dB GR and Mix=100% shows full GR; intermediate GR is nonlinear in dB and follows the audible blend.
+- [ ] Move Input, Ratio, Threshold, and Mix while history is visible; the entire visible history, GR band, and Output projection must update immediately.
+- [ ] Move Makeup/Output Gain; Output updates while GR remains unchanged.
+- [ ] EXT connected: the weak Key contour follows the post-Key-Gain/post-HPF detector; INT shows no external contour.
+- [ ] EXT unavailable: Display shows EXT N/A and does not draw a false key line.
+- [ ] Right-side GR meter and two-second Hold include Mix and agree with the Display definition.
+- [ ] LIGHT/CLASSIC, ST/LR/MS, Threshold, Lookahead, Oversampling/PDC, Match, Monitor, sidechain, HPF, A/B, state restore, and true Bypass regressions pass.
+
+--- PREVIOUS STABLE BASELINE CHECKLIST BELOW ---
+# QQ Super Compression 1.1.1 - Side Chain HPF Stable Baseline Checklist
+
+**Stable baseline:** v1.1.1 after Plan A and Plan B on 2026-09-02. **Previous Stable rollback:** v1.1.0.
+
+## Automated / local evidence
+
+- [x] JUCE 8.0.15 / MSVC Windows x64 Release VST3 compiles with no new warnings.
+- [x] Binary FileVersion/ProductVersion and moduleinfo.json show 1.1.1.
+- [x] Nine Python/source/math tests pass, including sidechain_hpf_selftest.py.
+- [x] Standalone BS.1770 passes (-3.0036 LUFS; 6.00 dB Match).
+- [x] Build/output/install bundle hashes are identical.
+- [ ] Steinberg validator/pluginval: unavailable; do not claim a pass.
+
+## Cubase / user validation
+
+- [ ] HPF defaults to OFF on a fresh instance and v1.1.0/older projects.
+- [ ] OFF matches the v1.1.0 INT and EXT detector/gain-reduction behaviour.
+- [ ] HPF range is 20-500 Hz and text entry/Alt-reset/Shift fine drag work.
+- [ ] INT HPF changes detector response without filtering the audible carrier.
+- [ ] EXT signal order is Key Gain -> HPF; low-frequency key energy is reduced as cutoff rises.
+- [ ] Key Level and SC Listen monitor the post-HPF key and remain latency-aligned.
+- [ ] True Bypass ignores SC Listen and remains the untouched delayed carrier.
+- [ ] HPF appears in automation, saves/restores, supports Undo/Redo, and participates in A/B and A/B copy.
+- [ ] LIGHT and CLASSIC show the same 330x146 popup, control bounds, values, and hit targets.
+- [ ] Existing source selection, disconnected EXT safety, ST/LR/MS mapping, Lookahead, Oversampling/PDC, Threshold, Mix, Match, Display, meters, Monitor, and Bypass regressions pass.
+
+--- PREVIOUS STABLE BASELINE CHECKLIST BELOW ---
+# QQ Super Compression 1.1.0 — External Key Stable Baseline Checklist
+
+**Stable baseline:** v1.1.0 External Key, explicitly promoted by the user on 2026-09-02 after Plan A; formal Plan B is complete. **Previous Stable rollback:** v1.0.4. Unchecked Cubase items below remain honest manual follow-up and are not converted into automated pass claims.
+
+## Automated / local evidence
+
+- [x] JUCE 8.0.15 / MSVC Windows x64 Release VST3 compiles with no new warnings.
+- [x] Binary `FileVersion` / `ProductVersion` and VST3 `moduleinfo.json` show `1.1.0`.
+- [x] Eight Python/source/math regression tests pass, including `external_key_selftest.py`.
+- [x] Standalone BS.1770 test passes (`-3.0036 LUFS` reference; `6.00 dB` Match).
+- [ ] Steinberg validator: executable unavailable in the current environment; do not claim a pass.
+
+## Cubase External Key / UI / audio checks — user
+
+- [ ] Cubase scans and loads v1.1.0 and exposes an optional sidechain input.
+- [ ] Route a kick or drum send into the sidechain of a bass/other carrier; EXT gain reduction follows the key while the carrier remains the audible signal.
+- [ ] INT with the same settings nulls/matches the v1.0.4 Stable sound and gain-reduction behaviour.
+- [ ] With EXT selected but no key bus connected, main output remains intact and GR returns to 0 dB.
+- [ ] A connected but silent key also produces 0 dB GR.
+- [ ] Key Gain changes detector sensitivity only and never directly changes carrier level.
+- [ ] ST uses one common key response; LR responds per key L/R; stereo MS responds to key M/S; mono key drives both independent domains.
+- [ ] Lookahead 0/10/26/40/80/100 ms follows the external key with the same accepted future-window behaviour.
+- [ ] 0 ms 1x/8x/16x Oversampling remains functional and PDC-aligned.
+- [ ] SC Listen auditions only the selected key, is aligned to plug-in latency, and bypasses normal Makeup/Mix/Output Gain.
+- [ ] True Bypass ignores SC Listen and remains the delayed untouched main signal.
+- [ ] Closing the SC panel, pressing Escape, or closing/reopening the editor turns SC Listen OFF.
+- [ ] LIGHT and CLASSIC show identical SC controls/bounds; reopening restores the previous theme.
+- [ ] Key Source and Key Gain appear in automation, save/reopen correctly, support Undo/Redo, and participate in A/B and copy.
+- [ ] SC Listen does not appear in automation, does not restore with the project, and is not changed/copied by A/B.
+- [ ] A v1.0.4 or older project opens at INT / 0 dB and preserves its previous sound and controls.
+- [ ] Display, main meters, Match, centered LR/MS Monitor, LINK, Threshold, independent Mix, Makeup, Output Gain, and Bypass regressions pass.
+
+--- PREVIOUS STABLE BASELINE CHECKLIST BELOW ---
+
+# QQ Super Compression 1.0.4 — Previous Stable Baseline Checklist
+
+**Previous Stable rollback baseline:** v1.0.4 Light / Classic UI switch (user-confirmed Stable on 2026-09-01; superseded by v1.1.0 on 2026-09-02).
 
 ## Build / identity
 

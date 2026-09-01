@@ -1,14 +1,75 @@
 # Changelog
 
+## 1.1.2 - Mix-aware Dynamic Display - STABLE
+- 发布日期 / Release date: 2026-09-02
+- 新增功能 / Added: 可重投影的 240 点 Dynamic Display 历史、EXT post-Key-Gain/post-HPF 弱化轮廓；reprojected 240-point Dynamic Display history and a soft EXT post-Key-Gain/post-HPF contour.
+- Bug 修复 / Bug fixes: 产品层面 GR 统一包含 Mix，修正旧显示将 Mix 排除在 GR 之外的问题；product-facing GR now consistently includes Mix instead of reporting core-only reduction.
+- 行为变化 / Behaviour changes: 删除可见 Wet pre-Makeup 曲线；Input、Ratio、Threshold、Mix、Makeup、Output Gain 会重算可见历史。音频 DSP 不变；the visible Wet pre-Makeup trace is removed and current controls reproject visible history. Audio DSP is unchanged.
+- 性能优化 / Performance: 历史保持固定 240 点并在 UI 绘制侧投影，不改变音频线程分配；history remains bounded to 240 points and is projected on the UI side without changing audio-thread allocation.
+- 兼容性变化 / Compatibility: 无新增参数，state schema 保持 10；no new parameters and state schema remains 10.
+- 已知问题 / Known issues: Steinberg validator/pluginval 不可用；Cubase 试听、侧链路由和 UI 仍需用户人工复核；validator/pluginval is unavailable and Cubase listening, sidechain routing, and UI checks remain manual.
+- 升级注意 / Upgrade notes: 工程无需迁移；仅 Display/GR 可视解释改变。Plan C 的 Windows 成品复用本机 Plan A，macOS 由 v1.1.2 标签手动触发 Actions；no project migration is required; only Display/GR interpretation changes. Plan C reuses the local Plan A Windows build and dispatches macOS Actions from tag v1.1.2.
+
+- Replaced immutable Wet/Output display history with raw Input plus actual future-window detector history, then reprojects the entire visible window from current parameters.
+- Product-facing Gain Reduction now includes Mix in the linear gain domain: 0% Mix = 0 dB effective GR; 100% Mix = full core GR.
+- The right-side GR meter, two-second Hold, and Display history use the same Mix-aware effective GR. Makeup and Output Gain remain excluded from GR.
+- Removed the visible Wet pre-Makeup trace. Display now shows Dry/Input, a Mix-aware GR band/boundary, and projected Output post-Mix.
+- EXT mode adds a deliberately soft two-stroke contour for the actual post-Key-Gain/post-HPF future-window detector key; disabled external buses show N/A rather than a false signal.
+- Input, Ratio, Threshold, Mix, Makeup, and Output Gain immediately reproject all visible history in ST/LR/MS. LIGHT and CLASSIC retain identical function and layout.
+- No parameter/state-schema change; schema remains 10. Plan B completed on 2026-09-02, making v1.1.2 Stable by the project standing rule; v1.1.1 is the previous Stable rollback.
+- Windows x64 Release VST3, ten Python/source/math regressions, standalone BS.1770, version metadata, and build/output/install hash parity pass. Validator remains unavailable; Cubase listening/UI checks remain user validation.
+
+
+## 1.1.1 - Side Chain HPF - STABLE
+- 发布日期 / Release date: 2026-09-02
+- 新增功能 / Added: 默认 OFF、20-500 Hz 的检测器 HPF；default-OFF 20-500 Hz detector HPF.
+- Bug 修复 / Bug fixes: 无独立旧 Bug；本版补充用户确认需要的频率选择性侧链控制；no separate legacy bug; this version adds the requested frequency-selective detector control.
+- 行为变化 / Behaviour changes: EXT 顺序为 Key Gain → HPF，滤波后 Key 进入 detector、Key Level 与 SC LISTEN，主载波不受滤波；EXT order is Key Gain → HPF, feeding detector, Key Level, and SC LISTEN while leaving the carrier unfiltered.
+- 性能优化 / Performance: 二阶 Butterworth 系数平滑更新，OFF 走原全频检测；smoothed second-order Butterworth coefficients with exact legacy full-band behaviour when OFF.
+- 兼容性变化 / Compatibility: 新增可自动化 `keyHpfHz`，state schema 9 → 10；legacy state/A-B 自动迁移到 OFF；adds automatable `keyHpfHz`, advances schema 9 → 10, and migrates legacy state/A-B to OFF.
+- 已知问题 / Known issues: validator/pluginval 不可用；宿主侧链、自动化与 SC LISTEN 仍需人工复核；validator/pluginval is unavailable and host-side sidechain, automation, and SC LISTEN checks remain manual.
+- 升级注意 / Upgrade notes: 旧工程听感保持全频检测，用户需要时再主动开启 HPF；legacy projects retain full-band detection until HPF is explicitly enabled.
+
+- Added an automatable/persistent Side Chain HPF parameter with a true OFF default and logarithmic 20-500 Hz range.
+- Uses a second-order Butterworth high-pass on the selected detector key only. INT and EXT are supported; EXT order is Key Gain -> HPF.
+- The post-HPF key feeds detector processing, Key Level metering, and latency-aligned SC LISTEN; the audible carrier remains untouched.
+- OFF preserves the v1.1.0 full-band detector. Old projects and A/B snapshots explicitly migrate to OFF.
+- HPF participates in project state, host automation, Undo/Redo, and A/B. State schema 9 -> 10.
+- Side Chain popup expands leftward from 230x146 to 330x146 without moving the main 1020x820 layout; LIGHT and CLASSIC retain identical features and geometry.
+- Windows x64 Release VST3, nine Python/source/math regressions, standalone BS.1770, version metadata, and build/output/install hash parity passed. Validator remains unavailable and Cubase listening/UI checks remain user validation.
+- Plan A and Plan B completed on 2026-09-02. Under the project rule v1.1.1 became Stable at that time; v1.1.2 is now current Stable and v1.1.1 remains the previous Stable rollback.
+
+## 1.1.0 — External Key / Sidechain — STABLE
+- 发布日期 / Release date: 2026-09-02
+- 新增功能 / Added: 可选 mono/stereo 外部侧链、INT/EXT、Key Gain、Key Level 与 SC LISTEN；optional mono/stereo external sidechain, INT/EXT selection, Key Gain, Key Level, and SC LISTEN.
+- Bug 修复 / Bug fixes: 无独立旧 Bug；本版实现新的外部检测源工作流；no separate legacy bug; this version introduces the external detector-source workflow.
+- 行为变化 / Behaviour changes: EXT 只替换 detector，不进入正常输出；未连接或静音 EXT 为 0 dB GR，主载波保持可听；EXT replaces only the detector, never the normal output; missing or silent EXT yields 0 dB GR while the carrier remains audible.
+- 性能优化 / Performance: 保持既有 future-window Peak/Lookahead 核心和固定域路由，不增加 Attack/Release 包络器；retains the existing future-window Peak/Lookahead core and fixed domain routing without adding an Attack/Release envelope.
+- 兼容性变化 / Compatibility: 新增 `keySource` 与 `keyGainDb`，state schema 8 → 9；旧工程迁移到 INT / 0 dB；adds `keySource` and `keyGainDb`, advances schema 8 → 9, and migrates legacy projects to INT / 0 dB.
+- 已知问题 / Known issues: validator/pluginval 不可用；实际宿主的侧链总线路由和 SC LISTEN 需人工复核；validator/pluginval is unavailable and real host sidechain routing plus SC LISTEN require manual checks.
+- 升级注意 / Upgrade notes: 旧工程默认继续使用 INT；SC LISTEN 不保存、不自动化、不进入 A/B，并在关闭面板/编辑器时复位；legacy projects default to INT. SC LISTEN is not saved, automated, or included in A/B, and resets when the panel/editor closes.
+
+- Added an optional mono/stereo VST3 sidechain input and `SC: INT / SC: EXT` source selection.
+- INT preserves the v1.0.4 post-Input-Gain main detector path; EXT changes only the detector source.
+- Added dedicated automatable/persistent `Key Gain` (-24…+24 dB), included with Key Source in A/B snapshots.
+- Added a theme-aware floating sidechain panel with source buttons, Key Gain, safety `SC LISTEN`, and compact key meter; LIGHT/CLASSIC geometry and features are identical.
+- External mono drives ST, both LR detectors, and both M/S detectors in common; stereo external key maps to L/R and M/S normally.
+- Disconnected or silent EXT produces unity gain reduction and never silences the carrier.
+- External key follows the existing future-window Peak/Lookahead, Ratio, and Threshold law with no Attack/Release envelope.
+- `SC LISTEN` is final-audible-only, latency-aligned, excluded from automation/project state/A-B, ignored by true Bypass, and reset OFF when the panel/editor closes or state is restored.
+- State schema `8 -> 9`; old projects explicitly migrate to INT / 0 dB.
+- Local JUCE 8.0.15 / MSVC Windows x64 Release VST3 build and eight Python/source/math tests plus BS.1770 passed. Steinberg validator is unavailable in this environment; Cubase audio/UI validation remains required.
+- User explicitly promoted v1.1.0 to the Stable baseline on 2026-09-02; Plan A and the formal Plan B are complete. v1.0.4 is the previous Stable rollback baseline. The Cubase checklist remains manual follow-up, and no Steinberg validator/pluginval pass is claimed.
+
 ## 1.0.4 — Light / Classic UI switch — STABLE
 
-- 用户于 2026-09-01 明确将 v1.0.4 提升为当前稳定基线，并确认本项目完成 Plan B 的版本即记录为 Stable。
+- 用户于 2026-09-01 明确将 v1.0.4 提升为当时的稳定基线，并确认本项目完成 Plan B 的版本即记录为 Stable；当前 Stable 已推进至 v1.1.2。
 - 右上角新增 `LIGHT` / `CLASSIC` 视觉主题切换；重新打开编辑器时恢复本机上次选择。
 - 主题不进入宿主自动化、A/B、DSP 或工程状态；两种主题保持同一 1020x820 布局、全部控件和声音功能。
 - LIGHT 保留暖色 ivory 界面；CLASSIC 恢复克制的深 charcoal / cyan 控件语言与更简洁的旧版控件绘制。
 - 本机 Windows x64 VST3 Release 构建、系统安装 bundle 一致性和七项回归测试通过。当前环境未安装 Steinberg validator，因此此稳定基线明确保留 validator 验证缺口。
 
-- User explicitly promoted v1.0.4 to the current Stable baseline on 2026-09-01 and confirmed the project rule that completing Plan B records that version as Stable.
+- The user promoted v1.0.4 to the Stable baseline on 2026-09-01 and confirmed the project rule that completing Plan B records that version as Stable; the current Stable has since advanced to v1.1.2.
 - Added an upper-right `LIGHT` / `CLASSIC` visual-theme switch.
 - The choice is restored from local UI settings on later editor opens; it is not part of host automation, A/B or DSP/project state.
 - Light preserves the approved warm ivory UI. Classic restores the restrained dark charcoal / cyan control language and simpler legacy control drawing while preserving the current 1020x820 layout and every feature.

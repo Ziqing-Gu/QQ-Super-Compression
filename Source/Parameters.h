@@ -33,10 +33,18 @@ namespace qqsc::params
     inline constexpr auto thresholdMDb   = "thresholdMDb";
     inline constexpr auto thresholdSDb   = "thresholdSDb";
     inline constexpr auto domainLink     = "domainLink";
+    // v1.1.x: append Side Chain parameters after every v1.0.4 parameter so
+    // existing host-facing IDs/order and old projects remain safe.
+    inline constexpr auto keySource      = "keySource";
+    inline constexpr auto keyGainDb      = "keyGainDb";
+    inline constexpr auto keyHpfHz       = "keyHpfHz";
 
     // Threshold OFF is represented by the bottom endpoint. DSP maps this sentinel
     // to a true zero-linear threshold, i.e. the exact pre-Threshold (-inf) law.
     inline constexpr float thresholdOffDb = -120.0f;
+    inline constexpr float keyHpfOffHz = 0.0f;
+    inline constexpr float keyHpfMinHz = 20.0f;
+    inline constexpr float keyHpfMaxHz = 500.0f;
 
     inline bool isThresholdEnabled (float db) noexcept
     {
@@ -49,6 +57,49 @@ namespace qqsc::params
             return 0.0f;
 
         return juce::Decibels::decibelsToGain (juce::jlimit (thresholdOffDb, 0.0f, db));
+    }
+
+    inline bool isKeyHpfEnabled (float hz) noexcept
+    {
+        return hz >= keyHpfMinHz;
+    }
+
+    inline float clampKeyHpfHz (float hz) noexcept
+    {
+        return juce::jlimit (keyHpfMinHz, keyHpfMaxHz, hz);
+    }
+
+    inline juce::NormalisableRange<float> keyHpfRange()
+    {
+        // Reserve the first 2% of normalised travel for a true OFF position;
+        // the active 20-500 Hz section then follows a perceptually useful log law.
+        constexpr float activeStart = 0.02f;
+        const auto logSpan = std::log (keyHpfMaxHz / keyHpfMinHz);
+
+        return { keyHpfOffHz, keyHpfMaxHz,
+                 [logSpan, activeStart] (float, float, float normalised)
+                 {
+                     if (normalised < activeStart)
+                         return keyHpfOffHz;
+
+                     const auto activeNormalised = (normalised - activeStart) / (1.0f - activeStart);
+                     return keyHpfMinHz * std::exp (logSpan * activeNormalised);
+                 },
+                 [logSpan, activeStart] (float, float, float value)
+                 {
+                     if (! isKeyHpfEnabled (value))
+                         return 0.0f;
+
+                     const auto activeNormalised = std::log (clampKeyHpfHz (value) / keyHpfMinHz) / logSpan;
+                     return activeStart + activeNormalised * (1.0f - activeStart);
+                 },
+                 [] (float, float, float value)
+                 {
+                     if (! isKeyHpfEnabled (value))
+                         return keyHpfOffHz;
+
+                     return std::round (clampKeyHpfHz (value));
+                 } };
     }
 
     // Dynamic Display Dry is intentionally pre-Input-Gain, while the detector
@@ -73,6 +124,12 @@ namespace qqsc::params
         monitorAll    = 0,
         monitorFirst  = 1,
         monitorSecond = 2
+    };
+
+    enum KeySource
+    {
+        keyInternal = 0,
+        keyExternal = 1
     };
 
 
@@ -155,6 +212,11 @@ namespace qqsc::params
     inline juce::StringArray modeChoices()
     {
         return { "ST", "MS", "LR" };
+    }
+
+    inline juce::StringArray keySourceChoices()
+    {
+        return { "Internal", "External" };
     }
 
     inline juce::String modeName (int mode)

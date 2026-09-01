@@ -1,0 +1,61 @@
+QQ Super Compression 1.1.2 - Windows 与 macOS 安装说明（中文）
+发布日期：2026-09-02
+厂商：Qing Audio
+许可证：Qing Audio 非商业源码共享许可证 1.0
+源码仓库：https://github.com/Ziqing-Gu/QQ-Super-Compression
+对应源码标签：https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.1.2
+格式：Windows x64 VST3；macOS Apple Silicon VST3；macOS Intel x86_64 VST3；macOS Universal 2 AU
+系统：Windows 10/11 x64；macOS 13 或更高版本
+
+这是源码可见、禁止商业使用的项目用户成品包，只包含可安装插件、双语安装说明与双语用户手册，不包含源码、构建缓存或内部验证日志。非商业用途可依许可证使用；发布原版、二进制版或修改版时，必须免费公开完整对应源码、保留作者、版权和许可证声明、醒目标明来源与修改，并让整个修改版继续采用同一许可证。完整源码和条款见上述公开仓库与 v1.1.2 标签。
+
+本包只有一个插件：QQ Super Compression。所有已安装格式必须保持同一版本 1.1.2。升级前必须完全退出 Cubase、Nuendo、REAPER、Studio One、Logic Pro 和其他可能扫描插件的宿主。
+
+v1.0.4 之后的主要变化
+1. v1.1.0：加入可选 mono/stereo 外部侧链、INT/EXT Source、独立 Key Gain、Key Level 和 SC LISTEN。外部 Key 只替换 detector，不进入正常可听输出。
+2. v1.1.1：加入默认 OFF、20-500 Hz 的 detector-only HPF。EXT 顺序为 Key Gain -> HPF；滤波后的 Key 进入 detector、Key Level 和 SC LISTEN，主载波不被滤波。
+3. v1.1.2：Gain Reduction 在产品显示层面包含 Mix；右侧 GR、两秒 Hold 与历史 Display 使用同一含 Mix 定义。Display 删除可见 Wet pre-Makeup 曲线，显示 Dry/Input、GR（含 Mix）与 Output post-Mix，并在调整当前参数时重新投影可见历史。
+4. EXT 可用时，Display 以较弱轮廓显示 post-Key-Gain/post-HPF 的外部 Key。LIGHT 与 CLASSIC 的功能、参数和声音继续完全一致。
+
+包选择
+- Windows x64 VST3：Win\QQ Super Compression 1.1.2 Windows x64 VST3.zip
+- Apple Silicon / M 系列 Mac VST3：Mac\QQ Super Compression 1.1.2 macOS Apple Silicon VST3.zip
+- Intel Mac VST3：Mac\QQ Super Compression 1.1.2 macOS Intel x86_64 VST3.zip
+- Universal 2 AU：Mac\QQ Super Compression 1.1.2 macOS Universal 2 AU.zip
+- Linux、AAX 和独立应用：不提供。
+
+Windows x64 VST3
+1. 完全退出 Cubase、Nuendo、REAPER、Studio One 及其他可能扫描插件的宿主。
+2. 解压 `QQ Super Compression 1.1.2 Windows x64 VST3.zip`；ZIP 根层应得到 `QQ Super Compression.vst3`。
+3. 检查系统目录 `C:\Program Files\Common Files\VST3`。如存在旧版同名 `QQ Super Compression.vst3`，在 DAW 完全关闭时删除旧 bundle 或用新版完整覆盖；不要在其他 VST3 目录保留重复副本。
+4. 将新版 `QQ Super Compression.vst3` 复制到 `C:\Program Files\Common Files\VST3`。系统可能要求管理员权限。
+5. 重新打开宿主并执行 VST3 rescan。如果插件仍未出现，完全退出宿主、清除其插件缓存或重启电脑后再次扫描。
+
+macOS VST3
+1. 完全退出宿主。Apple Silicon/M 系列 Mac 选择 arm64 包；Intel Mac 选择 x86_64 包。只安装一个 VST3 架构包，不要同时安装两套。
+2. 解压所选 ZIP；根层应得到 `QQ Super Compression.vst3`。
+3. 删除用户目录或系统目录中旧版同名 bundle，避免重复副本。
+4. 将新版复制到 `~/Library/Audio/Plug-Ins/VST3`；也可使用系统目录 `/Library/Audio/Plug-Ins/VST3`（通常需要管理员权限）。Finder 中按住 Option 点击“前往”可显示用户 Library。
+5. 重新打开宿主并重新扫描 VST3；必要时重启电脑。
+
+macOS Audio Unit
+1. 完全退出 Logic Pro 或其他 AU 宿主。`QQ Super Compression 1.1.2 macOS Universal 2 AU.zip` 同时包含 arm64 与 x86_64。
+2. 解压后根层应得到 `QQ Super Compression.component`。
+3. 删除用户目录或系统目录中的旧版同名 component，再复制新版到 `~/Library/Audio/Plug-Ins/Components`；可选系统目录为 `/Library/Audio/Plug-Ins/Components`。
+4. AU 与 VST3 是独立格式，只安装需要的格式。重新打开 Logic Pro 或重新扫描 Audio Units；必要时重启电脑。
+
+macOS 安全与加载失败处理
+macOS 成品由 GitHub Actions 生成并采用 ad-hoc 签名，不是 Apple Developer ID 公证版本。系统可能因为 quarantine 或签名政策阻止首次加载。先确认文件来自上述公开仓库和 v1.1.2 构建，再按实际安装路径执行：
+`xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"`
+AU 可使用：
+`xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"`
+执行后重新打开宿主并重新扫描，必要时重启电脑。不要对来源不明的文件解除隔离。
+
+兼容性、升级与排错
+- 不要在用户目录和系统目录同时保留重复副本，也不要同时保留旧版和新版同功能插件。
+- 完整升级顺序：关闭 DAW -> 删除旧同名 bundle -> 复制新版 -> 重新打开并扫描。
+- 外部侧链依赖宿主提供并路由 Sidechain bus。未连接或静音 EXT 时 GR 为 0，主载波保持可听。
+- SC LISTEN 仅用于临时试听检测 Key；它不自动化、不保存、不进入 A/B，关闭侧链面板或编辑器时自动关闭。
+- HPF 默认 OFF，因此旧工程保持 v1.1.0 全频 detector 行为；开启后只改变 detector 频率权重。
+- v1.1.2 不新增声音参数，state schema 保持 10；Mix-aware GR 与历史重投影是显示解释更新，不改变既有压缩音频 DSP。
+- 如宿主仍加载旧缓存，完全退出宿主并清除插件缓存后重新扫描。

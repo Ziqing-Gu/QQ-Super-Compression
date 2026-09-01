@@ -90,6 +90,14 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureLabel (monitorLabel, "MONITOR");
     configureLabel (lookaheadLabel, "LOOKAHEAD (ms)");
     configureLabel (oversamplingLabel, "OVERSAMPLING");
+    configureLabel (keySourceLabel, "SOURCE");
+    configureLabel (keyGainLabel, "KEY GAIN");
+    configureLabel (keyHpfLabel, "HPF");
+    configureLabel (keyMeterLabel, "KEY LEVEL");
+    keySourceLabel.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::bold)));
+    keyGainLabel.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::bold)));
+    keyHpfLabel.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::bold)));
+    keyMeterLabel.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::bold)));
 
     inputGainLabel.setColour (juce::Label::textColourId, qqsc::ui::textMuted());
     ratioLabel.setColour (juce::Label::textColourId, qqsc::ui::warmAccent().darker (0.36f));
@@ -109,6 +117,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
                           &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel })
         contentRoot.addAndMakeVisible (*label);
 
+    for (auto* label : { &keySourceLabel, &keyGainLabel, &keyHpfLabel, &keyMeterLabel })
+        contentRoot.addAndMakeVisible (*label);
+
     configureKnob (inputGainSlider, " dB");
     for (auto* ratio : { &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider })
     {
@@ -124,6 +135,29 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     for (auto* mix : { &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider })
         configureKnob (*mix, " %");
     configureKnob (outputGainSlider, " dB");
+    configureKnob (keyGainSlider, " dB");
+    keyGainSlider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 70, 20);
+    configureKnob (keyHpfSlider);
+    keyHpfSlider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 70, 20);
+    keyHpfSlider.setNumDecimalPlacesToDisplay (0);
+    keyHpfSlider.textFromValueFunction = [] (double value)
+    {
+        return qqsc::params::isKeyHpfEnabled (static_cast<float> (value))
+            ? juce::String (std::round (value), 0) + " Hz"
+            : juce::String ("OFF");
+    };
+    keyHpfSlider.valueFromTextFunction = [] (const juce::String& text)
+    {
+        if (text.containsIgnoreCase ("off"))
+            return static_cast<double> (qqsc::params::keyHpfOffHz);
+
+        const auto value = static_cast<float> (text.getDoubleValue());
+        return static_cast<double> (qqsc::params::isKeyHpfEnabled (value)
+            ? qqsc::params::clampKeyHpfHz (value)
+            : qqsc::params::keyHpfOffHz);
+    };
+    keyHpfSlider.setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::cyanAccent());
+    keyHpfSlider.setTooltip ("Detector-only high-pass filter; OFF preserves the unfiltered key");
 
     // Threshold uses compact vertical faders beside the Display. ST shows one;
     // LR/MS show two independent faders. FineKnob provides true Shift fine drag.
@@ -153,6 +187,10 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
         contentRoot.addAndMakeVisible (*slider);
         registerKeyboardListener (*slider);
     }
+    contentRoot.addAndMakeVisible (keyGainSlider);
+    registerKeyboardListener (keyGainSlider);
+    contentRoot.addAndMakeVisible (keyHpfSlider);
+    registerKeyboardListener (keyHpfSlider);
 
     lookaheadCombo.addItemList (qqsc::params::lookaheadChoices(), 1);
     lookaheadCombo.setJustificationType (juce::Justification::centred);
@@ -181,6 +219,10 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureActionButton (bToAButton);
     configureActionButton (themeButton);
     configureActionButton (oversamplingButton);
+    configureActionButton (sidechainButton);
+    configureActionButton (keyInternalButton);
+    configureActionButton (keyExternalButton);
+    configureActionButton (sidechainListenButton);
 
     // Current Mode is always an active state, so it gets the subtle warm lamp
     // treatment even though it is a cycle button rather than a toggle. The 0 ms
@@ -195,6 +237,17 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     themeButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
     themeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     themeButton.setTooltip ("Switch between Light and Classic Dark UI");
+    sidechainButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
+    sidechainButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    sidechainButton.setTooltip ("Open Side Chain source, gain, HPF and listen controls");
+    keyInternalButton.setTooltip ("Use the post-Input-Gain main signal as detector key");
+    keyExternalButton.setTooltip ("Use the optional external sidechain bus as detector key");
+    sidechainListenButton.setClickingTogglesState (true);
+    sidechainListenButton.setTooltip ("Audition the selected detector key at plug-in latency");
+
+    keyMeter.setPercentageDisplay (false);
+    keyMeter.setColour (juce::ProgressBar::backgroundColourId, qqsc::ui::panelAlt());
+    keyMeter.setColour (juce::ProgressBar::foregroundColourId, qqsc::ui::cyanAccent());
 
     aToBButton.setButtonText (arrowText ("A", "B"));
     bToAButton.setButtonText (arrowText ("B", "A"));
@@ -224,6 +277,13 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     }
     contentRoot.addAndMakeVisible (themeButton);
     registerKeyboardListener (themeButton);
+    contentRoot.addAndMakeVisible (sidechainPanelBackground);
+    for (auto* button : { &sidechainButton, &keyInternalButton, &keyExternalButton, &sidechainListenButton })
+    {
+        contentRoot.addAndMakeVisible (*button);
+        registerKeyboardListener (*button);
+    }
+    contentRoot.addAndMakeVisible (keyMeter);
 
     auto& state = processor.getAPVTS();
     inputGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::inputGainDb, inputGainSlider);
@@ -248,6 +308,8 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     thresholdRAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::thresholdRDb, thresholdRSlider);
     thresholdMAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::thresholdMDb, thresholdMSlider);
     thresholdSAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::thresholdSDb, thresholdSSlider);
+    keyGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::keyGainDb, keyGainSlider);
+    keyHpfAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::keyHpfHz, keyHpfSlider);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, qqsc::params::bypass, bypassButton);
     linkAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, qqsc::params::domainLink, linkButton);
 
@@ -257,6 +319,8 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     mixSlider.onGestureStart = [this] { beginUndoTransaction ("Mix ST"); };
     outputGainSlider.onGestureStart = [this] { beginUndoTransaction ("Output Gain"); };
     thresholdSlider.onGestureStart = [this] { beginUndoTransaction ("Threshold ST"); };
+    keyGainSlider.onGestureStart = [this] { beginUndoTransaction ("Key Gain"); };
+    keyHpfSlider.onGestureStart = [this] { beginUndoTransaction ("Side Chain HPF"); };
 
     ratioLSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::ratioLR, ratioLSlider, ratioRSlider, "Ratio L/R"); };
     ratioRSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::ratioLR, ratioRSlider, ratioLSlider, "Ratio L/R"); };
@@ -337,6 +401,14 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     aToBButton.onClick = [this] { processor.copyAToB(); };
     bToAButton.onClick = [this] { processor.copyBToA(); };
     themeButton.onClick = [this] { toggleTheme(); };
+    sidechainButton.onClick = [this] { toggleSidechainPanel(); };
+    keyInternalButton.onClick = [this] { setKeySource (qqsc::params::keyInternal); };
+    keyExternalButton.onClick = [this] { setKeySource (qqsc::params::keyExternal); };
+    sidechainListenButton.onClick = [this]
+    {
+        processor.setSidechainListenEnabled (sidechainListenButton.getToggleState());
+        updateSidechainUi();
+    };
 
     registerKeyboardListener (*this);
     setWantsKeyboardFocus (true);
@@ -346,12 +418,14 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
     updateModeUi();
     updateOversamplingUi();
+    updateSidechainUi();
     startTimerHz (15);
 }
 
 QQSuperCompressionAudioProcessorEditor::~QQSuperCompressionAudioProcessorEditor()
 {
     stopTimer();
+    processor.setSidechainListenEnabled (false);
 
     if (uiProperties != nullptr)
     {
@@ -392,7 +466,8 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
                          &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
                          &mixLabel, &mixChannel0Label, &mixChannel1Label, &outputGainLabel,
                          &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
-                         &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel })
+                         &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel,
+                         &keySourceLabel, &keyGainLabel, &keyHpfLabel, &keyMeterLabel })
         label->setColour (juce::Label::textColourId, neutral.withAlpha (0.92f));
 
     inputGainLabel.setColour (juce::Label::textColourId, neutral);
@@ -408,7 +483,8 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
     for (auto* slider : { &inputGainSlider, &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider,
                            &makeupSTSlider, &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider,
-                           &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider, &outputGainSlider })
+                           &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider, &outputGainSlider,
+                           &keyGainSlider, &keyHpfSlider })
     {
         slider->setColour (juce::Slider::textBoxTextColourId, qqsc::ui::text());
         slider->setColour (juce::Slider::textBoxBackgroundColourId, qqsc::ui::panel().withAlpha (classicTheme ? 0.96f : 0.76f));
@@ -416,6 +492,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
         slider->setColour (juce::Slider::rotarySliderOutlineColourId, qqsc::ui::border());
         slider->setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
     }
+    keyHpfSlider.setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::cyanAccent());
 
     for (auto* threshold : { &thresholdSlider, &thresholdLSlider, &thresholdRSlider, &thresholdMSlider, &thresholdSSlider })
     {
@@ -434,7 +511,8 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
     for (auto* button : { &modeButton, &linkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
-                          &themeButton, &oversamplingButton })
+                          &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
+                          &keyExternalButton, &sidechainListenButton })
     {
         button->setColour (juce::TextButton::buttonColourId, qqsc::ui::panel());
         button->setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
@@ -447,12 +525,19 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     monitorFirstButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     monitorSecondButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     themeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    sidechainButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    keyInternalButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    keyExternalButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    sidechainListenButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
     bypassButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
     themeButton.setButtonText (classicTheme ? "CLASSIC" : "LIGHT");
+    keyMeter.setColour (juce::ProgressBar::backgroundColourId, qqsc::ui::panelAlt());
+    keyMeter.setColour (juce::ProgressBar::foregroundColourId, qqsc::ui::cyanAccent());
 
     display.repaint();
     meters.repaint();
     contentRoot.repaint();
+    updateSidechainUi();
     repaint();
 }
 
@@ -466,6 +551,85 @@ void QQSuperCompressionAudioProcessorEditor::toggleTheme()
     }
 
     applyTheme();
+}
+
+void QQSuperCompressionAudioProcessorEditor::toggleSidechainPanel()
+{
+    sidechainPanelOpen = ! sidechainPanelOpen;
+
+    // Never leave an audition override hidden behind a closed popup.
+    if (! sidechainPanelOpen)
+        processor.setSidechainListenEnabled (false);
+
+    updateSidechainUi();
+}
+
+void QQSuperCompressionAudioProcessorEditor::setKeySource (int source)
+{
+    source = juce::jlimit (static_cast<int> (qqsc::params::keyInternal),
+                           static_cast<int> (qqsc::params::keyExternal), source);
+    const auto current = juce::roundToInt (
+        processor.getAPVTS().getRawParameterValue (qqsc::params::keySource)->load());
+
+    if (source != current)
+    {
+        beginUndoTransaction ("Key Source");
+        setChoiceParameter (qqsc::params::keySource, source);
+    }
+
+    updateSidechainUi();
+}
+
+void QQSuperCompressionAudioProcessorEditor::updateSidechainUi()
+{
+    const auto source = juce::jlimit (0, 1, juce::roundToInt (
+        processor.getAPVTS().getRawParameterValue (qqsc::params::keySource)->load()));
+    const bool external = source == qqsc::params::keyExternal;
+    const bool available = processor.isExternalSidechainBusAvailable();
+    const bool listening = processor.isSidechainListenEnabled();
+
+    sidechainButton.setButtonText (external ? "SC: EXT" : "SC: INT");
+    sidechainButton.setToggleState (sidechainPanelOpen, juce::dontSendNotification);
+    keyInternalButton.setToggleState (! external, juce::dontSendNotification);
+    keyExternalButton.setToggleState (external, juce::dontSendNotification);
+    sidechainListenButton.setToggleState (listening, juce::dontSendNotification);
+    keyGainSlider.setEnabled (external);
+
+    const auto keyDb = processor.getMeterState().keyInputDb.load (std::memory_order_relaxed);
+    if (external && ! available)
+    {
+        keyMeterProgress = 0.0;
+        keyMeter.setTextToDisplay ("N/A");
+    }
+    else
+    {
+        keyMeterProgress = juce::jlimit (0.0, 1.0, (static_cast<double> (keyDb) + 60.0) / 60.0);
+        keyMeter.setTextToDisplay (keyDb <= -119.0f ? "-inf dB" : juce::String (keyDb, 1) + " dB");
+    }
+
+    sidechainPanelBackground.setVisible (sidechainPanelOpen);
+    if (sidechainPanelOpen)
+        sidechainPanelBackground.toFront (false);
+
+    for (auto* component : { static_cast<juce::Component*> (&keySourceLabel),
+                              static_cast<juce::Component*> (&keyGainLabel),
+                              static_cast<juce::Component*> (&keyHpfLabel),
+                              static_cast<juce::Component*> (&keyMeterLabel),
+                              static_cast<juce::Component*> (&keyInternalButton),
+                              static_cast<juce::Component*> (&keyExternalButton),
+                              static_cast<juce::Component*> (&sidechainListenButton),
+                              static_cast<juce::Component*> (&keyGainSlider),
+                              static_cast<juce::Component*> (&keyHpfSlider),
+                              static_cast<juce::Component*> (&keyMeter) })
+    {
+        component->setVisible (sidechainPanelOpen);
+        if (sidechainPanelOpen)
+            component->toFront (false);
+    }
+
+    sidechainButton.toFront (false);
+    themeButton.toFront (false);
+    repaint();
 }
 
 void QQSuperCompressionAudioProcessorEditor::configureKnob (FineKnob& slider, const juce::String& suffix)
@@ -666,6 +830,14 @@ bool QQSuperCompressionAudioProcessorEditor::keyPressed (const juce::KeyPress& k
     const auto mods = key.getModifiers();
     const auto code = key.getKeyCode();
 
+    if (code == juce::KeyPress::escapeKey && sidechainPanelOpen)
+    {
+        sidechainPanelOpen = false;
+        processor.setSidechainListenEnabled (false);
+        updateSidechainUi();
+        return true;
+    }
+
     if (mods.isCommandDown() && (code == 'Z' || code == 'z'))
     {
         if (mods.isShiftDown())
@@ -820,6 +992,7 @@ void QQSuperCompressionAudioProcessorEditor::timerCallback()
         latencyChoiceChangedOutsideUiGesture = true;
 
     updateOversamplingUi();
+    updateSidechainUi();
 
     // Direct UI control changes notify immediately. This additional path covers
     // Undo/Redo, A/B recall and host-side parameter changes while the editor is
@@ -984,7 +1157,26 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     aButton.setBounds (right - 36, headerButtonY, 36, headerButtonH);
     right -= 36 + 12;
     themeButton.setBounds (right - 76, headerButtonY, 76, headerButtonH);
-    right -= 76 + 12;
+    right -= 76 + smallGap;
+    sidechainButton.setBounds (right - 86, headerButtonY, 86, headerButtonH);
+    right -= 86 + 12;
+
+    // Keep the main 1020x820 layout unchanged. The wider v1.1.1 popup grows
+    // leftward from the Side Chain button and adds HPF beside Key Gain.
+    sidechainPanelBounds = { sidechainButton.getRight() - 330, 58, 330, 146 };
+    sidechainPanelBackground.setBounds (sidechainPanelBounds);
+    const int panelX = sidechainPanelBounds.getX();
+    const int panelY = sidechainPanelBounds.getY();
+    keySourceLabel.setBounds (panelX + 12, panelY + 10, 94, 14);
+    keyInternalButton.setBounds (panelX + 12, panelY + 27, 45, 23);
+    keyExternalButton.setBounds (panelX + 61, panelY + 27, 45, 23);
+    keyMeterLabel.setBounds (panelX + 12, panelY + 57, 94, 14);
+    keyMeter.setBounds (panelX + 12, panelY + 74, 94, 20);
+    sidechainListenButton.setBounds (panelX + 12, panelY + 106, 94, 25);
+    keyGainLabel.setBounds (panelX + 119, panelY + 10, 96, 14);
+    keyGainSlider.setBounds (panelX + 119, panelY + 26, 96, 108);
+    keyHpfLabel.setBounds (panelX + 222, panelY + 10, 96, 14);
+    keyHpfSlider.setBounds (panelX + 222, panelY + 26, 96, 108);
 
 
     title.setBounds (margin, 16, juce::jmax (260, right - margin), 34);

@@ -1,11 +1,115 @@
-# AI Development Handoff — QQ Super Compression 1.0.4
+# AI Development Handoff - QQ Super Compression 1.1.2 Stable
 
-## Current status
+## Current Stable - v1.1.2 Mix-aware Dynamic Display
 
-**Stable baseline:** `1.0.4 — Light / Classic UI switch`  
-User explicitly promoted v1.0.4 to **Stable** on 2026-09-01 after Plan A and Plan B. Project-specific standing rule: completing Plan B records that exact version as Stable. Candidate/Test revisions do not enter Plan B.
+**Status:** Plan A and Plan B complete on 2026-09-02. Under the project standing rule, v1.1.2 is Stable.
+**Previous Stable rollback:** v1.1.1 Side Chain HPF.
+**Formal Plan B source backup:** verified internal backup; machine-specific path omitted from public source.
 
-**Previous stable rollback reference:** `1.0.3 — Centered Domain Monitor`  
+### Non-negotiable v1.1.2 contract
+
+- Product-facing Gain Reduction includes Mix in the linear gain domain. Mix=0% is 0 dB effective GR; Mix=100% is the full core GR.
+- The right-side GR meter, two-second Hold, and Dynamic Display history use the same effective-GR definition.
+- Makeup and Output Gain affect projected Output only and remain excluded from GR.
+- Dynamic Display stores pre-Input carrier level plus actual future-window detector level and reprojects all 240 visible history points from current Input/Ratio/Threshold/Mix/Makeup/Output values.
+- Visible Wet pre-Makeup trace/readout is removed. Match still uses its established Dry versus Wet pre-Makeup/pre-Mix source internally.
+- EXT available draws a deliberately weak post-Key-Gain/post-HPF future-window key contour. EXT unavailable shows N/A and no false contour.
+- ST/LR/MS and LIGHT/CLASSIC retain identical established geometry and functionality. No parameter change; state schema remains 10.
+- Future-window core, Threshold law, Lookahead, 0 ms Oversampling, PDC, Match, Monitor, sidechain, HPF, A/B, state, and Bypass audio semantics remain unchanged.
+
+### Verified Plan A evidence
+
+- JUCE 8.0.15 / MSVC 19.44 Windows x64 Release VST3: PASS with no warnings.
+- Ten Python/source/math checks and standalone BS.1770: PASS.
+- Binary and module metadata: 1.1.2.
+- Build/output/install: 2 files, 6,724,699 bytes, tree SHA-256 2D6CE2509C70C9D697756F4AD264BCB6EC284619DB2B341A5A670AE11BDF061C.
+- Main binary SHA-256: 240A9DBEBDE3D88B14A59096218525204CD43B020B486E390A1042330EAA1DE3.
+- Output: verified local Plan A formal output; machine-specific path omitted from public source.
+- Installed: C:\Program Files\Common Files\VST3\QQ Super Compression.vst3.
+- Pre-install v1.1.1 backup: verified internal rollback copy; machine-specific path omitted from public source.
+- Steinberg validator/pluginval remains unavailable. Cubase audio/UI verification remains the user's manual validation boundary.
+- Plan B completed and v1.1.2 is Stable by the project standing rule. Plan C reuses the verified Windows Plan A output, syncs the exact public v1.1.2 source/tag, and manually runs only the three macOS jobs; run and package evidence is recorded in the internal Plan C verification directory. Plan D/Release remains separate.
+
+--- PREVIOUS STABLE HANDOFF BELOW ---
+# AI Development Handoff - QQ Super Compression 1.1.1 Stable
+
+## Previous Stable - v1.1.1 Side Chain HPF
+
+**Status:** Plan A and Plan B complete on 2026-09-02. Under the project standing rule, v1.1.1 is Stable.
+**Previous Stable rollback:** v1.1.0 External Key / Sidechain.
+**Formal Plan B source backup:** verified internal backup; machine-specific path omitted from public source.
+
+### Non-negotiable v1.1.1 contract
+
+- keyHpfHz is appended after keyGainDb; default OFF, active range 20-500 Hz, state schema 10.
+- The filter is a second-order Butterworth high-pass on the selected detector key only.
+- Signal order is INT post-Input-Gain -> HPF, or EXT -> Key Gain -> HPF.
+- Post-HPF key feeds detector, Key Level, and latency-aligned SC Listen. It never replaces or filters the audible carrier.
+- OFF must preserve v1.1.0 full-band detector behaviour. Missing legacy state/A-B property migrates to OFF.
+- HPF is APVTS/automation/state/Undo/A-B. SC Listen remains non-automatable, non-persistent, non-A/B, and Bypass-safe.
+- Popup is 330x146 and grows leftward from the SC button. Main 1020x820 layout and LIGHT/CLASSIC functional parity remain unchanged.
+
+### Verified local evidence
+
+- JUCE 8.0.15 / MSVC 19.44 Windows x64 Release VST3: PASS with no new warnings.
+- Nine Python/source/math self-tests and standalone BS.1770 self-test: PASS.
+- Binary and module metadata: 1.1.1.
+- Build/output/install: 2 files, 6,716,507 bytes, tree SHA-256 50FB3109C22DDB55E591941301C81A034CFEC097501C2639BA0E7FF9D273CFB6.
+- Main binary SHA-256: C40883E83B87DCC2B810B8998A93ADCB03DFA57A87469591019FC89332969F6C.
+- Output: verified local Plan A formal output; machine-specific path omitted from public source.
+- Installed: C:\Program Files\Common Files\VST3\QQ Super Compression.vst3.
+- Steinberg validator/pluginval remains unavailable; do not claim a validator pass.
+- Cubase scan, HPF listening/automation/state/A-B, INT/EXT, SC Listen, PDC, both themes, and legacy projects remain the user's manual validation boundary.
+
+--- PREVIOUS STABLE HANDOFF BELOW ---
+
+## Current Stable — v1.1.0 External Key
+
+**Status:** Stable baseline. Plan A implementation/build/install completed on 2026-09-01; the user explicitly promoted v1.1.0 and requested formal Plan B on 2026-09-02.
+**Previous Stable rollback:** v1.0.4 Light / Classic UI switch.
+**Branch:** `candidate/external-key-1.1.0`; base `34d163391881262395b35b9358c7c63cb54ebbb2`.
+**Formal Plan B mirror:** verified internal backup; machine-specific path omitted from public source.
+
+### Non-negotiable v1.1.0 contract
+
+- Optional mono/stereo VST3 bus `Sidechain`. INT is the exact post-Input-Gain v1.0.4 detector; EXT is sidechain after dedicated Key Gain.
+- Detector-source substitution only: main carrier, future-window Peak/Lookahead core, Threshold law, Ratio, domain processing, Oversampling, PDC, Match, Display, centered Monitor, and true Bypass remain established.
+- Missing/silent EXT = zero detector, unity gain, carrier intact. External key must never leak to normal output.
+- ST uses a common stronger L/R key level; LR is independent; stereo MS uses M/S conversion; mono EXT deliberately drives both independent M/S detectors in common.
+- Appended APVTS parameters: `keySource` and `keyGainDb`; both are automatable, persistent, undoable, migrated, and included in A/B. Old state -> INT / 0 dB. State schema is 9.
+- `SC LISTEN` is an atomic workflow audition state only: non-APVTS, non-automatable, non-persistent, non-A/B, latency-aligned, ignored by true Bypass, and reset OFF on panel/editor close and state restore.
+- UI: top `SC: INT/EXT` button immediately left of theme; 230x146 floating panel; identical geometry/hit areas in LIGHT and CLASSIC. Do not shrink/move the approved main layout.
+
+### Files changed
+
+`CMakeLists.txt`; `Source/Parameters.h`; `Source/MeterState.h`; `Source/PluginProcessor.h/.cpp`; `Source/PluginEditor.h/.cpp`; `tests/external_key_selftest.py`; updated monitor and BS.1770 selftests; README, CHANGELOG, product/UI/build/history/checklist/handoff docs; `PLAN_A_VERIFICATION_1.1.0.md`.
+
+### Verified Plan A evidence
+
+- JUCE 8.0.15 / MSVC x64 Release VST3: PASS, successful rebuild has no warnings.
+- Eight Python/source/math tests: PASS. Standalone BS.1770: PASS (`-3.0036 LUFS`, `6.00 dB`).
+- Binary and module metadata: 1.1.0.
+- Build/output/install parity: 2 files, 6,705,755 bytes, tree SHA-256 `F0F45D9C82EB80611025BA7E1799C7218A432A1BF099A02168041AD272B8EEAE`.
+- Main binary SHA-256: `67C8FD2A2E03FA6C2BA7C325F91A68F4FE3D0287BA135A850983EBA5F5415B85`.
+- Formal output: verified local Plan A formal output; machine-specific path omitted from public source.
+- Installed: `C:\Program Files\Common Files\VST3\QQ Super Compression.vst3`.
+- Pre-install bundle backup: verified internal rollback copy; machine-specific path omitted from public source.
+- Validator gap: no Steinberg validator/pluginval executable was available; never convert this into a pass claim.
+
+### Current handoff boundary
+
+v1.1.0 is the current user-promoted Stable baseline and its formal Plan B source mirror is the authoritative rollback/source handoff. Cubase scan/load, sidechain routing, INT regression, EXT key response, missing/silent key, SC Listen/PDC/Bypass, ST/LR/MS mapping, all Lookahead/0 ms Oversampling, A/B/automation/state migration, and both themes remain listed as detailed manual follow-up; unchecked items are not automated pass claims. No Plan C/D, GitHub sync, Release, or Actions run was performed by this Plan B.
+
+The v1.0.4 handoff below is preserved as the previous Stable rollback record; environment-specific statements inside it are historical.
+
+--- PREVIOUS STABLE ROLLBACK HANDOFF BELOW ---
+
+## Previous stable rollback handoff retained — v1.0.4
+
+**Previous Stable rollback baseline:** `1.0.4 — Light / Classic UI switch`
+User explicitly promoted v1.0.4 to **Stable** on 2026-09-01 after Plan A and Plan B. It remains the previous Stable rollback baseline after v1.1.0 was promoted on 2026-09-02. Project-specific standing rule: completing Plan B records that exact version as Stable. Candidate/Test revisions do not enter Plan B.
+
+**Previous stable rollback reference:** `1.0.3 — Centered Domain Monitor`
 v1.0.4 keeps the complete v1.0.3 audio engine, Monitor workflow, parameter/state behaviour and 1020x820 layout. It adds only the LIGHT / CLASSIC visual-theme switch and local restoration of the last selected theme.
 
 ### Non-negotiable product decisions
@@ -266,8 +370,8 @@ The v1.0.2 baseline is user-confirmed Stable. In the current AI environment all 
 
 ## vX.X.X — 版本名称
 
-**日期：** YYYY-MM-DD  
-**状态：** Candidate / Stable / Test  
+**日期：** YYYY-MM-DD
+**状态：** Candidate / Stable / Test
 **基于：** vX.X.X
 
 ### 用户需求
@@ -493,8 +597,8 @@ Project Root/
 
 ## v0.1.0 — Prototype
 
-**日期：** 2026-08-25  
-**状态：** Test  
+**日期：** 2026-08-25
+**状态：** Test
 **基于：** 初始版本
 
 ### 用户需求
@@ -527,8 +631,8 @@ Project Root/
 
 ## v0.1.1 — Ratio Engine Fix / Meter & UI Pass
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.0
 
 ### 用户需求
@@ -568,8 +672,8 @@ Project Root/
 
 ## v0.1.2 — ST/MS/LR Modes / Zero Latency / Dual Meter Rework
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.1
 
 ### 用户需求
@@ -649,8 +753,8 @@ Project Root/
 
 ## v0.1.3 — Workflow / A-B / Match / Independent Makeup
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.2
 
 ### 用户需求
@@ -756,8 +860,8 @@ Codex 首次编译应优先处理任何 JUCE API 差异，不要趁机重构 DSP
 
 ## v0.1.4 — Variable Lookahead Peak Experiment
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.3
 
 ### 用户需求
@@ -858,8 +962,8 @@ sample -> square -> 20 ms moving mean -> sqrt -> Ratio gain -> multiply audio
 
 ## v0.1.5 — Fixed Lookahead Presets / Last-Choice Memory
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.4
 
 ### 用户需求
@@ -928,8 +1032,8 @@ sample -> square -> 20 ms moving mean -> sqrt -> Ratio gain -> multiply audio
 
 ## v0.1.6 — Strict Integrated LUFS Match
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.5
 
 ### 用户需求
@@ -986,8 +1090,8 @@ sample -> square -> 20 ms moving mean -> sqrt -> Ratio gain -> multiply audio
 
 ## v0.1.7 — Auto GR Peak Hold / Version Tag / playHead Warning Cleanup
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.6
 
 ### 用户需求
@@ -1029,8 +1133,8 @@ Hold 计时按 audio callback samples 推进；宿主停止并停止 callback �
 
 ## v0.1.8 — GR Hold Readability / Uniform 1:1 UI Scaling
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.7
 
 ### 用户需求
@@ -1074,8 +1178,8 @@ Hold 计时按 audio callback samples 推进；宿主停止并停止 callback �
 
 ## v0.1.9 — FIR Oversampling / PDC Alignment / Warning Cleanup
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.1.8 Plan B（用户上传 `QQ Super Compression 0.1.8-PlanB-20260825-161114.zip`）
 
 ### 用户需求
@@ -1144,8 +1248,8 @@ Codex 首先完成 Windows Release 编译并看 warning；随后在 Cubase 测 c
 
 ## v0.1.10 — 0 ms-Only 1x/8x/16x Oversampling / Product Design Documentation
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.1.9 Candidate
 
 ### 用户需求
@@ -1222,8 +1326,8 @@ Codex 编译前必须读两个 Design Notes；如果未来写 GitHub 产品介�
 
 ## v0.9.0 — Warm Transparent UI Candidate
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.1.10
 
 ### 用户需求
@@ -1265,8 +1369,8 @@ Codex 必须先读 `UI_DESIGN_NOTES.md` 再做后续 GitHub 文案或 UI 调整�
 
 ## v0.9.1 — Lighting & Material Refinement
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.9.0 — Warm Transparent UI Candidate
 
 ### 用户需求
@@ -1321,8 +1425,8 @@ Codex 编译时首先确认 C4459 已消失且无新 warning，再截图检查�
 
 ## v0.9.2 — Asset Knobs / Input & Output Gain
 
-**日期：** 2026-08-27  
-**状态：** Candidate  
+**日期：** 2026-08-27
+**状态：** Candidate
 **基于：** v0.9.1
 
 ### 用户需求
@@ -1388,8 +1492,8 @@ Original Input
 
 ## v0.9.3 — UI Rollback / Features Retained
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.9.2
 
 ### 用户需求
@@ -1423,8 +1527,8 @@ v0.9.2 128-frame bitmap knob 在真实插件中的视觉被用户明确否决；
 
 ## v0.9.4 — Editable Numeric Text Contrast
 
-**日期：** 2026-08-28  
-**状态：** Candidate / Test  
+**日期：** 2026-08-28
+**状态：** Candidate / Test
 **基于：** v0.9.3 — UI Rollback / Features Retained
 
 ### 用户需求
@@ -1477,8 +1581,8 @@ Slider 非编辑状态的数值颜色正常；只有双击后进入 JUCE 临时�
 
 ## v0.9.7 — Threshold Rebuild from v0.9.4 Last-Good Baseline
 
-**日期：** 2026-08-30  
-**状态：** Candidate / Test  
+**日期：** 2026-08-30
+**状态：** Candidate / Test
 **基于：** v0.9.4 — Editable Text Contrast（用户指定为本次重做基准）
 
 ### 用户需求
@@ -1542,9 +1646,9 @@ Slider 非编辑状态的数值颜色正常；只有双击后进入 JUCE 临时�
 
 ## v1.0.1 — Transparent Core / Independent Domains / Display-First
 
-**日期：** 2026-08-30  
-**状态：** Candidate / Test  
-**DSP 回滚基线：** v0.9.4 future-window core；Threshold 参考 v0.9.7 rebuild  
+**日期：** 2026-08-30
+**状态：** Candidate / Test
+**DSP 回滚基线：** v0.9.4 future-window core；Threshold 参考 v0.9.7 rebuild
 
 ### 用户最终决定
 

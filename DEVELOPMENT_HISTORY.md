@@ -1,5 +1,57 @@
 # QQ Super Compression — Development History
 
+## v1.1.2 - Mix-aware Dynamic Display - Stable
+
+用户明确纠正了传统压缩器式的 GR 定义：在 QQ Super Compression 中，Mix 本身就是控制压缩深度的重要工具，因此必须进入 Gain Reduction 计算。v1.1.2 将核心压缩增益与 Dry 在线性增益域按 Mix 混合，再转换为有效 GR；0% Mix 为 0 dB，100% 为完整核心 GR。Makeup 与 Output Gain 仍只用于补偿/输出，不计入 GR。
+
+Dynamic Display 不再保留不可回算的 Wet/Output 历史，而是保存 pre-Input-Gain carrier 与实际 future-window detector level。绘制时读取当前 Input、Ratio、Threshold、Mix、Makeup、Output Gain，重新投影整个 240 点可见窗口。可见 Wet pre-Makeup 曲线删除；保留 Dry/Input，新增 GR（含 Mix）半透明区域与边界，并绘制 projected Output。EXT 可用时，以弱化双层线显示 post-Key-Gain/post-HPF future-window Key 轮廓。
+
+The user clarified that Mix is part of QQ Super Compression's compression depth, not merely a conventional parallel-output convenience. v1.1.2 therefore computes product-facing effective GR from the linear Dry/compressed-Wet blend. The live GR meter and two-second Hold use the same definition. Historical display points retain raw carrier/detector evidence and are reprojected from current parameters, while the obsolete visible Wet trace is removed and EXT gains a soft detector-key contour.
+
+No parameter or migration change is required; state schema remains 10. v1.1.2 completed Plan A and Plan B on 2026-09-02 and is Stable by the project standing rule. v1.1.1 is the previous Stable rollback baseline. Plan C uses the exact public v1.1.2 tag, reuses the local Plan A Windows artifact, and manually dispatches only the three macOS jobs; final run/package evidence is kept in the internal Plan C verification directory.
+## v1.1.1 - Side Chain HPF - Stable
+
+**Date:** 2026-09-02
+**Status:** Plan A and Plan B complete; current Stable by project rule
+**Based on:** v1.1.0 External Key Stable
+
+The existing Side Chain popup gains a detector-only HPF knob. OFF preserves the v1.1.0 full-band key. Active 20-500 Hz uses a smoothed second-order Butterworth response on INT or EXT after source selection/Key Gain. The filtered key drives detector, Key Level, and SC Listen only; the audible carrier and the established future-window compression path remain unchanged. The parameter is appended to APVTS, state schema 10, migration, Undo/Redo, and A/B. The popup expands leftward to 330x146 in both themes without changing the main layout.
+
+Local Windows x64 Release VST3, nine Python/source/math tests, standalone BS.1770, metadata identity, and build/output/install hash parity passed. Validator remains unavailable. v1.1.0 is retained as the previous Stable rollback. No Plan C/D or GitHub work was run.
+
+---
+
+## v1.1.0 — External Key / Sidechain
+
+**日期：** 2026-09-01
+**状态：** Stable baseline；Plan A / Plan B complete（用户于 2026-09-02 明确指定）
+**基于：** v1.0.4 Light / Classic UI switch Stable
+
+### 设计动机
+
+外部侧链可以把 Super Compression 的 future-window 压缩形状用于鼓触发的贝斯、Pad、人声、Bus 或母带载波。相比传统 Attack/Release 侧链压缩，本版的目标是让增益变化更贴合 Key 的形状，同时继续保留载波音头，且不增加新的时间包络器。
+
+### 实现
+
+- 新增可选 mono/stereo `Sidechain` 输入总线、INT/EXT Key Source 与 -24…+24 dB Key Gain。
+- INT 保持 v1.0.4 Input Gain 后的完整检测路径；EXT 只替换 detector，主载波不变。
+- EXT 未连接或静音时为零 detector / 0 dB GR，不会静音主信号。
+- ST/LR/MS 继续使用既有 future-window Peak、Lookahead、Ratio、Threshold 与 Oversampling；mono EXT 在所有独立域中共同驱动。
+- Key Source/Key Gain 进入 APVTS、自动化、工程状态、Undo 与 A/B；状态 schema 8 -> 9，旧工程迁移为 INT / 0 dB。
+- SC Listen 不进入自动化、状态或 A/B；与总延迟对齐，True Bypass 忽略它，关闭面板/编辑器与恢复状态时强制 OFF。
+- 右上角新增 SC 常驻按钮和 230x146 浮动面板；LIGHT/CLASSIC 几何和功能完全相同。
+
+### Plan A 结果
+
+- JUCE 8.0.15 / MSVC 19.44 Windows x64 Release VST3 无警告构建通过。
+- 八项 Python/source/math 回归与 BS.1770 自测通过。
+- Build / local formal output / system VST3 三份 bundle 完全一致：2 files，6,705,755 bytes，tree SHA-256 `F0F45D9C82EB80611025BA7E1799C7218A432A1BF099A02168041AD272B8EEAE`。
+- 主二进制 SHA-256 `67C8FD2A2E03FA6C2BA7C325F91A68F4FE3D0287BA135A850983EBA5F5415B85`，FileVersion 1.1.0。
+- 当前环境找不到 Steinberg validator/pluginval，因此明确保留该缺口。Cubase 音频、侧链、PDC、UI 与旧工程验证由用户完成。
+- 用户于 2026-09-02 明确将 v1.1.0 提升为当时的稳定基线并完成正式 Plan B 源码镜像；机器专用备份路径不进入公开源码。v1.0.4 当时为上一稳定回滚基线；该次未执行 Plan C/D、GitHub 或 Actions。
+
+---
+
 ## v1.0.4 — Light / Classic UI switch
 
 **日期：** 2026-09-01  
@@ -25,7 +77,7 @@
 
 ## v1.0.3 — Centered Domain Monitor
 
-**日期：** 2026-08-30  
+**日期：** 2026-08-30
 **状态：** Stable baseline / Plan D complete
 **基于：** v1.0.2 Complete Relative LINK Stable
 
@@ -54,7 +106,7 @@ Plan D 的四个最终成品、Actions、Windows validator、macOS 架构与 AU 
 
 ## v1.0.2 — Complete Relative LINK
 
-**日期：** 2026-08-30  
+**日期：** 2026-08-30
 **状态：** Candidate / Test  
 **基于：** v1.0.1 Stable — Display 0…-90 dB Scale / Transparent Core / Independent Domains  
 **稳定回滚基线：** v1.0.1 Stable（用户已确认，Plan A/B/C/D 已执行）
@@ -106,14 +158,14 @@ Plan D 的四个最终成品、Actions、Windows validator、macOS 架构与 AU 
 
 ## v1.0.1 — Stable Baseline Promotion
 
-**日期：** 2026-08-30  
+**日期：** 2026-08-30
 **状态：** Stable  
 
 用户明确将 Display `0…-90 dB` 的 v1.0.1 设为新的稳定基线，并报告已执行 Plan A/B/C/D。此前 v1.0.1 各 Candidate Revision 的历史记录继续保留在下方；从此后续开发和失败回滚优先以该 Stable 包为基准。
 
 ## v1.0.1 Candidate Revision 3 — Mode / Lookahead Alignment Polish
 
-**日期：** 2026-08-30  
+**日期：** 2026-08-30
 **状态：** Candidate / Test（仍为 1.0.1，不晋升 Stable）  
 **基于：** v1.0.1 Candidate Revision 2
 
@@ -151,7 +203,7 @@ Plan D 的四个最终成品、Actions、Windows validator、macOS 架构与 AU 
 
 ## v1.0.1 Candidate Revision 2 — Mode/LINK UI Fix + Independent LR/MS Mix
 
-**日期：** 2026-08-30  
+**日期：** 2026-08-30
 **状态：** Candidate / Test（仍为 1.0.1，不晋升 Stable）  
 **基于：** v1.0.1 Transparent Core / Independent Domains / Display-First Candidate
 
@@ -201,7 +253,7 @@ Plan D 的四个最终成品、Actions、Windows validator、macOS 架构与 AU 
 
 ## v1.0.1 — Transparent Core / Independent Domains / Display-First
 
-**日期：** 2026-08-30  
+**日期：** 2026-08-30
 **状态：** Candidate / Test  
 **基于：** v0.9.4/v0.9.7 transparent future-window core + v1.0.0 domain/UI workflow work
 
@@ -1219,7 +1271,7 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 ## v0.9.7 — Threshold Rebuild
 
-**日期：** 2026-08-30  
+**日期：** 2026-08-30
 **状态：** Candidate / Test  
 **基于：** v0.9.4
 
@@ -1258,7 +1310,7 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 ## v1.0.1 Candidate Revision 4 — Display 0…-90 dB Working Scale
 
-**日期：** 2026-08-30  
+**日期：** 2026-08-30
 **状态：** Candidate / Test  
 **基于：** v1.0.1 Mode / Lookahead Alignment Polish
 
@@ -1294,7 +1346,7 @@ Threshold 已经成为主要工作功能之一。固定 `0…-90 dB` 可以让�
 
 ## v1.0.3 — Centered Domain Monitor
 
-**日期：** 2026-08-30  
+**日期：** 2026-08-30
 **状态：** Candidate / Test  
 **基于：** v1.0.2 — Complete Relative LINK **Stable**（用户于 2026-08-30 明确设为稳定基线）
 

@@ -22,7 +22,7 @@ constexpr auto stateSchemaProperty = "qqscStateSchemaVersion";
 constexpr auto monitorLRProperty = "qqscMonitorLRSelection";
 constexpr auto monitorMSProperty = "qqscMonitorMSSelection";
 constexpr int oversamplingSchemaVersion = 2; // v0.1.10: 0 ms-only 1x/8x/16x Oversampling schema
-constexpr int currentStateSchemaVersion = 8; // v1.0.3: persisted LR/MS centered audition monitor state
+constexpr int currentStateSchemaVersion = 10; // v1.1.1: appended detector-only Side Chain HPF
 constexpr float centeredChannelMonitorGain = 0.70710678118654752440f; // 1/sqrt(2), -3.0103 dB
 
 juce::Identifier abProperty (const juce::String& suffix)
@@ -88,8 +88,9 @@ int migrateLegacy019OversamplingChoice (float oldNormalised) noexcept
 
 QQSuperCompressionAudioProcessor::QQSuperCompressionAudioProcessor()
     : juce::AudioProcessor (BusesProperties()
-                               .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                               .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+                               .withInput  ("Input",     juce::AudioChannelSet::stereo(), true)
+                               .withInput  ("Sidechain", juce::AudioChannelSet::stereo(), false)
+                               .withOutput ("Output",    juce::AudioChannelSet::stereo(), true)),
       apvts (*this, &undoManager, "QQSuperCompressionState", createParameterLayout())
 {
     // v0.1.10 intentionally keeps only 1x/8x/16x. User PluginDoctor tests
@@ -247,6 +248,41 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
     addMix (qqsc::params::mixM, "Mix M");
     addMix (qqsc::params::mixS, "Mix S");
 
+    // v1.1.0 Candidate External Key parameters are appended after the complete
+    // v1.0.4 sequence. INT + 0 dB are explicit legacy-safe defaults.
+    layout.add (std::make_unique<juce::AudioParameterChoice> (
+        juce::ParameterID { qqsc::params::keySource, 1 }, "Key Source",
+        qqsc::params::keySourceChoices(), qqsc::params::keyInternal));
+
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { qqsc::params::keyGainDb, 1 }, "Key Gain",
+        juce::NormalisableRange<float> { -24.0f, 24.0f, 0.01f }, 0.0f,
+        juce::AudioParameterFloatAttributes().withLabel ("dB")));
+
+    // v1.1.1 appends a detector-only HPF after the complete v1.1.0 parameter
+    // sequence. OFF is exact legacy behaviour; active values use a log 20-500 Hz law.
+    layout.add (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { qqsc::params::keyHpfHz, 1 }, "Side Chain HPF",
+        qqsc::params::keyHpfRange(), qqsc::params::keyHpfOffHz,
+        juce::AudioParameterFloatAttributes()
+            .withLabel ("Hz")
+            .withStringFromValueFunction ([] (float value, int)
+            {
+                return qqsc::params::isKeyHpfEnabled (value)
+                    ? juce::String (std::round (value), 0) + " Hz"
+                    : juce::String ("OFF");
+            })
+            .withValueFromStringFunction ([] (const juce::String& text)
+            {
+                if (text.containsIgnoreCase ("off"))
+                    return qqsc::params::keyHpfOffHz;
+
+                const auto value = static_cast<float> (text.getDoubleValue());
+                return qqsc::params::isKeyHpfEnabled (value)
+                    ? qqsc::params::clampKeyHpfHz (value)
+                    : qqsc::params::keyHpfOffHz;
+            })));
+
     return layout;
 }
 
@@ -264,6 +300,10 @@ void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int sam
 
     wetBaseBuffer.setSize (6, configuredMaximumBlockSize, false, true, true);
     wetBaseBuffer.clear();
+    oversamplingInputBuffer.setSize (6, configuredMaximumBlockSize, false, true, true);
+    oversamplingInputBuffer.clear();
+    keyInputBuffer.setSize (2, configuredMaximumBlockSize, false, true, true);
+    keyInputBuffer.clear();
     originalInputBuffer.setSize (2, configuredMaximumBlockSize, false, true, true);
     originalInputBuffer.clear();
 
@@ -275,6 +315,8 @@ void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int sam
     oversampledDelayCapacity = juce::jmax (2, maxLookaheadSamplesInternal + 2);
     oversampledLookaheadDelayBuffer.setSize (2, oversampledDelayCapacity, false, true, true);
     oversampledLookaheadDelayBuffer.clear();
+    oversampledKeyHistoryBuffer.setSize (4, oversampledDelayCapacity, false, true, true);
+    oversampledKeyHistoryBuffer.clear();
 
     leftEngine.prepare (maxLookaheadSamplesInternal);
     rightEngine.prepare (maxLookaheadSamplesInternal);
@@ -290,11 +332,16 @@ void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int sam
     dryDelayBuffer.clear();
     originalDryDelayBuffer.setSize (2, dryDelayCapacity, false, true, true);
     originalDryDelayBuffer.clear();
+    keyListenDelayBuffer.setSize (2, dryDelayCapacity, false, true, true);
+    keyListenDelayBuffer.clear();
 
     // Input/Makeup/Mix/Output remain host-rate smoothers. All five Ratio
     // smoothers are re-timed to the effective internal rate in
     // updateProcessingConfiguration() whenever 0 ms Oversampling changes.
     inputGainSmoother.reset (currentSampleRate, 0.010);
+    keyGainSmoother.reset (currentSampleRate, 0.010);
+    keyHpfCutoffSmoother.reset (currentSampleRate, 0.020);
+    keyHpfWetSmoother.reset (currentSampleRate, 0.010);
     ratioSmoother.reset (currentSampleRate, 0.010);
     ratioLSmoother.reset (currentSampleRate, 0.010);
     ratioRSmoother.reset (currentSampleRate, 0.010);
@@ -314,6 +361,17 @@ void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int sam
 
     inputGainSmoother.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (
         apvts.getRawParameterValue (qqsc::params::inputGainDb)->load()));
+    keyGainSmoother.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (
+        apvts.getRawParameterValue (qqsc::params::keyGainDb)->load()));
+    const auto initialKeyHpfHz = apvts.getRawParameterValue (qqsc::params::keyHpfHz)->load();
+    keyHpfCutoffSmoother.setCurrentAndTargetValue (
+        qqsc::params::isKeyHpfEnabled (initialKeyHpfHz)
+            ? qqsc::params::clampKeyHpfHz (initialKeyHpfHz)
+            : qqsc::params::keyHpfMinHz);
+    keyHpfWetSmoother.setCurrentAndTargetValue (
+        qqsc::params::isKeyHpfEnabled (initialKeyHpfHz) ? 1.0f : 0.0f);
+    updateKeyHighPassCoefficients (keyHpfCutoffSmoother.getCurrentValue());
+    resetKeyHighPassState();
     ratioSmoother.setCurrentAndTargetValue (apvts.getRawParameterValue (qqsc::params::ratio)->load());
     ratioLSmoother.setCurrentAndTargetValue (apvts.getRawParameterValue (qqsc::params::ratioL)->load());
     ratioRSmoother.setCurrentAndTargetValue (apvts.getRawParameterValue (qqsc::params::ratioR)->load());
@@ -338,6 +396,7 @@ void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int sam
     currentLookaheadSamplesBase = -1;
     currentLookaheadSamplesInternal = -1;
     currentOversamplingIndex = -1;
+    currentKeySource = -1;
     currentOversamplingFactor = 1;
     currentTotalLatencySamples = 0;
     updateProcessingConfiguration (true);
@@ -391,10 +450,8 @@ juce::dsp::Oversampling<float>& QQSuperCompressionAudioProcessor::getCurrentOver
     return *oversamplers[static_cast<size_t> (index)];
 }
 
-void QQSuperCompressionAudioProcessor::resetOversampledCoreState() noexcept
+void QQSuperCompressionAudioProcessor::resetDetectorCoreState() noexcept
 {
-    oversampledLookaheadDelayBuffer.clear();
-    oversampledDelayWriteIndex = 0;
     detectorSampleCounter = 0;
     leftEngine.reset();
     rightEngine.reset();
@@ -402,17 +459,54 @@ void QQSuperCompressionAudioProcessor::resetOversampledCoreState() noexcept
     sideEngine.reset();
 }
 
+void QQSuperCompressionAudioProcessor::resetOversampledCoreState() noexcept
+{
+    oversampledLookaheadDelayBuffer.clear();
+    oversampledKeyHistoryBuffer.clear();
+    oversampledDelayWriteIndex = 0;
+    resetDetectorCoreState();
+}
+
 void QQSuperCompressionAudioProcessor::resetDryDelayState() noexcept
 {
     dryDelayBuffer.clear();
     originalDryDelayBuffer.clear();
+    keyListenDelayBuffer.clear();
     dryDelayWriteIndex = 0;
+}
+
+void QQSuperCompressionAudioProcessor::resetKeyHighPassState() noexcept
+{
+    for (auto& state : keyHighPassStates)
+        state.reset();
+
+    keyHpfCoefficientCountdown = 0;
+}
+
+void QQSuperCompressionAudioProcessor::updateKeyHighPassCoefficients (float cutoffHz) noexcept
+{
+    const auto safeMaximum = juce::jmax (0.1, currentSampleRate * 0.45);
+    const auto cutoff = juce::jlimit (0.1, safeMaximum,
+                                      static_cast<double> (qqsc::params::clampKeyHpfHz (cutoffHz)));
+    const auto omega = 2.0 * juce::MathConstants<double>::pi * cutoff / currentSampleRate;
+    const auto sine = std::sin (omega);
+    const auto cosine = std::cos (omega);
+    constexpr double butterworthQ = 0.70710678118654752440;
+    const auto alpha = sine / (2.0 * butterworthQ);
+    const auto a0 = 1.0 + alpha;
+
+    keyHighPassCoefficients.b0 = static_cast<float> (((1.0 + cosine) * 0.5) / a0);
+    keyHighPassCoefficients.b1 = static_cast<float> (-(1.0 + cosine) / a0);
+    keyHighPassCoefficients.b2 = keyHighPassCoefficients.b0;
+    keyHighPassCoefficients.a1 = static_cast<float> ((-2.0 * cosine) / a0);
+    keyHighPassCoefficients.a2 = static_cast<float> ((1.0 - alpha) / a0);
 }
 
 void QQSuperCompressionAudioProcessor::resetAllProcessingState() noexcept
 {
     resetOversampledCoreState();
     resetDryDelayState();
+    resetKeyHighPassState();
     for (auto& oversampler : oversamplers)
         oversampler->reset();
 }
@@ -426,6 +520,9 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
     const auto storedOversamplingChoice = juce::jlimit (0, 2,
         juce::roundToInt (apvts.getRawParameterValue (qqsc::params::oversampling)->load()));
     const auto requestedOversamplingIndex = qqsc::params::effectiveOversamplingChoiceIndex (requestedMs, storedOversamplingChoice);
+    const auto requestedKeySource = juce::jlimit (static_cast<int> (qqsc::params::keyInternal),
+                                                  static_cast<int> (qqsc::params::keyExternal),
+                                                  juce::roundToInt (apvts.getRawParameterValue (qqsc::params::keySource)->load()));
     const auto requestedFactor = qqsc::params::oversamplingFactorForChoiceIndex (requestedOversamplingIndex);
     const auto requestedLookaheadInternal = requestedLookaheadBase * requestedFactor;
     const auto requestedOversamplingLatency = getOversamplingLatencySamples (requestedOversamplingIndex);
@@ -433,8 +530,9 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
 
     const bool oversamplingChanged = requestedOversamplingIndex != currentOversamplingIndex;
     const bool lookaheadChanged = requestedLookaheadBase != currentLookaheadSamplesBase;
+    const bool keySourceChanged = requestedKeySource != currentKeySource;
 
-    if (! force && ! oversamplingChanged && ! lookaheadChanged)
+    if (! force && ! oversamplingChanged && ! lookaheadChanged && ! keySourceChanged)
         return;
 
     const auto ratioCurrent = ratioSmoother.getCurrentValue();
@@ -449,6 +547,7 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
     const auto ratioSTarget = juce::jmax (1.0f, apvts.getRawParameterValue (qqsc::params::ratioS)->load());
 
     currentOversamplingIndex = requestedOversamplingIndex;
+    currentKeySource = requestedKeySource;
     currentOversamplingFactor = requestedFactor;
     currentLookaheadSamplesBase = requestedLookaheadBase;
     currentLookaheadSamplesInternal = requestedLookaheadInternal;
@@ -483,13 +582,19 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
         // the detector queues. Clear Dry too so Wet/Dry/Bypass restart aligned.
         resetAllProcessingState();
     }
-    else
+    else if (keySourceChanged)
     {
-        // Same internal rate, different future-window length: rebuild all four
-        // peak queues from buffered samples so the change settles without a cold
-        // detector. Each LR/MS domain uses its own Ratio/Threshold during warmup;
-        // ST later derives its linked gain from the shared L/R window levels.
-        detectorSampleCounter = 0;
+        // Never mix INT and EXT detector history. The carrier/dry delays remain
+        // aligned, but the new source starts a clean future-window queue.
+        oversampledKeyHistoryBuffer.clear();
+        resetDetectorCoreState();
+        resetKeyHighPassState();
+    }
+    else if (lookaheadChanged)
+    {
+        // Same internal rate/source, different future-window length: rebuild all
+        // four queues from the exact stored detector-source domains.
+        resetDetectorCoreState();
         const auto thresholdL = qqsc::params::thresholdLinear (
             apvts.getRawParameterValue (qqsc::params::thresholdLDb)->load());
         const auto thresholdR = qqsc::params::thresholdLinear (
@@ -498,7 +603,6 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
             apvts.getRawParameterValue (qqsc::params::thresholdMDb)->load());
         const auto thresholdS = qqsc::params::thresholdLinear (
             apvts.getRawParameterValue (qqsc::params::thresholdSDb)->load());
-        const bool stereoBus = getTotalNumInputChannels() >= 2;
 
         for (int age = requestedLookaheadInternal; age >= 1; --age)
         {
@@ -506,15 +610,15 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
             while (index < 0)
                 index += oversampledDelayCapacity;
 
-            const auto l = oversampledLookaheadDelayBuffer.getSample (0, index);
-            const auto r = oversampledLookaheadDelayBuffer.getSample (1, index);
-            const auto m = stereoBus ? 0.5f * (l + r) : l;
-            const auto side = stereoBus ? 0.5f * (l - r) : 0.0f;
+            const auto keyL = oversampledKeyHistoryBuffer.getSample (0, index);
+            const auto keyR = oversampledKeyHistoryBuffer.getSample (1, index);
+            const auto keyM = oversampledKeyHistoryBuffer.getSample (2, index);
+            const auto keyS = oversampledKeyHistoryBuffer.getSample (3, index);
 
-            leftEngine.processSample  (l,    ratioLTarget, thresholdL, detectorSampleCounter);
-            rightEngine.processSample (r,    ratioRTarget, thresholdR, detectorSampleCounter);
-            midEngine.processSample   (m,    ratioMTarget, thresholdM, detectorSampleCounter);
-            sideEngine.processSample  (side, ratioSTarget, thresholdS, detectorSampleCounter);
+            leftEngine.processSample  (keyL, ratioLTarget, thresholdL, detectorSampleCounter);
+            rightEngine.processSample (keyR, ratioRTarget, thresholdR, detectorSampleCounter);
+            midEngine.processSample   (keyM, ratioMTarget, thresholdM, detectorSampleCounter);
+            sideEngine.processSample  (keyS, ratioSTarget, thresholdS, detectorSampleCounter);
             ++detectorSampleCounter;
         }
     }
@@ -525,13 +629,19 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
 
 bool QQSuperCompressionAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
-    const auto& in  = layouts.getMainInputChannelSet();
-    const auto& out = layouts.getMainOutputChannelSet();
+    const auto& mainIn  = layouts.getMainInputChannelSet();
+    const auto& mainOut = layouts.getMainOutputChannelSet();
 
-    if (in != out)
+    if (mainIn != mainOut)
         return false;
 
-    return in == juce::AudioChannelSet::mono() || in == juce::AudioChannelSet::stereo();
+    if (mainIn != juce::AudioChannelSet::mono() && mainIn != juce::AudioChannelSet::stereo())
+        return false;
+
+    const auto& keyIn = layouts.getChannelSet (true, 1);
+    return keyIn.isDisabled()
+        || keyIn == juce::AudioChannelSet::mono()
+        || keyIn == juce::AudioChannelSet::stereo();
 }
 
 void QQSuperCompressionAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
@@ -549,9 +659,13 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
 {
     juce::ScopedNoDenormals noDenormals;
 
-    const int numInputChannels = getTotalNumInputChannels();
-    const int numOutputChannels = getTotalNumOutputChannels();
+    const int numInputChannels = getMainBusNumInputChannels();
+    const int numOutputChannels = getMainBusNumOutputChannels();
     const int numSamples = buffer.getNumSamples();
+    auto externalKeyBuffer = getBusBuffer (buffer, true, 1);
+    const int externalKeyChannels = externalKeyBuffer.getNumChannels();
+    const bool externalKeyBusAvailable = externalKeyChannels > 0;
+    meterState.externalKeyBusAvailable.store (externalKeyBusAvailable, std::memory_order_relaxed);
 
     for (int ch = numInputChannels; ch < numOutputChannels; ++ch)
         buffer.clear (ch, 0, numSamples);
@@ -643,14 +757,26 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
     mixSSmoother.setTargetValue (apvts.getRawParameterValue (qqsc::params::mixS)->load() * 0.01f);
     outputGainSmoother.setTargetValue (juce::Decibels::decibelsToGain (
         apvts.getRawParameterValue (qqsc::params::outputGainDb)->load()));
+    keyGainSmoother.setTargetValue (juce::Decibels::decibelsToGain (
+        apvts.getRawParameterValue (qqsc::params::keyGainDb)->load()));
+    const auto keyHpfHz = apvts.getRawParameterValue (qqsc::params::keyHpfHz)->load();
+    const auto keyHpfEnabled = qqsc::params::isKeyHpfEnabled (keyHpfHz);
+    keyHpfCutoffSmoother.setTargetValue (
+        keyHpfEnabled ? qqsc::params::clampKeyHpfHz (keyHpfHz) : qqsc::params::keyHpfMinHz);
+    keyHpfWetSmoother.setTargetValue (keyHpfEnabled ? 1.0f : 0.0f);
+
+    const auto keySource = juce::jlimit (static_cast<int> (qqsc::params::keyInternal),
+                                         static_cast<int> (qqsc::params::keyExternal),
+                                         juce::roundToInt (apvts.getRawParameterValue (qqsc::params::keySource)->load()));
+    const bool useExternalKey = keySource == qqsc::params::keyExternal;
 
     float meterMaxGrDb[2] { 0.0f, 0.0f };
+    float displayDetectorPeak[2] { 0.0f, 0.0f };
+    float keyInputPeak = 0.0f;
 
-    // v0.9.2 Input Gain is part of the audio signal path before detector/compression,
-    // but the Dynamic Display Dry/Input reference must stay pre-Input-Gain. Keep an
-    // untouched host-rate copy, then apply the smoothed Input Gain to the processing
-    // buffer before Oversampling. This also means Mix=0 is the input-trimmed Dry path,
-    // while true Bypass remains the untouched delayed input.
+    // v1.0.4 INT is preserved exactly: the detector follows the post-Input-Gain
+    // main signal. EXT replaces only that detector source and applies its own
+    // smoothed Key Gain; it never enters the audible carrier path.
     for (int i = 0; i < numSamples; ++i)
     {
         const float originalL = buffer.getSample (0, i);
@@ -659,17 +785,54 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         originalInputBuffer.setSample (1, i, originalR);
 
         const auto inputGain = inputGainSmoother.getNextValue();
-        buffer.setSample (0, i, originalL * inputGain);
+        const float mainL = originalL * inputGain;
+        const float mainR = stereoBus ? originalR * inputGain : 0.0f;
+        buffer.setSample (0, i, mainL);
         if (stereoBus)
-            buffer.setSample (1, i, originalR * inputGain);
+            buffer.setSample (1, i, mainR);
+
+        const auto keyGain = keyGainSmoother.getNextValue();
+        float selectedKeyL = mainL;
+        float selectedKeyR = mainR;
+
+        if (useExternalKey)
+        {
+            const float externalL = externalKeyBusAvailable ? externalKeyBuffer.getSample (0, i) : 0.0f;
+            const float externalR = externalKeyChannels >= 2 ? externalKeyBuffer.getSample (1, i) : externalL;
+            selectedKeyL = externalL * keyGain;
+            selectedKeyR = externalR * keyGain;
+        }
+
+        const auto keyHpfCutoff = keyHpfCutoffSmoother.getNextValue();
+        const auto keyHpfWet = keyHpfWetSmoother.getNextValue();
+        if (keyHpfCoefficientCountdown-- <= 0)
+        {
+            updateKeyHighPassCoefficients (keyHpfCutoff);
+            keyHpfCoefficientCountdown = 16;
+        }
+
+        const auto filteredKeyL = keyHighPassStates[0].process (selectedKeyL, keyHighPassCoefficients);
+        const auto filteredKeyR = keyHighPassStates[1].process (selectedKeyR, keyHighPassCoefficients);
+        selectedKeyL += (filteredKeyL - selectedKeyL) * keyHpfWet;
+        selectedKeyR += (filteredKeyR - selectedKeyR) * keyHpfWet;
+
+        keyInputBuffer.setSample (0, i, selectedKeyL);
+        keyInputBuffer.setSample (1, i, selectedKeyR);
+        keyInputPeak = juce::jmax (keyInputPeak, maxAbs (selectedKeyL, selectedKeyR));
+
+        oversamplingInputBuffer.setSample (0, i, mainL);
+        oversamplingInputBuffer.setSample (1, i, mainR);
+        oversamplingInputBuffer.setSample (2, i, selectedKeyL);
+        oversamplingInputBuffer.setSample (3, i, selectedKeyR);
+        oversamplingInputBuffer.setSample (4, i, 0.0f);
+        oversamplingInputBuffer.setSample (5, i, 0.0f);
     }
 
-    // The transparent v0.9.4/v0.9.7 core runs in the effective internal
-    // domain. Only 0 ms may be 8x/16x; non-zero Lookahead is always 1x. One
-    // six-channel Oversampling path returns ST, LR and MS pre-Makeup variants in
-    // parallel so Match continues accumulating every mode simultaneously.
-    const auto& hostInputBuffer = static_cast<const juce::AudioBuffer<float>&> (buffer);
-    const juce::dsp::AudioBlock<const float> hostInputBlock (hostInputBuffer);
+    // Main and selected Key enter the same effective 1x/8x/16x internal domain.
+    // Channels 2/3 carry the Key only until the detector consumes them; all six
+    // channels are then overwritten with the established wet variants.
+    const juce::dsp::AudioBlock<const float> fullHostInputBlock (oversamplingInputBuffer);
+    const auto hostInputBlock = fullHostInputBlock.getSubBlock (0, static_cast<size_t> (numSamples));
     auto& oversampler = getCurrentOversampler();
     auto oversampledBlock = oversampler.processSamplesUp (hostInputBlock);
 
@@ -687,8 +850,18 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
     {
         const float inputL = oversampledBlock.getSample (0, i);
         const float inputR = stereoBus ? oversampledBlock.getSample (1, i) : 0.0f;
-        const float inputM = stereoBus ? 0.5f * (inputL + inputR) : inputL;
-        const float inputS = stereoBus ? 0.5f * (inputL - inputR) : 0.0f;
+
+        // Selected Key is already post-Key-Gain/post-HPF in channels 2/3. With
+        // HPF OFF these samples are the exact v1.1.0 INT/EXT detector signal.
+        const float keyL = oversampledBlock.getSample (2, i);
+        const float keyR = oversampledBlock.getSample (3, i);
+        const bool stereoKey = useExternalKey ? externalKeyChannels >= 2 : stereoBus;
+        // A mono external key is deliberately common to every independent
+        // detector domain. This lets one kick drive L/R or M/S together instead
+        // of leaving the Side detector untriggered merely because the key is mono.
+        const float keyM = stereoKey ? 0.5f * (keyL + keyR) : keyL;
+        const float keyS = stereoKey ? 0.5f * (keyL - keyR)
+                                     : (useExternalKey ? keyL : 0.0f);
 
         const auto ratioSTNow = ratioSmoother.getNextValue();
         const auto ratioLNow = ratioLSmoother.getNextValue();
@@ -698,10 +871,10 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
 
         // LR/MS have independent Ratio+Threshold values. The detector itself is
         // still the same future-window peak engine in every domain.
-        const auto gainL = leftEngine.processSample  (inputL, ratioLNow, thresholdLLinear, detectorSampleCounter);
-        const auto gainR = rightEngine.processSample (inputR, ratioRNow, thresholdRLinear, detectorSampleCounter);
-        const auto gainM = midEngine.processSample   (inputM, ratioMNow, thresholdMLinear, detectorSampleCounter);
-        const auto gainS = sideEngine.processSample  (inputS, ratioSNow, thresholdSLinear, detectorSampleCounter);
+        const auto gainL = leftEngine.processSample  (keyL, ratioLNow, thresholdLLinear, detectorSampleCounter);
+        const auto gainR = rightEngine.processSample (keyR, ratioRNow, thresholdRLinear, detectorSampleCounter);
+        const auto gainM = midEngine.processSample   (keyM, ratioMNow, thresholdMLinear, detectorSampleCounter);
+        const auto gainS = sideEngine.processSample  (keyS, ratioSNow, thresholdSLinear, detectorSampleCounter);
 
         // ST has its own Ratio/Threshold without needing duplicate detector
         // queues: both L/R engines expose the exact current window peak. Stereo
@@ -711,8 +884,26 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         const auto linkedGain = qqsc::StaticCompressionEngine::gainForLevel (
             linkedLevel, ratioSTNow, thresholdSTLinear);
 
+        if (mode == qqsc::params::midSide)
+        {
+            displayDetectorPeak[0] = juce::jmax (displayDetectorPeak[0], midEngine.getCurrentLevel());
+            displayDetectorPeak[1] = juce::jmax (displayDetectorPeak[1], sideEngine.getCurrentLevel());
+        }
+        else if (mode == qqsc::params::leftRight)
+        {
+            displayDetectorPeak[0] = juce::jmax (displayDetectorPeak[0], leftEngine.getCurrentLevel());
+            displayDetectorPeak[1] = juce::jmax (displayDetectorPeak[1], rightEngine.getCurrentLevel());
+        }
+        else
+        {
+            displayDetectorPeak[0] = juce::jmax (displayDetectorPeak[0], linkedLevel);
+        }
         oversampledLookaheadDelayBuffer.setSample (0, oversampledDelayWriteIndex, inputL);
         oversampledLookaheadDelayBuffer.setSample (1, oversampledDelayWriteIndex, inputR);
+        oversampledKeyHistoryBuffer.setSample (0, oversampledDelayWriteIndex, keyL);
+        oversampledKeyHistoryBuffer.setSample (1, oversampledDelayWriteIndex, keyR);
+        oversampledKeyHistoryBuffer.setSample (2, oversampledDelayWriteIndex, keyM);
+        oversampledKeyHistoryBuffer.setSample (3, oversampledDelayWriteIndex, keyS);
 
         int readIndex = oversampledDelayWriteIndex - currentLookaheadSamplesInternal;
         while (readIndex < 0)
@@ -770,14 +961,9 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
                         .getSubBlock (0, static_cast<size_t> (numSamples));
     oversampler.processSamplesDown (wetBlock);
 
-    float graphInputPeak = 0.0f;
-    float graphWetPeak = 0.0f;
-    float graphOutputPeak = 0.0f;
     float meterInputPeak[2]  { 0.0f, 0.0f };
     float meterOutputPeak[2] { 0.0f, 0.0f };
     float displayInputPeak[2]  { 0.0f, 0.0f };
-    float displayWetPeak[2]    { 0.0f, 0.0f };
-    float displayOutputPeak[2] { 0.0f, 0.0f };
 
     for (int i = 0; i < numSamples; ++i)
     {
@@ -792,6 +978,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         dryDelayBuffer.setSample (1, dryDelayWriteIndex, inputR);
         originalDryDelayBuffer.setSample (0, dryDelayWriteIndex, originalL);
         originalDryDelayBuffer.setSample (1, dryDelayWriteIndex, originalR);
+        keyListenDelayBuffer.setSample (0, dryDelayWriteIndex, keyInputBuffer.getSample (0, i));
+        keyListenDelayBuffer.setSample (1, dryDelayWriteIndex, keyInputBuffer.getSample (1, i));
 
         int dryReadIndex = dryDelayWriteIndex - currentTotalLatencySamples;
         while (dryReadIndex < 0)
@@ -801,6 +989,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         const float dryR = stereoBus ? dryDelayBuffer.getSample (1, dryReadIndex) : 0.0f;
         const float displayDryL = originalDryDelayBuffer.getSample (0, dryReadIndex);
         const float displayDryR = stereoBus ? originalDryDelayBuffer.getSample (1, dryReadIndex) : 0.0f;
+        const float delayedKeyL = keyListenDelayBuffer.getSample (0, dryReadIndex);
+        const float delayedKeyR = keyListenDelayBuffer.getSample (1, dryReadIndex);
         const float dryM = stereoBus ? 0.5f * (dryL + dryR) : dryL;
         const float dryS = stereoBus ? 0.5f * (dryL - dryR) : 0.0f;
 
@@ -888,7 +1078,12 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         float audibleOutL = outL;
         float audibleOutR = outR;
 
-        if (! forceBypass && stereoBus)
+        if (! forceBypass && sidechainListen.load (std::memory_order_relaxed))
+        {
+            audibleOutL = delayedKeyL;
+            audibleOutR = delayedKeyR;
+        }
+        else if (! forceBypass && stereoBus)
         {
             const auto monitorSelection = getDomainMonitorSelection (mode);
 
@@ -919,10 +1114,6 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         if (stereoBus)
             buffer.setSample (1, i, audibleOutR);
 
-        graphInputPeak = juce::jmax (graphInputPeak, stereoBus ? maxAbs (displayDryL, displayDryR) : std::abs (displayDryL));
-        graphWetPeak = juce::jmax (graphWetPeak, stereoBus ? maxAbs (wetL, wetR) : std::abs (wetL));
-        graphOutputPeak = juce::jmax (graphOutputPeak, stereoBus ? maxAbs (outL, outR) : std::abs (outL));
-
         if (mode == qqsc::params::midSide)
         {
             const float outM = stereoBus ? 0.5f * (outL + outR) : outL;
@@ -934,10 +1125,6 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             const float displayDryS = stereoBus ? 0.5f * (displayDryL - displayDryR) : 0.0f;
             displayInputPeak[0] = juce::jmax (displayInputPeak[0], std::abs (displayDryM));
             displayInputPeak[1] = juce::jmax (displayInputPeak[1], std::abs (displayDryS));
-            displayWetPeak[0] = juce::jmax (displayWetPeak[0], std::abs (wetM));
-            displayWetPeak[1] = juce::jmax (displayWetPeak[1], std::abs (wetS));
-            displayOutputPeak[0] = juce::jmax (displayOutputPeak[0], std::abs (outM));
-            displayOutputPeak[1] = juce::jmax (displayOutputPeak[1], std::abs (outS));
         }
         else
         {
@@ -948,20 +1135,12 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             {
                 displayInputPeak[0] = juce::jmax (displayInputPeak[0], std::abs (displayDryL));
                 displayInputPeak[1] = juce::jmax (displayInputPeak[1], std::abs (displayDryR));
-                displayWetPeak[0] = juce::jmax (displayWetPeak[0], std::abs (wetIndependentL));
-                displayWetPeak[1] = juce::jmax (displayWetPeak[1], std::abs (wetIndependentR));
-                displayOutputPeak[0] = juce::jmax (displayOutputPeak[0], std::abs (outL));
-                displayOutputPeak[1] = juce::jmax (displayOutputPeak[1], std::abs (outR));
             }
             else
             {
                 // ST remains one linked Display panel. Channel 1 is unused.
                 displayInputPeak[0] = juce::jmax (displayInputPeak[0],
                                                   stereoBus ? maxAbs (displayDryL, displayDryR) : std::abs (displayDryL));
-                displayWetPeak[0] = juce::jmax (displayWetPeak[0],
-                                                stereoBus ? maxAbs (wetLinkedL, wetLinkedR) : std::abs (wetLinkedL));
-                displayOutputPeak[0] = juce::jmax (displayOutputPeak[0],
-                                                   stereoBus ? maxAbs (outL, outR) : std::abs (outL));
             }
         }
     }
@@ -973,9 +1152,27 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
     lastTransportSample = transportSample;
     lastTransportBlockSize = numSamples;
 
-    meterState.inputDb.store  (peakToDb (graphInputPeak), std::memory_order_relaxed);
-    meterState.wetDb.store    (peakToDb (graphWetPeak), std::memory_order_relaxed);
-    meterState.outputDb.store (peakToDb (graphOutputPeak), std::memory_order_relaxed);
+    float meterMix0 = mixSmoother.getCurrentValue();
+    float meterMix1 = meterMix0;
+    if (mode == qqsc::params::midSide)
+    {
+        meterMix0 = mixMSmoother.getCurrentValue();
+        meterMix1 = mixSSmoother.getCurrentValue();
+    }
+    else if (mode == qqsc::params::leftRight)
+    {
+        meterMix0 = mixLSmoother.getCurrentValue();
+        meterMix1 = mixRSmoother.getCurrentValue();
+    }
+
+    const auto effectiveGrForMeter = [] (float coreGrDb, float wetMix)
+    {
+        const auto compressedGain = juce::Decibels::decibelsToGain (-juce::jmax (0.0f, coreGrDb));
+        return qqsc::StaticCompressionEngine::effectiveGainReductionDb (compressedGain, wetMix);
+    };
+
+    const auto effectiveGr0 = forceBypass ? 0.0f : effectiveGrForMeter (meterMaxGrDb[0], meterMix0);
+    const auto effectiveGr1 = forceBypass ? 0.0f : effectiveGrForMeter (meterMaxGrDb[1], meterMix1);
 
     meterState.inputDb0.store  (peakToDb (meterInputPeak[0]), std::memory_order_relaxed);
     meterState.inputDb1.store  (peakToDb (meterInputPeak[1]), std::memory_order_relaxed);
@@ -984,16 +1181,15 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
 
     meterState.displayInputDb0.store  (peakToDb (displayInputPeak[0]), std::memory_order_relaxed);
     meterState.displayInputDb1.store  (peakToDb (displayInputPeak[1]), std::memory_order_relaxed);
-    meterState.displayWetDb0.store    (peakToDb (displayWetPeak[0]), std::memory_order_relaxed);
-    meterState.displayWetDb1.store    (peakToDb (displayWetPeak[1]), std::memory_order_relaxed);
-    meterState.displayOutputDb0.store (peakToDb (displayOutputPeak[0]), std::memory_order_relaxed);
-    meterState.displayOutputDb1.store (peakToDb (displayOutputPeak[1]), std::memory_order_relaxed);
+    meterState.displayDetectorDb0.store (peakToDb (displayDetectorPeak[0]), std::memory_order_relaxed);
+    meterState.displayDetectorDb1.store (peakToDb (displayDetectorPeak[1]), std::memory_order_relaxed);
 
-    meterState.gainReductionDb0.store (meterMaxGrDb[0], std::memory_order_relaxed);
-    meterState.gainReductionDb1.store (meterMaxGrDb[1], std::memory_order_relaxed);
+    meterState.gainReductionDb0.store (effectiveGr0, std::memory_order_relaxed);
+    meterState.gainReductionDb1.store (effectiveGr1, std::memory_order_relaxed);
+    meterState.keyInputDb.store (peakToDb (keyInputPeak), std::memory_order_relaxed);
 
-    updateGainReductionHoldChannel (0, meterMaxGrDb[0], numSamples);
-    updateGainReductionHoldChannel (1, stereoBus ? meterMaxGrDb[1] : 0.0f, numSamples);
+    updateGainReductionHoldChannel (0, effectiveGr0, numSamples);
+    updateGainReductionHoldChannel (1, stereoBus ? effectiveGr1 : 0.0f, numSamples);
     meterState.gainReductionHoldDb0.store (gainReductionHoldDb[0], std::memory_order_relaxed);
     meterState.gainReductionHoldDb1.store (gainReductionHoldDb[1], std::memory_order_relaxed);
 }
@@ -1066,6 +1262,9 @@ QQSuperCompressionAudioProcessor::ParameterSnapshot QQSuperCompressionAudioProce
     snapshot.lookaheadMs = qqsc::params::snapLookaheadMs (apvts.getRawParameterValue (qqsc::params::lookaheadMs)->load());
     snapshot.oversampling = juce::jlimit (0, 2, juce::roundToInt (apvts.getRawParameterValue (qqsc::params::oversampling)->load()));
     snapshot.mode = juce::roundToInt (apvts.getRawParameterValue (qqsc::params::processingMode)->load());
+    snapshot.keySource = juce::jlimit (0, 1, juce::roundToInt (apvts.getRawParameterValue (qqsc::params::keySource)->load()));
+    snapshot.keyGainDb = apvts.getRawParameterValue (qqsc::params::keyGainDb)->load();
+    snapshot.keyHpfHz = apvts.getRawParameterValue (qqsc::params::keyHpfHz)->load();
     return snapshot;
 }
 
@@ -1108,6 +1307,9 @@ void QQSuperCompressionAudioProcessor::applySnapshot (const ParameterSnapshot& s
     setActualParameterValue (qqsc::params::oversampling, static_cast<float> (juce::jlimit (0, 2, snapshot.oversampling)));
     notifyHostProcessingLatency();
     setActualParameterValue (qqsc::params::processingMode, static_cast<float> (snapshot.mode));
+    setActualParameterValue (qqsc::params::keySource, static_cast<float> (juce::jlimit (0, 1, snapshot.keySource)));
+    setActualParameterValue (qqsc::params::keyGainDb, snapshot.keyGainDb);
+    setActualParameterValue (qqsc::params::keyHpfHz, snapshot.keyHpfHz);
 }
 
 void QQSuperCompressionAudioProcessor::refreshActiveSnapshot()
@@ -1222,6 +1424,9 @@ void QQSuperCompressionAudioProcessor::writeABStateTo (juce::ValueTree& state)
         state.setProperty (abProperty (prefix + "lookaheadMs"), s.lookaheadMs, nullptr);
         state.setProperty (abProperty (prefix + "oversampling"), s.oversampling, nullptr);
         state.setProperty (abProperty (prefix + "mode"), s.mode, nullptr);
+        state.setProperty (abProperty (prefix + "keySource"), s.keySource, nullptr);
+        state.setProperty (abProperty (prefix + "keyGainDb"), s.keyGainDb, nullptr);
+        state.setProperty (abProperty (prefix + "keyHpfHz"), s.keyHpfHz, nullptr);
     };
 
     write ("A_", snapshotA);
@@ -1270,6 +1475,12 @@ void QQSuperCompressionAudioProcessor::readABStateFrom (const juce::ValueTree& s
                 ? (storedOversampling <= 0 ? 0 : 1)
                 : juce::jlimit (0, 2, storedOversampling);
             s.mode = static_cast<int> (state.getProperty (abProperty (prefix + "mode"), s.mode));
+            s.keySource = juce::jlimit (0, 1, static_cast<int> (
+                state.getProperty (abProperty (prefix + "keySource"), qqsc::params::keyInternal)));
+            s.keyGainDb = static_cast<float> (
+                state.getProperty (abProperty (prefix + "keyGainDb"), 0.0f));
+            s.keyHpfHz = static_cast<float> (
+                state.getProperty (abProperty (prefix + "keyHpfHz"), qqsc::params::keyHpfOffHz));
         };
 
         read ("A_", newA);
@@ -1435,6 +1646,9 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
             const bool stateHasMixR = stateContainsParameter (state, qqsc::params::mixR);
             const bool stateHasMixM = stateContainsParameter (state, qqsc::params::mixM);
             const bool stateHasMixS = stateContainsParameter (state, qqsc::params::mixS);
+            const bool stateHasKeySource = stateContainsParameter (state, qqsc::params::keySource);
+            const bool stateHasKeyGain = stateContainsParameter (state, qqsc::params::keyGainDb);
+            const bool stateHasKeyHpf = stateContainsParameter (state, qqsc::params::keyHpfHz);
             const auto legacyOversamplingNormalised = stateParameterNormalisedValue (state, qqsc::params::oversampling);
             const auto restoredMonitorLR = static_cast<int> (state.getProperty (monitorLRProperty, qqsc::params::monitorAll));
             const auto restoredMonitorMS = static_cast<int> (state.getProperty (monitorMSProperty, qqsc::params::monitorAll));
@@ -1476,6 +1690,22 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
             if (! stateHasMixR) setActualParameterValue (qqsc::params::mixR, legacyMix);
             if (! stateHasMixM) setActualParameterValue (qqsc::params::mixM, legacyMix);
             if (! stateHasMixS) setActualParameterValue (qqsc::params::mixS, legacyMix);
+
+            // v1.0.4 and older have no External Key parameters. Explicit INT / 0 dB
+            // migration guarantees that old projects retain their detector source
+            // and sound even if a fresh instance had been edited before restore.
+            if (! stateHasKeySource)
+                setActualParameterValue (qqsc::params::keySource, static_cast<float> (qqsc::params::keyInternal));
+            if (! stateHasKeyGain)
+                setActualParameterValue (qqsc::params::keyGainDb, 0.0f);
+
+            // v1.1.0 and older have no detector HPF. OFF preserves their detector
+            // waveform and therefore their exact compression behaviour.
+            if (! stateHasKeyHpf)
+                setActualParameterValue (qqsc::params::keyHpfHz, qqsc::params::keyHpfOffHz);
+
+            // SC Listen is intentionally never restored from project state.
+            sidechainListen.store (false, std::memory_order_relaxed);
 
             // 0.1.8-or-earlier state: there was no Oversampling parameter. New
             // behaviour defaults the remembered 0 ms flavour choice to 8x.

@@ -11,10 +11,10 @@ params = (root / 'Source' / 'Parameters.h').read_text(encoding='utf-8')
 cmake = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
 
 # Product identity/state wiring.
-assert 'VERSION 1.0.4' in cmake
+assert 'VERSION 1.1.2' in cmake
 for token in ('monitorAll', 'monitorFirst', 'monitorSecond'):
     assert token in params, token
-for token in ('qqscMonitorLRSelection', 'qqscMonitorMSSelection', 'currentStateSchemaVersion = 8'):
+for token in ('qqscMonitorLRSelection', 'qqscMonitorMSSelection', 'currentStateSchemaVersion = 10'):
     assert token in processor, token
 
 # Exact centered audition contract agreed with the user.
@@ -33,11 +33,12 @@ for token in (
 # the normal pre-monitor output. This prevents -3.01 dB listening compensation
 # from contaminating Display/Meters/Match semantics.
 write_pos = processor.index('buffer.setSample (0, i, audibleOutL);')
-graph_pos = processor.index('graphOutputPeak = juce::jmax')
-assert write_pos < graph_pos
-assert 'maxAbs (outL, outR)' in processor[graph_pos:graph_pos + 220]
-assert 'std::abs (outM)' in processor
-assert 'std::abs (outS)' in processor
+analysis_pos = processor.index('meterOutputPeak[0] = juce::jmax', write_pos)
+assert write_pos < analysis_pos
+assert 'std::abs (outM)' in processor[analysis_pos:analysis_pos + 320]
+assert 'std::abs (outS)' in processor[analysis_pos:analysis_pos + 320]
+assert 'std::abs (outL)' in processor[analysis_pos:]
+assert 'std::abs (outR)' in processor[analysis_pos:]
 
 # UI is mode-local: hidden in ST, labelled L/R in LR and M/S in MS.
 for token in (

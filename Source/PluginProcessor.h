@@ -59,6 +59,15 @@ public:
     int getDomainMonitorSelection (int processingMode) const noexcept;
     void setDomainMonitorSelection (int processingMode, int selection) noexcept;
 
+    // External Key audition is a safety-oriented workflow state: it is not
+    // host-automatable, not stored in A/B, and resets OFF with a new instance.
+    bool isSidechainListenEnabled() const noexcept { return sidechainListen.load (std::memory_order_relaxed); }
+    void setSidechainListenEnabled (bool enabled) noexcept { sidechainListen.store (enabled, std::memory_order_relaxed); }
+    bool isExternalSidechainBusAvailable() const noexcept
+    {
+        return meterState.externalKeyBusAvailable.load (std::memory_order_relaxed);
+    }
+
     // UI A/B comparison. A/B stores the complete user sound-setting state
     // (Input/Output Gain, all Ratio/Threshold/Makeup/Mix domain values, Lookahead, Oversampling and Mode). Bypass is intentionally global
     // and is not part of A/B snapshots.
@@ -76,6 +85,31 @@ public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
 private:
+    struct KeyHighPassCoefficients
+    {
+        float b0 = 1.0f;
+        float b1 = 0.0f;
+        float b2 = 0.0f;
+        float a1 = 0.0f;
+        float a2 = 0.0f;
+    };
+
+    struct KeyHighPassState
+    {
+        float z1 = 0.0f;
+        float z2 = 0.0f;
+
+        float process (float input, const KeyHighPassCoefficients& c) noexcept
+        {
+            const auto output = c.b0 * input + z1;
+            z1 = c.b1 * input - c.a1 * output + z2;
+            z2 = c.b2 * input - c.a2 * output;
+            return output;
+        }
+
+        void reset() noexcept { z1 = z2 = 0.0f; }
+    };
+
     struct ParameterSnapshot
     {
         float inputGainDb = 0.0f;
@@ -103,6 +137,9 @@ private:
         float lookaheadMs = 26.0f;
         int oversampling = 1;
         int mode = qqsc::params::stereoLinked;
+        int keySource = qqsc::params::keyInternal;
+        float keyGainDb = 0.0f;
+        float keyHpfHz = qqsc::params::keyHpfOffHz;
     };
 
     void processBlockInternal (juce::AudioBuffer<float>&, bool forceBypass);
@@ -116,7 +153,10 @@ private:
 
     void updateProcessingConfiguration (bool force = false);
     void resetOversampledCoreState() noexcept;
+    void resetDetectorCoreState() noexcept;
     void resetDryDelayState() noexcept;
+    void resetKeyHighPassState() noexcept;
+    void updateKeyHighPassCoefficients (float cutoffHz) noexcept;
     void resetAllProcessingState() noexcept;
     juce::dsp::Oversampling<float>& getCurrentOversampler() noexcept;
     int getOversamplingLatencySamples (int oversamplingIndex) const noexcept;
@@ -149,6 +189,11 @@ private:
     // linear-phase FIR stages with integer latency compensation enabled.
     std::array<std::unique_ptr<juce::dsp::Oversampling<float>>, 3> oversamplers;
     juce::AudioBuffer<float> wetBaseBuffer;
+    // Six-channel staging keeps main L/R and optional Key L/R explicit before
+    // the shared 1x/8x/16x Oversampling stage. Key channels are overwritten by
+    // wet variants only after the detector has consumed them.
+    juce::AudioBuffer<float> oversamplingInputBuffer;
+    juce::AudioBuffer<float> keyInputBuffer;
     // v0.9.2 keeps a host-rate copy of the untouched input so the Dynamic
     // Display Dry/Input reference and true bypass remain pre-Input-Gain.
     juce::AudioBuffer<float> originalInputBuffer;
@@ -158,6 +203,10 @@ private:
     // the same future window. Non-zero Lookahead is always 1x; only 0 ms may use
     // 8x/16x.
     juce::AudioBuffer<float> oversampledLookaheadDelayBuffer;
+    // Stores the exact L/R/M/S detector source history so changing Lookahead
+    // can rebuild the future-window queues for either INT or EXT without ever
+    // substituting the main carrier for an external key.
+    juce::AudioBuffer<float> oversampledKeyHistoryBuffer;
     int oversampledDelayCapacity = 1;
     int oversampledDelayWriteIndex = 0;
     int maxLookaheadSamplesBase = 0;
@@ -171,9 +220,11 @@ private:
     // and Bypass remain sample-aligned.
     juce::AudioBuffer<float> dryDelayBuffer;
     juce::AudioBuffer<float> originalDryDelayBuffer;
+    juce::AudioBuffer<float> keyListenDelayBuffer;
     int dryDelayCapacity = 1;
     int dryDelayWriteIndex = 0;
     int currentOversamplingIndex = -1;
+    int currentKeySource = -1;
     int currentOversamplingFactor = 1;
     int currentTotalLatencySamples = 0;
     int configuredMaximumBlockSize = 1;
@@ -182,6 +233,9 @@ private:
     // Parameter smoothing only prevents zipper noise while controls move. It is
     // not the compressor's user Attack/Release behaviour.
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> inputGainSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> keyGainSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> keyHpfCutoffSmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> keyHpfWetSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioLSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioRSmoother;
@@ -199,6 +253,10 @@ private:
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mixSSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGainSmoother;
 
+    KeyHighPassCoefficients keyHighPassCoefficients;
+    std::array<KeyHighPassState, 2> keyHighPassStates;
+    int keyHpfCoefficientCountdown = 0;
+
     mutable juce::CriticalSection abLock;
     ParameterSnapshot snapshotA;
     ParameterSnapshot snapshotB;
@@ -209,6 +267,7 @@ private:
     // an L solo into M (or R into S). Defaults are ALL.
     std::atomic<int> monitorLRSelection { qqsc::params::monitorAll };
     std::atomic<int> monitorMSSelection { qqsc::params::monitorAll };
+    std::atomic<bool> sidechainListen { false };
 
     qqsc::BS1770LoudnessMatch loudnessMatch;
     std::atomic<float> matchSTDb { 0.0f };

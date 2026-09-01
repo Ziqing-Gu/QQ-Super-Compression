@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.0.4 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.1.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -33,7 +33,7 @@ juce_add_plugin(QQSuperCompression
     PLUGIN_CODE Qscp
     FORMATS VST3 AU
     PRODUCT_NAME "QQ Super Compression"
-    DESCRIPTION "Transparent lookahead dynamics processor with independent ST/LR/MS domains"
+    DESCRIPTION "Transparent lookahead dynamics processor with independent ST/LR/MS domains and external key"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE

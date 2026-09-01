@@ -1,5 +1,34 @@
 # QQ Super Compression UI Design Notes
 
+## v1.1.2 Plan A candidate - Mix-aware Dynamic Display
+
+- Keep the approved 1020x820 layout, Display/Meter geometry, Side Chain popup, and both themes unchanged.
+- Remove the visible cyan Wet pre-Makeup trace and its header readout.
+- Draw Dry/Input as the neutral reference, Effective GR (including Mix) as a translucent GR-accent band plus lower boundary, and projected Output post-Mix as the strong Output trace.
+- Header readout is GR (MIX) so the definition is explicit.
+- At EXT, draw the actual post-Key-Gain/post-HPF future-window detector contour behind the main histories using a broad very-low-alpha stroke plus a thin low-alpha stroke. If the external bus is disabled, show EXT N/A and draw no false key line.
+- Store raw history evidence and reproject on every paint so Input/Ratio/Threshold/Mix/Makeup/Output edits update the complete visible window even while transport is stopped.
+- ST has one linked history; LR and MS retain two stacked domain histories. LIGHT and CLASSIC use the same geometry and logic.
+## v1.1.1 Stable baseline - Side Chain HPF popup
+
+- Keep the approved 1020x820 main layout unchanged.
+- Add one HPF rotary control to the existing Side Chain floating panel.
+- Popup geometry is 330x146 design pixels and grows leftward from the SC header button.
+- Column layout: source/meter/listen at left, Key Gain in the middle, HPF at right.
+- HPF shows OFF or an integer 20-500 Hz value and uses the cyan technical accent.
+- HPF stays available for INT and EXT. Key Gain remains enabled only for EXT.
+- LIGHT and CLASSIC must share identical bounds, labels, ranges, automation and functionality.
+
+## v1.1.0 Stable baseline — External Key floating panel
+
+- Keep the approved 1020x820 layout and all main-control geometry unchanged.
+- A persistent `SC: INT / SC: EXT` button sits immediately left of the existing LIGHT/CLASSIC theme button.
+- Clicking it opens a 230x146 design-pixel floating panel below the header. The panel contains `SOURCE` INT/EXT, `KEY LEVEL`, `SC LISTEN`, and a compact `KEY GAIN` knob.
+- LIGHT and CLASSIC share exactly the same bounds, hit targets, labels, controls, state, and functionality. Only palette and LookAndFeel drawing differ.
+- Key Gain is enabled only for EXT. The meter displays `N/A` when the external bus is disabled and `-inf dB` for valid silence.
+- Closing the panel with the SC button or Escape turns SC Listen off. Closing the editor also turns it off.
+- The panel floats above the Display and must not reduce Display/Meter height or move Ratio, Threshold, Makeup, Mix, Mode, Monitor, Lookahead, Oversampling, A/B, Bypass, or theme controls.
+
 ## v1.0.4 — Light / Classic UI switch — Stable baseline
 
 - The current warm/light interface and the earlier calm dark interface are both supported without moving any controls or changing DSP behaviour.

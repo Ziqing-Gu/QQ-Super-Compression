@@ -1,14 +1,55 @@
 # QQ Super Compression — Product / DSP Design Notes
 
-## Current product goal (v1.0.4)
+## Current product goal (v1.1.2 Plan A candidate)
 
-**Stable baseline:** v1.0.4 Light / Classic UI switch (user-confirmed Stable on 2026-09-01). v1.0.4 changes only the visual theme system and keeps the v1.0.3 approved audio core, parameters, automation and current layout unchanged. v1.0.3 remains the previous Stable rollback reference.
+v1.1.2 makes the Display describe QQ Super Compression's actual product semantics instead of conventional-compressor terminology.
+
+- Mix is an essential compression-depth control. Effective GR is calculated from the linear Dry/compressed-Wet blend; it is not core GR dB multiplied by Mix.
+- The dedicated GR meter, Hold, and historical GR visualization all include Mix. Makeup and Output Gain remain compensation/output controls and do not redefine GR.
+- Wet pre-Makeup remains an internal signal required by Match and the audio blend, but no longer consumes a visible Display trace.
+- The history stores pre-Input carrier level and actual future-window detector level. Current Input, Ratio, Threshold, Mix, Makeup, and Output Gain reproject the complete visible window.
+- EXT adds a weak detector-key contour after Key Gain and HPF. It is detector context, not audible-carrier content.
+- This is a Display/meter interpretation change only. The approved future-window DSP, Match measurement source, parameters, state schema 10, PDC, Monitor, Bypass, sidechain, HPF, and dual-theme layout remain intact.
+
+中文摘要：Mix 是 QQ Super Compression 增益衰减定义的一部分；Display 与右侧 GR Meter 都必须显示包含 Mix 的有效 GR。Wet pre-Makeup 继续供 Match 与内部混合使用，但不再作为可见曲线。外部侧链激活时，Display 用弱化轮廓显示 post-Key-Gain/post-HPF 的实际检测 Key。
+
+**Stable baseline remains:** v1.1.1 Side Chain HPF. **Current local candidate:** v1.1.2 after Plan A.
+## Current product goal (v1.1.1 Stable)
+
+v1.1.1 builds directly on v1.1.0 External Key and adds a detector-only Side Chain HPF. This is meaningful because a high-pass filter changes the frequency weighting and therefore the time-varying gain-reduction contour; it is not equivalent to changing Input Gain or Key Gain.
+
+- OFF is exact v1.1.0 full-band key behaviour.
+- Active 20-500 Hz uses a second-order Butterworth response with logarithmic control travel.
+- Both INT and EXT can be filtered. EXT order is Key Gain, then HPF.
+- Only detector, key meter, and SC Listen see the filtered signal; the carrier is never filtered.
+- The approved future-window Peak/Lookahead law, Ratio, Threshold, domains, Mix, PDC, Match, Display, Monitor, Bypass, and theme behaviour remain unchanged.
+
+**Stable baseline:** v1.1.1 after Plan A and Plan B on 2026-09-02. **Previous Stable rollback:** v1.1.0.
+
+## Current product goal (v1.1.0 Stable)
+
+**Current Stable:** v1.1.0 External Key, built directly from the user-confirmed v1.0.4 Stable baseline. The user explicitly promoted v1.1.0 on 2026-09-02 after Plan A; formal Plan B is complete. **Previous Stable rollback:** v1.0.4. Detailed Cubase sidechain, PDC, listening, and legacy-project checks remain recorded as manual follow-up.
 
 QQ Super Compression is not designed by starting from a conventional Attack/Release compressor. The practical goal is to reduce dynamics while keeping audible waveform/tone changes as small as possible.
 
 The project explored direct sample/amplitude remapping, but user testing established an important trade-off: attempting to eliminate the microscopic Lookahead boundary effect introduced more harmonic colour and much higher CPU/ASIO Guard load. The user therefore chose the older future-window peak design because it is substantially cleaner in real use.
 
 **Priority:** clean/transparent result first. A small future-window pre-influence around abrupt level changes is acceptable and is not treated as a release-blocking defect.
+
+## v1.1.0 External Key design contract
+
+External Key is valuable because the existing future-window gain law can follow a drum key without adding a conventional Attack/Release envelope to the bass, pad, vocal, bus, or mastering carrier. The detector may change source; the approved carrier path and compression law may not.
+
+- `INT`: exact v1.0.4 detector source, main signal after Input Gain.
+- `EXT`: optional mono/stereo sidechain bus after dedicated Key Gain. External audio is detector/listen-only and must never leak into the normal output.
+- A disconnected or silent external bus means a zero detector level and therefore unity gain; never mute or replace the main carrier.
+- ST uses the stronger key L/R future-window level and one common ST gain.
+- LR uses independent key L/R detectors; a mono key is duplicated to both.
+- MS converts a stereo key with `M=(L+R)/2` and `S=(L-R)/2`; a mono external key deliberately drives both M and S detectors in common so the S path is not left untriggered.
+- Key Source and Key Gain are sound parameters: APVTS, automation, project state, undo, migration, and A/B. They are appended after all v1.0.4 parameter IDs.
+- `SC LISTEN` is a non-persistent safety audition override. It is not a host parameter or A/B member, is ignored by true Bypass, remains aligned to total plug-in latency, and resets OFF on panel/editor close and state restore.
+- Source changes clear detector history only; they do not disturb the carrier/dry alignment. Lookahead changes rebuild queues from the selected key history.
+- No Attack, Release, RMS envelope, key filter, or alternate compression curve is introduced in v1.1.0.
 
 ## v1.0.1 transparent core
 

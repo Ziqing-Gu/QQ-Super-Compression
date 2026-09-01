@@ -97,6 +97,26 @@ private:
         static constexpr int fineSensitivity = 1200;
     };
 
+    class SidechainPanelBackground final : public juce::Component
+    {
+    public:
+        SidechainPanelBackground() { setInterceptsMouseClicks (false, false); }
+
+        void paint (juce::Graphics& g) override
+        {
+            const auto r = getLocalBounds().toFloat().reduced (1.0f);
+            g.setColour (juce::Colours::black.withAlpha (0.16f));
+            g.fillRoundedRectangle (r.translated (0.0f, 3.0f), 12.0f);
+
+            juce::ColourGradient gradient (qqsc::ui::panel().brighter (0.02f), r.getCentreX(), r.getY(),
+                                            qqsc::ui::panelAlt(), r.getCentreX(), r.getBottom(), false);
+            g.setGradientFill (gradient);
+            g.fillRoundedRectangle (r, 12.0f);
+            g.setColour (qqsc::ui::border().withAlpha (0.92f));
+            g.drawRoundedRectangle (r, 12.0f, 1.0f);
+        }
+    };
+
     static void configureKnob (FineKnob&, const juce::String& suffix = {});
     static void configureThresholdSlider (FineKnob&);
     static void configureLabel (juce::Label&, const juce::String& text);
@@ -104,6 +124,9 @@ private:
     static std::unique_ptr<juce::PropertiesFile> createUiProperties();
     void applyTheme();
     void toggleTheme();
+    void toggleSidechainPanel();
+    void setKeySource (int source);
+    void updateSidechainUi();
 
 
     void timerCallback() override;
@@ -144,6 +167,7 @@ private:
 
     DynamicDisplay display;
     LevelMeters meters;
+    SidechainPanelBackground sidechainPanelBackground;
 
     juce::Label title;
     juce::Label versionLabel;
@@ -167,6 +191,10 @@ private:
     juce::ComboBox lookaheadCombo;
     juce::Label oversamplingLabel;
     juce::TextButton oversamplingButton { "8x" };
+    juce::Label keySourceLabel;
+    juce::Label keyGainLabel;
+    juce::Label keyHpfLabel;
+    juce::Label keyMeterLabel;
 
     FineKnob inputGainSlider { 0.0 };
     FineKnob ratioSlider { 8.0 };
@@ -190,6 +218,8 @@ private:
     FineKnob thresholdRSlider { qqsc::params::thresholdOffDb };
     FineKnob thresholdMSlider { qqsc::params::thresholdOffDb };
     FineKnob thresholdSSlider { qqsc::params::thresholdOffDb };
+    FineKnob keyGainSlider { 0.0 };
+    FineKnob keyHpfSlider { qqsc::params::keyHpfOffHz };
 
     juce::TextButton modeButton { "ST" };
     juce::TextButton linkButton { "LINK" };
@@ -203,6 +233,12 @@ private:
     juce::TextButton aToBButton;
     juce::TextButton bToAButton;
     juce::TextButton themeButton { "LIGHT" };
+    juce::TextButton sidechainButton { "SC: INT" };
+    juce::TextButton keyInternalButton { "INT" };
+    juce::TextButton keyExternalButton { "EXT" };
+    juce::TextButton sidechainListenButton { "SC LISTEN" };
+    double keyMeterProgress = 0.0;
+    juce::ProgressBar keyMeter { keyMeterProgress };
 
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> inputGainAttachment;
@@ -227,11 +263,15 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdRAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdMAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdSAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> keyGainAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> keyHpfAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> linkAttachment;
 
     LinkedPair activeLinkedPair = LinkedPair::none;
     bool classicTheme = false;
+    bool sidechainPanelOpen = false;
+    juce::Rectangle<int> sidechainPanelBounds;
 
     FineKnob* activeLinkSource = nullptr;
     FineKnob* activeLinkTarget = nullptr;

@@ -6,12 +6,6 @@ namespace qqsc
 {
 struct MeterState
 {
-    // Dynamic-history aggregate values are always measured in the audible L/R
-    // output domain so the graph remains comparable while modes change.
-    std::atomic<float> inputDb  { -120.0f };
-    std::atomic<float> wetDb    { -120.0f };
-    std::atomic<float> outputDb { -120.0f };
-
     // The three dedicated meters use two channels. In ST/LR these are L/R;
     // in MS these are Mid/Side.
     std::atomic<float> inputDb0  { -120.0f };
@@ -19,17 +13,17 @@ struct MeterState
     std::atomic<float> outputDb0 { -120.0f };
     std::atomic<float> outputDb1 { -120.0f };
 
-    // v1.0.0 Dynamic Display domain histories. In ST, channel 0 is the single
-    // linked display and channel 1 is ignored. In LR these are L/R; in MS M/S.
-    // Wet is always pre-Makeup so each panel shows the actual Ratio/Threshold
-    // mapping separately from the user compensation stage.
+    // v1.1.2 Dynamic Display stores the pre-Input-Gain carrier plus the actual
+    // future-window detector level. The UI reprojects the complete visible
+    // history with current Input/Ratio/Threshold/Mix/Makeup/Output values, so
+    // parameter edits remain explanatory even after the audio has passed.
+    // In ST, channel 0 is linked and channel 1 is ignored. LR uses L/R; MS M/S.
     std::atomic<float> displayInputDb0  { -120.0f };
     std::atomic<float> displayInputDb1  { -120.0f };
-    std::atomic<float> displayWetDb0    { -120.0f };
-    std::atomic<float> displayWetDb1    { -120.0f };
-    std::atomic<float> displayOutputDb0 { -120.0f };
-    std::atomic<float> displayOutputDb1 { -120.0f };
+    std::atomic<float> displayDetectorDb0 { -120.0f };
+    std::atomic<float> displayDetectorDb1 { -120.0f };
 
+    // Product-facing GR includes Mix (Makeup and Output Gain remain excluded).
     std::atomic<float> gainReductionDb0 { 0.0f };
     std::atomic<float> gainReductionDb1 { 0.0f };
 
@@ -39,6 +33,12 @@ struct MeterState
     // block value automatically.
     std::atomic<float> gainReductionHoldDb0 { 0.0f };
     std::atomic<float> gainReductionHoldDb1 { 0.0f };
+
+    // v1.1.0 Candidate External Key panel. The compact meter follows the
+    // detector source after Input Gain (INT) or dedicated Key Gain (EXT).
+    // Availability distinguishes a disabled external bus from valid silence.
+    std::atomic<float> keyInputDb { -120.0f };
+    std::atomic<bool> externalKeyBusAvailable { false };
 
     std::atomic<int> processingMode { 0 };
 };
