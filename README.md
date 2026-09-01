@@ -68,9 +68,9 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | Qing Audio NC Source-Share 1.0 |
 
-> **1.0.4 稳定基线 / Stable baseline:** 用户于 2026-09-01 明确将 LIGHT / CLASSIC UI 版本提升为当前稳定源码基线，并确认本项目完成 Plan B 的版本即记为 Stable。1.0.4 的 Plan A Windows x64 VST3 构建、安装 bundle 一致性和七项回归测试已通过，Plan B 正式源码镜像已核验。1.0.3 保留为已验证跨平台回滚参考和当前公开 Release。
+> **1.0.4 稳定基线 / Stable baseline:** 用户于 2026-09-01 明确将 LIGHT / CLASSIC UI 版本提升为当前稳定源码基线，并确认本项目完成 Plan B 的版本即记为 Stable。1.0.4 的 Plan A Windows x64 VST3 构建、安装 bundle 一致性和七项回归测试已通过，Plan B 正式源码镜像已核验；Plan C 的三项 macOS Actions 均成功，Universal 2 AU 通过 `auval`；Plan D 已发布正式 Release。1.0.3 保留为上一稳定回滚参考和上一公开 Release。
 >
-> **Stable baseline:** On 2026-09-01 the user explicitly promoted the LIGHT / CLASSIC UI revision to the current Stable source baseline and confirmed the project rule that completing Plan B records that version as Stable. The v1.0.4 Plan A Windows x64 VST3 build, installed-bundle parity and seven regression tests passed, and the formal Plan B source mirror was verified. Version 1.0.3 remains the verified cross-platform rollback reference and current public Release.
+> **Stable baseline:** On 2026-09-01 the user explicitly promoted the LIGHT / CLASSIC UI revision to the current Stable source baseline and confirmed the project rule that completing Plan B records that version as Stable. The v1.0.4 Plan A Windows x64 VST3 build, installed-bundle parity and seven regression tests passed, and the formal Plan B source mirror was verified. All three Plan C macOS Actions jobs succeeded, and the Universal 2 AU passed `auval`; Plan D has published the formal Release. Version 1.0.3 remains the previous stable rollback reference and previous public Release.
 
 
 ## 1.0.4 更新 / 1.0.4 update
@@ -107,25 +107,27 @@ Plan A completed the JUCE 8.0.15 / MSVC Windows x64 VST3 Release build, seven so
 
 ## 下载 / Download
 
-> **最新公开 Release / Latest public Release:** [QQ Super Compression 1.0.3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.3) 已发布。下载唯一的完整 Plan D RAR 资产后解压；本次 Plan G 只发布用户提供的已验证交付包，未重新构建。
+> **最新公开 Release / Latest public Release:** [QQ Super Compression 1.0.4](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.4) 已发布。下载唯一的完整 ZIP 资产后解压；本次 Plan D 直接发布用户指定并通过校验的交付包，未重新构建。
 >
-> **Latest public Release:** [QQ Super Compression 1.0.3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.3) is published. Download and extract the single complete Plan D RAR asset; this Plan G run publishes the user-provided verified handoff and does not rebuild it.
+> **Latest public Release:** [QQ Super Compression 1.0.4](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.4) is published. Download and extract the single complete ZIP asset. This Plan D release publishes the user-specified, verified handoff without rebuilding it.
 
 - [最新 Release 页面 / Latest Release page](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
-- [v1.0.3 Release 页面 / v1.0.3 Release page](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.3)
-- [直接下载完整包 / Direct download — `QQ.Super.Compression.1.0.3.Plan.D.20260830.rar`](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.0.3/QQ.Super.Compression.1.0.3.Plan.D.20260830.rar)
-- [1.0.3 中文安装说明（源码直链；RAR 内亦包含）/ Chinese installation guide (source direct link; also inside RAR)](https://raw.githubusercontent.com/Ziqing-Gu/QQ-Super-Compression/main/docs/QQ%20Super%20Compression%201.0.3%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
-- [1.0.3 English installation guide (source direct link; also inside RAR)](https://raw.githubusercontent.com/Ziqing-Gu/QQ-Super-Compression/main/docs/QQ-Super-Compression-1.0.3-Windows-macOS-INSTALL.txt)
+- [v1.0.4 Release 页面 / v1.0.4 Release page](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.4)
+- [直接下载完整包 / Direct download — `QQ.Super.Compression.1.0.4.zip`](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.0.4/QQ.Super.Compression.1.0.4.zip)
+- [1.0.4 中文安装说明（源码直链；ZIP 内亦包含）/ Chinese installation guide (source direct link; also inside ZIP)](https://raw.githubusercontent.com/Ziqing-Gu/QQ-Super-Compression/main/docs/QQ%20Super%20Compression%201.0.4%20Windows%E4%B8%8EmacOS%20%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E%EF%BC%88%E4%B8%AD%E6%96%87%EF%BC%89.txt)
+- [1.0.4 English installation guide (source direct link; also inside ZIP)](https://raw.githubusercontent.com/Ziqing-Gu/QQ-Super-Compression/main/docs/QQ-Super-Compression-1.0.4-Windows-macOS-INSTALL.txt)
+- [1.0.4 中文用户手册 / Chinese user manual](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/main/docs/manuals/QQ%20Super%20Compression%20%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C%20%E4%B8%AD%E6%96%87%E7%89%88_v1.0.4.pdf)
+- [1.0.4 English user manual](https://github.com/Ziqing-Gu/QQ-Super-Compression/blob/main/docs/manuals/QQ%20Super%20Compression%20User%20Manual%20English_v1.0.4.pdf)
 
-解压 `
-QQ.Super.Compression.1.0.3.Plan.D.20260830.rar
-` 后：Windows 使用 `Win/QQ-Super-Compression-1.0.3-Windows-x64.zip`；Apple Silicon/M 系列 Mac 使用 `Mac/QQ-Super-Compression-1.0.3-macOS-Apple-Silicon-VST3.zip`；Intel Mac 使用 `Mac/QQ-Super-Compression-1.0.3-macOS-Intel-VST3.zip`；Logic Pro 等 AU 宿主使用 `Mac/QQ-Super-Compression-1.0.3-macOS-Universal-AU.zip`。不要同时安装两套不同架构的 macOS VST3。RAR 内另含两份安装说明和保留真实 v1.0.1 标识的历史 PDF 手册；Linux、AAX 与独立应用版本不提供。
+解压 `QQ.Super.Compression.1.0.4.zip` 后：Windows x64 VST3 使用 `Win/QQ Super Compression 1.0.4 Windows x64 VST3.zip`；Apple Silicon/M 系列 Mac 使用 `Mac/QQ Super Compression 1.0.4 macOS Apple Silicon VST3.zip`；Intel Mac 使用 `Mac/QQ Super Compression 1.0.4 macOS Intel x86_64 VST3.zip`；Logic Pro 等 AU 宿主使用 `Mac/QQ Super Compression 1.0.4 macOS Universal 2 AU.zip`。不要同时安装两套不同架构的 macOS VST3。完整 ZIP 内另含中英文安装说明和两份 1.0.4 PDF 用户手册；Linux、AAX 与独立应用版本不提供。
 
-After extracting `
-QQ.Super.Compression.1.0.3.Plan.D.20260830.rar
-`: Windows uses `Win/QQ-Super-Compression-1.0.3-Windows-x64.zip`; Apple Silicon/M-series Macs use `Mac/QQ-Super-Compression-1.0.3-macOS-Apple-Silicon-VST3.zip`; Intel Macs use `Mac/QQ-Super-Compression-1.0.3-macOS-Intel-VST3.zip`; Logic Pro and other AU hosts use `Mac/QQ-Super-Compression-1.0.3-macOS-Universal-AU.zip`. Do not install both macOS VST3 architectures. The RAR also contains both installation guides and historical PDF manuals retaining their true v1.0.1 labels; Linux, AAX, and standalone builds are not provided.
+After extracting `QQ.Super.Compression.1.0.4.zip`: Windows x64 VST3 uses `Win/QQ Super Compression 1.0.4 Windows x64 VST3.zip`; Apple Silicon/M-series Macs use `Mac/QQ Super Compression 1.0.4 macOS Apple Silicon VST3.zip`; Intel Macs use `Mac/QQ Super Compression 1.0.4 macOS Intel x86_64 VST3.zip`; Logic Pro and other AU hosts use `Mac/QQ Super Compression 1.0.4 macOS Universal 2 AU.zip`. Do not install both macOS VST3 architectures. The full ZIP also contains Chinese and English installation guides plus two v1.0.4 PDF user manuals; Linux, AAX, and standalone builds are not provided.
 
-- [上一正式 Release v1.0.2 / Previous formal Release v1.0.2](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.2)
+- 完整包大小 / Full package size: `11268351` bytes
+- SHA-256: `33E56E714BDE63333682D528633E39AF723B673D29A648532CBF401908172816`
+
+- [上一正式 Release v1.0.3 / Previous formal Release v1.0.3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.3)
+- [更早正式 Release v1.0.2 / Earlier formal Release v1.0.2](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.2)
 - [更早正式 Release v0.9.4 / Earlier formal Release v0.9.4](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.4)
 
 > **注意 / Important:** GitHub 自动生成的 **Source code (zip)** 和 **Source code (tar.gz)** 只是源码快照，不是可安装插件。请下载上面的正式 Release 成品包。
@@ -366,7 +368,7 @@ Every real version from the first prototype through the current build is recorde
 - English: Adds an upper-right LIGHT / CLASSIC visual-theme switch while preserving the existing layout, controls, parameters, automation and sound.
 - 中文：主题只保存在本机 UI 设置中，下次打开编辑器时恢复；不进入 DSP、APVTS、A/B 或工程状态。
 - English: Theme is stored only in local UI settings and restored on the next editor open; it remains outside DSP, APVTS, A/B and project state.
-- 状态 / Status：用户明确指定为 Stable baseline；Plan A 与正式 Plan B 已完成，Plan C 尚未完成；v1.0.3 为上一稳定回滚参考和当前公开 Release。
+- 状态 / Status：用户明确指定为 Stable baseline；Plan A、正式 Plan B、Plan C 与 Plan D 均已完成；v1.0.3 为上一稳定回滚参考和上一公开 Release。
 
 ### 1.0.3 — 2026-08-30 — Centered Domain Monitor — Stable baseline / 居中分域监听——稳定基线
 
