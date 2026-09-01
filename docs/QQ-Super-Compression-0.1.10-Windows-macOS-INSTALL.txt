@@ -9,10 +9,12 @@ Vendor: Qing Audio
 Version: 0.1.10
 Status: Candidate / Test (not yet user-confirmed Stable)
 Release date: 2026-08-27
-License: MIT
+License: Qing Audio Non-Commercial Source-Share License 1.0
+【重要：禁止任何商业使用】发布原版、二进制版或修改版时，必须同时免费公开完整对应源代码，保留作者、版权与许可证声明，并注明原项目、作者、来源、修改者、日期和修改内容。
+IMPORTANT — COMMERCIAL USE IS PROHIBITED. Distribution of any original, binary, or modified version requires the complete corresponding source at no charge, preserved authorship, copyright, and license notices, and identification of the original project, author, source, modifier, date, and changes.
 Public source: https://github.com/Ziqing-Gu/QQ-Super-Compression
 
-This is the user-binary package for an open-source project. The desktop Plan D package does not contain source code. Complete source, build instructions, version history, and the license are available in the public repository above.
+This is the user-binary package for an source-available project. The desktop Plan D package does not contain source code. Complete source, build instructions, version history, and the license are available in the public repository above.
 
 The release contains one plug-in:
 - VST3 bundle: QQ Super Compression.vst3

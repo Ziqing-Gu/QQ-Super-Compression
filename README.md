@@ -1,3 +1,12 @@
+# ⚠️ 禁止商业使用 / NO COMMERCIAL USE
+
+## Qing Audio 非商业源码共享许可证 1.0
+
+### 本项目源码公开，但不属于 OSI 认可的开源软件
+
+> **禁止任何商业使用。** 仅允许个人、学习、教育、研究、评估、爱好及其他非商业用途。发布原版或修改版时，必须同时免费公开完整对应源代码，保留作者、版权和许可证声明，醒目标明原项目名称、作者、来源链接、修改者、修改日期及修改内容，并使整个修改版继续采用同一许可证。完整条款见 [LICENSE](LICENSE)。
+>
+> **NO COMMERCIAL USE.** Use is permitted only for personal, educational, research, evaluation, hobby, charitable, and other non-commercial purposes. Any distributed original or modified version must provide the complete corresponding source without charge, preserve authorship, copyright, and license notices, prominently identify the original project, author, source URL, modifier, date, and changes, and license the entire modified work under the same terms. See [LICENSE](LICENSE).
 这是一个AI开发项目，大部分文字是由ChatGpt编辑，这些文字同时供用户和AI阅读。
 
 所以如果你看到命令用语，那是给AI看的。
@@ -42,7 +51,7 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 # QQ Super Compression 1.0.3
 
-**Qing Audio 开源动态处理器 / Open-source dynamics processor by Qing Audio**
+**Qing Audio 非商业源码公开动态处理器 / Non-commercial source-available dynamics processor by Qing Audio**
 
 QQ Super Compression 面向一个具体的混音问题：素材需要动态收敛，但工程师不希望传统压缩器的 Attack / Release 同时重塑原始瞬态、音头和演奏表情。
 
@@ -55,7 +64,7 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
-| 许可证 / License | MIT |
+| 许可证 / License | Qing Audio NC Source-Share 1.0 |
 
 > **1.0.3 稳定基线 / Stable baseline:** 按既定 Plan D 规则，Centered Domain Monitor 版本现为稳定源码基线。最终构建源码为 [`0ef89e19`](https://github.com/Ziqing-Gu/QQ-Super-Compression/commit/0ef89e19dd7e74ec5588f64501a951c8487efb9c)，对应 `v1.0.3` 标签。Windows x64 VST3、macOS Apple Silicon VST3、macOS Intel VST3 与 Universal 2 AU 均由该提交的 Actions 成功构建；AU 同时通过 `auval`。Cubase 中的最终试听、界面与自动化复核仍由用户完成。
 >
@@ -422,8 +431,8 @@ Every real version from the first prototype through the current build is recorde
 
 ### 0.1.8 — 2026-08-25（发布文档纠正：2026-08-26）— Candidate / Test
 
-- 中文：改善 GR Hold 可读性，并以 1020x670 为根尺寸统一缩放整个 UI、锁定原始宽高比；旧非等比窗口尺寸会迁移到可容纳的最大等比尺寸。Ratio、检测、PDC、LUFS Match、A/B、参数 ID 与状态结构不变。随后补齐 MIT、公开 CI、四平台交付路线和双语文档；文档纠正未改 DSP。
-- English: Improved GR Hold readability and uniformly scaled the full UI around a 1020x670 root while preserving its aspect ratio. Old non-proportional window sizes migrate to the largest proportional fit. Ratio, detection, PDC, LUFS Match, A/B, parameter IDs, and state structure were unchanged. MIT licensing, public CI, four-platform delivery, and bilingual documentation followed without changing DSP.
+- 中文：改善 GR Hold 可读性，并以 1020x670 为根尺寸统一缩放整个 UI、锁定原始宽高比；旧非等比窗口尺寸会迁移到可容纳的最大等比尺寸。Ratio、检测、PDC、LUFS Match、A/B、参数 ID 与状态结构不变。随后补齐许可证、公开 CI、四平台交付路线和双语文档；文档纠正未改 DSP。
+- English: Improved GR Hold readability and uniformly scaled the full UI around a 1020x670 root while preserving its aspect ratio. Old non-proportional window sizes migrate to the largest proportional fit. Ratio, detection, PDC, LUFS Match, A/B, parameter IDs, and state structure were unchanged. Licensing, public CI, four-platform delivery, and bilingual documentation followed without changing DSP.
 
 ### 0.1.7 — 2026-08-25 — Candidate / Test
 
@@ -505,6 +514,10 @@ See [CODEX_BUILD.md](CODEX_BUILD.md) for the complete build and validation requi
 - Do not restore 2x/4x, enable Oversampling at 10 ms+, add hidden smoothing, or add compensating EQ without new measurements and explicit user approval.
 - A Candidate becomes Stable only after explicit user confirmation.
 
-## License
+## 许可证 / License
 
-MIT — see [LICENSE](LICENSE).
+本项目第一方源码采用 **Qing Audio 非商业源码共享许可证 1.0**（`LicenseRef-Qing-Audio-NC-Source-Share-1.0`）。禁止任何商业使用。发布原版、二进制版或修改版时，必须同时免费公开完整对应源代码，保留作者、版权与许可证声明，注明原项目、作者、来源链接、修改者、修改日期及修改内容，并使整个修改版继续采用同一许可证。完整条款见 [LICENSE](LICENSE)。第三方组件继续适用其各自许可证。
+
+This project's first-party source is licensed under the **Qing Audio Non-Commercial Source-Share License 1.0** (`LicenseRef-Qing-Audio-NC-Source-Share-1.0`). Commercial use is prohibited. Distribution of the original, binary, or modified version requires the complete corresponding source at no charge, preserved authorship, copyright, and license notices, prominent identification of the original project, author, source URL, modifier, date, and changes, and the same license for the entire modified work. See [LICENSE](LICENSE). Third-party components remain under their respective licenses.
+
+Previously distributed copies retain rights already granted; this License applies to copies supplied with it.

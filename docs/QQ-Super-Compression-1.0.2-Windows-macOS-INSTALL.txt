@@ -4,9 +4,11 @@ Vendor: Qing Audio
 Version: 1.0.2 Complete Relative LINK
 Release date: 2026-08-30
 Status: Stable baseline, explicitly confirmed by the user
-License: MIT
+License: Qing Audio Non-Commercial Source-Share License 1.0 (LicenseRef-Qing-Audio-NC-Source-Share-1.0)
+【重要：禁止任何商业使用】发布原版、二进制版或修改版时，必须同时免费公开完整对应源代码，保留作者、版权与许可证声明，并注明原项目、作者、来源、修改者、日期和修改内容。
+IMPORTANT — COMMERCIAL USE IS PROHIBITED. Distribution of any original, binary, or modified version requires the complete corresponding source at no charge, preserved authorship, copyright, and license notices, and identification of the original project, author, source, modifier, date, and changes.
 
-This is the user package for an open-source project. The Plan D desktop package
+This is the user package for an source-available project. The Plan D desktop package
 contains installable plug-in archives and these guides; source code remains in
 the public GitHub repository and is not duplicated inside the plug-in ZIPs.
 

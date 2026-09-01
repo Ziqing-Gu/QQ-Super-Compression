@@ -4,9 +4,11 @@ QQ Super Compression 1.0.2 — Windows 与 macOS 安装说明
 版本：1.0.2 Complete Relative LINK
 发布日期：2026-08-30
 状态：用户明确确认的稳定基线
-许可证：MIT
+许可证：Qing Audio 非商业源码共享许可证 1.0（LicenseRef-Qing-Audio-NC-Source-Share-1.0）
+【重要：禁止任何商业使用】发布原版、二进制版或修改版时，必须同时免费公开完整对应源代码，保留作者、版权与许可证声明，并注明原项目、作者、来源、修改者、日期和修改内容。
+IMPORTANT — COMMERCIAL USE IS PROHIBITED. Distribution of any original, binary, or modified version requires the complete corresponding source at no charge, preserved authorship, copyright, and license notices, and identification of the original project, author, source, modifier, date, and changes.
 
-这是开源项目的用户成品包。Plan D 桌面目录只包含可安装插件压缩包和中英文说明；源码保存在公开 GitHub 仓库，不重复塞入插件 ZIP。
+这是源码公开项目的用户成品包。Plan D 桌面目录只包含可安装插件压缩包和中英文说明；源码保存在公开 GitHub 仓库，不重复塞入插件 ZIP。
 
 本版只有一个插件/组件名称：
 

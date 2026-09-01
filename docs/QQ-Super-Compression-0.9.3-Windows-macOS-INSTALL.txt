@@ -4,7 +4,9 @@ English Installation and Usage Guide
 Release status: Plan D stable baseline (Windows x64 VST3, macOS arm64/x86_64 VST3, and Universal 2 AU verified)
 Vendor: Qing Audio
 Formats: Windows x64 VST3; macOS arm64/x86_64 VST3; macOS Universal 2 AU
-This is an MIT-licensed open-source project. The guide targets Windows 10/11 x64 and macOS 12 or later; choose the macOS package that matches the Mac architecture.
+This is a source-available project licensed under the Qing Audio Non-Commercial Source-Share License 1.0. The guide targets Windows 10/11 x64 and macOS 12 or later; choose the macOS package that matches the Mac architecture.
+【重要：禁止任何商业使用】发布原版、二进制版或修改版时，必须同时免费公开完整对应源代码，保留作者、版权与许可证声明，并注明原项目、作者、来源、修改者、日期和修改内容。
+IMPORTANT — COMMERCIAL USE IS PROHIBITED. Distribution of any original, binary, or modified version requires the complete corresponding source at no charge, preserved authorship, copyright, and license notices, and identification of the original project, author, source, modifier, date, and changes.
 
 1. Windows x64 VST3
 
