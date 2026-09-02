@@ -1,4 +1,46 @@
-# QQ Super Compression 1.1.2 Stable - Build / validation brief
+# QQ Super Compression - Build / validation brief
+## v1.1.5 Stable - Fluid/Cached Dynamic Display Rendering
+
+- Base: v1.1.4 Candidate; previous Stable rollback: v1.1.2.
+- Windows x64 VST3 Release / JUCE 8.0.15 / MSVC 19.44.
+- 60 Hz / 480-point approximately eight-second history, fixed projection arrays, retained path caches, sparse bounded GR shade, and opaque child rendering.
+- GR math, Key Gain live projection, HPF background replay, audio DSP, parameters/state schema 10, automation IDs, and A/B remain unchanged.
+- Twelve Python/source/math checks, standalone BS.1770, Steinberg validator, metadata, and build/output/install parity: PASS.
+- Main binary SHA-256: `ABB9CFD1CF7929C6D4C6A7D9F72226535F36169854A1697B44550047F54B64E1`.
+- Read `PLAN_A_VERIFICATION_1.1.5.md` first for Plan A evidence.
+- Plan B formal source backup is complete and v1.1.5 is the current Stable baseline. Plan C/D, GitHub sync, macOS builds, and Release work remain separate at this checkpoint.
+
+--- PREVIOUS CANDIDATE BUILD BRIEF BELOW ---
+
+## v1.1.4 Candidate - Reliable/Faster HPF Display Replay
+
+- Base: v1.1.3 Candidate; Stable rollback: v1.1.2.
+- Windows x64 VST3 Release / JUCE 8.0.15 / MSVC 19.44.
+- Latest-request retry, two-tick non-mouse debounce, visible-window pre-roll, current-domain two-engine replay, and `HPF UPDATING` status.
+- Audio DSP, parameter/state schema 10, automation IDs, A/B, and real-time Key Gain behaviour are unchanged.
+- Eleven Python/source/math checks, standalone BS.1770, Steinberg validator, metadata, and build/output/install parity: PASS.
+- Replay-core benchmark: old about 19-26 ms; optimized about 8-13 ms, typically about 55% lower.
+- Main binary SHA-256: `05A41D64AC1CA45A7EF89F34E6BE946A18E83323308A24A496C89EF381504731`.
+- Read `PLAN_A_VERIFICATION_1.1.4.md` first for current Candidate evidence.
+- No Plan B/C/D, Stable promotion, GitHub, Actions, macOS, or Release work is included.
+
+--- PREVIOUS CANDIDATE BUILD BRIEF BELOW ---
+
+## v1.1.3 Candidate - Sidechain Display History Replay
+
+- Base and rollback: v1.1.2 Stable.
+- Build target: Windows x64 VST3 Release, JUCE 8.0.15, MSVC 19.44.
+- Plan A output: verified local formal VST3 bundle and ZIP; installed after Cubase was confirmed closed with build/output/install hash parity.
+- Eleven Python/source/math checks, standalone BS.1770, and Steinberg vst3effectsvalidator: PASS.
+- Bundle: 2 files / 6,742,107 bytes.
+- Main binary SHA-256: `9B37B5C756D33D1E32E7E4982695CB5387FD89284C875D9CE99530AD7004AB59`.
+- Key Gain history is real-time; HPF history replays after gesture release or a short non-mouse debounce.
+- Display capture is editor-only, ten seconds, capped at 48 kHz; audio DSP and state schema 10 are unchanged.
+- Read `PLAN_A_VERIFICATION_1.1.3.md` and the top of `AI_DEVELOPMENT_HANDOFF.md` for the current Candidate evidence.
+- No Plan B/C/D, GitHub, Actions, macOS, Release, or Stable promotion is included.
+
+--- CURRENT STABLE BUILD BRIEF BELOW ---
+
 
 ## v1.1.2 Stable - Mix-aware Dynamic Display
 

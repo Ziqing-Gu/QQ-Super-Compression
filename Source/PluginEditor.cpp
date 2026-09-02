@@ -320,7 +320,12 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     outputGainSlider.onGestureStart = [this] { beginUndoTransaction ("Output Gain"); };
     thresholdSlider.onGestureStart = [this] { beginUndoTransaction ("Threshold ST"); };
     keyGainSlider.onGestureStart = [this] { beginUndoTransaction ("Key Gain"); };
-    keyHpfSlider.onGestureStart = [this] { beginUndoTransaction ("Side Chain HPF"); };
+    keyHpfSlider.onGestureStart = [this]
+    {
+        beginUndoTransaction ("Side Chain HPF");
+        display.beginKeyHpfGesture();
+    };
+    keyHpfSlider.onGestureEnd = [this] { display.endKeyHpfGesture(); };
 
     ratioLSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::ratioLR, ratioLSlider, ratioRSlider, "Ratio L/R"); };
     ratioRSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::ratioLR, ratioRSlider, ratioLSlider, "Ratio L/R"); };

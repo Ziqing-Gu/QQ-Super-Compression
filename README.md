@@ -52,7 +52,7 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 
 
-# QQ Super Compression 1.1.2
+# QQ Super Compression 1.1.5
 
 **Qing Audio 非商业源码公开动态处理器 / Non-commercial source-available dynamics processor by Qing Audio**
 
@@ -62,18 +62,36 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 | 项目 / Item | 内容 / Value |
 |---|---|
-| 当前稳定版本 / Current stable version | 1.1.2 Stable - Mix-aware Dynamic Display |
+| 当前稳定版本 / Current stable version | 1.1.5 Stable - Fluid/Cached Dynamic Display Rendering |
 | 本次 Plan A 成品 / Current Plan A artifact | Windows x64 VST3 |
-| 状态 / Status | v1.1.2 Stable; Plan A/B/C/D complete |
+| 状态 / Status | v1.1.5 Stable; Plan A/B complete |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | Qing Audio NC Source-Share 1.0 |
 
-> **上一稳定基线 / Previous Stable:** v1.1.1 Side Chain HPF；v1.1.0 External Key / Sidechain 继续作为更早的稳定回滚点保留。
+> **上一稳定基线 / Previous Stable:** v1.1.2 Mix-aware Dynamic Display；v1.1.1 Side Chain HPF 继续作为更早的稳定回滚点保留。
 >
-> **Stable baseline:** On 2026-09-02 Plan B was completed for v1.1.2, so the project standing rule promotes Mix-aware Dynamic Display to the current Stable baseline. Its existing Plan A Windows x64 VST3 build, build/output/install parity, ten source/math checks, and BS.1770 self-test passed. Steinberg validator/pluginval remains unavailable, so no validator pass is claimed. v1.1.1 is the previous Stable rollback; v1.0.4 is the previous public Release.
+> **Stable baseline:** On 2026-09-02 Plan B was completed for v1.1.5, so the project standing rule promotes Fluid/Cached Dynamic Display Rendering to the current Stable baseline. Its Plan A Windows x64 VST3, twelve source/math checks, BS.1770, Steinberg validator, and build/output/install hash parity passed. v1.1.2 is the previous Stable rollback and previous public Release.
 
+
+## 1.1.5 稳定版 / Stable release
+
+> v1.1.5 针对“大幅压缩时 Display 瞬间卡顿”优化渲染：历史采样由 30 Hz / 240 点提升到 60 Hz / 480 点并保持约八秒窗口；历史投影与曲线路径使用预分配缓存；取消随 GR 深度扩大而变重的整块半透明多边形，改用上限 160 段的缓存稀疏阴影；Display 作为不透明子组件绘制，避免连带刷新父界面。GR 定义、Key Gain 实时历史、HPF 松手刷新、声音 DSP、参数和 state schema 10 均不变。Windows x64 VST3、12 项自测、BS.1770、Steinberg validator 与安装哈希一致性通过。Plan B 完成后，本版成为当前 Stable。
+>
+> v1.1.5 targets the momentary Display stall seen under deep compression. History moves from 30 Hz / 240 points to 60 Hz / 480 points while retaining an approximately eight-second window; projection data and curve paths are preallocated and cached; the depth-dependent full translucent GR polygon is replaced by a cached sparse shade capped at 160 segments; and the Display paints as an opaque child to avoid invalidating its parent. GR meaning, real-time Key Gain history, release-triggered HPF refresh, audio DSP, parameters, and state schema 10 are unchanged. The Windows x64 VST3, twelve self-tests, BS.1770, Steinberg validator, and installation hash parity pass. Plan B promotes this version to the current Stable baseline.
+
+## 1.1.4 本地开发候选 / Local development candidate
+
+> v1.1.4 修复 HPF 历史 Display 偶尔不刷新的问题：最新请求在临时失败后会自动重试，非鼠标等待缩短，重放只处理可见历史加预热，并只计算当前域需要的峰值。刷新期间顶部显示 `HPF UPDATING`。本机性能测试中重放核心典型降低约 55%。声音 DSP、参数与 state schema 10 不变；当前仍为 Candidate，v1.1.2 保持 Stable。
+>
+> v1.1.4 makes the latest HPF history request reliable with bounded retries, shorter non-mouse debounce, visible-window replay plus pre-roll, and only the peak engines required by the current domain. `HPF UPDATING` appears while work is pending. Same-machine replay-core time typically drops by about 55%. Audio DSP, parameters, and state schema 10 are unchanged. This build remains Candidate; v1.1.2 remains Stable.
+
+## 1.1.3 本地开发候选 / Local development candidate
+
+> v1.1.3 已完成本机 Plan A：Key Gain 会在拖动时实时重投影完整历史 Display；Side Chain HPF 在松开旋钮后后台重放原始 Key 历史，非鼠标自动化/预设/A-B 变化采用短暂 debounce。音频 DSP、参数与 state schema 10 不变。Windows x64 VST3、11 项自测、BS.1770 和 Steinberg validator 已通过。此版本仍为 Candidate，v1.1.2 继续作为当前 Stable。
+>
+> v1.1.3 has completed local Plan A. Key Gain continuously reprojects the full historical Display while moving; Side Chain HPF replays raw Key history in the background after knob release, with a short debounce for non-mouse automation, preset, and A/B changes. Audio DSP, parameters, and state schema 10 are unchanged. The Windows x64 VST3, eleven self-tests, BS.1770, and Steinberg validator pass. This build remains Candidate; v1.1.2 remains the current Stable.
 
 ## 1.1.2 更新 / 1.1.2 update - Mix-aware Dynamic Display
 

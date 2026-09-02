@@ -10,7 +10,7 @@ processor = (root / "Source" / "PluginProcessor.cpp").read_text(encoding="utf-8"
 display_h = (root / "Source" / "DynamicDisplay.h").read_text(encoding="utf-8")
 display = (root / "Source" / "DynamicDisplay.cpp").read_text(encoding="utf-8")
 
-assert "VERSION 1.1.2" in cmake
+assert "VERSION 1.1.5" in cmake
 
 # Product-facing GR is Dry/Wet compression depth in the linear gain domain.
 def effective_gr(core_gr_db, wet_mix):
@@ -54,13 +54,14 @@ assert "WET PRE-MAKEUP" not in display
 assert "displayWetDb" not in meter
 assert "displayWetDb" not in processor
 
-# EXT shows the actual post-Key-Gain/post-HPF detector contour as a deliberately
-# weak two-stroke ghost line and does not let Input Gain alter that detector.
+# EXT shows a deliberately weak two-stroke detector ghost. Key Gain now moves
+# complete live/replayed history in real time; Input remains independent of EXT.
 assert "externalKey && externalAvailable" in display
 assert "External key" in display
 assert "withAlpha (0.10f)" in display and "withAlpha (0.34f)" in display
-assert "if (! externalKey)" in display
-assert "detectorDb += inputGainDb - point.capturedInputGainDb;" in display
+assert "capturedKeyGainDb" in display_h
+assert "detectorDb += keyGainDb - point.capturedKeyGainDb;" in display
+assert "detectorDb += externalKey ? keyGainDb : inputGainDb;" in display
 assert "displayDetectorPeak[0]" in processor
 assert "midEngine.getCurrentLevel()" in processor
 assert "linkedLevel" in processor
@@ -71,4 +72,4 @@ gr_pos = display.index("const auto effectiveGr =")
 makeup_mix_pos = display.index("const auto mixedGain =")
 assert gr_pos < makeup_mix_pos
 
-print("PASS: v1.1.2 Mix-aware effective GR, reprojected history, Wet removal and EXT Key ghost display.")
+print("PASS: v1.1.5 Mix-aware GR, real-time Key Gain history, Wet removal and EXT Key ghost display.")

@@ -1,4 +1,76 @@
-# AI Development Handoff - QQ Super Compression 1.1.2 Stable
+# AI Development Handoff - QQ Super Compression
+## Current Stable - v1.1.5 Fluid/Cached Dynamic Display Rendering
+
+**Status:** Plan A and Plan B complete on 2026-09-02; user-promoted Stable baseline.
+**Based on:** v1.1.4 Reliable/Faster HPF Display Replay Candidate.
+**Previous Stable rollback:** v1.1.2 Mix-aware Dynamic Display Stable.
+
+### v1.1.5 contract
+
+- Retain the approximately eight-second history while sampling and repainting at 60 Hz / 480 points.
+- Reproject the full visible history from current parameters at Display rate, using fixed retained storage and cached paths rather than paint-time containers.
+- Never restore the former depth-dependent full translucent GR polygon. The sparse shade may change cosmetically, but the GR boundary and Mix-aware math remain authoritative.
+- Keep Display opaque so its timer repaint does not invalidate the parent editor.
+- Preserve Key Gain live projection, HPF release-triggered replay/retry timing, audio DSP, parameter identities, A/B, migration, and state schema 10.
+
+### Verified Plan A evidence
+
+- Windows x64 Release VST3, twelve Python/source/math checks, standalone BS.1770, Steinberg validator, metadata, and build/output/install parity: PASS.
+- Main binary SHA-256: `ABB9CFD1CF7929C6D4C6A7D9F72226535F36169854A1697B44550047F54B64E1`.
+- Cubase deep-GR scrolling, parameter gestures, both themes, and audio/UI behaviour remain user validation.
+- Plan B formal source backup is complete. Plan C/D, GitHub sync, macOS builds, and Release work remain separate at this checkpoint.
+
+--- PREVIOUS CANDIDATE HANDOFF BELOW ---
+
+## Previous Candidate - v1.1.4 Reliable/Faster HPF Display Replay
+
+**Status:** Plan A complete on 2026-09-02; installed for user Cubase validation.
+**Based on:** v1.1.3 Sidechain Display History Replay Candidate.
+**Stable rollback:** v1.1.2 Mix-aware Dynamic Display Stable.
+
+### v1.1.4 contract
+
+- The newest HPF replay must win. Stale work may be cancelled, but a transient snapshot failure retries up to three times instead of silently dropping the request.
+- Mouse-wheel/text/automation/preset/A-B debounce is two Display ticks, while mouse release requests immediately.
+- Replay copies visible history plus bounded pre-roll and runs only the two peak engines required by the current domain.
+- `HPF UPDATING` remains visible while the latest request is pending and clears after success or bounded exhaustion.
+- Key Gain remains real-time. Audible DSP, parameters, automation identities, A/B, migration, and state schema 10 remain unchanged.
+
+### Verified Plan A evidence
+
+- Windows x64 Release VST3, eleven Python/source/math checks, standalone BS.1770, Steinberg validator, metadata, and build/output/install parity: PASS.
+- Same-machine replay benchmark typically reduced core time about 55% (old about 19-26 ms; optimized about 8-13 ms).
+- Main binary SHA-256: `05A41D64AC1CA45A7EF89F34E6BE946A18E83323308A24A496C89EF381504731`.
+- Cubase repeated-gesture responsiveness and audio/UI behaviour remain user validation.
+- No Plan B/C/D, Stable promotion, GitHub, Actions, macOS, or Release work was performed.
+
+--- PREVIOUS CANDIDATE HANDOFF BELOW ---
+
+## Previous Candidate - v1.1.3 Sidechain Display History Replay
+
+**Status:** Plan A complete on 2026-09-02; Candidate pending user Cubase validation.
+**Based on / rollback:** v1.1.2 Mix-aware Dynamic Display Stable.
+**Plan A output:** verified Windows x64 VST3 and ZIP in the local formal output directory; installed after Cubase was confirmed closed, with build/output/install hash parity.
+
+### v1.1.3 contract
+
+- Key Gain must reproject every visible detector/GR/Output history point continuously while the control moves.
+- HPF must not run a full historical filter pass on every drag tick. One background replay starts when the mouse gesture ends; non-mouse changes use a short stable-value debounce.
+- The replay source is the selected raw INT/EXT key before detector gain and HPF. The display-only ring exists only while the editor is open, covers ten seconds, and caps analysis at 48 kHz.
+- Replay preserves unclamped raw peaks so negative Key Gain remains correct even when external sidechain peaks exceed 0 dBFS.
+- HPF replay uses the established second-order Butterworth response, ST/LR/MS mapping, and current Lookahead peak window.
+- Actual audio processing, audible sidechain path, parameters, APVTS identities, A/B, state migration, and schema 10 remain unchanged.
+
+### Verified Plan A evidence
+
+- Windows x64 Release VST3, eleven Python/source/math checks, standalone BS.1770, version metadata, copy parity, and Steinberg vst3effectsvalidator: PASS.
+- Bundle: 2 files / 6,742,107 bytes.
+- Main binary SHA-256: `9B37B5C756D33D1E32E7E4982695CB5387FD89284C875D9CE99530AD7004AB59`.
+- Cubase audio/UI, automation, INT/EXT routing, both themes, state/A-B, Match, PDC, and Bypass remain user validation.
+- No Plan B/C/D, Stable promotion, GitHub, Actions, macOS build, or Release work was performed.
+
+--- CURRENT STABLE HANDOFF BELOW ---
+
 
 ## Current Stable - v1.1.2 Mix-aware Dynamic Display
 

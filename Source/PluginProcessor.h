@@ -2,7 +2,9 @@
 
 #include <JuceHeader.h>
 #include <array>
+#include <cstdint>
 #include <memory>
+#include <vector>
 #include "Parameters.h"
 #include "StaticCompressionEngine.h"
 #include "MeterState.h"
@@ -68,6 +70,34 @@ public:
         return meterState.externalKeyBusAvailable.load (std::memory_order_relaxed);
     }
 
+    // Display-only raw detector history. The audio thread writes the selected
+    // INT/EXT key before Input/Key Gain and before the Side Chain HPF into a
+    // bounded lock-free ring while the editor is open. DynamicDisplay copies a
+    // stable snapshot on its worker thread only when an HPF gesture ends, then
+    // replays the filter and detector without touching the audible DSP path.
+    struct DisplayKeyHistoryPosition
+    {
+        uint64_t generation = 0;
+        uint64_t counter = 0;
+    };
+
+    struct DisplayKeyHistorySnapshot
+    {
+        uint64_t generation = 0;
+        uint64_t firstCounter = 0;
+        double sampleRate = 44100.0;
+        int keySource = qqsc::params::keyInternal;
+        bool stereoKey = false;
+        std::vector<float> left;
+        std::vector<float> right;
+    };
+
+    void setDisplayKeyHistoryCaptureEnabled (bool enabled);
+    DisplayKeyHistoryPosition getDisplayKeyHistoryPosition() const noexcept;
+    bool copyDisplayKeyHistory (uint64_t generation, uint64_t startCounter,
+                                uint64_t endCounter,
+                                DisplayKeyHistorySnapshot& destination) const;
+
     // UI A/B comparison. A/B stores the complete user sound-setting state
     // (Input/Output Gain, all Ratio/Threshold/Makeup/Mix domain values, Lookahead, Oversampling and Mode). Bypass is intentionally global
     // and is not part of A/B snapshots.
@@ -85,6 +115,8 @@ public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
 private:
+    struct DisplayKeyHistoryStorage;
+
     struct KeyHighPassCoefficients
     {
         float b0 = 1.0f;
@@ -167,6 +199,7 @@ private:
 
     void resetGainReductionHold (int mode = -1) noexcept;
     void updateGainReductionHoldChannel (int channel, float blockPeakGrDb, int blockSamples) noexcept;
+    std::shared_ptr<DisplayKeyHistoryStorage> createDisplayKeyHistoryStorage();
 
     juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState apvts;
@@ -256,6 +289,16 @@ private:
     KeyHighPassCoefficients keyHighPassCoefficients;
     std::array<KeyHighPassState, 2> keyHighPassStates;
     int keyHpfCoefficientCountdown = 0;
+
+    // The shared_ptr is exchanged atomically once per audio block, so opening
+    // or closing the editor never frees a ring that the audio/Display worker is
+    // still using. Slots contain packed atomic L/R floats; no audio-thread lock
+    // or allocation is involved. At high host rates the display-only stream is
+    // boxcar-decimated to at most 48 kHz before it enters this ring.
+    std::shared_ptr<DisplayKeyHistoryStorage> displayKeyHistoryStorage;
+    std::atomic<bool> displayKeyHistoryCaptureEnabled { false };
+    std::atomic<double> displayKeyHistoryHostSampleRate { 44100.0 };
+    std::atomic<uint64_t> displayKeyHistoryGenerationCounter { 0 };
 
     mutable juce::CriticalSection abLock;
     ParameterSnapshot snapshotA;

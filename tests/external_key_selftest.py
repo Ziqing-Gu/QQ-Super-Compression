@@ -9,7 +9,7 @@ editor = (root / "Source" / "PluginEditor.cpp").read_text(encoding="utf-8")
 editor_header = (root / "Source" / "PluginEditor.h").read_text(encoding="utf-8")
 cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
 
-assert "VERSION 1.1.2" in cmake
+assert "VERSION 1.1.5" in cmake
 assert '.withInput  ("Sidechain", juce::AudioChannelSet::stereo(), false)' in processor
 assert 'keySource      = "keySource"' in params
 assert 'keyGainDb      = "keyGainDb"' in params
@@ -58,4 +58,4 @@ assert silent == carrier
 assert math.isclose(keyed[0], 0.5 / 8.0) and math.isclose(keyed[1], 0.5 / 8.0)
 assert math.isclose(keyed[2], 0.5 / 8.0) and keyed[3:] == carrier[3:]
 
-print("PASS: v1.1.2 External Key bus/source/gain/A-B/state/listen wiring and future-window mapping.")
+print("PASS: v1.1.5 External Key bus/source/gain/A-B/state/listen wiring and future-window mapping.")

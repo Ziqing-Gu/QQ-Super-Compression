@@ -11,7 +11,7 @@ params = (root / 'Source' / 'Parameters.h').read_text(encoding='utf-8')
 cmake = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
 
 # Product identity/state wiring.
-assert 'VERSION 1.1.2' in cmake
+assert 'VERSION 1.1.5' in cmake
 for token in ('monitorAll', 'monitorFirst', 'monitorSecond'):
     assert token in params, token
 for token in ('qqscMonitorLRSelection', 'qqscMonitorMSSelection', 'currentStateSchemaVersion = 10'):

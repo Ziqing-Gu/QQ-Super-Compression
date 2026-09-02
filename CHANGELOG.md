@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.1.5 - Fluid/Cached Dynamic Display Rendering - STABLE
+- 发布日期 / Release date: 2026-09-02
+- 修复 / Fixed: 深度压缩不再触发随 GR 填充面积增长的整块半透明多边形开销；deep compression no longer increases full-area translucent polygon work in proportion to the GR band.
+- 流畅度 / Fluidity: Display 由 30 Hz / 240 点提高到 60 Hz / 480 点，同时保持约八秒可见历史；Display advances from 30 Hz / 240 points to 60 Hz / 480 points while retaining the approximately eight-second window.
+- 性能 / Performance: 投影数组与五条域路径预分配并缓存，`paint()` 不再重建历史容器和曲线路径；projection arrays and five per-domain paths are preallocated/cached instead of rebuilt inside `paint()`.
+- 绘制 / Rendering: GR 面积改为上限 160 段的稀疏阴影路径，Display 使用完整不透明底图，减少父界面联动重绘；the GR area uses a bounded sparse shade path and an opaque Display background prevents parent invalidation.
+- 兼容性 / Compatibility: GR 数学、Key Gain、HPF 重放、声音 DSP、参数、A/B 与 state schema 10 不变；GR math, Key Gain, HPF replay, audio DSP, parameters, A/B, and schema 10 are unchanged.
+- 验证 / Validation: Windows x64 Release、12 项回归、BS.1770、Steinberg validator、build/output/install 哈希一致性通过。
+- 状态 / Status: Plan A 与 Plan B 已完成；v1.1.5 为当前 Stable，v1.1.2 为上一稳定回滚基线。
+## 1.1.4 - Reliable/Faster HPF Display Replay - CANDIDATE
+- 发布日期 / Release date: 2026-09-02
+- 修复 / Fixed: 最新一次 HPF 历史请求不再因临时快照失败而静默丢失；失败最多自动重试三次。The newest HPF history request no longer disappears silently after a transient snapshot failure and retries up to three times.
+- 响应 / Responsiveness: 非鼠标稳定防抖由四个 Display tick 缩短为两个；non-mouse stability debounce is reduced from four Display ticks to two.
+- 性能 / Performance: 只复制可见历史加预热，并只计算当前 ST/LR/MS 所需的两套峰值；same-machine replay core typically falls by about 55%.
+- UI / Feedback: 重放期间顶部轻量显示 `HPF UPDATING`，最新结果应用后清除；a subtle header status is shown while the latest replay is pending.
+- 兼容性 / Compatibility: Key Gain 继续实时；音频 DSP、参数、自动化 ID、A/B 与 state schema 10 不变。Key Gain remains real-time; audio DSP, parameters, automation IDs, A/B, and schema 10 are unchanged.
+- 验证 / Validation: Windows x64 Release、11 项回归、BS.1770、Steinberg validator、build/output/install 哈希一致性全部通过。
+- 状态 / Status: 仅完成 Plan A，v1.1.4 为 Candidate；v1.1.2 仍是 Stable 回滚基线。
+
+## 1.1.3 - Sidechain Display History Replay - CANDIDATE
+- 发布日期 / Release date: 2026-09-02
+- 新增功能 / Added: Key Gain 现在实时重投影完整可见 detector、含 Mix 的 GR 与 Output 历史；Key Gain now reprojects the complete visible detector, Mix-aware GR, and Output history in real time.
+- 行为变化 / Behaviour changes: HPF 拖动时不反复重算，松开旋钮后由低优先级线程重放十秒原始 Key 历史；HPF avoids per-drag replay and rebuilds the ten-second raw-key history on a low-priority worker after release.
+- 自动化 / Automation: 非鼠标的 HPF 自动化、Preset 与 A/B 变化通过短暂稳定值 debounce 触发一次历史刷新；non-mouse HPF automation, preset, and A/B changes trigger one debounced history refresh.
+- 性能 / Performance: 原始 Key 环形缓存只在编辑器打开时启用，分析率上限 48 kHz；the raw-key ring is editor-only and capped at a 48 kHz analysis rate.
+- 兼容性 / Compatibility: 音频 DSP、参数、A/B 与 state schema 均未改变，schema 保持 10；audio DSP, parameters, A/B, and state schema are unchanged; schema remains 10.
+- 验证 / Validation: Windows x64 Release、11 项自测、独立 BS.1770 与 Steinberg validator 全部通过；Windows x64 Release, eleven self-tests, standalone BS.1770, and Steinberg validator pass.
+- 状态 / Status: 仅完成 Plan A，当前仍为 Candidate；v1.1.2 保持 Stable 回滚基线。Plan A only; v1.1.3 remains Candidate and v1.1.2 remains Stable.
+
 ## 1.1.2 - Mix-aware Dynamic Display - STABLE
 - 发布日期 / Release date: 2026-09-02
 - 新增功能 / Added: 可重投影的 240 点 Dynamic Display 历史、EXT post-Key-Gain/post-HPF 弱化轮廓；reprojected 240-point Dynamic Display history and a soft EXT post-Key-Gain/post-HPF contour.

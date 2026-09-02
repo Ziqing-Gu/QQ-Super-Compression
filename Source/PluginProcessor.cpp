@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <optional>
 
 namespace
@@ -84,7 +85,91 @@ int migrateLegacy019OversamplingChoice (float oldNormalised) noexcept
     const auto oldChoice = juce::jlimit (0, 3, juce::roundToInt (oldNormalised * 3.0f));
     return oldChoice == 0 ? 0 : 1;
 }
+
+uint64_t packDisplayStereoSample (float left, float right) noexcept
+{
+    uint32_t leftBits = 0;
+    uint32_t rightBits = 0;
+    std::memcpy (&leftBits, &left, sizeof (left));
+    std::memcpy (&rightBits, &right, sizeof (right));
+    return static_cast<uint64_t> (leftBits) | (static_cast<uint64_t> (rightBits) << 32u);
 }
+
+void unpackDisplayStereoSample (uint64_t packed, float& left, float& right) noexcept
+{
+    const auto leftBits = static_cast<uint32_t> (packed & 0xffffffffu);
+    const auto rightBits = static_cast<uint32_t> (packed >> 32u);
+    std::memcpy (&left, &leftBits, sizeof (left));
+    std::memcpy (&right, &rightBits, sizeof (right));
+}
+}
+
+struct QQSuperCompressionAudioProcessor::DisplayKeyHistoryStorage
+{
+    DisplayKeyHistoryStorage (double hostRateIn, uint64_t generationIn)
+        : generation (generationIn),
+          hostSampleRate (juce::jmax (1.0, hostRateIn)),
+          analysisSampleRate (juce::jmin (48000.0, hostSampleRate)),
+          capacity (static_cast<uint64_t> (std::ceil (analysisSampleRate * 10.0))),
+          samples (std::make_unique<std::atomic<uint64_t>[]> (static_cast<size_t> (capacity)))
+    {
+        for (uint64_t i = 0; i < capacity; ++i)
+            samples[static_cast<size_t> (i)].store (0, std::memory_order_relaxed);
+    }
+
+    void push (float left, float right, int source, bool stereo) noexcept
+    {
+        if (source != audioThreadKeySource || stereo != audioThreadStereoKey)
+        {
+            audioThreadKeySource = source;
+            audioThreadStereoKey = stereo;
+            sourceStartCounter.store (writeCounterLocal, std::memory_order_release);
+            keySource.store (source, std::memory_order_release);
+            stereoKey.store (stereo, std::memory_order_release);
+            phase = 0.0;
+            sumLeft = 0.0;
+            sumRight = 0.0;
+            sumCount = 0;
+        }
+
+        sumLeft += static_cast<double> (left);
+        sumRight += static_cast<double> (right);
+        ++sumCount;
+        phase += analysisSampleRate;
+
+        if (phase + 1.0e-9 < hostSampleRate)
+            return;
+
+        phase -= hostSampleRate;
+        const auto scale = 1.0 / static_cast<double> (juce::jmax (1, sumCount));
+        const auto displayLeft = static_cast<float> (sumLeft * scale);
+        const auto displayRight = static_cast<float> (sumRight * scale);
+        const auto slot = static_cast<size_t> (writeCounterLocal % capacity);
+        samples[slot].store (packDisplayStereoSample (displayLeft, displayRight), std::memory_order_relaxed);
+        ++writeCounterLocal;
+        writeCounter.store (writeCounterLocal, std::memory_order_release);
+        sumLeft = 0.0;
+        sumRight = 0.0;
+        sumCount = 0;
+    }
+
+    const uint64_t generation;
+    const double hostSampleRate;
+    const double analysisSampleRate;
+    const uint64_t capacity;
+    std::unique_ptr<std::atomic<uint64_t>[]> samples;
+    std::atomic<uint64_t> writeCounter { 0 };
+    std::atomic<uint64_t> sourceStartCounter { 0 };
+    std::atomic<int> keySource { qqsc::params::keyInternal };
+    std::atomic<bool> stereoKey { false };
+    uint64_t writeCounterLocal = 0;
+    int audioThreadKeySource = -1;
+    bool audioThreadStereoKey = false;
+    double phase = 0.0;
+    double sumLeft = 0.0;
+    double sumRight = 0.0;
+    int sumCount = 0;
+};
 
 QQSuperCompressionAudioProcessor::QQSuperCompressionAudioProcessor()
     : juce::AudioProcessor (BusesProperties()
@@ -107,6 +192,87 @@ QQSuperCompressionAudioProcessor::QQSuperCompressionAudioProcessor()
 
     snapshotA = captureCurrentSnapshot();
     snapshotB = snapshotA;
+}
+
+std::shared_ptr<QQSuperCompressionAudioProcessor::DisplayKeyHistoryStorage>
+QQSuperCompressionAudioProcessor::createDisplayKeyHistoryStorage()
+{
+    const auto generation = displayKeyHistoryGenerationCounter.fetch_add (1, std::memory_order_relaxed) + 1;
+    const auto hostRate = displayKeyHistoryHostSampleRate.load (std::memory_order_relaxed);
+    return std::make_shared<DisplayKeyHistoryStorage> (hostRate, generation);
+}
+
+void QQSuperCompressionAudioProcessor::setDisplayKeyHistoryCaptureEnabled (bool enabled)
+{
+    const auto wasEnabled = displayKeyHistoryCaptureEnabled.exchange (enabled, std::memory_order_acq_rel);
+
+    if (enabled)
+    {
+        if (! wasEnabled || std::atomic_load_explicit (&displayKeyHistoryStorage, std::memory_order_acquire) == nullptr)
+            std::atomic_store_explicit (&displayKeyHistoryStorage, createDisplayKeyHistoryStorage(),
+                                        std::memory_order_release);
+    }
+    else
+    {
+        std::shared_ptr<DisplayKeyHistoryStorage> empty;
+        std::atomic_store_explicit (&displayKeyHistoryStorage, std::move (empty),
+                                    std::memory_order_release);
+    }
+}
+
+QQSuperCompressionAudioProcessor::DisplayKeyHistoryPosition
+QQSuperCompressionAudioProcessor::getDisplayKeyHistoryPosition() const noexcept
+{
+    const auto storage = std::atomic_load_explicit (&displayKeyHistoryStorage, std::memory_order_acquire);
+    if (storage == nullptr)
+        return {};
+
+    return { storage->generation, storage->writeCounter.load (std::memory_order_acquire) };
+}
+
+bool QQSuperCompressionAudioProcessor::copyDisplayKeyHistory (
+    uint64_t generation, uint64_t requestedStartCounter, uint64_t requestedEndCounter,
+    DisplayKeyHistorySnapshot& destination) const
+{
+    const auto storage = std::atomic_load_explicit (&displayKeyHistoryStorage, std::memory_order_acquire);
+    if (storage == nullptr || storage->generation != generation)
+        return false;
+
+    const auto publishedEnd = storage->writeCounter.load (std::memory_order_acquire);
+    const auto endCounter = juce::jmin (requestedEndCounter, publishedEnd);
+    const auto sourceStart = storage->sourceStartCounter.load (std::memory_order_acquire);
+    const auto ringStart = endCounter > storage->capacity ? endCounter - storage->capacity : 0;
+    const auto requestedStart = juce::jmin (requestedStartCounter, endCounter);
+    const auto firstCounter = juce::jmax (requestedStart, juce::jmax (sourceStart, ringStart));
+    if (endCounter <= firstCounter)
+        return false;
+
+    const auto count = endCounter - firstCounter;
+    destination = {};
+    destination.generation = generation;
+    destination.firstCounter = firstCounter;
+    destination.sampleRate = storage->analysisSampleRate;
+    destination.keySource = storage->keySource.load (std::memory_order_acquire);
+    destination.stereoKey = storage->stereoKey.load (std::memory_order_acquire);
+    destination.left.resize (static_cast<size_t> (count));
+    destination.right.resize (static_cast<size_t> (count));
+
+    for (uint64_t i = 0; i < count; ++i)
+    {
+        const auto counter = firstCounter + i;
+        const auto packed = storage->samples[static_cast<size_t> (counter % storage->capacity)]
+                                .load (std::memory_order_relaxed);
+        unpackDisplayStereoSample (packed,
+                                   destination.left[static_cast<size_t> (i)],
+                                   destination.right[static_cast<size_t> (i)]);
+    }
+
+    // Atomic slots avoid data races. This final bound check additionally
+    // rejects a snapshot if an extremely slow worker was overtaken by a full
+    // ten seconds of new audio while it was copying the ring.
+    const auto endAfterCopy = storage->writeCounter.load (std::memory_order_acquire);
+    const auto startAfterCopy = storage->sourceStartCounter.load (std::memory_order_acquire);
+    return endAfterCopy - firstCounter <= storage->capacity && startAfterCopy == sourceStart;
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProcessor::createParameterLayout()
@@ -289,6 +455,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
 void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = juce::jmax (1.0, sampleRate);
+
+    displayKeyHistoryHostSampleRate.store (currentSampleRate, std::memory_order_relaxed);
+    if (displayKeyHistoryCaptureEnabled.load (std::memory_order_acquire))
+        std::atomic_store_explicit (&displayKeyHistoryStorage, createDisplayKeyHistoryStorage(),
+                                    std::memory_order_release);
 
     configuredMaximumBlockSize = juce::jmax (16384, juce::jmax (1, samplesPerBlock));
 
@@ -770,6 +941,10 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
                                          juce::roundToInt (apvts.getRawParameterValue (qqsc::params::keySource)->load()));
     const bool useExternalKey = keySource == qqsc::params::keyExternal;
 
+    const bool detectorKeyIsStereo = useExternalKey ? externalKeyChannels >= 2 : stereoBus;
+    const auto displayHistoryForBlock = std::atomic_load_explicit (
+        &displayKeyHistoryStorage, std::memory_order_acquire);
+
     float meterMaxGrDb[2] { 0.0f, 0.0f };
     float displayDetectorPeak[2] { 0.0f, 0.0f };
     float keyInputPeak = 0.0f;
@@ -792,6 +967,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             buffer.setSample (1, i, mainR);
 
         const auto keyGain = keyGainSmoother.getNextValue();
+        float rawDisplayKeyL = originalL;
+        float rawDisplayKeyR = originalR;
         float selectedKeyL = mainL;
         float selectedKeyR = mainR;
 
@@ -799,9 +976,15 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         {
             const float externalL = externalKeyBusAvailable ? externalKeyBuffer.getSample (0, i) : 0.0f;
             const float externalR = externalKeyChannels >= 2 ? externalKeyBuffer.getSample (1, i) : externalL;
+            rawDisplayKeyL = externalL;
+            rawDisplayKeyR = externalR;
             selectedKeyL = externalL * keyGain;
             selectedKeyR = externalR * keyGain;
         }
+
+        if (displayHistoryForBlock != nullptr)
+            displayHistoryForBlock->push (rawDisplayKeyL, rawDisplayKeyR,
+                                          keySource, detectorKeyIsStereo);
 
         const auto keyHpfCutoff = keyHpfCutoffSmoother.getNextValue();
         const auto keyHpfWet = keyHpfWetSmoother.getNextValue();
@@ -855,7 +1038,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         // HPF OFF these samples are the exact v1.1.0 INT/EXT detector signal.
         const float keyL = oversampledBlock.getSample (2, i);
         const float keyR = oversampledBlock.getSample (3, i);
-        const bool stereoKey = useExternalKey ? externalKeyChannels >= 2 : stereoBus;
+        const bool stereoKey = detectorKeyIsStereo;
         // A mono external key is deliberately common to every independent
         // detector domain. This lets one kick drive L/R or M/S together instead
         // of leaving the Side detector untriggered merely because the key is mono.

@@ -13,10 +13,10 @@ struct MeterState
     std::atomic<float> outputDb0 { -120.0f };
     std::atomic<float> outputDb1 { -120.0f };
 
-    // v1.1.2 Dynamic Display stores the pre-Input-Gain carrier plus the actual
-    // future-window detector level. The UI reprojects the complete visible
-    // history with current Input/Ratio/Threshold/Mix/Makeup/Output values, so
-    // parameter edits remain explanatory even after the audio has passed.
+    // Dynamic Display stores the pre-Input-Gain carrier plus live detector
+    // evidence. v1.1.3 additionally keeps a bounded pre-gain/pre-HPF raw key
+    // ring while the editor is open: Key Gain reprojects immediately and an
+    // HPF gesture replays the visible detector history once the knob is released.
     // In ST, channel 0 is linked and channel 1 is ignored. LR uses L/R; MS M/S.
     std::atomic<float> displayInputDb0  { -120.0f };
     std::atomic<float> displayInputDb1  { -120.0f };

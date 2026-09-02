@@ -11,7 +11,7 @@ editor = (root / "Source" / "PluginEditor.cpp").read_text(encoding="utf-8")
 editor_header = (root / "Source" / "PluginEditor.h").read_text(encoding="utf-8")
 cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
 
-assert "VERSION 1.1.2" in cmake
+assert "VERSION 1.1.5" in cmake
 assert 'keyHpfHz       = "keyHpfHz"' in params
 assert params.index('keyGainDb      = "keyGainDb"') < params.index('keyHpfHz       = "keyHpfHz"')
 assert "keyHpfOffHz = 0.0f" in params
@@ -73,4 +73,4 @@ raw = 0.314159
 filtered = -0.271828
 assert raw + (filtered - raw) * 0.0 == raw  # OFF is exact dry detector signal.
 
-print("PASS: v1.1.2 detector-only Side Chain HPF parameter/DSP/state/A-B/UI wiring and response.")
+print("PASS: v1.1.5 detector-only Side Chain HPF parameter/DSP/state/A-B/UI wiring and response.")

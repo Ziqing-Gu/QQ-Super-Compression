@@ -1,4 +1,51 @@
 # QQ Super Compression — Development History
+## v1.1.5 - Fluid/Cached Dynamic Display Rendering - Stable
+
+**日期 / Date:** 2026-09-02
+**状态 / Status:** Plan A and Plan B complete; current Stable
+**基于 / Based on:** v1.1.4 Candidate；上一稳定回滚为 v1.1.2 Stable
+
+鐢ㄦ埛纭 HPF 鍘嗗彶宸茬粡鍙互鍒锋柊锛屼絾鍙戠幇鏃犺 INT 杩樻槸 EXT锛屼竴鏃﹀帇缂╅噺寮€濮嬪澶э紝鏁翠釜 Display 浼氬嚭鐜扮灛闂村崱椤裤€傛鏌ョ‘璁ゆ牴鍥犱綅浜?UI 缁樺埗锛氭棫瀹炵幇姣忎釜 30 Hz paint 閮介噸鏂板垎閰嶆姇褰卞巻鍙插拰璺緞锛屽苟濉厖涓€涓害 480 椤剁偣鐨勫崐閫忔槑 GR 澶氳竟褰€侴R 寰堝皬鏃惰鍖哄煙杩戜技涓€鏉＄嚎锛汫R 澧炲ぇ鍚庨€忔槑娣峰悎闈㈢Н绐佺劧鎵╁ぇ锛屽洜姝ょ粯鍒舵垚鏈笌鍘嬬缉娣卞害鐩稿叧銆?
+v1.1.5 灏嗗巻鍙叉彁鍗囦负 60 Hz / 480 鐐瑰苟淇濇寔绾﹀叓绉掔獥鍙ｏ紱鎶曞奖浣跨敤鍥哄畾鏁扮粍锛屾瘡涓煙淇濈暀 Dry銆丟R銆丱utput銆丒xternal Key 鍜?GR 闃村奖璺緞銆俙paint()` 鍙粯鍒剁紦瀛樼粨鏋溿€傛暣鍧?GR 濉厖鏀逛负涓婇檺 160 娈电殑绋€鐤忛槾褰辫矾寰勶紝骞惰 Display 浣跨敤瀹屾暣涓嶉€忔槑搴曞浘锛岄伩鍏嶇埗缁勪欢鑱斿姩閲嶇粯銆侶PF 鐨勪袱 tick / 30 Hz debounce 绛夋晥璋冩暣涓哄洓 tick / 60 Hz锛屽疄闄呯瓑寰呮椂闂翠笉鍙樸€?
+The user confirmed that HPF history refresh works, but deep compression made both INT and EXT displays stall momentarily. The cause was UI rendering rather than sidechain DSP: every 30 Hz paint rebuilt projected containers and paths, then alpha-filled a large GR polygon whose blended area grew with reduction depth. v1.1.5 moves to a cached 60 Hz / 480-point approximately eight-second history, fixed projection arrays, retained paths, a bounded sparse GR shade, and opaque child painting. Audio DSP, parameter/state behaviour, and HPF scheduling semantics remain unchanged.
+
+Windows x64 Release、12 项回归、BS.1770、Steinberg validator、1.1.5 元数据及 build/output/install 哈希一致性通过。用户确认 Display 流畅度满意，并要求完成 Plan B；因此 v1.1.5 成为当前 Stable。v1.1.2 保留为上一稳定回滚基线。
+---
+
+## v1.1.4 - Reliable/Faster HPF Display Replay - Candidate
+
+**日期 / Date:** 2026-09-02
+**状态 / Status:** Plan A complete; Candidate
+**基于 / Based on:** v1.1.3 Candidate；稳定回滚为 v1.1.2 Stable
+
+用户实测发现 HPF 并非每次调整后都能刷新历史，且 Display 开始显得迟缓。根因不是 HPF DSP 失效，而是 v1.1.3 每次重放完整十秒历史、始终运行四套峰值窗口，并且临时快照失败后没有重试；连续调整还会取消旧任务，只留下最终请求。
+
+v1.1.4 保留“Key Gain 实时、HPF 松手后刷新”的产品约定，同时让最新 HPF 请求可靠完成：临时失败最多重试三次，非鼠标 debounce 减半；复制范围缩到可见历史加一秒预热，峰值计算按当前域从四套减为两套，并在等待时显示 `HPF UPDATING`。
+
+The audible detector HPF is unchanged. The revision only improves Display scheduling, replay range, domain-specific peak work, retry behaviour, and feedback. A same-machine benchmark reduced replay-core time from roughly 19-26 ms to 8-13 ms, typically about 55%.
+
+Windows x64 Release、11 项回归、BS.1770、Steinberg validator、版本元数据和 build/output/install 哈希一致性通过。系统已安装 1.1.4，1.1.3 已保留回滚副本；Cubase 连续操作与听感由用户验证。
+
+---
+
+## v1.1.3 - Sidechain Display History Replay - Candidate
+
+**日期 / Date:** 2026-09-02
+**状态 / Status:** Plan A complete; Candidate
+**基于 / Based on:** v1.1.2 Mix-aware Dynamic Display Stable
+
+用户要求 Key Gain 在旋钮移动时实时改变整段历史 Display，而 HPF 只在松开旋钮后刷新。v1.1.3 因此新增只服务于显示的十秒原始 Key 环形历史：编辑器打开时记录所选 INT/EXT Key 在 detector gain 与 HPF 之前的信号，分析率上限 48 kHz；Key Gain 继续走便宜的 30 Hz 全历史重投影，HPF 则在手势结束后由低优先级线程执行一次完整重放。
+
+The user required continuous historical Display response from Key Gain, while HPF history should refresh only after the knob is released. v1.1.3 adds an editor-only ten-second raw-key ring capped at 48 kHz. Key Gain stays on the cheap 30 Hz projection path; HPF performs one low-priority replay after gesture end, with a short debounce for automation, presets, A/B, and other non-mouse changes.
+
+- 重放使用与插件一致的二阶 Butterworth HPF、ST/LR/MS 域重建和当前 Lookahead 峰值窗口。
+- 原始峰值在重放阶段保持未钳位，确保大于 0 dBFS 的外部 Key 配合负 Key Gain 时仍能正确回算。
+- 音频 DSP、听见的侧链路径、参数、自动化 ID、A/B、迁移和 state schema 10 均未改变。
+- Windows x64 Release、11 项自测、独立 BS.1770 和 Steinberg validator 通过；确认 Cubase 关闭后已覆盖系统 VST3，build/output/install 哈希一致；听感/UI/自动化验证由用户完成。
+- 本次只执行 Plan A；v1.1.2 保持 Stable 回滚基线。
+
+---
+
 
 ## v1.1.2 - Mix-aware Dynamic Display - Stable
 
@@ -54,8 +101,8 @@ Local Windows x64 Release VST3, nine Python/source/math tests, standalone BS.177
 
 ## v1.0.4 — Light / Classic UI switch
 
-**日期：** 2026-09-01  
-**状态：** Stable baseline / Plan A and Plan B complete  
+**日期：** 2026-09-01
+**状态：** Stable baseline / Plan A and Plan B complete
 **基于：** v1.0.3 Centered Domain Monitor Stable
 
 ### 目标与实现
@@ -107,8 +154,8 @@ Plan D 的四个最终成品、Actions、Windows validator、macOS 架构与 AU 
 ## v1.0.2 — Complete Relative LINK
 
 **日期：** 2026-08-30
-**状态：** Candidate / Test  
-**基于：** v1.0.1 Stable — Display 0…-90 dB Scale / Transparent Core / Independent Domains  
+**状态：** Candidate / Test
+**基于：** v1.0.1 Stable — Display 0…-90 dB Scale / Transparent Core / Independent Domains
 **稳定回滚基线：** v1.0.1 Stable（用户已确认，Plan A/B/C/D 已执行）
 
 ### 用户需求
@@ -159,14 +206,14 @@ Plan D 的四个最终成品、Actions、Windows validator、macOS 架构与 AU 
 ## v1.0.1 — Stable Baseline Promotion
 
 **日期：** 2026-08-30
-**状态：** Stable  
+**状态：** Stable
 
 用户明确将 Display `0…-90 dB` 的 v1.0.1 设为新的稳定基线，并报告已执行 Plan A/B/C/D。此前 v1.0.1 各 Candidate Revision 的历史记录继续保留在下方；从此后续开发和失败回滚优先以该 Stable 包为基准。
 
 ## v1.0.1 Candidate Revision 3 — Mode / Lookahead Alignment Polish
 
 **日期：** 2026-08-30
-**状态：** Candidate / Test（仍为 1.0.1，不晋升 Stable）  
+**状态：** Candidate / Test（仍为 1.0.1，不晋升 Stable）
 **基于：** v1.0.1 Candidate Revision 2
 
 ### 用户需求
@@ -204,7 +251,7 @@ Plan D 的四个最终成品、Actions、Windows validator、macOS 架构与 AU 
 ## v1.0.1 Candidate Revision 2 — Mode/LINK UI Fix + Independent LR/MS Mix
 
 **日期：** 2026-08-30
-**状态：** Candidate / Test（仍为 1.0.1，不晋升 Stable）  
+**状态：** Candidate / Test（仍为 1.0.1，不晋升 Stable）
 **基于：** v1.0.1 Transparent Core / Independent Domains / Display-First Candidate
 
 ### 用户需求
@@ -254,7 +301,7 @@ Plan D 的四个最终成品、Actions、Windows validator、macOS 架构与 AU 
 ## v1.0.1 — Transparent Core / Independent Domains / Display-First
 
 **日期：** 2026-08-30
-**状态：** Candidate / Test  
+**状态：** Candidate / Test
 **基于：** v0.9.4/v0.9.7 transparent future-window core + v1.0.0 domain/UI workflow work
 
 ### 用户需求
@@ -446,8 +493,8 @@ Initial VST3 prototype with Ratio, Makeup Gain, Makeup Gate, Mix, 0/10 ms latenc
 
 ## 0.1.2 ST/MS/LR Modes / Zero Latency / Dual Meter Rework — 2026-08-25
 
-**Status:** Candidate / Test  
-**Based on:** 0.1.1  
+**Status:** Candidate / Test
+**Based on:** 0.1.1
 **Stable baseline:** none has yet been explicitly designated by the user
 
 ### User request
@@ -535,8 +582,8 @@ Build 0.1.2 VST3 and test ST/LR/MS behaviour, dual meters, GR direction, zero-la
 
 ## 0.1.3 Workflow / A-B / Match / Independent Makeup — 2026-08-25
 
-**Status:** Candidate / Test  
-**Based on:** 0.1.2  
+**Status:** Candidate / Test
+**Based on:** 0.1.2
 **Stable baseline:** none explicitly designated by the user
 
 ### User-requested workflow/UI changes
@@ -606,8 +653,8 @@ If 0.1.3 fails, return to 0.1.2 Candidate for direct comparison. Do not restore 
 
 ## 0.1.4 Variable Lookahead Peak Experiment — 2026-08-25
 
-**Status:** Candidate / Test  
-**Based on:** 0.1.3  
+**Status:** Candidate / Test
+**Based on:** 0.1.3
 **Stable baseline:** none explicitly designated by the user
 
 User PluginDoctor testing invalidated the fixed 20 ms rolling RMS detector as a final core: Dynamics showed an attack/release-like 20 ms time-window response, and Harmonic Analysis showed carrier-related odd harmonics on a stable sine. The user restated the intended architecture as a short future-waveform read followed by Ratio-derived volume reduction, then asked for an editable millisecond field so different preview lengths can be compared directly.
@@ -625,7 +672,7 @@ Validation in the AI environment is static only. UTF-8 decoding and basic source
 
 ## 0.1.5 Fixed Lookahead Presets / Last-Choice Memory — 2026-08-25
 
-**Status:** Candidate / Test  
+**Status:** Candidate / Test
 **Based on:** 0.1.4
 
 ### User validation leading to this version
@@ -674,7 +721,7 @@ There is still no user-designated Stable version. If 0.1.5 preset/persistence lo
 
 ## 0.1.6 Strict Integrated LUFS Match — 2026-08-25
 
-**Status:** Candidate / Test  
+**Status:** Candidate / Test
 **Based on:** 0.1.5 Candidate
 
 ### User requirement
@@ -729,8 +776,8 @@ There is still no user-designated Stable version. If 0.1.6 LUFS Match fails, ret
 
 ## v0.1.7 — Auto GR Peak Hold / Version Tag / playHead Warning Cleanup
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.6
 
 ### 0.1.6 后续用户验证补记
@@ -796,8 +843,8 @@ Hold 必须在 audio thread 侧基于 block peak 更新，而不是只在 GUI 30
 
 ## v0.1.8 — GR Hold Readability / Uniform 1:1 UI Scaling
 
-**日期：** 2026-08-25  
-**状态：** Candidate / Test  
+**日期：** 2026-08-25
+**状态：** Candidate / Test
 **基于：** v0.1.7
 
 ### 用户需求
@@ -849,8 +896,8 @@ Hold 必须在 audio thread 侧基于 block peak 更新，而不是只在 GUI 30
 
 ## v0.1.9 — FIR Oversampling / PDC Alignment / Warning Cleanup
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.1.8 Plan B（用户上传 `QQ Super Compression 0.1.8-PlanB-20260825-161114.zip`）
 
 ### 用户需求
@@ -920,8 +967,8 @@ Codex 首先完成 Windows Release 编译并看 warning；随后在 Cubase 测 c
 
 ## v0.1.10 — 0 ms-Only 1x/8x/16x Oversampling / Product Rationale Handoff
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.1.9 Candidate
 
 ### 本次用户需求
@@ -1000,8 +1047,8 @@ Codex 首先完成 Windows Release 编译并看 warning；随后在 Cubase 测 c
 
 ## v0.9.0 — Warm Transparent UI Candidate
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.1.10 — 0 ms-Only 1x/8x/16x Oversampling / Design Documentation
 
 ### 用户需求
@@ -1076,8 +1123,8 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 ## v0.9.1 — Lighting & Material Refinement
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.9.0 — Warm Transparent UI Candidate
 
 ### 用户需求
@@ -1132,8 +1179,8 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 ## v0.9.2 — Asset Knobs / Input & Output Gain
 
-**日期：** 2026-08-27  
-**状态：** Candidate  
+**日期：** 2026-08-27
+**状态：** Candidate
 **基于：** v0.9.1
 
 ### 用户需求
@@ -1187,8 +1234,8 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 ## v0.9.3 — UI Rollback / Features Retained
 
-**日期：** 2026-08-27  
-**状态：** Candidate / Test  
+**日期：** 2026-08-27
+**状态：** Candidate / Test
 **基于：** v0.9.2 — Asset Knobs / Input & Output Gain
 
 ### 用户需求
@@ -1247,8 +1294,8 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 
 ## v0.9.4 — Editable Numeric Text Contrast
 
-**日期：** 2026-08-28  
-**状态：** Candidate / Test  
+**日期：** 2026-08-28
+**状态：** Candidate / Test
 **基于：** v0.9.3
 
 ### 用户反馈
@@ -1272,7 +1319,7 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 ## v0.9.7 — Threshold Rebuild
 
 **日期：** 2026-08-30
-**状态：** Candidate / Test  
+**状态：** Candidate / Test
 **基于：** v0.9.4
 
 ### 用户需求
@@ -1311,7 +1358,7 @@ Mode 只有三个已固定状态，下拉菜单增加了不必要的交互层；
 ## v1.0.1 Candidate Revision 4 — Display 0…-90 dB Working Scale
 
 **日期：** 2026-08-30
-**状态：** Candidate / Test  
+**状态：** Candidate / Test
 **基于：** v1.0.1 Mode / Lookahead Alignment Polish
 
 ### 用户需求
@@ -1347,7 +1394,7 @@ Threshold 已经成为主要工作功能之一。固定 `0…-90 dB` 可以让�
 ## v1.0.3 — Centered Domain Monitor
 
 **日期：** 2026-08-30
-**状态：** Candidate / Test  
+**状态：** Candidate / Test
 **基于：** v1.0.2 — Complete Relative LINK **Stable**（用户于 2026-08-30 明确设为稳定基线）
 
 ### 用户需求与设计澄清
