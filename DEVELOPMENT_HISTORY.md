@@ -2,14 +2,14 @@
 ## v1.1.5 - Fluid/Cached Dynamic Display Rendering - Stable
 
 **日期 / Date:** 2026-09-02
-**状态 / Status:** Plan A and Plan B complete; current Stable
+**状态 / Status:** Plan A/B/C/D complete; current Stable and public Release
 **基于 / Based on:** v1.1.4 Candidate；上一稳定回滚为 v1.1.2 Stable
 
-鐢ㄦ埛纭 HPF 鍘嗗彶宸茬粡鍙互鍒锋柊锛屼絾鍙戠幇鏃犺 INT 杩樻槸 EXT锛屼竴鏃﹀帇缂╅噺寮€濮嬪澶э紝鏁翠釜 Display 浼氬嚭鐜扮灛闂村崱椤裤€傛鏌ョ‘璁ゆ牴鍥犱綅浜?UI 缁樺埗锛氭棫瀹炵幇姣忎釜 30 Hz paint 閮介噸鏂板垎閰嶆姇褰卞巻鍙插拰璺緞锛屽苟濉厖涓€涓害 480 椤剁偣鐨勫崐閫忔槑 GR 澶氳竟褰€侴R 寰堝皬鏃惰鍖哄煙杩戜技涓€鏉＄嚎锛汫R 澧炲ぇ鍚庨€忔槑娣峰悎闈㈢Н绐佺劧鎵╁ぇ锛屽洜姝ょ粯鍒舵垚鏈笌鍘嬬缉娣卞害鐩稿叧銆?
-v1.1.5 灏嗗巻鍙叉彁鍗囦负 60 Hz / 480 鐐瑰苟淇濇寔绾﹀叓绉掔獥鍙ｏ紱鎶曞奖浣跨敤鍥哄畾鏁扮粍锛屾瘡涓煙淇濈暀 Dry銆丟R銆丱utput銆丒xternal Key 鍜?GR 闃村奖璺緞銆俙paint()` 鍙粯鍒剁紦瀛樼粨鏋溿€傛暣鍧?GR 濉厖鏀逛负涓婇檺 160 娈电殑绋€鐤忛槾褰辫矾寰勶紝骞惰 Display 浣跨敤瀹屾暣涓嶉€忔槑搴曞浘锛岄伩鍏嶇埗缁勪欢鑱斿姩閲嶇粯銆侶PF 鐨勪袱 tick / 30 Hz debounce 绛夋晥璋冩暣涓哄洓 tick / 60 Hz锛屽疄闄呯瓑寰呮椂闂翠笉鍙樸€?
+用户确认 HPF 历史已经可以刷新，但发现无论 INT 还是 EXT，一旦压缩量开始增大，整个 Display 会出现瞬间卡顿。检查确认根因位于 UI 绘制：旧实现每个 30 Hz paint 都重新分配投影历史和路径，并填充一个约 480 个顶点的半透明 GR 多边形。GR 很小时该区域接近一条线；GR 增大后透明混合面积突然扩大，因此绘制成本与压缩深度相关。
+v1.1.5 将历史提升为 60 Hz / 480 点并保持约八秒窗口；投影使用固定数组，每个域保留 Dry、GR、Output、External Key 和 GR 阴影路径，`paint()` 只绘制缓存结果。整块 GR 填充改为上限 160 段的稀疏阴影路径，并让 Display 使用完整不透明底图，避免父组件联动重绘。HPF 的两 tick / 30 Hz debounce 等效调整为四 tick / 60 Hz，实际等待时间不变。
 The user confirmed that HPF history refresh works, but deep compression made both INT and EXT displays stall momentarily. The cause was UI rendering rather than sidechain DSP: every 30 Hz paint rebuilt projected containers and paths, then alpha-filled a large GR polygon whose blended area grew with reduction depth. v1.1.5 moves to a cached 60 Hz / 480-point approximately eight-second history, fixed projection arrays, retained paths, a bounded sparse GR shade, and opaque child painting. Audio DSP, parameter/state behaviour, and HPF scheduling semantics remain unchanged.
 
-Windows x64 Release、12 项回归、BS.1770、Steinberg validator、1.1.5 元数据及 build/output/install 哈希一致性通过。用户确认 Display 流畅度满意，并要求完成 Plan B；因此 v1.1.5 成为当前 Stable。v1.1.2 保留为上一稳定回滚基线。
+Windows x64 Release、12 项回归、BS.1770、Steinberg validator、1.1.5 元数据及 build/output/install 哈希一致性通过。用户确认 Display 流畅度满意。Plan B 正式备份、Plan C 四平台交付与 Plan D 同仓库 Release 均已完成；公开提交/标签为 `952f7691f67c810ba351c28e213d3620d3425b24` / `v1.1.5`，macOS run `33580627982` 三个 jobs 与 AU `auval` 通过，Windows Actions 未运行。v1.1.2 保留为上一稳定回滚基线。
 ---
 
 ## v1.1.4 - Reliable/Faster HPF Display Replay - Candidate

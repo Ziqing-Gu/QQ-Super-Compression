@@ -1,7 +1,7 @@
 # AI Development Handoff - QQ Super Compression
 ## Current Stable - v1.1.5 Fluid/Cached Dynamic Display Rendering
 
-**Status:** Plan A and Plan B complete on 2026-09-02; user-promoted Stable baseline.
+**Status:** Plan A/B/C/D complete on 2026-09-02; current Stable and public Release.
 **Based on:** v1.1.4 Reliable/Faster HPF Display Replay Candidate.
 **Previous Stable rollback:** v1.1.2 Mix-aware Dynamic Display Stable.
 
@@ -18,7 +18,7 @@
 - Windows x64 Release VST3, twelve Python/source/math checks, standalone BS.1770, Steinberg validator, metadata, and build/output/install parity: PASS.
 - Main binary SHA-256: `ABB9CFD1CF7929C6D4C6A7D9F72226535F36169854A1697B44550047F54B64E1`.
 - Cubase deep-GR scrolling, parameter gestures, both themes, and audio/UI behaviour remain user validation.
-- Plan B formal source backup is complete. Plan C/D, GitHub sync, macOS builds, and Release work remain separate at this checkpoint.
+- Plan B formal source backup is frozen. Public source commit/tag: `952f7691f67c810ba351c28e213d3620d3425b24` / `v1.1.5`. Plan C run `33580627982` passed all three macOS jobs and AU `auval`; Windows reused Plan A and Windows Actions was not run. Plan D Release and remote asset hash parity are complete.
 
 --- PREVIOUS CANDIDATE HANDOFF BELOW ---
 

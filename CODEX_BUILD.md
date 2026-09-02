@@ -8,7 +8,7 @@
 - Twelve Python/source/math checks, standalone BS.1770, Steinberg validator, metadata, and build/output/install parity: PASS.
 - Main binary SHA-256: `ABB9CFD1CF7929C6D4C6A7D9F72226535F36169854A1697B44550047F54B64E1`.
 - Read `PLAN_A_VERIFICATION_1.1.5.md` first for Plan A evidence.
-- Plan B formal source backup is complete and v1.1.5 is the current Stable baseline. Plan C/D, GitHub sync, macOS builds, and Release work remain separate at this checkpoint.
+- Plan A/B/C/D are complete and v1.1.5 is the current Stable/public Release. Public source commit/tag: `952f7691f67c810ba351c28e213d3620d3425b24` / `v1.1.5`; macOS run `33580627982` passed all three jobs and AU `auval`. Windows reused Plan A and Windows Actions was not run.
 
 --- PREVIOUS CANDIDATE BUILD BRIEF BELOW ---
 

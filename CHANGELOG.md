@@ -8,7 +8,7 @@
 - 绘制 / Rendering: GR 面积改为上限 160 段的稀疏阴影路径，Display 使用完整不透明底图，减少父界面联动重绘；the GR area uses a bounded sparse shade path and an opaque Display background prevents parent invalidation.
 - 兼容性 / Compatibility: GR 数学、Key Gain、HPF 重放、声音 DSP、参数、A/B 与 state schema 10 不变；GR math, Key Gain, HPF replay, audio DSP, parameters, A/B, and schema 10 are unchanged.
 - 验证 / Validation: Windows x64 Release、12 项回归、BS.1770、Steinberg validator、build/output/install 哈希一致性通过。
-- 状态 / Status: Plan A 与 Plan B 已完成；v1.1.5 为当前 Stable，v1.1.2 为上一稳定回滚基线。
+- 状态 / Status: Plan A/B/C/D 已完成；v1.1.5 为当前 Stable 与公开 Release，v1.1.2 为上一稳定回滚基线。
 ## 1.1.4 - Reliable/Faster HPF Display Replay - CANDIDATE
 - 发布日期 / Release date: 2026-09-02
 - 修复 / Fixed: 最新一次 HPF 历史请求不再因临时快照失败而静默丢失；失败最多自动重试三次。The newest HPF history request no longer disappears silently after a transient snapshot failure and retries up to three times.
