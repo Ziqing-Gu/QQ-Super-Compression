@@ -21,6 +21,7 @@ public:
     void endKeyHpfGesture();
 
 private:
+    friend struct QQSCVisualCheck;
     class HpfReplayWorker;
 
     // Sixty display samples per second keeps scrolling and parameter

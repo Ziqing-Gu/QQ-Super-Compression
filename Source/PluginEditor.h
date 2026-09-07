@@ -5,6 +5,7 @@
 #include "DynamicDisplay.h"
 #include "LevelMeters.h"
 #include "UTF8LookAndFeel.h"
+#include "DarkPanelMaterial.h"
 
 class QQSuperCompressionAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                                       private juce::Timer,
@@ -18,6 +19,8 @@ public:
     void resized() override;
 
 private:
+    friend struct QQSCVisualCheck;
+    qqsc::dark::BottomPanelMaterial darkBottomPanel;
     class FineKnob final : public juce::Slider
     {
     public:
@@ -105,6 +108,18 @@ private:
         void paint (juce::Graphics& g) override
         {
             const auto r = getLocalBounds().toFloat().reduced (1.0f);
+            if (qqsc::ui::isDarkTheme())
+            {
+                g.setColour (juce::Colours::black.withAlpha (0.26f));
+                g.fillRoundedRectangle (r.translated (0.0f, 3.0f), 12.0f);
+                qqsc::dark::panel (g, r, 12.0f);
+                return;
+            }
+            if (! qqsc::ui::isClassicTheme())
+            {
+                qqsc::warm::backplate (g, r, 12.0f);
+                return;
+            }
             g.setColour (juce::Colours::black.withAlpha (0.16f));
             g.fillRoundedRectangle (r.translated (0.0f, 3.0f), 12.0f);
 
@@ -269,7 +284,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> linkAttachment;
 
     LinkedPair activeLinkedPair = LinkedPair::none;
-    bool classicTheme = false;
+    qqsc::ui::Theme theme = qqsc::ui::Theme::light;
     bool sidechainPanelOpen = false;
     juce::Rectangle<int> sidechainPanelBounds;
 

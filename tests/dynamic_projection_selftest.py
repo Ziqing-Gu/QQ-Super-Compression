@@ -10,7 +10,7 @@ processor = (root / "Source" / "PluginProcessor.cpp").read_text(encoding="utf-8"
 display_h = (root / "Source" / "DynamicDisplay.h").read_text(encoding="utf-8")
 display = (root / "Source" / "DynamicDisplay.cpp").read_text(encoding="utf-8")
 
-assert "VERSION 1.1.5" in cmake
+assert "VERSION 1.1.8" in cmake
 
 # Product-facing GR is Dry/Wet compression depth in the linear gain domain.
 def effective_gr(core_gr_db, wet_mix):

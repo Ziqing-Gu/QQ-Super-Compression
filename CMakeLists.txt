@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.1.5 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.1.8 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -45,8 +45,12 @@ juce_add_plugin(QQSuperCompression
 
 juce_generate_juce_header(QQSuperCompression)
 
-# v0.9.3 onward: bitmap filmstrip UI was rejected by user testing.
-# Rotary controls are again rendered by UTF8LookAndFeel; archived PNG assets remain in source history only.
+# The rejected v0.9.2 filmstrip stays archived. v1.1.6 uses the user's accepted
+# live material compositor, with embedded lit/unlit textures and continuous light.
+juce_add_binary_data(QQSCWarmKnobAssets
+    NAMESPACE QQSCWarmKnobData
+    HEADER_NAME QQSCWarmKnobData.h
+    SOURCES Assets/WarmKnob/approved-lit.png Assets/WarmKnob/unlit-base.png)
 
 target_sources(QQSuperCompression PRIVATE
     Source/Parameters.h
@@ -54,6 +58,12 @@ target_sources(QQSuperCompression PRIVATE
     Source/MeterState.h
     Source/BS1770LoudnessMatch.h
     Source/UTF8LookAndFeel.h
+    Source/WarmMaterial.h
+    Source/WarmKnobAsset.h
+    Source/LightKnobScale.h
+    Source/DarkMaterial.h
+    Source/RefinedDarkKnob.h
+    Source/DarkPanelMaterial.h
     Source/PluginProcessor.h
     Source/PluginProcessor.cpp
     Source/DynamicDisplay.h
@@ -81,7 +91,20 @@ target_link_libraries(QQSuperCompression
         juce::juce_audio_utils
         juce::juce_dsp
     PUBLIC
+        QQSCWarmKnobAssets
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+# Opt-in, offline rendering of the actual editor, never a mockup or DAW launch.
+option(QQSC_BUILD_VISUAL_CHECK "Build the offscreen UI regression renderer" OFF)
+if(QQSC_BUILD_VISUAL_CHECK)
+    juce_add_console_app(QQSCVisualCheck PRODUCT_NAME "QQSC Visual Check")
+    target_sources(QQSCVisualCheck PRIVATE tests/visual_check.cpp)
+    target_include_directories(QQSCVisualCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_link_libraries(QQSCVisualCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCVisualCheck PRIVATE /utf-8)
+    endif()
+endif()

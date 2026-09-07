@@ -1,5 +1,20 @@
 # AI Development Handoff - QQ Super Compression
-## Current Stable - v1.1.5 Fluid/Cached Dynamic Display Rendering
+
+## Current Stable — v1.1.8 Revision 2 (2026-09-07)
+
+- User accepted the wider, brighter Light pointer extended toward the centre. Plan A/B complete; previous Stable: v1.1.7.
+- Retain Light, Dark and Classic, their shared geometry and functions, and the last-theme preference. No DSP, parameter, state-schema or history-algorithm changes in this UI revision.
+- Light: approved bitmap materials, fixed 13 ticks, warm-white pointer core 22 / edge 30 / radius 60–184; 0% unlit. Do not widen its halo when changing pointer readability.
+- Dark: `RefinedDarkKnob.h`, static fine-grained `DarkPanelMaterial.h` on the bottom panel only; main Display remains clean near black. Do not reintroduce mottled backgrounds.
+- Plan B snapshots are frozen: never read, refresh, hash, overwrite or use them as future workspaces. Continue from active source and the exact public commit/tag instead.
+- User approved the restructured Chinese manual, requested the matching English edition, and then explicitly authorized Plan C followed by Plan D using the complete desktop package, including both manuals. Both manuals are coherent 18-page user guides with current editor captures and practical sidechain instructions, not historical guides with revision appendices.
+- Plan C reuses verified Windows Plan A and dispatches only three macOS jobs. Plan D publishes the verified desktop files to this repository's Release and updates README download links; completion must be verified before it is claimed.
+- Preserve the author's README introduction verbatim and in its existing position. Preserve the non-commercial license policy and historical entries.
+- See `VERSION_COVERAGE_1.1.8.md` and `CODEX_BUILD.md`. Cross-platform completion is recorded only after actual builds and downloaded bundles pass.
+
+--- Historical handoffs below ---
+
+## Historical Stable - v1.1.5 Fluid/Cached Dynamic Display Rendering
 
 **Status:** Plan A/B/C/D complete on 2026-09-02; current Stable and public Release.
 **Based on:** v1.1.4 Reliable/Faster HPF Display Replay Candidate.

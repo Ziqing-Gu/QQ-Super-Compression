@@ -52,7 +52,7 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 
 
-# QQ Super Compression 1.1.5
+# QQ Super Compression 1.1.8
 
 **Qing Audio 非商业源码公开动态处理器 / Non-commercial source-available dynamics processor by Qing Audio**
 
@@ -62,17 +62,57 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 | 项目 / Item | 内容 / Value |
 |---|---|
-| 当前稳定版本 / Current stable version | 1.1.5 Stable - Fluid/Cached Dynamic Display Rendering |
+| 当前稳定版本 / Current stable version | 1.1.8 Revision 2 Stable - Light / Dark / Classic |
 | 本次 Plan A 成品 / Current Plan A artifact | Windows x64 VST3 |
-| 状态 / Status | v1.1.5 Stable; Plan A/B/C/D complete |
+| 状态 / Status | v1.1.8 Rev2 Stable; Plan A/B complete; Plan C in progress; latest published Release: v1.1.5 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | Qing Audio NC Source-Share 1.0 |
 
-> **上一稳定基线 / Previous Stable:** v1.1.2 Mix-aware Dynamic Display；v1.1.1 Side Chain HPF 继续作为更早的稳定回滚点保留。
+> **上一稳定基线 / Previous Stable:** v1.1.7 Light / Dark / Classic。此前公开 Release 仍是 v1.1.5；以下旧版段落保留其当时状态，不代表当前稳定版本。 / The previous local Stable is v1.1.7; the latest published Release remains v1.1.5. Older sections preserve their historical status, not the current baseline.
 >
-> **Stable baseline:** On 2026-09-02 Plan B promoted Fluid/Cached Dynamic Display Rendering to Stable. Plan C/D then completed the four-platform delivery and same-repository Release from public commit `952f7691f67c810ba351c28e213d3620d3425b24` and tag `v1.1.5`. The Plan A Windows x64 VST3, twelve source/math checks, BS.1770, Steinberg validator, build/output/install hash parity, three macOS jobs, Mach-O architecture checks, and AU `auval` all passed. v1.1.2 is the previous Stable rollback and previous public Release.
+> **Stable baseline:** On 2026-09-07 the user accepted v1.1.8 Revision 2 and completed Plan B source backup. The verified Plan A Windows build is reused without rebuilding or reinstalling. Plan C publishes the corresponding source and builds only the three macOS packages. A v1.1.8 Release is not published by this stage.
+
+## 1.1.8 当前界面 / Current interface
+
+Light、Dark、Classic 保持同一布局、功能、参数与声音。右上角切换主题，默认恢复上一次选择。Light 加入细刻度和加宽、提亮、向中心延长的指针；Dark 加强旋钮材质与底部细密磨砂感，主 Display 保持纯净近黑。所有改动均沿用既有 DSP、含 Mix 的 GR、侧链与历史重算逻辑。
+
+Light, Dark and Classic share layout, functions, parameters and sound, and restore the last selected theme. Light adds fine ticks and a wider, brighter pointer extended toward the centre. Dark refines knob materials and the lower panel's fine graphite finish while keeping the main Display clean and near black. Existing DSP, Mix-aware GR, sidechain and history reprojection are retained.
+
+### Light
+
+![Actual v1.1.8 Rev2 Light editor](docs/manuals/images/qq-super-compression-1.1.8-light.png)
+
+### Dark
+
+![Actual v1.1.8 Rev2 Dark editor](docs/manuals/images/qq-super-compression-1.1.8-dark.png)
+
+### Classic / Sidechain
+
+![Actual v1.1.8 Classic editor and sidechain](docs/manuals/images/qq-super-compression-1.1.8-classic-sidechain.png)
+
+以上为真实 JUCE 编辑器使用测试信号生成的离屏截图，不是概念图或 DAW 工程录屏。 / These are actual JUCE editor captures rendered offscreen with a test signal, not mockups or DAW-session recordings.
+
+- [1.1.8 中文用户手册](docs/manuals/QQ%20Super%20Compression%20用户手册%20中文版_v1.1.8.pdf)
+- [1.1.8 English user manual](docs/manuals/QQ%20Super%20Compression%20User%20Manual%20English_v1.1.8.pdf)
+- [1.1.8 中文安装说明](docs/QQ%20Super%20Compression%201.1.8%20Windows与macOS%20安装说明（中文）.txt)
+- [1.1.8 English installation guide](docs/QQ-Super-Compression-1.1.8-Windows-macOS-INSTALL.txt)
+
+## 自上一公开版本以来的完整记录 / Complete history since the previous public version
+
+范围 / Range: public v1.1.5 → v1.1.8 Revision 2. 以下为实际开发版本与修订，不代表每项均曾公开发布。完整详情见 [CHANGELOG](CHANGELOG.md) 与 [版本覆盖记录 / coverage record](VERSION_COVERAGE_1.1.8.md)。
+
+| 版本 / Revision | 实际变化 / Actual changes | 状态 / Disposition |
+|---|---|---|
+| 1.1.6 Rev1 | 早期代码暖色浅盘材质 / Early code-shaded warm disk | 用户否决，历史保留 / Rejected, historical |
+| 1.1.6 Rev2 | 接入认可的材质素材与连续灯带；Light 灰 Input、橙 Output、青蓝 GR / Accepted asset compositor, continuous illumination, unified Light palette | 本地候选 / Local candidate |
+| 1.1.6 Rev3 | 暖灰底板加深；Meter 与 Display 同色系渐变 / Deeper warm-grey panels and tonal meter/Display gradients | 已验收 Stable / Accepted Stable |
+| 1.1.7 | 新增蓝灯 Dark，保留 Light 与 Classic，记住三主题选择 / Adds blue-lit Dark, retains Light and Classic, remembers all three | 已验收 Stable / Accepted Stable |
+| 1.1.8 Rev1 | Dark 倒角、厚度与底部磨砂；Light 细刻度与较长指针 / Refined Dark depth and panel grain; Light ticks and longer pointer | 后续继续修订 / Superseded by Rev2 |
+| 1.1.8 Rev2 | Light 指针亮芯加宽至 Rev1 的 2.2 倍，向内延长约 35%；光晕及布局不变 / Light core 2.2x wider, approximately 35% longer inward; halo and layout retained | 当前 Stable / Current Stable |
+
+旋钮发光按归一化位置增长，0% 无光、50% 半有效弧、100% 全有效弧；音频参数的数值范围不等于这些归一化百分比。 / Knob illumination follows normalized position: off at 0%, half the active arc at 50%, full active arc at 100%; audio parameter values are not these normalized percentages.
 
 
 ## 1.1.5 稳定版 / Stable release
@@ -438,9 +478,9 @@ These are the four plug-in subpackages in the v1.1.5 Plan C desktop handoff, col
 
 ## 验证状态 / Validation status
 
-v1.1.5 已完成 Plan A/B/C/D 并成为当前 Stable。Plan C 从公开提交 `952f7691f67c810ba351c28e213d3620d3425b24` 与标签 `v1.1.5` 运行三类 macOS jobs；Windows 复用 Plan A，Windows Actions 未执行。三个 jobs、实际架构、版本、AU `auval`、字节数与 SHA-256 全部通过，Plan D 的同仓库 Release 资产已回下载核验。
+历史记录：v1.1.5 完成 Plan A/B/C/D 后成为当时的 Stable。Plan C 从公开提交 `952f7691f67c810ba351c28e213d3620d3425b24` 与标签 `v1.1.5` 运行三类 macOS jobs；Windows 复用 Plan A，Windows Actions 未执行。三个 jobs、实际架构、版本、AU `auval`、字节数与 SHA-256 全部通过，Plan D 的同仓库 Release 资产已回下载核验。
 
-Version 1.1.5 completed Plan A/B/C/D and is the current Stable. Plan C ran the three macOS jobs from public commit `952f7691f67c810ba351c28e213d3620d3425b24` and tag `v1.1.5`; Windows reused Plan A and Windows Actions was not run. All three jobs, actual architectures, versions, AU `auval`, byte sizes, and SHA-256 checks passed, and the same-repository Plan D Release asset passed remote redownload parity.
+Historical record: version 1.1.5 completed Plan A/B/C/D and became Stable at that time. Plan C ran the three macOS jobs from public commit `952f7691f67c810ba351c28e213d3620d3425b24` and tag `v1.1.5`; Windows reused Plan A and Windows Actions was not run. All three jobs, actual architectures, versions, AU `auval`, byte sizes, and SHA-256 checks passed, and the same-repository Plan D Release asset passed remote redownload parity.
 
 ### 历史验证记录 / Historical validation record
 

@@ -236,7 +236,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     bypassButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
     themeButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
     themeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
-    themeButton.setTooltip ("Switch between Light and Classic Dark UI");
+    themeButton.setTooltip ("Switch Light / Dark / Classic. Your last theme is remembered.");
     sidechainButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
     sidechainButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     sidechainButton.setTooltip ("Open Side Chain source, gain, HPF and listen controls");
@@ -417,7 +417,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
     registerKeyboardListener (*this);
     setWantsKeyboardFocus (true);
-    classicTheme = uiProperties != nullptr && uiProperties->getBoolValue ("classicTheme", false);
+    theme = uiProperties != nullptr ? qqsc::ui::themeFromPreferences (*uiProperties) : qqsc::ui::Theme::light;
     applyTheme();
 
 
@@ -456,16 +456,27 @@ std::unique_ptr<juce::PropertiesFile> QQSuperCompressionAudioProcessorEditor::cr
 }
 void QQSuperCompressionAudioProcessorEditor::applyTheme()
 {
-    utf8LookAndFeel.setClassicTheme (classicTheme);
+    utf8LookAndFeel.setTheme (theme);
+    const bool classicTheme = theme == qqsc::ui::Theme::classic;
+    const bool darkTheme = theme == qqsc::ui::Theme::dark;
 
     const auto neutral = qqsc::ui::textMuted();
-    const auto musical = classicTheme ? qqsc::ui::warmAccent()
+    const auto musical = (classicTheme || darkTheme) ? qqsc::ui::warmAccent()
                                       : qqsc::ui::warmAccent().darker (0.36f);
-    const auto technical = classicTheme ? qqsc::ui::cyanAccent()
+    const auto technical = (classicTheme || darkTheme) ? qqsc::ui::cyanAccent()
                                         : qqsc::ui::cyanAccent().darker (0.38f);
 
     title.setColour (juce::Label::textColourId, qqsc::ui::text());
     versionLabel.setColour (juce::Label::textColourId, neutral.withAlpha (0.62f));
+   #if JUCE_WINDOWS
+    const juce::String warmTitleFace = "Century Gothic";
+   #elif JUCE_MAC
+    const juce::String warmTitleFace = "Avenir Next";
+   #else
+    const juce::String warmTitleFace = juce::Font::getDefaultSansSerifFontName();
+   #endif
+    title.setFont (classicTheme ? juce::Font (juce::FontOptions (27.0f, juce::Font::plain))
+                               : juce::Font (juce::FontOptions (warmTitleFace, 27.0f, juce::Font::plain)));
 
     for (auto* label : { &inputGainLabel, &ratioLabel, &ratioChannel0Label, &ratioChannel1Label,
                          &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
@@ -473,7 +484,10 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
                          &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
                          &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel,
                          &keySourceLabel, &keyGainLabel, &keyHpfLabel, &keyMeterLabel })
+    {
         label->setColour (juce::Label::textColourId, neutral.withAlpha (0.92f));
+        label->setFont (label->getFont().withStyle (classicTheme ? juce::Font::bold : juce::Font::plain));
+    }
 
     inputGainLabel.setColour (juce::Label::textColourId, neutral);
     outputGainLabel.setColour (juce::Label::textColourId, neutral);
@@ -485,6 +499,9 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     monitorLabel.setColour (juce::Label::textColourId, technical);
     lookaheadLabel.setColour (juce::Label::textColourId, technical);
     oversamplingLabel.setColour (juce::Label::textColourId, technical);
+    if (darkTheme)
+        for (auto* label : { &ratioLabel, &makeupLabel, &mixLabel, &modeLabel })
+            label->setColour (juce::Label::textColourId, qqsc::ui::text().withAlpha (0.90f));
 
     for (auto* slider : { &inputGainSlider, &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider,
                            &makeupSTSlider, &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider,
@@ -495,7 +512,8 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
         slider->setColour (juce::Slider::textBoxBackgroundColourId, qqsc::ui::panel().withAlpha (classicTheme ? 0.96f : 0.76f));
         slider->setColour (juce::Slider::textBoxOutlineColourId, qqsc::ui::border().withAlpha (classicTheme ? 0.92f : 0.78f));
         slider->setColour (juce::Slider::rotarySliderOutlineColourId, qqsc::ui::border());
-        slider->setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::warmAccent());
+        slider->setColour (juce::Slider::rotarySliderFillColourId,
+                            darkTheme ? juce::Colour (0xff9bd8ed) : qqsc::ui::warmAccent());
     }
     keyHpfSlider.setColour (juce::Slider::rotarySliderFillColourId, qqsc::ui::cyanAccent());
 
@@ -535,7 +553,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     keyExternalButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     sidechainListenButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
     bypassButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
-    themeButton.setButtonText (classicTheme ? "CLASSIC" : "LIGHT");
+    themeButton.setButtonText (qqsc::ui::themeLabel (theme));
     keyMeter.setColour (juce::ProgressBar::backgroundColourId, qqsc::ui::panelAlt());
     keyMeter.setColour (juce::ProgressBar::foregroundColourId, qqsc::ui::cyanAccent());
 
@@ -548,10 +566,13 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
 void QQSuperCompressionAudioProcessorEditor::toggleTheme()
 {
-    classicTheme = ! classicTheme;
+    theme = theme == qqsc::ui::Theme::light ? qqsc::ui::Theme::dark
+          : (theme == qqsc::ui::Theme::dark ? qqsc::ui::Theme::classic : qqsc::ui::Theme::light);
     if (uiProperties != nullptr)
     {
-        uiProperties->setValue ("classicTheme", classicTheme);
+        uiProperties->setValue ("uiTheme", qqsc::ui::themeKey (theme));
+        // Retain a useful preference if the user rolls back to a two-skin build.
+        uiProperties->setValue ("classicTheme", theme != qqsc::ui::Theme::light);
         uiProperties->saveIfNeeded();
     }
 
@@ -1081,6 +1102,42 @@ void QQSuperCompressionAudioProcessorEditor::updateModeUi()
 
 void QQSuperCompressionAudioProcessorEditor::paint (juce::Graphics& g)
 {
+    if (qqsc::ui::isDarkTheme())
+    {
+        g.fillAll (qqsc::ui::canvas());
+        const auto scale = static_cast<float> (getWidth()) / defaultEditorWidth;
+        juce::Graphics::ScopedSaveState state (g);
+        g.addTransform (juce::AffineTransform::scale (scale));
+        g.setColour (juce::Colour (0xff414345));
+        g.drawRoundedRectangle ({ 1.0f, 1.0f, 1018.0f, 818.0f }, 17.0f, 0.8f);
+        g.setColour (juce::Colour (0xff121416));
+        g.drawRoundedRectangle ({ 2.5f, 2.5f, 1015.0f, 815.0f }, 16.0f, 0.8f);
+        qqsc::dark::panel (g, { 16.0f, 74.0f, 988.0f, 562.0f }, 15.0f);
+        darkBottomPanel.draw (g, { 16.0f, 640.0f, 988.0f, 162.0f }, 15.0f);
+        return;
+    }
+    if (! qqsc::ui::isClassicTheme())
+    {
+        // Same design-space chassis rectangles and widget geometry as v1.1.5.
+        // Display remains opaque and owns its 60 Hz paints independently.
+        g.fillAll (qqsc::ui::canvas());
+        const float scale = static_cast<float> (getWidth()) / defaultEditorWidth;
+        juce::Graphics::ScopedSaveState state (g);
+        g.addTransform (juce::AffineTransform::scale (scale));
+        juce::ColourGradient chassis (juce::Colour (0xfff4f1ed), 0.0f, 0.0f,
+                                     juce::Colour (0xffe2dcd4), 1020.0f, 820.0f, false);
+        chassis.addColour (0.45, qqsc::ui::canvas());
+        g.setGradientFill (chassis);
+        g.fillRect (0.0f, 0.0f, 1020.0f, 820.0f);
+        g.setColour (juce::Colours::white.withAlpha (0.92f));
+        g.drawRoundedRectangle ({ 3.0f, 3.0f, 1014.0f, 814.0f }, 15.0f, 1.0f);
+        g.setColour (qqsc::ui::border().withAlpha (0.55f));
+        g.drawRoundedRectangle ({ 1.0f, 1.0f, 1018.0f, 818.0f }, 17.0f, 0.8f);
+        qqsc::warm::backplate (g, { 16.0f, 74.0f, 988.0f, 562.0f }, 15.0f);
+        qqsc::warm::backplate (g, { 16.0f, 640.0f, 988.0f, 162.0f }, 15.0f);
+        return;
+    }
+
     g.fillAll (qqsc::ui::canvas());
 
     const auto uiScale = static_cast<float> (getWidth()) / defaultEditorWidth;

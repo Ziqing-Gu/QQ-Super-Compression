@@ -1,3 +1,11 @@
+# CURRENT ARCHITECTURE — v1.1.8 Revision 2
+
+- Light uses the accepted embedded `Assets/WarmKnob/approved-lit.png` and `unlit-base.png` material compositor, not the rejected v0.9.2 filmstrip. Material and contact shadow remain fixed while the arc and pointer follow the control value.
+- `LightKnobScale.h` adds 13 fixed, non-emissive ticks. `WarmKnobAsset.h` paints the wider, brighter, inward-extended pointer; zero remains unlit. Current-frame caches are bounded and reused.
+- Dark uses the approved actual JUCE renderer in `RefinedDarkKnob.h`; bottom-panel-only stationary grain is cached by `DarkPanelMaterial.h`. The Display background remains clean near black.
+- Classic is retained. All themes share geometry, parameters, audio and history behaviour, and remember the last theme.
+- The following rejected approaches are retained as historical evidence, not current implementation guidance.
+
 # STATUS UPDATE — v0.9.3
 
 > **Historical / rejected UI path.** The v0.9.2 128-frame bitmap-filmstrip knob architecture was tested by the user in the real plug-in and rejected visually. v0.9.3 no longer links or renders these assets. This document and the PNG files are intentionally preserved as development history so future AI/Codex does not accidentally repeat the same experiment.

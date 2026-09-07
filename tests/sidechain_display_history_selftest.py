@@ -10,7 +10,7 @@ display_h = (root / "Source" / "DynamicDisplay.h").read_text(encoding="utf-8")
 display = (root / "Source" / "DynamicDisplay.cpp").read_text(encoding="utf-8")
 editor = (root / "Source" / "PluginEditor.cpp").read_text(encoding="utf-8")
 
-assert "VERSION 1.1.5" in cmake
+assert "VERSION 1.1.8" in cmake
 
 # Audio-thread capture is bounded, active only with the editor, capped at
 # 48 kHz and stores the selected raw key before detector gain and HPF.

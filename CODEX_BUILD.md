@@ -1,4 +1,16 @@
 # QQ Super Compression - Build / validation brief
+
+## Current Stable — v1.1.8 Revision 2
+
+- User accepted the current revision; Plan A and frozen Plan B are complete. Previous Stable: v1.1.7.
+- Windows VST3 reuses the existing verified Plan A output; do not rebuild or run Windows Actions for Plan C.
+- Windows binary SHA-256: `7509DB02BADAAF10CDF72DDB54215C76EBF483B8A469AA5B1C4DCAB01F08F5EA`.
+- Windows ZIP SHA-256: `0322EE34DCB4811B8C662E6890FB934D4B78394421F7B9C0D2B54F5BB7EE5084`.
+- Completed checks include actual editor 1x/2x rendering, theme/layout parity, deterministic cached materials, preference/state checks and Steinberg module validator exit 0. These do not constitute macOS DAW certification.
+- Plan C source tag: `v1.1.8`; only the macOS workflow is dispatched. Final cross-platform checks will be recorded after all three jobs and downloads pass.
+- Optional actual-editor renderer: configure with `-DQQSC_BUILD_VISUAL_CHECK=ON`; build `QQSCVisualCheck`. It is not part of the end-user package.
+
+--- Historical briefs below ---
 ## v1.1.5 Stable - Fluid/Cached Dynamic Display Rendering
 
 - Base: v1.1.4 Candidate; previous Stable rollback: v1.1.2.

@@ -790,7 +790,15 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     const auto& cache = renderCaches[static_cast<size_t> (domainIndex)];
     const auto currentGr = cache.currentGainReductionDb;
 
-    g.setColour (qqsc::ui::panelAlt().withAlpha (0.34f));
+    if (qqsc::ui::isDarkTheme())
+        g.setColour (juce::Colour (0xff1c1d1f));
+    else if (qqsc::ui::isClassicTheme())
+        g.setColour (qqsc::ui::panelAlt().withAlpha (0.34f));
+    else
+        g.setGradientFill (juce::ColourGradient (
+            qqsc::ui::panel(), panel.getCentreX(), panel.getY(),
+            qqsc::ui::panel().interpolatedWith (qqsc::ui::panelAlt(), 0.60f),
+            panel.getCentreX(), panel.getBottom(), false));
     g.fillRoundedRectangle (panel, 7.0f);
     g.setColour (qqsc::ui::border().withAlpha (0.45f));
     g.drawRoundedRectangle (panel.reduced (0.5f), 7.0f, 0.8f);
@@ -852,27 +860,46 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     g.saveState();
     g.reduceClipRegion (plot.toNearestInt());
 
+    // Paint retained paths with level-aligned tones, not rebuilt polygons.
+    // Fixed dB anchors avoid colour pumping when history peaks change.
+    const auto tracePaint = [&] (juce::Colour colour)
+    {
+        if (qqsc::ui::isClassicTheme() || qqsc::ui::isDarkTheme())
+        {
+            g.setColour (colour);
+            return;
+        }
+        const auto alpha = colour.getFloatAlpha();
+        juce::ColourGradient tones (
+            colour.interpolatedWith (qqsc::ui::panel(), 0.46f).withAlpha (alpha),
+            plot.getCentreX(), dbToY (0.0f, plot),
+            colour.darker (0.24f).withAlpha (alpha),
+            plot.getCentreX(), dbToY (-45.0f, plot), false);
+        tones.addColour (0.50, colour.withAlpha (alpha));
+        g.setGradientFill (tones);
+    };
+
     if (externalKey && externalAvailable && cache.valid)
     {
-        g.setColour (qqsc::ui::cyanAccent().withAlpha (0.10f));
+        tracePaint (qqsc::ui::cyanAccent().withAlpha (0.10f));
         g.strokePath (cache.externalKeyPath, juce::PathStrokeType (4.0f));
-        g.setColour (qqsc::ui::cyanAccent().withAlpha (0.34f));
+        tracePaint (qqsc::ui::cyanAccent().withAlpha (0.34f));
         g.strokePath (cache.externalKeyPath, juce::PathStrokeType (1.0f));
     }
 
     // The former full-area translucent polygon made paint cost grow
     // with GR depth. A single cached sparse shade path preserves the
     // visual band without blending every pixel in the compressed area.
-    g.setColour (qqsc::ui::grAccent().withAlpha (0.24f));
+    tracePaint (qqsc::ui::grAccent().withAlpha (0.24f));
     g.strokePath (cache.gainReductionShadePath, juce::PathStrokeType (1.15f));
 
-    g.setColour (qqsc::ui::dryTrace().withAlpha (0.82f));
+    tracePaint (qqsc::ui::dryTrace().withAlpha (0.82f));
     g.strokePath (cache.inputPath, juce::PathStrokeType (1.15f));
 
-    g.setColour (qqsc::ui::grAccent().withAlpha (0.90f));
+    tracePaint (qqsc::ui::grAccent().withAlpha (0.90f));
     g.strokePath (cache.gainReductionPath, juce::PathStrokeType (1.25f));
 
-    g.setColour (qqsc::ui::outputAccent().withAlpha (0.96f));
+    tracePaint (qqsc::ui::outputAccent().withAlpha (0.96f));
     g.strokePath (cache.outputPath, juce::PathStrokeType (1.5f));
     g.restoreState();
 }

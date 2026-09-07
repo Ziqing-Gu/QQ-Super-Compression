@@ -92,8 +92,32 @@ void LevelMeters::drawSingleBar (juce::Graphics& g,
     g.setFont (juce::Font (juce::FontOptions (9.4f, juce::Font::bold)));
     g.drawText (channelName, channelArea.toNearestInt(), juce::Justification::centred);
 
-    g.setColour (qqsc::ui::panelAlt().withAlpha (0.88f));
-    g.fillRoundedRectangle (barArea, 3.0f);
+    if (qqsc::ui::isDarkTheme())
+    {
+        g.setColour (juce::Colour (0xff191c1e));
+        g.fillRoundedRectangle (barArea, 2.0f);
+        g.setColour (juce::Colour (0xff393e41).withAlpha (0.30f));
+        for (float lineY = barArea.getY() + 2.5f; lineY < barArea.getBottom(); lineY += 3.2f)
+            g.drawLine (barArea.getX() + 0.8f, lineY, barArea.getRight() - 0.8f, lineY, 0.65f);
+    }
+    else if (qqsc::ui::isClassicTheme())
+    {
+        g.setColour (qqsc::ui::panelAlt().withAlpha (0.88f));
+        g.fillRoundedRectangle (barArea, 3.0f);
+    }
+    else
+    {
+        // Quiet ivory well and fine unlit ladder, inspired by the accepted
+        // concept. Bar bounds, dB mapping and meter timing are unchanged.
+        juce::ColourGradient well (juce::Colour (0xffe8e3dc), barArea.getX(), barArea.getY(),
+                                  juce::Colour (0xfff8f5ef), barArea.getRight(), barArea.getY(), false);
+        well.addColour (0.24, juce::Colour (0xfff2eee7));
+        g.setGradientFill (well);
+        g.fillRoundedRectangle (barArea, 2.0f);
+        g.setColour (juce::Colour (0xffc6beb3).withAlpha (0.45f));
+        for (float lineY = barArea.getY() + 2.5f; lineY < barArea.getBottom(); lineY += 3.2f)
+            g.drawLine (barArea.getX() + 0.8f, lineY, barArea.getRight() - 0.8f, lineY, 0.5f);
+    }
 
     const auto proportion = juce::jlimit (0.0f, 1.0f, (valueDb - minDb) / (maxDb - minDb));
     auto fill = barArea;
@@ -113,10 +137,53 @@ void LevelMeters::drawSingleBar (juce::Graphics& g,
 
     if (fill.getHeight() > 0.5f)
     {
+        if (qqsc::ui::isDarkTheme())
+        {
+            // Keep active silver visibly above the unlit well, with fine
+            // segments and tonal depth but no bloom or full-height ghost fill.
+            const auto originY = reductionMeter ? fill.getY() : fill.getBottom();
+            const auto leadingY = reductionMeter ? fill.getBottom() : fill.getY();
+            const auto pale = barColour.interpolatedWith (juce::Colour (0xffc4d1d2), 0.30f);
+            g.setGradientFill (juce::ColourGradient (barColour.darker (0.16f), fill.getCentreX(), originY,
+                                                    pale, fill.getCentreX(), leadingY, false));
+            g.fillRoundedRectangle (fill, 2.0f);
+            g.setColour (juce::Colour (0xff191c1e).withAlpha (0.86f));
+            for (float lineY = barArea.getY() + 2.5f; lineY < barArea.getBottom(); lineY += 3.2f)
+                if (lineY > fill.getY() && lineY < fill.getBottom())
+                    g.drawLine (fill.getX(), lineY, fill.getRight(), lineY, 1.1f);
+            g.setColour (pale.withAlpha (0.75f));
+            const float edgeY = reductionMeter ? fill.getBottom() - 0.5f : fill.getY() + 0.5f;
+            g.drawLine (fill.getX() + 0.8f, edgeY, fill.getRight() - 0.8f, edgeY, 0.7f);
+        }
+        else if (! qqsc::ui::isClassicTheme())
+        {
+            // Rich colour at the origin, fading toward the moving leading edge.
+            // Mirror only the lighting for downward-growing GR; its dB map stays unchanged.
+            const auto originY = reductionMeter ? fill.getY() : fill.getBottom();
+            const auto leadingY = reductionMeter ? fill.getBottom() : fill.getY();
+            const auto ivory = juce::Colour (0xfff8f5ef);
+            juce::ColourGradient light (barColour.darker (0.12f), fill.getCentreX(), originY,
+                                       barColour.interpolatedWith (ivory, 0.82f), fill.getCentreX(), leadingY, false);
+            light.addColour (0.32, barColour);
+            light.addColour (0.65, barColour.interpolatedWith (ivory, 0.34f));
+            light.addColour (0.86, barColour.interpolatedWith (ivory, 0.62f));
+            g.setGradientFill (light);
+            g.fillRoundedRectangle (fill, 2.0f);
+            // Constant spacing: display-only segments, with unchanged dB mapping.
+            g.setColour (juce::Colour (0xfffaf7f1).withAlpha (0.79f));
+            for (float lineY = barArea.getY() + 2.5f; lineY < barArea.getBottom(); lineY += 3.2f)
+                if (lineY > fill.getY() && lineY < fill.getBottom())
+                    g.drawLine (fill.getX(), lineY, fill.getRight(), lineY, 0.75f);
+            g.setColour (juce::Colours::white.withAlpha (0.48f));
+            g.drawLine (fill.getX() + 1.2f, fill.getY(), fill.getX() + 1.2f, fill.getBottom(), 0.65f);
+        }
+        else
+        {
         g.setColour (barColour.withAlpha (0.11f));
         g.fillRoundedRectangle (fill.expanded (1.5f, 0.0f), 4.0f);
         g.setColour (barColour.withAlpha (0.90f));
         g.fillRoundedRectangle (fill, 3.0f);
+        }
     }
 
     g.setColour (qqsc::ui::border().withAlpha (0.78f));

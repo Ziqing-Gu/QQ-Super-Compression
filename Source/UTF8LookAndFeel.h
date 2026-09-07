@@ -3,73 +3,100 @@
 #include <JuceHeader.h>
 #include <cmath>
 #include <atomic>
+#include "WarmMaterial.h"
+#include "WarmKnobAsset.h"
+#include "DarkMaterial.h"
+#include "RefinedDarkKnob.h"
+#include "LightKnobScale.h"
+
+struct QQSCVisualCheck;
 
 namespace qqsc
 {
 namespace ui
 {
-    inline std::atomic<bool>& classicThemeFlag()
+    enum class Theme { light, dark, classic };
+    inline std::atomic<Theme>& themeFlag()
     {
-        // Theme is a user-level preference (not an audio parameter), so all
-        // open editor instances intentionally share it.
-        static std::atomic<bool> enabled { false };
-        return enabled;
+        static std::atomic<Theme> current { Theme::light };
+        return current;
     }
-
-    inline bool isClassicTheme() noexcept
+    inline Theme currentTheme() noexcept { return themeFlag().load (std::memory_order_relaxed); }
+    inline bool isClassicTheme() noexcept { return currentTheme() == Theme::classic; }
+    inline bool isDarkTheme() noexcept { return currentTheme() == Theme::dark; }
+    inline void setTheme (Theme theme) noexcept { themeFlag().store (theme, std::memory_order_relaxed); }
+    inline const char* themeKey (Theme theme) noexcept
     {
-        return classicThemeFlag().load (std::memory_order_relaxed);
+        return theme == Theme::dark ? "dark" : (theme == Theme::classic ? "classic" : "light");
     }
-
-    inline void setClassicTheme (bool enabled) noexcept
+    inline const char* themeLabel (Theme theme) noexcept
     {
-        classicThemeFlag().store (enabled, std::memory_order_relaxed);
+        return theme == Theme::dark ? "DARK" : (theme == Theme::classic ? "CLASSIC" : "LIGHT");
+    }
+    inline Theme themeFromPreferences (const juce::PropertiesFile& properties)
+    {
+        // A legacy user who chose Classic still gets Classic, not the new Dark.
+        const auto saved = properties.getValue ("uiTheme");
+        if (saved == "dark") return Theme::dark;
+        if (saved == "classic") return Theme::classic;
+        if (saved == "light") return Theme::light;
+        return properties.getBoolValue ("classicTheme", false) ? Theme::classic : Theme::light;
     }
 
     inline juce::Colour canvas()
     {
+        if (isDarkTheme()) return juce::Colour (0xff1b1c1e);
         return isClassicTheme() ? juce::Colour::fromRGB (10, 13, 17)
-                                : juce::Colour::fromRGB (247, 243, 237);
+                                : juce::Colour::fromRGB (236, 232, 226);
     }
     inline juce::Colour panel()
     {
+        if (isDarkTheme()) return juce::Colour (0xff1d1e20);
         return isClassicTheme() ? juce::Colour::fromRGB (16, 20, 26)
-                                : juce::Colour::fromRGB (253, 249, 244);
+                                : juce::Colour::fromRGB (242, 239, 234);
     }
     inline juce::Colour panelAlt()
     {
+        if (isDarkTheme()) return juce::Colour (0xff17191b);
         return isClassicTheme() ? juce::Colour::fromRGB (23, 29, 37)
-                                : juce::Colour::fromRGB (243, 236, 227);
+                                : juce::Colour::fromRGB (230, 225, 219);
     }
     inline juce::Colour text()
     {
+        if (isDarkTheme()) return juce::Colour (0xffc1bfb8);
         return isClassicTheme() ? juce::Colour::fromRGB (232, 237, 242)
-                                : juce::Colour::fromRGB (70, 61, 54);
+                                : juce::Colour::fromRGB (59, 57, 54);
     }
     inline juce::Colour textMuted()
     {
+        if (isDarkTheme()) return juce::Colour (0xff9c9c97);
         return isClassicTheme() ? juce::Colour::fromRGB (151, 163, 176)
-                                : juce::Colour::fromRGB (112, 100, 91);
+                                : juce::Colour::fromRGB (112, 106, 99);
     }
     inline juce::Colour border()
     {
+        if (isDarkTheme()) return juce::Colour (0xff3a3c3e);
         return isClassicTheme() ? juce::Colour::fromRGB (55, 66, 78)
-                                : juce::Colour::fromRGB (214, 201, 188);
+                                : juce::Colour::fromRGB (193, 185, 174);
     }
     inline juce::Colour warmAccent()
     {
+        if (isDarkTheme()) return juce::Colour (0xffd79a57);
         return isClassicTheme() ? juce::Colour::fromRGB (82, 201, 238)
-                                : juce::Colour::fromRGB (241, 139, 82);
+                                : juce::Colour::fromRGB (242, 137, 73);
     }
     inline juce::Colour warmAccentSoft()
     {
+        if (isDarkTheme()) return juce::Colour (0xffc2a584);
         return isClassicTheme() ? juce::Colour::fromRGB (110, 216, 244)
-                                : juce::Colour::fromRGB (250, 184, 143);
+                                : juce::Colour::fromRGB (255, 185, 140);
     }
-    inline juce::Colour cyanAccent()      { return isClassicTheme() ? warmAccent() : juce::Colour::fromRGB (79, 184, 194); }
-    inline juce::Colour dryTrace()        { return isClassicTheme() ? juce::Colour::fromRGB (139, 151, 164) : juce::Colour::fromRGB (174, 162, 151); }
-    inline juce::Colour outputAccent()    { return isClassicTheme() ? juce::Colour::fromRGB (246, 196, 83) : juce::Colour::fromRGB (255, 119, 72); }
-    inline juce::Colour grAccent()        { return isClassicTheme() ? juce::Colour::fromRGB (255, 99, 125) : juce::Colour::fromRGB (240, 116, 92); }
+    inline juce::Colour cyanAccent()      { if (isDarkTheme()) return juce::Colour (0xff7cb3b8); return isClassicTheme() ? warmAccent() : juce::Colour::fromRGB (58, 169, 190); }
+    inline juce::Colour dryTrace()        { if (isDarkTheme()) return juce::Colour (0xffa1a9ad); return isClassicTheme() ? juce::Colour::fromRGB (139, 151, 164) : juce::Colour::fromRGB (153, 151, 148); }
+    inline juce::Colour outputAccent()    { if (isDarkTheme()) return juce::Colour (0xffe19a4d); return isClassicTheme() ? juce::Colour::fromRGB (246, 196, 83) : juce::Colour::fromRGB (248, 118, 47); }
+    // Shared by Display paths/legend/readouts and the GR meters. Classic pink
+    // is untouched; LIGHT pairs gray Input, orange Output and cyan-blue GR.
+    inline juce::Colour grAccent()        { if (isDarkTheme()) return juce::Colour (0xff7cb3b8); return isClassicTheme() ? juce::Colour::fromRGB (255, 99, 125) : juce::Colour::fromRGB (58, 169, 190); }
 }
 
 class UTF8LookAndFeel final : public juce::LookAndFeel_V4
@@ -80,13 +107,18 @@ public:
         refreshThemeColours();
     }
 
-    void setClassicTheme (bool enabled)
+    void setTheme (ui::Theme theme)
     {
-        ui::setClassicTheme (enabled);
+        ui::setTheme (theme);
         refreshThemeColours();
     }
 
 private:
+    // Lazy: Classic-only editor instances do not load material assets.
+    std::unique_ptr<warm_asset::Renderer> warmKnobs;
+    std::unique_ptr<dark_refined::Renderer> darkKnobs;
+    friend struct ::QQSCVisualCheck;
+
     void refreshThemeColours()
     {
         setColour (juce::Slider::textBoxTextColourId, ui::text());
@@ -127,10 +159,13 @@ public:
 
        #if JUCE_MAC
         // PingFang SC ships with modern macOS and contains Simplified Chinese glyphs.
-        f.setTypefaceName ("PingFang SC");
+        f.setTypefaceName (ui::isClassicTheme() ? "PingFang SC" : "Avenir Next");
+        if (! ui::isClassicTheme()) f.setStyleFlags (juce::Font::plain);
        #elif JUCE_WINDOWS
         // Microsoft YaHei is present on supported modern Windows installations.
-        f.setTypefaceName ("Microsoft YaHei");
+        f.setTypefaceName (ui::isClassicTheme() ? "Microsoft YaHei"
+                                             : (font.getHeight() >= 24.0f ? "Century Gothic" : "Segoe UI"));
+        if (! ui::isClassicTheme()) f.setStyleFlags (juce::Font::plain);
        #endif
 
         if (auto face = juce::Typeface::createSystemTypefaceFor (f))
@@ -159,6 +194,14 @@ public:
                            float rotaryEndAngle,
                            juce::Slider& slider) override
     {
+        if (ui::isDarkTheme())
+        {
+            if (darkKnobs == nullptr) darkKnobs = std::make_unique<dark_refined::Renderer>();
+            darkKnobs->draw (g, { static_cast<float> (x), static_cast<float> (y),
+                                 static_cast<float> (width), static_cast<float> (height) },
+                             sliderPosProportional, slider);
+            return;
+        }
         auto area = juce::Rectangle<float> (static_cast<float> (x), static_cast<float> (y),
                                             static_cast<float> (width), static_cast<float> (height)).reduced (8.0f);
         const auto diameter = juce::jmin (area.getWidth(), area.getHeight());
@@ -206,109 +249,13 @@ public:
             return;
         }
 
-        // 0.9.1 lighting refinement:
-        // The 0.9.0 implementation technically drew transparent orange strokes,
-        // but on a bright ivory surface they read as coloured outlines rather than
-        // as illumination.  The new stack deliberately separates a large soft halo,
-        // a medium-energy bloom, and the crisp illuminated arc.
-        g.setColour (accent.withAlpha (0.035f));
-        g.strokePath (valueArc, juce::PathStrokeType (18.0f));
-        g.setColour (accent.withAlpha (0.070f));
-        g.strokePath (valueArc, juce::PathStrokeType (12.0f));
-        g.setColour (accent.withAlpha (0.125f));
-        g.strokePath (valueArc, juce::PathStrokeType (7.5f));
-        g.setColour (accent.withAlpha (0.230f));
-        g.strokePath (valueArc, juce::PathStrokeType (4.6f));
+        if (warmKnobs == nullptr) warmKnobs = std::make_unique<warm_asset::Renderer>();
+        warmKnobs->draw (g, { static_cast<float> (x), static_cast<float> (y),
+                             static_cast<float> (width), static_cast<float> (height) },
+                         sliderPosProportional, slider);
+        warm_asset::drawScale (g, {static_cast<float> (x), static_cast<float> (y),
+                                  static_cast<float> (width), static_cast<float> (height)}, slider.isEnabled());
 
-        g.setColour (track.withAlpha (0.60f));
-        g.strokePath (fullArc, juce::PathStrokeType (2.0f));
-        g.setColour (accent.withAlpha (0.98f));
-        g.strokePath (valueArc, juce::PathStrokeType (2.5f));
-
-        auto knob = juce::Rectangle<float> (diameter * 0.64f, diameter * 0.64f).withCentre (centre);
-
-        // A broad, low-energy pool below the knob makes the light appear to live
-        // underneath the control and spill onto the matte panel.  The layers are
-        // intentionally shallow and warm: visible in a DAW screenshot, but never
-        // dark/neon enough to imply distortion or aggressive saturation.
-        const auto poolCentre = juce::Point<float> (centre.x, knob.getBottom() + knob.getHeight() * 0.055f);
-        const auto basePool = juce::Rectangle<float> (knob.getWidth() * 1.20f, knob.getHeight() * 0.36f).withCentre (poolCentre);
-        g.setColour (accent.withAlpha (0.026f));
-        g.fillEllipse (basePool.expanded (13.0f, 5.0f));
-        g.setColour (accent.withAlpha (0.045f));
-        g.fillEllipse (basePool.expanded (8.0f, 3.0f));
-        g.setColour (accent.withAlpha (0.075f));
-        g.fillEllipse (basePool.expanded (3.0f, 1.0f));
-        g.setColour (accent.withAlpha (0.105f));
-        g.fillEllipse (basePool.reduced (2.0f, 1.0f));
-
-        // Neutral body shadow remains soft so the control still feels light and clean.
-        auto shadow = knob.translated (0.0f, 3.0f).expanded (2.4f);
-        g.setColour (juce::Colours::black.withAlpha (0.080f));
-        g.fillEllipse (shadow);
-
-        // Warm physical knob body: brighter top surface, slightly denser lower edge.
-        juce::ColourGradient bodyGradient (juce::Colour::fromRGB (255, 254, 251), centre.x, knob.getY(),
-                                           juce::Colour::fromRGB (222, 213, 202), centre.x, knob.getBottom(), false);
-        bodyGradient.addColour (0.52, juce::Colour::fromRGB (245, 239, 231));
-        g.setGradientFill (bodyGradient);
-        g.fillEllipse (knob);
-
-        // Let a small amount of the lamp colour reflect into the lower half of
-        // the knob itself.  This is clipped to the knob, so it reads as reflected
-        // light rather than a second orange ring.
-        g.saveState();
-        g.reduceClipRegion (knob.toNearestInt());
-        const auto reflectedLight = juce::Rectangle<float> (knob.getWidth() * 1.08f, knob.getHeight() * 0.42f)
-                                        .withCentre (juce::Point<float> (centre.x, knob.getBottom() - knob.getHeight() * 0.02f));
-        g.setColour (accent.withAlpha (0.075f));
-        g.fillEllipse (reflectedLight);
-        g.restoreState();
-
-        // Fine rim + glass-like top highlight add material depth without changing
-        // the established geometry.
-        g.setColour (juce::Colour::fromRGB (177, 164, 151).withAlpha (0.66f));
-        g.drawEllipse (knob, 1.0f);
-        juce::Path topRim;
-        topRim.addCentredArc (centre.x, centre.y,
-                              knob.getWidth() * 0.5f - 2.0f, knob.getHeight() * 0.5f - 2.0f,
-                              0.0f,
-                              juce::MathConstants<float>::pi * 1.08f,
-                              juce::MathConstants<float>::pi * 1.92f,
-                              true);
-        g.setColour (juce::Colours::white.withAlpha (0.72f));
-        g.strokePath (topRim, juce::PathStrokeType (1.15f));
-
-        juce::Path lowerShade;
-        lowerShade.addCentredArc (centre.x, centre.y,
-                                  knob.getWidth() * 0.5f - 2.0f, knob.getHeight() * 0.5f - 2.0f,
-                                  0.0f,
-                                  juce::MathConstants<float>::pi * 0.08f,
-                                  juce::MathConstants<float>::pi * 0.92f,
-                                  true);
-        g.setColour (juce::Colours::black.withAlpha (0.055f));
-        g.strokePath (lowerShade, juce::PathStrokeType (1.0f));
-
-        const auto pointerRadius = knob.getWidth() * 0.31f;
-        const auto pointerEnd = juce::Point<float> (centre.x + std::sin (angle) * pointerRadius,
-                                                    centre.y - std::cos (angle) * pointerRadius);
-        g.setColour (accent.withAlpha (0.98f));
-        g.drawLine (centre.x, centre.y, pointerEnd.x, pointerEnd.y, 2.0f);
-
-        // Illuminated endpoint: a wide faint bloom + hot core.  This is the visual
-        // "lamp" that was missing perceptually in 0.9.0.
-        const auto lamp = juce::Point<float> (centre.x + std::sin (angle) * radius,
-                                              centre.y - std::cos (angle) * radius);
-        g.setColour (accent.withAlpha (0.055f));
-        g.fillEllipse (lamp.x - 10.0f, lamp.y - 10.0f, 20.0f, 20.0f);
-        g.setColour (accent.withAlpha (0.115f));
-        g.fillEllipse (lamp.x - 6.5f, lamp.y - 6.5f, 13.0f, 13.0f);
-        g.setColour (accent.withAlpha (0.28f));
-        g.fillEllipse (lamp.x - 3.8f, lamp.y - 3.8f, 7.6f, 7.6f);
-        g.setColour (accent.brighter (0.35f));
-        g.fillEllipse (lamp.x - 1.75f, lamp.y - 1.75f, 3.5f, 3.5f);
-        g.setColour (juce::Colours::white.withAlpha (0.88f));
-        g.fillEllipse (lamp.x - 0.65f, lamp.y - 0.65f, 1.3f, 1.3f);
     }
 
     void drawButtonBackground (juce::Graphics& g,
@@ -324,6 +271,11 @@ public:
         const bool enabled = button.isEnabled();
         const auto accent = button.findColour (juce::TextButton::buttonOnColourId);
 
+        if (ui::isDarkTheme())
+        {
+            dark::button (g, button, accent, lit, isHighlighted, isDown);
+            return;
+        }
         if (ui::isClassicTheme())
         {
             auto fill = lit ? accent : backgroundColour;
@@ -341,47 +293,8 @@ public:
             return;
         }
 
-        if (lit && enabled)
-        {
-            // Larger soft halo plus a low spill underneath.  This mirrors the
-            // knob lighting language so active buttons feel back-lit, not simply
-            // outlined in orange/cyan.
-            g.setColour (accent.withAlpha (0.032f));
-            g.fillRoundedRectangle (bounds.expanded (6.0f), corner + 5.0f);
-            g.setColour (accent.withAlpha (0.060f));
-            g.fillRoundedRectangle (bounds.expanded (4.0f), corner + 3.5f);
-            g.setColour (accent.withAlpha (0.115f));
-            g.fillRoundedRectangle (bounds.expanded (2.1f), corner + 2.0f);
+        warm::button (g, button, accent, lit, isHighlighted, isDown);
 
-            const auto spill = juce::Rectangle<float> (bounds.getWidth() * 0.78f, 9.0f)
-                                   .withCentre (juce::Point<float> (bounds.getCentreX(), bounds.getBottom() + 2.8f));
-            g.setColour (accent.withAlpha (0.040f));
-            g.fillEllipse (spill.expanded (5.0f, 2.0f));
-            g.setColour (accent.withAlpha (0.085f));
-            g.fillEllipse (spill);
-        }
-
-        auto fill = backgroundColour;
-        if (lit)
-            fill = ui::panel().overlaidWith (accent.withAlpha (isDown ? 0.19f : 0.105f));
-        else if (isDown)
-            fill = ui::panelAlt();
-        else if (isHighlighted)
-            fill = ui::panelAlt().interpolatedWith (ui::panel(), 0.48f);
-
-        g.setColour (juce::Colours::black.withAlpha (0.045f));
-        g.fillRoundedRectangle (bounds.translated (0.0f, 1.5f), corner);
-        g.setColour (fill);
-        g.fillRoundedRectangle (bounds, corner);
-
-        // A fine highlight along the top gives the button a translucent/ceramic
-        // surface instead of a flat JUCE rectangle.
-        g.setColour (juce::Colours::white.withAlpha (lit ? 0.68f : 0.48f));
-        g.drawLine (bounds.getX() + corner * 0.55f, bounds.getY() + 1.35f,
-                    bounds.getRight() - corner * 0.55f, bounds.getY() + 1.35f, 0.85f);
-
-        g.setColour ((lit ? accent : ui::border()).withAlpha (enabled ? (lit ? 0.80f : 0.72f) : 0.34f));
-        g.drawRoundedRectangle (bounds, corner, lit ? 1.25f : 0.95f);
     }
 
     void drawButtonText (juce::Graphics& g,
@@ -396,6 +309,9 @@ public:
                             ? ui::text()
                             : (lit ? button.findColour (juce::TextButton::buttonOnColourId).darker (0.38f)
                                    : button.findColour (juce::TextButton::textColourOffId));
+        if (ui::isDarkTheme())
+            textColour = lit ? button.findColour (juce::TextButton::buttonOnColourId)
+                             : button.findColour (juce::TextButton::textColourOffId);
         if (! enabled)
             textColour = textColour.withAlpha (0.36f);
         g.setColour (textColour);
@@ -414,12 +330,20 @@ public:
                        juce::ComboBox& box) override
     {
         auto bounds = juce::Rectangle<float> (0.5f, 0.5f, static_cast<float> (width - 1), static_cast<float> (height - 1));
+        if (ui::isDarkTheme())
+            dark::surface (g, bounds, 6.0f, isButtonDown);
+        else if (! ui::isClassicTheme())
+            warm::surface (g, bounds, 6.0f, isButtonDown);
+        else
+        {
         g.setColour (juce::Colours::black.withAlpha (ui::isClassicTheme() ? 0.20f : 0.032f));
         g.fillRoundedRectangle (bounds.translated (0.0f, 1.0f), 8.0f);
         g.setColour (isButtonDown ? ui::panelAlt() : ui::panel());
         g.fillRoundedRectangle (bounds, 8.0f);
         g.setColour (ui::border().withAlpha (0.72f));
         g.drawRoundedRectangle (bounds, 8.0f, 0.95f);
+
+        }
 
         auto arrowArea = juce::Rectangle<float> (static_cast<float> (buttonX), static_cast<float> (buttonY),
                                                  static_cast<float> (buttonW), static_cast<float> (buttonH)).reduced (8.0f, 9.0f);
@@ -430,5 +354,55 @@ public:
         g.setColour (box.findColour (juce::ComboBox::arrowColourId));
         g.strokePath (arrow, juce::PathStrokeType (1.4f));
     }
+    void drawLabel (juce::Graphics& g, juce::Label& label) override
+    {
+        auto* slider = dynamic_cast<juce::Slider*> (label.getParentComponent());
+        if (ui::isClassicTheme() || slider == nullptr)
+        {
+            juce::LookAndFeel_V4::drawLabel (g, label);
+            return;
+        }
+        const auto r = label.getLocalBounds().toFloat().reduced (0.75f, 1.0f);
+        if (ui::isDarkTheme()) dark::surface (g, r, 5.0f, true);
+        else warm::surface (g, r, 5.0f, true, 0.65f);
+        if (! label.isBeingEdited())
+        {
+            const bool rotary = slider->getSliderStyle() != juce::Slider::LinearVertical;
+            const auto colour = rotary && ! ui::isDarkTheme() ? slider->findColour (juce::Slider::rotarySliderFillColourId).darker (0.28f)
+                                       : ui::text();
+            g.setColour (colour.withAlpha (label.isEnabled() ? 1.0f : 0.40f));
+            g.setFont (juce::Font (juce::FontOptions (rotary ? 14.0f : 11.5f)));
+            g.drawFittedText (label.getText(), label.getLocalBounds().reduced (3, 1),
+                             juce::Justification::centred, 1);
+        }
+    }
+
+    void drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height,
+                           float sliderPos, float minSliderPos, float maxSliderPos,
+                           juce::Slider::SliderStyle style, juce::Slider& slider) override
+    {
+        if (ui::isClassicTheme() || style != juce::Slider::LinearVertical)
+        {
+            juce::LookAndFeel_V4::drawLinearSlider (g, x, y, width, height,
+                sliderPos, minSliderPos, maxSliderPos, style, slider);
+            return;
+        }
+        const float cx = static_cast<float> (x) + static_cast<float> (width) * 0.5f;
+        const auto track = juce::Rectangle<float> (cx - 2.2f, static_cast<float> (y), 4.4f, static_cast<float> (height));
+        g.setColour (ui::isDarkTheme() ? juce::Colour (0xff414445) : juce::Colour (0xffd8d0c5));
+        g.fillRoundedRectangle (track, 2.2f);
+        g.setColour (juce::Colours::white.withAlpha (ui::isDarkTheme() ? 0.025f : 0.90f));
+        g.drawLine (track.getRight() + 0.8f, track.getY(), track.getRight() + 0.8f, track.getBottom(), 0.8f);
+        g.setColour (ui::warmAccent().withAlpha (ui::isDarkTheme() ? 0.42f : 0.70f));
+        g.fillRoundedRectangle (track.withTop (sliderPos), 2.0f);
+        const auto thumb = juce::Rectangle<float> (19.0f, 11.0f).withCentre ({ cx, sliderPos });
+        g.setColour (ui::isDarkTheme() ? juce::Colours::black.withAlpha (0.28f) : juce::Colour (0xff796954).withAlpha (0.20f));
+        g.fillRoundedRectangle (thumb.translated (0.0f, 1.0f).expanded (0.6f), 4.0f);
+        if (ui::isDarkTheme()) dark::surface (g, thumb, 4.0f);
+        else warm::surface (g, thumb, 4.0f);
+        g.setColour (ui::warmAccent());
+        g.drawLine (cx - 5.5f, sliderPos, cx + 5.5f, sliderPos, 1.3f);
+    }
+
 };
 }

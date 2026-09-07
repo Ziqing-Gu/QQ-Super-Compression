@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.1.8 Revision 2 — Clearer Light pointer — STABLE
+
+- 2026-09-07：用户验收并晋升 Stable，Plan B 已完成；上一稳定基线 1.1.7。 / Accepted as Stable with Plan B complete; previous Stable: 1.1.7.
+- Light 暖白指针亮芯由 10 加宽到 22，橙边由 14 加宽到 30，内端半径从 92 向中心延伸到 60（长度约增加 35%），外端 184 不变。 / Light core width 10 → 22, orange edge 14 → 30, inner radius 92 → 60 (about 35% more inward length), outer radius remains 184.
+- 提高亮芯可见度，保持光晕宽度/强度、灯带、刻度、材质及 0% 不发光；Dark、Classic、布局、DSP、参数及历史不变。 / Brighter core; unchanged halo width/intensity, arc, ticks, material and unlit zero state. Dark, Classic, layout, DSP, parameters and history are unchanged.
+- Plan C 复用已验证 Windows Plan A，仅构建 macOS；中英文用户手册统一重排为 18 页，使用当前界面截图，重点讲解控件操作、主题切换、含 Mix 的 GR 与内部/外部侧链用法。 / Plan C reuses verified Windows Plan A and builds only macOS; the Chinese and English user manuals are rebuilt as coherent 18-page guides with current screenshots and practical controls, theme switching, Mix-aware GR, and internal/external sidechain workflows.
+
+## 1.1.8 Revision 1 — Dark material and Light ticks — SUPERSEDED
+
+- Dark 采用用户认可的实际 JUCE 旋钮：倒角、侧壁、接触阴影与局部蓝光反射更明确。 / Approved JUCE Dark knobs with clearer bevel, sidewall, contact shadow and local blue reflections.
+- 只有底部控制面板加入固定细磨砂；主 Display 保持纯净近黑。 / Stationary fine grain only on the lower control panel; the main Display stays clean and near black.
+- Light 增加 13 条细刻度与较长暖白指针。用户随后要求继续加宽、提亮及向内延长，形成 Rev2；此前暂停的 Plan B 不算完成。 / Light adds 13 fine ticks and a longer warm-white pointer. Further width, brightness and inward reach requests produced Rev2; the interrupted earlier Plan B was not completed.
+
+## 1.1.7 — Light / Dark / Classic — HISTORICAL STABLE
+
+- 新增纯净近黑 Dark、拟真蓝色渐进灯带，保留 Light 和原 Classic。 / Adds clean near-black Dark and progressive blue knob illumination, retaining Light and original Classic.
+- 银灰 Input、橙 Output、青 GR 在 Meter 和 Display 对应；三主题循环切换、恢复上次选择并兼容旧偏好。 / Matching silver-grey Input, orange Output and cyan GR; three-theme cycle, remembered choice and legacy preference migration.
+- 2026-09-07 验收并完成 Plan B；原布局、音频 DSP、参数及历史计算保留。 / Accepted with Plan B complete on 2026-09-07; layout, audio DSP, parameters and history retained.
+
+## 1.1.6 Revision 3 — Warm depth — HISTORICAL STABLE
+
+- 暖灰底板略加深并加入柔和明暗，保留已认可旋钮与布局。 / Slightly deeper warm-grey panels with soft shading; accepted knobs and layout retained.
+- Meter 与 Display 使用同色系深浅渐变，GR 对应向下增长方向，复用缓存路径。 / Tonal meter/Display gradients, mirrored for downward-growing GR, reusing cached paths.
+- 2026-09-07 验收并完成 Plan B，上一稳定版为 1.1.5；Classic、DSP、参数与主题记忆不变。 / Accepted with Plan B complete on 2026-09-07; previous Stable 1.1.5. Classic, DSP, parameters and theme memory unchanged.
+
+## 1.1.6 Revision 2 — Accepted asset knobs — HISTORICAL CANDIDATE
+
+- 认可真实交互 JUCE 样件后接入同一素材合成器，灯带连续按归一化数值增长，0% 全灭。 / Integrates the accepted interactive JUCE asset compositor; continuous normalized arc illumination with a fully unlit zero state.
+- Light 的灰 Input、橙 Output、青蓝 GR 统一到 Meter、Display、图例及读数；缓存有界，布局、Classic 和音频保留。 / Unified Light palette across meters, Display, legends and readouts; bounded caches, retained layout, Classic and audio.
+- 仅本地候选，未单独公开发布。 / Local candidate, not separately published.
+
+## 1.1.6 Revision 1 — Early warm material — REJECTED / HISTORICAL
+
+- 早期代码绘制的浅盘式暖色旋钮未达到用户认可的材质效果，被否决。 / The early code-shaded shallow warm disk did not meet the accepted material reference and was rejected.
+- 本地候选，未覆盖安装或公开发布；保留记录以避免重复该失败方案。 / Local candidate, not installed over the existing plug-in or published; retained to avoid repeating this rejected approach.
+
+---
+
+The following entries retain their historical status. / 以下条目保留当时状态。
+
 ## 1.1.5 - Fluid/Cached Dynamic Display Rendering - STABLE
 - 发布日期 / Release date: 2026-09-02
 - 修复 / Fixed: 深度压缩不再触发随 GR 填充面积增长的整块半透明多边形开销；deep compression no longer increases full-area translucent polygon work in proportion to the GR band.
