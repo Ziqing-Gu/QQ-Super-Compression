@@ -11,6 +11,7 @@
 - Plan C reuses verified Windows Plan A and dispatches only three macOS jobs. Plan D publishes the verified desktop files to this repository's Release and updates README download links; completion must be verified before it is claimed.
 - Preserve the author's README introduction verbatim and in its existing position. Preserve the non-commercial license policy and historical entries.
 - See `VERSION_COVERAGE_1.1.8.md` and `CODEX_BUILD.md`. Cross-platform completion is recorded only after actual builds and downloaded bundles pass.
+- Plan C completed: source/tag `bdb73765d1ccd54b2229b721678c382a0aea9b99` / `v1.1.8`; macOS run `34138216384` passed three jobs and runner AU auval. Windows Plan A was reused. Four ZIPs, two installation guides and two 18-page manuals form the hash-verified desktop package (8 files, 37,317,194 bytes). Frozen backups untouched. Actual minimum macOS and AU Intel signature/host-test limitations are documented in the current installation guides and build brief. Plan D publication follows separately.
 
 --- Historical handoffs below ---
 

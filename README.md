@@ -64,9 +64,10 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 |---|---|
 | 当前稳定版本 / Current stable version | 1.1.8 Revision 2 Stable - Light / Dark / Classic |
 | 本次 Plan A 成品 / Current Plan A artifact | Windows x64 VST3 |
-| 状态 / Status | v1.1.8 Rev2 Stable; Plan A/B complete; Plan C in progress; latest published Release: v1.1.5 |
+| 状态 / Status | v1.1.8 Rev2 Stable; Plan A/B/C complete; latest published Release: v1.1.5 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
+| 本次成品系统要求 / Requirements for these builds | Windows 10/11 x64; Apple Silicon VST3 and Universal 2 AU: macOS 14+; Intel VST3: macOS 15+ |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | Qing Audio NC Source-Share 1.0 |
 

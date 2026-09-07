@@ -5,7 +5,7 @@ License: Qing Audio Non-Commercial Source-Share License 1.0
 Source repository: https://github.com/Ziqing-Gu/QQ-Super-Compression
 Corresponding source tag: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.1.8
 Formats: Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel x86_64 VST3; macOS Universal 2 AU
-Systems: Windows 10/11 x64; macOS 13 or later
+Systems: Windows 10/11 x64; macOS 14 or later for Apple Silicon VST3 and Universal 2 AU; macOS 15 or later for Intel x86_64 VST3.
 
 This is the user binary package for a source-available project that prohibits commercial use. It contains installable plug-ins, bilingual installation guides, and bilingual user manuals, but not source code, build caches, or internal validation logs. Non-commercial use is permitted under the license. Distribution of an original, binary, or modified version requires complete corresponding source without charge, preserved authorship, copyright, and license notices, prominent source and change attribution, and the same license for the entire modified work. See the public repository and v1.1.8 tag above for source and full terms.
 
@@ -51,7 +51,7 @@ macOS Audio Unit
 4. AU and VST3 are separate formats. Install only the format you need, then reopen Logic Pro or rescan Audio Units. Restart the computer if necessary.
 
 macOS security and load failures
-The macOS artifacts are produced by GitHub Actions with ad-hoc signing and are not Apple Developer ID notarized. macOS may block the first load because of quarantine or signing policy. First verify that the files came from the repository and v1.1.8 build above, then use the actual installed path, for example:
+The macOS artifacts are produced by GitHub Actions and are not Apple Developer ID signed or notarized. Both VST3 packages are ad-hoc signed. The Universal 2 AU has an ad-hoc signed arm64 slice and an x86_64 slice without an embedded signature. AU passed auval on the Apple Silicon build runner; Intel AU has not been host-tested. macOS may block the first load because of quarantine or signing policy. First verify that the files came from the repository and v1.1.8 build above, then use the actual installed path, for example:
 `xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"`
 For AU:
 `xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"`

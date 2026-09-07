@@ -7,7 +7,8 @@
 - Windows binary SHA-256: `7509DB02BADAAF10CDF72DDB54215C76EBF483B8A469AA5B1C4DCAB01F08F5EA`.
 - Windows ZIP SHA-256: `0322EE34DCB4811B8C662E6890FB934D4B78394421F7B9C0D2B54F5BB7EE5084`.
 - Completed checks include actual editor 1x/2x rendering, theme/layout parity, deterministic cached materials, preference/state checks and Steinberg module validator exit 0. These do not constitute macOS DAW certification.
-- Plan C source tag: `v1.1.8`; only the macOS workflow is dispatched. Final cross-platform checks will be recorded after all three jobs and downloads pass.
+- Plan C source tag: `v1.1.8`, commit `bdb73765d1ccd54b2229b721678c382a0aea9b99`. Run `34138216384` passed all three macOS jobs and AU auval on the Apple Silicon runner. Windows Actions was not run. Downloaded versions, ZIP CRCs, root bundles, CPU architectures and hashes passed; the eight-file cross-platform desktop package was verified.
+- Measured minimum macOS: Apple Silicon VST3 and Universal 2 AU 14.0; Intel VST3 15.0. Both VST3 packages are ad-hoc signed. AU arm64 is ad-hoc signed; its x86_64 slice has no embedded signature and is not Intel-host tested. No Developer ID signing/notarization or all-DAW certification is claimed. Non-fatal compiler warnings remain.
 - Optional actual-editor renderer: configure with `-DQQSC_BUILD_VISUAL_CHECK=ON`; build `QQSCVisualCheck`. It is not part of the end-user package.
 
 --- Historical briefs below ---

@@ -5,7 +5,7 @@ QQ Super Compression 1.1.8 - Windows 与 macOS 安装说明（中文）
 源码仓库：https://github.com/Ziqing-Gu/QQ-Super-Compression
 对应源码标签：https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.1.8
 格式：Windows x64 VST3；macOS Apple Silicon VST3；macOS Intel x86_64 VST3；macOS Universal 2 AU
-系统：Windows 10/11 x64；macOS 13 或更高版本
+系统：Windows 10/11 x64；Apple Silicon VST3 和 Universal 2 AU 要求 macOS 14 或更高版本；Intel x86_64 VST3 要求 macOS 15 或更高版本。
 
 这是源码可见、禁止商业使用的项目用户成品包，只包含可安装插件、双语安装说明与双语用户手册，不包含源码、构建缓存或内部验证日志。非商业用途可依许可证使用；发布原版、二进制版或修改版时，必须免费公开完整对应源码、保留作者、版权和许可证声明、醒目标明来源与修改，并让整个修改版继续采用同一许可证。完整源码和条款见上述公开仓库与 v1.1.8 标签。
 
@@ -51,7 +51,7 @@ macOS Audio Unit
 4. AU 与 VST3 是独立格式，只安装需要的格式。重新打开 Logic Pro 或重新扫描 Audio Units；必要时重启电脑。
 
 macOS 安全与加载失败处理
-macOS 成品由 GitHub Actions 生成并采用 ad-hoc 签名，不是 Apple Developer ID 公证版本。系统可能因为 quarantine 或签名政策阻止首次加载。先确认文件来自上述公开仓库和 v1.1.8 构建，再按实际安装路径执行：
+macOS 成品由 GitHub Actions 生成，未经过 Apple Developer ID 签名或公证。两个 VST3 包为 ad-hoc 签名；Universal 2 AU 的 arm64 切片带 ad-hoc 签名，x86_64 切片没有嵌入签名。AU 已通过 Apple Silicon 构建机的 auval，Intel AU 尚未进行宿主实测。系统可能因为 quarantine 或签名政策阻止首次加载。先确认文件来自上述公开仓库和 v1.1.8 构建，再按实际安装路径执行：
 `xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"`
 AU 可使用：
 `xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"`
