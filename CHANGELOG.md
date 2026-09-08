@@ -6,7 +6,7 @@
 - 横向尺寸单独记忆，保留旧尺寸偏好；Light、Dark、Classic 和上次主题记忆不变。Landscape size is remembered separately; legacy sizing, three themes and last-theme recall remain.
 - DSP、参数、状态、侧链、A/B、LINK、材质与历史计算不变。No DSP, parameter, state, sidechain, A/B, LINK, material-renderer or history-algorithm changes.
 - 两份 18 页手册只在结尾补充 UI 变化。Both 18-page manuals retain all original content with a short final-page UI note.
-- Plan A/B complete; Stable per the project's standing Plan B rule. Automated Windows/real-editor checks pass; no user listening acceptance is claimed. Plan C/D remote verification is pending.
+- Plan A/B/C/D complete; Stable per the project's standing Plan B rule. Automated Windows/real-editor checks and all three macOS jobs pass. All eight Release assets match by size/SHA-256 and their public download links work. No user listening acceptance is claimed.
 - Coverage / 版本区间：1.1.8 → 1.1.9; omitted versions / 遗漏：none / 无。
 
 ## 1.1.8 Revision 2 — Clearer Light pointer — STABLE
