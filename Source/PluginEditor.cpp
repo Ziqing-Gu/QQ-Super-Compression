@@ -4,12 +4,12 @@
 
 namespace
 {
-constexpr int defaultEditorWidth = 1020;
-constexpr int defaultEditorHeight = 820;
+constexpr int defaultEditorWidth = 1200;
+constexpr int defaultEditorHeight = 800;
 constexpr double editorAspectRatio = static_cast<double> (defaultEditorWidth) / defaultEditorHeight;
-constexpr int minEditorHeight = 720;
+constexpr int minEditorHeight = 672;
 constexpr int minEditorWidth = static_cast<int> (minEditorHeight * editorAspectRatio + 0.5);
-constexpr int maxEditorHeight = 1100;
+constexpr int maxEditorHeight = 1200;
 constexpr int maxEditorWidth = static_cast<int> (maxEditorHeight * editorAspectRatio + 0.5);
 
 juce::String arrowText (const juce::String& left, const juce::String& right)
@@ -35,13 +35,11 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     int savedWidth = defaultEditorWidth;
     if (uiProperties != nullptr)
     {
-        savedWidth = uiProperties->getIntValue ("editorWidth", defaultEditorWidth);
+        savedWidth = uiProperties->getIntValue ("landscapeEditorWidth", defaultEditorWidth);
     }
 
-    // v1.0.1 intentionally changes the design aspect ratio to make the Display
-    // much taller. Preserve the user's prior *width scale* and let the new
-    // aspect ratio add vertical space; fitting inside an old 1020x670 rectangle
-    // would defeat the Display-first migration by reopening at ~833x670.
+    // Give the 3:2 layout its own size preference. First open uses 1200x800;
+    // subsequent opens preserve its uniform scale without changing legacy sizes.
     const auto minScale = static_cast<double> (minEditorHeight) / defaultEditorHeight;
     const auto maxScale = static_cast<double> (maxEditorHeight) / defaultEditorHeight;
     const auto savedScale = juce::jlimit (minScale, maxScale,
@@ -434,8 +432,7 @@ QQSuperCompressionAudioProcessorEditor::~QQSuperCompressionAudioProcessorEditor(
 
     if (uiProperties != nullptr)
     {
-        uiProperties->setValue ("editorWidth", getWidth());
-        uiProperties->setValue ("editorHeight", getHeight());
+        uiProperties->setValue ("landscapeEditorWidth", getWidth());
         uiProperties->saveIfNeeded();
     }
 
@@ -1109,32 +1106,32 @@ void QQSuperCompressionAudioProcessorEditor::paint (juce::Graphics& g)
         juce::Graphics::ScopedSaveState state (g);
         g.addTransform (juce::AffineTransform::scale (scale));
         g.setColour (juce::Colour (0xff414345));
-        g.drawRoundedRectangle ({ 1.0f, 1.0f, 1018.0f, 818.0f }, 17.0f, 0.8f);
+        g.drawRoundedRectangle ({ 1.0f, 1.0f, 1198.0f, 798.0f }, 17.0f, 0.8f);
         g.setColour (juce::Colour (0xff121416));
-        g.drawRoundedRectangle ({ 2.5f, 2.5f, 1015.0f, 815.0f }, 16.0f, 0.8f);
-        qqsc::dark::panel (g, { 16.0f, 74.0f, 988.0f, 562.0f }, 15.0f);
-        darkBottomPanel.draw (g, { 16.0f, 640.0f, 988.0f, 162.0f }, 15.0f);
+        g.drawRoundedRectangle ({ 2.5f, 2.5f, 1195.0f, 795.0f }, 16.0f, 0.8f);
+        qqsc::dark::panel (g, { 16.0f, 74.0f, 1168.0f, 542.0f }, 15.0f);
+        darkBottomPanel.draw (g, { 16.0f, 620.0f, 1168.0f, 162.0f }, 15.0f);
         return;
     }
     if (! qqsc::ui::isClassicTheme())
     {
-        // Same design-space chassis rectangles and widget geometry as v1.1.5.
+        // Landscape chassis shares the same design space as the widgets.
         // Display remains opaque and owns its 60 Hz paints independently.
         g.fillAll (qqsc::ui::canvas());
         const float scale = static_cast<float> (getWidth()) / defaultEditorWidth;
         juce::Graphics::ScopedSaveState state (g);
         g.addTransform (juce::AffineTransform::scale (scale));
         juce::ColourGradient chassis (juce::Colour (0xfff4f1ed), 0.0f, 0.0f,
-                                     juce::Colour (0xffe2dcd4), 1020.0f, 820.0f, false);
+                                     juce::Colour (0xffe2dcd4), 1200.0f, 800.0f, false);
         chassis.addColour (0.45, qqsc::ui::canvas());
         g.setGradientFill (chassis);
-        g.fillRect (0.0f, 0.0f, 1020.0f, 820.0f);
+        g.fillRect (0.0f, 0.0f, 1200.0f, 800.0f);
         g.setColour (juce::Colours::white.withAlpha (0.92f));
-        g.drawRoundedRectangle ({ 3.0f, 3.0f, 1014.0f, 814.0f }, 15.0f, 1.0f);
+        g.drawRoundedRectangle ({ 3.0f, 3.0f, 1194.0f, 794.0f }, 15.0f, 1.0f);
         g.setColour (qqsc::ui::border().withAlpha (0.55f));
-        g.drawRoundedRectangle ({ 1.0f, 1.0f, 1018.0f, 818.0f }, 17.0f, 0.8f);
-        qqsc::warm::backplate (g, { 16.0f, 74.0f, 988.0f, 562.0f }, 15.0f);
-        qqsc::warm::backplate (g, { 16.0f, 640.0f, 988.0f, 162.0f }, 15.0f);
+        g.drawRoundedRectangle ({ 1.0f, 1.0f, 1198.0f, 798.0f }, 17.0f, 0.8f);
+        qqsc::warm::backplate (g, { 16.0f, 74.0f, 1168.0f, 542.0f }, 15.0f);
+        qqsc::warm::backplate (g, { 16.0f, 620.0f, 1168.0f, 162.0f }, 15.0f);
         return;
     }
 
@@ -1158,8 +1155,8 @@ void QQSuperCompressionAudioProcessorEditor::paint (juce::Graphics& g)
     // Two quiet chassis panels behind the visual analysis and control rows.
     // They create the warm "instrument under glass" feeling without darkening
     // the product or suggesting heavy distortion/saturation.
-    const auto visualPanel = scaled ({ 16.0f, 74.0f, 988.0f, 562.0f });
-    const auto controlPanel = scaled ({ 16.0f, 640.0f, 988.0f, 162.0f });
+    const auto visualPanel = scaled ({ 16.0f, 74.0f, 1168.0f, 542.0f });
+    const auto controlPanel = scaled ({ 16.0f, 620.0f, 1168.0f, 162.0f });
 
     for (const auto panelRect : { visualPanel, controlPanel })
     {
@@ -1192,7 +1189,7 @@ void QQSuperCompressionAudioProcessorEditor::paint (juce::Graphics& g)
 
 void QQSuperCompressionAudioProcessorEditor::resized()
 {
-    // Layout is calculated in the enlarged 1020x820 v1.0.1 design space. The
+    // Layout is calculated in the 1200x800 landscape design space. The
     // single parent transform still scales every child, font, stroke and meter
     // uniformly, preserving the established 1:1 X/Y resize behaviour.
     const auto uiScale = static_cast<float> (getWidth()) / defaultEditorWidth;
@@ -1223,7 +1220,7 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     sidechainButton.setBounds (right - 86, headerButtonY, 86, headerButtonH);
     right -= 86 + 12;
 
-    // Keep the main 1020x820 layout unchanged. The wider v1.1.1 popup grows
+    // The existing sidechain popup grows
     // leftward from the Side Chain button and adds HPF beside Key Gain.
     sidechainPanelBounds = { sidechainButton.getRight() - 330, 58, 330, 146 };
     sidechainPanelBackground.setBounds (sidechainPanelBounds);
@@ -1247,10 +1244,9 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     auto area = juce::Rectangle<int> (0, 0, defaultEditorWidth, defaultEditorHeight).reduced (margin);
     area.removeFromTop (58);
 
-    // v1.0.1 is deliberately Display-first. Threshold decisions require enough
-    // vertical resolution to read dynamics clearly, especially when LR/MS split
-    // the history into two stacked domains.
-    auto visualRow = area.removeFromTop (550);
+    // Wider history with only 20 design pixels less height, retaining readable
+    // stacked LR/MS domains and the established controls' physical proportions.
+    auto visualRow = area.removeFromTop (530);
 
     const int meterWidth = juce::jlimit (180, 200, visualRow.getWidth() / 5);
     meters.setBounds (visualRow.removeFromRight (meterWidth));

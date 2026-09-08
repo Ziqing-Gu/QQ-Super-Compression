@@ -1,5 +1,16 @@
 # QQ Super Compression - Build / validation brief
 
+## Current Stable — 1.1.9 3:2 Landscape
+
+- Same JUCE 8.0.15, CMake/C++17 and MSVC 19.44 toolchain. Windows Plan A built locally and will be reused in Plan C; Windows Actions is not required or triggered.
+- Only editor sizing/layout and metadata change. All DSP/parameters/state/history/material code matches 1.1.8 Revision 2. Previous Stable: 1.1.8 Revision 2.
+- Windows VST3 binary SHA-256: `7C3FF0A7845998817E1B64FF1967D55656A9B1FA8B112269FF822A09452DFD65`.
+- All 15 source/math checks and actual-editor renderer checks pass. Configure `-DQQSC_BUILD_VISUAL_CHECK=ON`, build `QQSCVisualCheck`, run it with an output-directory argument. The new landscape contract replaces old skin-only geometry parity comparisons; retained audio/material checks still apply.
+- Use the exact `v1.1.9` source tag for `build-macos-vst3-au.yml`: Apple Silicon VST3, Intel VST3 and Universal 2 AU. Verify downloaded architecture/version/signing metadata before claiming cross-platform delivery. No DAW listening acceptance or Apple notarization is implied.
+- Frozen Plan B is complete and not a source of subsequent reads. See current handoff and PLAN_A_VERIFICATION_1.1.9.md. Prior results below remain historical.
+
+--- Historical briefs below ---
+
 ## Current Stable — v1.1.8 Revision 2
 
 - User accepted the current revision; Plan A and frozen Plan B are complete. Previous Stable: v1.1.7.

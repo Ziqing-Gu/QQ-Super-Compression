@@ -52,7 +52,7 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 
 
-# QQ Super Compression 1.1.8
+# QQ Super Compression 1.1.9
 
 **Qing Audio 非商业源码公开动态处理器 / Non-commercial source-available dynamics processor by Qing Audio**
 
@@ -62,18 +62,34 @@ QQ Super Compression addresses a specific mixing problem: the source needs dynam
 
 | 项目 / Item | 内容 / Value |
 |---|---|
-| 当前稳定版本 / Current stable version | 1.1.8 Revision 2 Stable - Light / Dark / Classic |
+| 当前版本 / Current version | 1.1.9 - 3:2 Landscape - Light / Dark / Classic |
 | 本次 Plan A 成品 / Current Plan A artifact | Windows x64 VST3 |
-| 状态 / Status | v1.1.8 Rev2 Stable; Plan A/B/C complete; latest published Release: v1.1.8 |
+| 状态 / Status | v1.1.9 Stable; Plan A/B complete; Plan C/D pending; previous Release: v1.1.8 |
 | 厂商 / Vendor | Qing Audio |
 | 格式 / Formats | Windows x64 VST3; macOS Apple Silicon VST3; macOS Intel VST3; macOS Universal 2 AU |
 | 本次成品系统要求 / Requirements for these builds | Windows 10/11 x64; Apple Silicon VST3 and Universal 2 AU: macOS 14+; Intel VST3: macOS 15+ |
 | 框架 / Framework | JUCE 8.0.15 / CMake / C++17 |
 | 许可证 / License | Qing Audio NC Source-Share 1.0 |
 
-> **上一稳定基线 / Previous Stable:** v1.1.7 Light / Dark / Classic。当前公开 Release 为 v1.1.8；旧版段落保留其当时状态，不代表当前稳定版本。 / Previous local Stable: v1.1.7. The current public Release is v1.1.8; older sections preserve historical status, not the current baseline.
+> **上一稳定基线 / Previous Stable:** v1.1.8 Revision 2。下方旧版段落保留其当时状态。 / Previous Stable: v1.1.8 Revision 2. Older sections retain their historical status.
 >
-> **Stable baseline:** Accepted on 2026-09-07 as v1.1.8 Revision 2. Plan A/B and cross-platform Plan C are complete. Windows reuses its verified build; only the three macOS jobs ran. Plan D publishes the same eight desktop package files, including both rebuilt user manuals.
+> **Stable rule:** 按本项目既定规则，执行 Plan B 的版本记为 Stable；这不代表本次已完成用户听感验收。 / This project's standing rule records Plan B versions as Stable; this does not claim user listening acceptance for this revision.
+
+## 1.1.9 更新 / Update — 3:2 横向界面 / Landscape interface
+
+2026-09-08：单段版改为与多段版相同的 3:2 比例，默认 1200×800，可等比例调整至 1008×672–1800×1200。Display 更宽，旋钮保持原比例。Light、Dark、Classic、右上角主题切换与上次主题记忆保留；横向界面单独记住尺寸，不覆盖旧版尺寸偏好。DSP、参数、声音处理、侧链、A/B、LINK 和历史重算不变。
+
+The single-band editor now uses the same 3:2 aspect ratio as the multiband edition: 1200×800 by default, uniformly resizable from 1008×672 to 1800×1200. The Display is wider and knobs retain their proportions. Light, Dark, Classic, the top-right theme switch and last-theme recall remain. The landscape size is remembered separately, preserving legacy size preferences. DSP, parameters, audio processing, sidechain, A/B, LINK and history reprojection are unchanged.
+
+中英文手册沿用 1.1.8 的 18 页内容，仅在末页结尾补充 1.1.9 UI 变化。 / Both 18-page v1.1.8 manuals are retained, with only a short v1.1.9 UI note added at the end.
+
+本次版本区间：1.1.8 → 1.1.9；新增真实版本仅 1.1.9，遗漏版本：无。 / Coverage: 1.1.8 → 1.1.9; the only new version is 1.1.9; omitted versions: none.
+
+![Actual 1.1.9 Light landscape editor](docs/manuals/images/qq-super-compression-1.1.9-light.png)
+
+![Actual 1.1.9 Dark landscape editor](docs/manuals/images/qq-super-compression-1.1.9-dark.png)
+
+![Actual 1.1.9 Classic landscape editor with sidechain](docs/manuals/images/qq-super-compression-1.1.9-classic.png)
 
 ## 下载 / Download
 
@@ -102,7 +118,7 @@ Choose one Mac VST3 package matching the host: arm64 for native Apple Silicon, I
 
 四类成品、两份安装说明和两份手册共 8 个文件、37,317,194 字节；单文件校验值见 Release 正文。Windows 复用既有 Plan A 成品；[macOS 构建](https://github.com/Ziqing-Gu/QQ-Super-Compression/actions/runs/34138216384)三任务和构建机 AU auval 均通过。 / Four packages, two installation guides and two manuals: 8 files, 37,317,194 bytes. Per-file hashes are in the Release notes. Windows reuses Plan A; all three macOS jobs and runner AU auval passed.
 
-## 1.1.8 当前界面 / Current interface
+## 1.1.8 历史界面 / Previous interface
 
 Light、Dark、Classic 保持同一布局、功能、参数与声音。右上角切换主题，默认恢复上一次选择。Light 加入细刻度和加宽、提亮、向中心延长的指针；Dark 加强旋钮材质与底部细密磨砂感，主 Display 保持纯净近黑。所有改动均沿用既有 DSP、含 Mix 的 GR、侧链与历史重算逻辑。
 

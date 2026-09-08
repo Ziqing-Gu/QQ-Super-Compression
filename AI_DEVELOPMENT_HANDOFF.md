@@ -1,5 +1,16 @@
 # AI Development Handoff - QQ Super Compression
 
+## Current Stable — v1.1.9 3:2 Landscape (2026-09-08)
+
+- User explicitly requested Plan A/B/C/D. This project's standing Plan B rule promotes 1.1.9 to Stable; rollback: 1.1.8 Revision 2. User listening acceptance for 1.1.9 is not claimed.
+- Plan A complete: Windows x64 VST3, 15 source/math checks and real-editor three-theme/ST/LR/MS/minimum/maximum/sidechain checks. All DSP/state/parameter/Display/meter code and materials are byte-identical to active 1.1.8; only editor geometry, its separate size preference and version metadata change.
+- Plan B completed and frozen: 136 source files, 27,397,105 bytes, every copied file hash matched. Do not inspect, refresh or reopen frozen backups; subsequent stages use active source and a precise public commit/tag.
+- Default 1200x800, 3:2, limits 1008x672–1800x1200; Display 866x530. Three themes and remembered theme retained. Both 18-page manuals preserve original contents with one short final-page UI note.
+- Plan C/D are pending real remote builds and asset checks. Windows is reused from Plan A (binary SHA-256 7C3FF0A7845998817E1B64FF1967D55656A9B1FA8B112269FF822A09452DFD65); only three macOS jobs are required.
+- Preserve author README text and license. No multiband-project changes. Keep historical records below.
+
+--- Historical handoffs below ---
+
 ## Current Stable — v1.1.8 Revision 2 (2026-09-07)
 
 - User accepted the wider, brighter Light pointer extended toward the centre. Plan A/B complete; previous Stable: v1.1.7.

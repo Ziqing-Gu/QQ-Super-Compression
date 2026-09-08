@@ -20,6 +20,15 @@ struct QQSCVisualCheck
 
     static void snapshot (QQSuperCompressionAudioProcessorEditor& editor, const juce::File& file, float scale = 1.0f)
     {
+        if (editor.getWidth() * 2 != editor.getHeight() * 3
+            || editor.getConstrainer()->getFixedAspectRatio() != 1.5)
+            throw std::runtime_error ("Landscape aspect ratio changed");
+        for (auto* child : editor.contentRoot.getChildren())
+            if (child->isVisible() && ! editor.contentRoot.getLocalBounds().contains (child->getBounds()))
+                throw std::runtime_error ("Visible control exceeds landscape bounds");
+        if (editor.display.getBounds() != juce::Rectangle<int> (22, 80, 866, 530)
+            || editor.meters.getBounds() != juce::Rectangle<int> (978, 80, 200, 530))
+            throw std::runtime_error ("Landscape Display/meter geometry changed");
         const auto image = editor.createComponentSnapshot (editor.getLocalBounds(), true, scale);
         auto stream = output (file);
         if (stream == nullptr || ! juce::PNGImageFormat().writeImageToStream (image, *stream))
@@ -44,7 +53,7 @@ struct QQSCVisualCheck
             if (file.getFileNameWithoutExtension() == "warm-ST")
                 for (float pixelScale : {1.0f, 2.0f})
                 {
-                    const auto crop = editor.createComponentSnapshot ({16, 640, 988, 162}, true, pixelScale);
+                    const auto crop = editor.createComponentSnapshot ({16, 620, 1168, 162}, true, pixelScale);
                     auto cropStream = output (file.getSiblingFile (pixelScale == 1.0f ? "warm-bottom.png" : "warm-bottom-2x.png"));
                     if (! juce::PNGImageFormat().writeImageToStream (crop, *cropStream))
                         throw std::runtime_error ("Light bottom snapshot failed");
@@ -203,7 +212,7 @@ struct QQSCVisualCheck
             throw std::runtime_error ("Panel finish PNG failed");
         for (float pixelScale : {1.0f, 2.0f})
         {
-            const auto crop = editor.createComponentSnapshot ({16, 640, 988, 162}, true, pixelScale);
+            const auto crop = editor.createComponentSnapshot ({16, 620, 1168, 162}, true, pixelScale);
             auto stream = output (dir.getChildFile (pixelScale == 1.0f ? "dark-bottom.png" : "dark-bottom-2x.png"));
             if (! juce::PNGImageFormat().writeImageToStream (crop, *stream))
                 throw std::runtime_error ("Actual bottom panel PNG failed");
@@ -260,11 +269,11 @@ struct QQSCVisualCheck
                 label->hideEditor (true);
                 break;
             }
-        editor.setSize (896, 720);
+        editor.setSize (1008, 672);
         snapshot (editor, dir.getChildFile ("dark-minimum.png"));
-        editor.setSize (1368, 1100);
+        editor.setSize (1800, 1200);
         snapshot (editor, dir.getChildFile ("dark-maximum.png"));
-        editor.setSize (1020, 820);
+        editor.setSize (1200, 800);
         std::cout << "PASS: Dark Input active/inactive contrast, theme toggle/unchanged APVTS, numeric entry and sizes.\n";
     }
 
@@ -279,7 +288,7 @@ struct QQSCVisualCheck
         editor.uiProperties.reset();
         editor.stopTimer();
         editor.display.stopTimer();
-        editor.setSize (1020, 820);
+        editor.setSize (1200, 800);
         parameter (processor, "ratio", 5.0f);
         parameter (processor, "thresholdDb", -28.0f);
         parameter (processor, "makeupGainDb", 3.4f);
@@ -391,11 +400,11 @@ struct QQSCVisualCheck
         parameter (processor, "processingMode", static_cast<float> (qqsc::params::stereoLinked));
         editor.timerCallback();
         feedHistory();
-        editor.setSize (896, 720);
+        editor.setSize (1008, 672);
         snapshot (editor, dir.getChildFile ("warm-minimum.png"));
-        editor.setSize (1368, 1100);
+        editor.setSize (1800, 1200);
         snapshot (editor, dir.getChildFile ("warm-maximum.png"));
-        editor.setSize (1020, 820);
+        editor.setSize (1200, 800);
         for (int i = 0; i < editor.ratioSlider.getNumChildComponents(); ++i)
             if (auto* label = dynamic_cast<juce::Label*> (editor.ratioSlider.getChildComponent (i)))
             {

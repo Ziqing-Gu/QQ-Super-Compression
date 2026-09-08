@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.9 — 3:2 Landscape / 横向界面 — 2026-09-08
+
+- 单段版改为 1200×800 默认、3:2 等比例缩放，范围 1008×672–1800×1200。Display 更宽、旋钮不拉伸。The single-band editor uses 1200×800 by default, uniformly resizable from 1008×672 to 1800×1200, with a wider Display and undistorted knobs.
+- 横向尺寸单独记忆，保留旧尺寸偏好；Light、Dark、Classic 和上次主题记忆不变。Landscape size is remembered separately; legacy sizing, three themes and last-theme recall remain.
+- DSP、参数、状态、侧链、A/B、LINK、材质与历史计算不变。No DSP, parameter, state, sidechain, A/B, LINK, material-renderer or history-algorithm changes.
+- 两份 18 页手册只在结尾补充 UI 变化。Both 18-page manuals retain all original content with a short final-page UI note.
+- Plan A/B complete; Stable per the project's standing Plan B rule. Automated Windows/real-editor checks pass; no user listening acceptance is claimed. Plan C/D remote verification is pending.
+- Coverage / 版本区间：1.1.8 → 1.1.9; omitted versions / 遗漏：none / 无。
+
 ## 1.1.8 Revision 2 — Clearer Light pointer — STABLE
 
 - 2026-09-07：用户验收并晋升 Stable，Plan B 已完成；上一稳定基线 1.1.7。 / Accepted as Stable with Plan B complete; previous Stable: 1.1.7.

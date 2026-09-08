@@ -11,7 +11,7 @@ editor = (root / "Source" / "PluginEditor.cpp").read_text(encoding="utf-8")
 editor_header = (root / "Source" / "PluginEditor.h").read_text(encoding="utf-8")
 cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
 
-assert "VERSION 1.1.8" in cmake
+assert "VERSION 1.1.9" in cmake
 assert 'keyHpfHz       = "keyHpfHz"' in params
 assert params.index('keyGainDb      = "keyGainDb"') < params.index('keyHpfHz       = "keyHpfHz"')
 assert "keyHpfOffHz = 0.0f" in params
