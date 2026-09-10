@@ -1,0 +1,46 @@
+{
+  "version": "1.2.0",
+  "revision": 4,
+  "production_commit": "ffd804221242fccc60012ccb3cbb9cd1ee627f9e",
+  "method": "Actual production editor snapshot driven by audio through the existing Rev4 shared-code processor; offscreen, no DAW window, no mockup.",
+  "sample_rate": 48000,
+  "block_size": 800,
+  "blocks_per_scenario": 520,
+  "logical_size": [
+    1200,
+    800
+  ],
+  "scale": 2,
+  "single": {
+    "ratio": 0.125,
+    "threshold_db": -50,
+    "range_db": -10
+  },
+  "dual": {
+    "up_ratio": 0.125,
+    "down_ratio": 4,
+    "up_threshold_db": -50,
+    "down_threshold_db": -20,
+    "up_enabled": true,
+    "down_enabled": true
+  },
+  "manual_pdfs_modified": false,
+  "images": [
+    {
+      "path": "rev4-upward.png",
+      "sha256": "F7EA8CB6B540A7010F6DBB3D4AFB6A4BF6A34E8D4376D8A5F99540FC74AB116C",
+      "pixels": [
+        2400,
+        1600
+      ]
+    },
+    {
+      "path": "rev4-dual.png",
+      "sha256": "D94A719245995F66822C83AA931EDD6D59F091004ACC7E3A6FE8A07586839174",
+      "pixels": [
+        2400,
+        1600
+      ]
+    }
+  ]
+}

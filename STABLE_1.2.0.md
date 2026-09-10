@@ -8,8 +8,8 @@ No production code, assets or Windows binary changed during this promotion.
 - Active source: `D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown`.
 - Accepted Windows artifact: `D:\Codex\Outputs\QQ Super Compression 1.2.0 Rev4 Candidate`.
   Its directory name and raw candidate verification records retain their historical status.
-- New formal snapshot: `D:\备份文件\Vibe Coding\QQ Super Compression\源代码\QQ Super Compression 1.2.0 Rev4-PlanB-Stable-20260910`.
-- Completion authority: `D:\Codex\Outputs\QQ Super Compression\1.2.0\Verification-20260910\PlanB\PLAN_B_COMPLETION.json`.
+- New formal snapshot: `D:\备份文件\Vibe Coding\QQ Super Compression\源代码\QQ Super Compression 1.2.0 Rev4-PlanB-Readme-20260910`.
+- Completion authority: `D:\Codex\Outputs\QQ Super Compression\1.2.0\Verification-20260910\PlanB-Readme\PLAN_B_COMPLETION.json`.
   Only a COMPLETE record certifies completion; the source document does not predeclare it.
 - Backup includes full source, assets, documentation, workflows, exact JUCE 8.0.15
   source with notices, accepted Windows bundle and raw validation evidence.
@@ -27,3 +27,9 @@ Windows ZIP SHA256: `5E65F146251411A1E209486F9EE2024A87C0C42C4859867EA2DE30D2CC1
 Plan C publishes the complete source to main and v1.2.0 after the new Plan B.
 Plan D builds Mac artifacts from that tag and verifies all eight Release assets.
 Actual GitHub run and asset evidence belongs to the Release and external records.
+
+The user subsequently requested upward and Dual feature screenshots in README.
+The current snapshot includes fresh Rev4 screenshots and their capture source.
+This documentation-only follow-up is committed after the tested v1.2.0 tag;
+the release tag and all production inputs/binaries/PDFs remain unchanged.
+The earlier completed Stable snapshot is retained without access or modification.

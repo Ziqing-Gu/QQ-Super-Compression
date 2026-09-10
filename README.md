@@ -79,10 +79,25 @@ The Release provides Windows x64 VST3, Mac Apple Silicon / Intel VST3, Universal
 
 旧工程保存的 Ratio 数值保留；Single Ratio 扩展范围会改变旧的归一化自动化映射，升级时请保留工程副本并核对自动化。 / Saved Ratio values remain, but the expanded Single Ratio range changes older normalized automation mapping. Keep project copies and check automation when upgrading.
 
-下图沿用手册插图；Rev4 的独立开关见更新说明。 / Illustrations are retained from the manuals; see release notes for the Rev4 branch switches.
+## 上压与双压 / Upward and Dual processing
 
-![Single upward processing](docs/manuals/images/1.2.0/manual-light-single-up.png)
-![Dual processing](docs/manuals/images/1.2.0/manual-light-dual.png)
+### 上压 / Upward
+
+Single Ratio 设为 1:8，Threshold=-50 dB、Range=-10 dB。橙色输出高于灰色输入，绿色区域显示有效范围内的提升。
+
+Single Ratio is 1:8 with Threshold=-50 dB and Range=-10 dB. The orange output rises above the gray input; green shading shows the boost within the active interval.
+
+![QQ Super Compression 1.2.0 Rev4 upward processing](docs/screenshots/1.2.0/rev4-upward.png)
+
+### 双压 / Dual
+
+Up Ratio=1:8、Down Ratio=4:1；UP 与 DOWN 之间提升，超过 DOWN 后压低。两个 Ratio 旁的独立 ON/OFF 可分别试听每支处理，LINK 保留相对联动。
+
+Up Ratio=1:8 and Down Ratio=4:1: levels between UP and DOWN are boosted; levels above DOWN are reduced. Independent ON/OFF switches beside the two Ratios audition each branch, while LINK retains relative ratio coupling.
+
+![QQ Super Compression 1.2.0 Rev4 Dual processing with branch ON OFF and Ratio LINK](docs/screenshots/1.2.0/rev4-dual.png)
+
+截图来自 Rev4 实际处理器与编辑器，以测试音频驱动。 / Captured from the actual Rev4 processor and editor using test audio.
 
 ## 历史文档：1.1.9 及更早 / Historical documentation: 1.1.9 and earlier
 

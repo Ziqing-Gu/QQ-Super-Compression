@@ -1,0 +1,106 @@
+#include "PluginEditor.h"
+#include <iostream>
+#include <fstream>
+
+// Documentation-only offscreen capture, linked to the validated 1.2.0 Rev4 shared code.
+// No production source is modified and no host/editor window is created.
+struct QQSCVisualCheck
+{
+    static void set(QQSuperCompressionAudioProcessor& p, const char* id, float v)
+    {
+        auto* parameter=p.getAPVTS().getParameter(id);
+        if(!parameter) throw std::runtime_error(id);
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(v));
+    }
+    static void save(QQSuperCompressionAudioProcessorEditor& e, const juce::File& dir,
+                     const juce::String& name, juce::Rectangle<int> area)
+    {
+        if(name!="manual-light-single-up" && name!="manual-light-dual") return;
+        auto image=e.createComponentSnapshot(area,true,2.0f);
+        auto output=dir.getChildFile(name+".png").createOutputStream();
+        if(!output || !output->setPosition(0) || output->truncate().failed()
+            || !juce::PNGImageFormat().writeImageToStream(image,*output))
+            throw std::runtime_error("Capture failed");
+        std::cout<<name<<".png | logical crop "<<area.toString()
+                 <<" | pixels "<<image.getWidth()<<"x"<<image.getHeight()<<"\n";
+    }
+    static int run(const juce::File& dir)
+    {
+        if(dir.createDirectory().failed()) return 3;
+        juce::PropertiesFile::Options options;
+        options.storageFormat=juce::PropertiesFile::storeAsXML;
+        // The override exists before processor/editor construction. The processor
+        // only reads global Lookahead; every capture resets it explicitly below.
+        auto isolatedSettings=std::make_unique<juce::PropertiesFile>
+            (dir.getChildFile("documentation-only.settings"),options);
+        isolatedSettings->setValue("uiTheme","light");
+        isolatedSettings->setValue("landscapeEditorWidth",1200);
+        isolatedSettings->setValue("dualRatioLink",true);
+        QQSuperCompressionAudioProcessor processor;
+        processor.setRateAndBufferSizeDetails(48000,800);
+        processor.prepareToPlay(48000,800);
+        QQSuperCompressionAudioProcessorEditor editor(processor,std::move(isolatedSettings));
+        editor.stopTimer(); editor.display.stopTimer(); editor.setSize(1200,800);
+        editor.theme=qqsc::ui::Theme::light; editor.applyTheme();
+        set(processor,"processingMode",qqsc::params::stereoLinked);
+        set(processor,"compressionMode",qqsc::params::singleCompression);
+        set(processor,"lookaheadMs",26); set(processor,"inputGainDb",0);
+        set(processor,"outputGainDb",0); set(processor,"mix",100);
+        set(processor,"domainLink",0); set(processor,"dualRatioLink",1);
+        juce::AudioBuffer<float> audio(2,800); juce::MidiBuffer midi;
+        auto feed=[&]
+        {
+            editor.timerCallback();
+            for(int frame=0;frame<520;++frame)
+            {
+                for(int i=0;i<800;++i)
+                {
+                    const double t=(frame*800+i)/48000.0;
+                    const double pulse=std::pow(.5+.5*std::sin(t*6.4),2.5);
+                    const double phrase=.4+.6*std::pow(.5+.5*std::sin(t*2.3+.7),1.7);
+                    const float level=static_cast<float>((.008+.26*pulse)*phrase);
+                    audio.setSample(0,i,level*static_cast<float>(std::sin(t*1137)+.3*std::sin(t*2763)));
+                    audio.setSample(1,i,level*static_cast<float>(std::sin(t*1137+.25)+.26*std::sin(t*2701)));
+                }
+                processor.processBlock(audio,midi);
+                editor.display.timerCallback();
+            }
+            editor.timerCallback();
+        };
+        set(processor,"ratio",5); set(processor,"thresholdDb",-28);
+        set(processor,"rangeDb",qqsc::params::rangeOffDb); feed();
+        save(editor,dir,"manual-light-ST",editor.getLocalBounds());
+        save(editor,dir,"manual-light-controls",{16,616,1168,168});
+        save(editor,dir,"manual-light-display",{16,76,1168,536});
+        save(editor,dir,"manual-theme-button",editor.themeButton.getBounds().expanded(10,8));
+        set(processor,"keyGainDb",3); set(processor,"keyHpfHz",100);
+        editor.toggleSidechainPanel(); editor.timerCallback();
+        save(editor,dir,"manual-sidechain-panel",editor.sidechainPanelBounds.expanded(5,5));
+        editor.toggleSidechainPanel(); set(processor,"keyGainDb",0); set(processor,"keyHpfHz",0);
+        set(processor,"ratio",.125f); set(processor,"thresholdDb",-50); set(processor,"rangeDb",-10); feed();
+        save(editor,dir,"manual-light-single-up",editor.getLocalBounds());
+        save(editor,dir,"manual-ratio-single-up",{224,615,218,160});
+        set(processor,"ratio",1); editor.timerCallback();
+        save(editor,dir,"manual-ratio-single-unity",{224,615,218,160});
+        set(processor,"ratio",8); editor.timerCallback();
+        save(editor,dir,"manual-ratio-single-down",{224,615,218,160});
+        set(processor,"compressionMode",qqsc::params::dualCompression);
+        for(int domain=0;domain<5;++domain)
+        {
+            const auto d=static_cast<size_t>(domain);
+            set(processor,qqsc::params::upThresholdIds[d],-50);
+            set(processor,qqsc::params::downThresholdIds[d],-20);
+            set(processor,qqsc::params::upRatioIds[d],.125f);
+            set(processor,qqsc::params::downRatioIds[d],4);
+        }
+        feed(); save(editor,dir,"manual-light-dual",editor.getLocalBounds());
+        processor.releaseResources(); return 0;
+    }
+};
+int main(int argc,char** argv)
+{
+    juce::ScopedJuceInitialiser_GUI init;
+    if(argc!=2)return 2;
+    try{return QQSCVisualCheck::run(juce::File(juce::String::fromUTF8(argv[1])));}
+    catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}
+}
