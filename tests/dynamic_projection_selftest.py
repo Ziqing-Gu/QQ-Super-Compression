@@ -10,13 +10,13 @@ processor = (root / "Source" / "PluginProcessor.cpp").read_text(encoding="utf-8"
 display_h = (root / "Source" / "DynamicDisplay.h").read_text(encoding="utf-8")
 display = (root / "Source" / "DynamicDisplay.cpp").read_text(encoding="utf-8")
 
-assert "VERSION 1.1.9" in cmake
+assert "VERSION 1.2.0" in cmake
 
 # Product-facing GR is Dry/Wet compression depth in the linear gain domain.
 def effective_gr(core_gr_db, wet_mix):
-    compressed_gain = 10.0 ** (-max(0.0, core_gr_db) / 20.0)
+    compressed_gain = 10.0 ** (-core_gr_db / 20.0)
     effective_gain = 1.0 + (compressed_gain - 1.0) * min(1.0, max(0.0, wet_mix))
-    return max(0.0, -20.0 * math.log10(max(effective_gain, 1.0e-9)))
+    return -20.0 * math.log10(max(effective_gain, 1.0e-9))
 
 assert math.isclose(effective_gr(12.0, 0.0), 0.0, abs_tol=1.0e-12)
 assert math.isclose(effective_gr(12.0, 1.0), 12.0, abs_tol=1.0e-9)
@@ -35,8 +35,8 @@ assert "effectiveGrForMeter" in processor
 assert "effectiveGainReductionDb (compressedGain, wetMix)" in processor
 assert "gainReductionDb0.store (effectiveGr0" in processor
 assert "updateGainReductionHoldChannel (0, effectiveGr0" in processor
-assert "GR incl. Mix" in display
-assert "GR (MIX)" in display
+assert "Cut / Mix" in display and "Boost / Mix" in display
+assert "GAIN (MIX)" in display
 
 # The visible history stores raw carrier plus detector evidence and reprojects
 # all prior points with current parameters. Wet is no longer a visible trace.
@@ -44,7 +44,7 @@ for token in (
     "capturedInputGainDb",
     "displayDetectorDb0",
     "projectHistory",
-    "ratioForDomain",
+    "getDynamicsGainForDomain",
     "mixForDomain",
     "gainReductionBoundary",
 ):

@@ -1451,3 +1451,10 @@ Threshold 已经成为主要工作功能之一。固定 `0…-90 dB` 可以让�
 
 若 v1.0.3 Monitor 有问题，完整回滚到 **v1.0.2 Complete Relative LINK Stable**。不要回退或改写 v1.0.2 已确认的 LINK、Threshold、独立 Mix、Transparent Core 或 Display。
 
+---
+
+## 2026-09-07 — v1.1.6 Warm Material Skin (Candidate)
+
+Revisited the original warm concept after inspecting both the rejected 128-frame asset and the v0.9.1 light renderer. The old implementation's dominant outlined rings, flat disk and stepped spill shapes did not recreate the reference's bevel/material hierarchy. Figma had stopped at foundations and is explicitly excluded from this attempt.
+
+Created a separate local candidate based on Stable v1.1.5. Changed only visual rendering/typography and version metadata; retained all layout, control behaviour, Classic theme, last-theme memory and audio/Display semantics. Added actual offscreen JUCE snapshots and an automated baseline-identity check. Material acceptance is not assumed; v1.1.5 remains Stable, and no plugin installation or remote release was performed.

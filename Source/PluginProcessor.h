@@ -10,11 +10,13 @@
 #include "MeterState.h"
 #include "BS1770LoudnessMatch.h"
 
-class QQSuperCompressionAudioProcessor final : public juce::AudioProcessor
+class QQSuperCompressionAudioProcessor final : public juce::AudioProcessor,
+                                                private juce::AudioProcessorValueTreeState::Listener,
+                                                private juce::Timer
 {
 public:
     QQSuperCompressionAudioProcessor();
-    ~QQSuperCompressionAudioProcessor() override = default;
+    ~QQSuperCompressionAudioProcessor() override;
 
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -53,6 +55,16 @@ public:
     // The audio-thread configuration follows from the same APVTS parameters on
     // the next process block.
     void notifyHostProcessingLatency();
+
+    // Canonical pair reads include collision pushes immediately, including host
+    // automation on the audio thread. Domain order: ST, L, R, M, S.
+    float getBoundaryForDomainDb (bool dual, bool upper, int domain) const noexcept;
+    float getDynamicsGainForDomain (float detectorLevel, int domain) const noexcept;
+    // UI-only explicit edit, including when JUCE's raw value has not caught up
+    // with a pushed companion yet. Caller owns the surrounding host gesture.
+    void setBoundaryForDomainDb (bool dual, bool upper, int domain, float value);
+    void initialiseDualRatioLinkPreference (bool enabled);
+
 
     // Headphone-reference audition monitor for the independent LR/MS domains.
     // This is deliberately not an APVTS parameter: it affects only the final
@@ -116,6 +128,17 @@ public:
 
 private:
     struct DisplayKeyHistoryStorage;
+    void parameterChanged (const juce::String&, float) override;
+    void timerCallback() override;
+    void rebuildBoundaryPairs() noexcept;
+    void writeCanonicalBoundariesTo (juce::ValueTree&) const;
+
+    // Packed float pairs allow one atomic transition for both boundaries, with
+    // no allocations, locks or recursive host calls on an automation callback.
+    std::array<std::atomic<uint64_t>, 10> boundaryPairs {};
+    std::atomic<bool> restoringDynamicsState { false };
+    std::atomic<bool> dualRatioLinkPreferenceInitialised { false };
+
 
     struct KeyHighPassCoefficients
     {
@@ -145,11 +168,11 @@ private:
     struct ParameterSnapshot
     {
         float inputGainDb = 0.0f;
-        float ratio = 8.0f;
-        float ratioL = 8.0f;
-        float ratioR = 8.0f;
-        float ratioM = 8.0f;
-        float ratioS = 8.0f;
+        float ratio = 1.0f;
+        float ratioL = 1.0f;
+        float ratioR = 1.0f;
+        float ratioM = 1.0f;
+        float ratioS = 1.0f;
         float thresholdDb = qqsc::params::thresholdOffDb;
         float thresholdLDb = qqsc::params::thresholdOffDb;
         float thresholdRDb = qqsc::params::thresholdOffDb;
@@ -172,9 +195,19 @@ private:
         int keySource = qqsc::params::keyInternal;
         float keyGainDb = 0.0f;
         float keyHpfHz = qqsc::params::keyHpfOffHz;
+        int compressionMode = qqsc::params::singleCompression;
+        std::array<float, 5> range { qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb };
+        std::array<float, 5> upThreshold { -120, -120, -120, -120, -120 };
+        std::array<float, 5> downThreshold { 0, 0, 0, 0, 0 };
+        std::array<float, 5> upRatio { 1, 1, 1, 1, 1 };
+        std::array<float, 5> downRatio { 1, 1, 1, 1, 1 };
+        std::array<bool, 5> upEnabled { true, true, true, true, true };
+        std::array<bool, 5> downEnabled { true, true, true, true, true };
     };
 
     void processBlockInternal (juce::AudioBuffer<float>&, bool forceBypass);
+
+    float effectiveDualRatio (size_t domain, bool upward) const noexcept;
 
     ParameterSnapshot captureCurrentSnapshot() const noexcept;
     void applySnapshot (const ParameterSnapshot&);
@@ -274,6 +307,9 @@ private:
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioRSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioMSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> ratioSSmoother;
+    std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> upRatioSmoothers;
+    std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> downRatioSmoothers;
+    std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> upEnableFades, downEnableFades;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupSTSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupLSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupRSmoother;

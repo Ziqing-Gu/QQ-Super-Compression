@@ -4,6 +4,25 @@
 
 struct QQSCVisualCheck
 {
+    static void revisionThreeChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
+    static void revisionFourChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
+    struct GestureProbe final : juce::AudioProcessorParameter::Listener
+    {
+        explicit GestureProbe(juce::AudioProcessorParameter& parameterIn) : watched(parameterIn) { watched.addListener(this); }
+        ~GestureProbe() override { watched.removeListener(this); }
+        void parameterValueChanged(int,float) override {}
+        void parameterGestureChanged(int,bool starting) override { events.push_back(starting); }
+        juce::AudioProcessorParameter& watched;
+        std::vector<bool> events;
+    };
+    static juce::MouseEvent mouseEvent(juce::Component& component, bool alt=false)
+    {
+        const auto position=component.getLocalBounds().toFloat().getCentre();
+        const auto now=juce::Time::getCurrentTime();
+        return {juce::Desktop::getInstance().getMainMouseSource(),position,
+                juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier | (alt ? juce::ModifierKeys::altModifier : 0)),
+                1.0f,0.0f,0.0f,0.0f,0.0f,&component,&component,now,position,now,1,false};
+    }
     static std::unique_ptr<juce::FileOutputStream> output (const juce::File& file)
     {
         auto stream = file.createOutputStream();
@@ -103,7 +122,9 @@ struct QQSCVisualCheck
             }
             return total / 11.0f;
         };
-        for (int group = 0; group < 3; ++group)
+        // Input/Output keep the previous full-height gradient; the dynamics
+        // meter now has a signed centre-zero scale and is checked separately.
+        for (int group = 0; group < 2; ++group)
         {
             const auto x = juce::roundToInt (firstBarCentre + group * (groupWidth + 4.0f));
             const auto richY = group == 2 ? barTop + fillHeight * 0.10f : barBottom - fillHeight * 0.10f;
@@ -111,7 +132,317 @@ struct QQSCVisualCheck
             if (luminance (x, paleY) - luminance (x, richY) < 0.12f)
                 throw std::runtime_error ("Meter vertical tonal contrast missing");
         }
-        std::cout << "PASS: actual gray/orange/cyan meters have vertical depth; GR lighting is mirrored.\n";
+        std::cout << "PASS: actual Input/Output meters retain vertical depth.\n";
+    }
+
+    static void upDownChecks (QQSuperCompressionAudioProcessorEditor& editor,
+                              QQSuperCompressionAudioProcessor& processor, const juce::File& dir)
+    {
+        // Drive the REAL visible Ratio sliders, then measure actual processBlock
+        // output. This catches attachment/parameter/DSP mismatches that setting
+        // APVTS parameters directly in a DSP-only test cannot catch.
+        parameter(processor,"compressionMode",1); parameter(processor,"processingMode",0);
+        parameter(processor,"domainLink",0); parameter(processor,"lookaheadMs",26);
+        parameter(processor,"dualRatioLink",0);
+        parameter(processor,"inputGainDb",0); parameter(processor,"outputGainDb",0);
+        parameter(processor,"makeupGainDb",0); parameter(processor,"mix",100); parameter(processor,"keySource",0);
+        processor.setBoundaryForDomainDb(true,false,0,-50);
+        processor.setBoundaryForDomainDb(true,true,0,-30);
+        editor.timerCallback();
+        constexpr double probeRate=48000.0, probeFrequency=400.0, probeAmplitude=0.01;
+        int64_t probeSample=0;
+        double previousLift=-1;
+        for(const double wantedRatio : {1.0,0.125,1.0/32.0})
+        {
+            editor.ratioSlider.setValue(wantedRatio,juce::sendNotificationSync);
+            const auto actualParameter=processor.getAPVTS().getRawParameterValue("upRatio")->load();
+            if(std::abs(actualParameter-wantedRatio)>1e-6)
+                throw std::runtime_error("UP knob writes the wrong DSP parameter/value");
+            double outputPower=0,dryPower=0;
+            for(int block=0;block<40;++block)
+            {
+                juce::AudioBuffer<float> audio(2,800); juce::MidiBuffer midi;
+                for(int i=0;i<800;++i)
+                {
+                    const auto value=static_cast<float>(probeAmplitude*std::sin(juce::MathConstants<double>::twoPi*probeFrequency*(probeSample+i)/probeRate));
+                    audio.setSample(0,i,value); audio.setSample(1,i,value);
+                }
+                processor.processBlock(audio,midi);
+                if(block==39)
+                    for(int i=0;i<800;++i)
+                    {
+                        const double dry=probeAmplitude*std::sin(juce::MathConstants<double>::twoPi*probeFrequency*(probeSample+i-processor.getLatencySamples())/probeRate);
+                        outputPower+=static_cast<double>(audio.getSample(0,i))*audio.getSample(0,i); dryPower+=dry*dry;
+                    }
+                probeSample+=800;
+            }
+            const auto lift=10.0*std::log10(outputPower/dryPower);
+            if(lift<=previousLift+0.1 || (wantedRatio==1.0 && std::abs(lift)>0.001))
+                throw std::runtime_error("Actual UP knob does not progressively raise eligible audio");
+            previousLift=lift;
+            const auto expected=20.0*std::log10(1.0/(wantedRatio+(1.0-wantedRatio)*std::pow(10.0,-10.0/20.0)));
+            if(std::abs(lift-expected)>0.01) throw std::runtime_error("UP knob output does not match displayed Ratio value");
+            std::cout<<"PASS: real UP knob "<<wantedRatio<<" -> upRatio="<<actualParameter<<" -> actual lift "<<lift<<" dB (-40dB signal, UP -50dB, DOWN -30dB).\n";
+        }
+        const char* upwardIds[]={"upRatio","upRatioL","upRatioR","upRatioM","upRatioS"};
+        const char* downwardIds[]={"downRatio","downRatioL","downRatioR","downRatioM","downRatioS"};
+        for(int domain=0;domain<5;++domain)
+        {
+            parameter(processor,"processingMode",static_cast<float>(domain==0 ? 0 : domain<3 ? 2 : 1)); editor.timerCallback();
+            editor.mainRatioControls()[static_cast<size_t>(domain)]->setValue(0.25,juce::sendNotificationSync);
+            editor.downRatioSliders[static_cast<size_t>(domain)]->setValue(12,juce::sendNotificationSync);
+            if(std::abs(processor.getAPVTS().getRawParameterValue(upwardIds[domain])->load()-0.25f)>1e-6f
+               || std::abs(processor.getAPVTS().getRawParameterValue(downwardIds[domain])->load()-12.0f)>1e-5f)
+                throw std::runtime_error("Domain ratio knob is attached to wrong parameter");
+        }
+        std::cout<<"PASS: all ST/LR/MS Up/Down knob-to-parameter bindings.\n";
+        parameter(processor,"domainLink",0); parameter(processor,"processingMode",0);
+        for(int startingMode : {0,1})
+        {
+            parameter(processor,"compressionMode",static_cast<float>(startingMode)); editor.timerCallback();
+            GestureProbe oldParameter(*processor.getAPVTS().getParameter(startingMode==0 ? "ratio" : "upRatio"));
+            GestureProbe newParameter(*processor.getAPVTS().getParameter(startingMode==0 ? "upRatio" : "ratio"));
+            const auto event=mouseEvent(editor.ratioSlider);
+            editor.ratioSlider.mouseDown(event);
+            parameter(processor,"compressionMode",static_cast<float>(1-startingMode)); editor.timerCallback();
+            editor.ratioSlider.mouseUp(event);
+            if(oldParameter.events!=std::vector<bool>{true,false} || !newParameter.events.empty())
+                throw std::runtime_error("Host mode change during Ratio drag leaves unmatched parameter gestures");
+        }
+        parameter(processor,"compressionMode",1); parameter(processor,"processingMode",2);
+        parameter(processor,"domainLink",1); editor.timerCallback();
+        for(bool upward : {true,false})
+        {
+            auto* source=upward ? editor.mainRatioControls()[1] : editor.downRatioSliders[1].get();
+            const char* sourceId=upward ? "upRatioL" : "downRatioL";
+            const char* targetId=upward ? "upRatioR" : "downRatioR";
+            parameter(processor,sourceId,upward ? 0.125f : 8.0f);
+            parameter(processor,targetId,upward ? 0.25f : 10.0f); editor.timerCallback();
+            GestureProbe sourceGesture(*processor.getAPVTS().getParameter(sourceId));
+            GestureProbe targetGesture(*processor.getAPVTS().getParameter(targetId));
+            bool committed=false;
+            for(auto* child : source->getChildren())
+                if(auto* label=dynamic_cast<juce::Label*>(child))
+                {
+                    label->showEditor();
+                    if(auto* input=label->getCurrentTextEditor())
+                    {
+                        input->setText(upward ? "1:4" : "12:1");
+                        label->hideEditor(false); committed=true;
+                    }
+                    break;
+                }
+            const float expectedTarget=upward ? 0.375f : 14.0f;
+            if(!committed || sourceGesture.events!=std::vector<bool>{true,false}
+               || targetGesture.events!=std::vector<bool>{true,false}
+               || std::abs(processor.getAPVTS().getRawParameterValue(targetId)->load()-expectedTarget)>1e-5f)
+                throw std::runtime_error("Linked Ratio text commit failed to record both host gestures/relative values");
+        }
+        parameter(processor,"domainLink",0);
+        std::cout<<"PASS: mode switch during real Ratio drag closes old host gesture; linked Up/Down numeric edits record both parameters.\n";
+        // Deliberately leave audio metering in ST, as when playback is stopped.
+        // Boundary geometry must immediately follow the requested editor mode.
+        processor.getMeterState().processingMode.store(0);
+        for(int mode : {0,2,1})
+        for(float trim : {0.0f,6.0f,-9.0f})
+        {
+            parameter(processor,"processingMode",static_cast<float>(mode));
+            parameter(processor,"inputGainDb",trim); editor.timerCallback();
+            const int first=mode==0 ? 0 : mode==2 ? 1 : 3;
+            const int last=mode==0 ? 0 : first+1;
+            for(int domain=first;domain<=last;++domain)
+            {
+                processor.setBoundaryForDomainDb(true,true,domain,-12);
+                processor.setBoundaryForDomainDb(true,false,domain,-60);
+                editor.timerCallback();
+                for(bool upper : {false,true})
+                {
+                    auto* slider=upper ? editor.upperBoundarySliders[static_cast<size_t>(domain)].get()
+                                       : editor.lowerBoundaryControls()[static_cast<size_t>(domain)];
+                    const float thumbY=static_cast<float>(slider->getY())+slider->getBoundaryThumbY();
+                    const float lineY=static_cast<float>(editor.display.getY())+editor.display.getBoundaryYForDomainDb(domain,static_cast<float>(slider->getValue()));
+                    if(std::abs(thumbY-lineY)>0.001f) throw std::runtime_error("Fader thumb and Display line are vertically misaligned");
+                    const auto track=slider->boundaryPlotBounds();
+                    const auto plot=editor.display.getBoundaryPlotForDomain(domain);
+                    if(std::abs(track.getHeight()-plot.getHeight())>0.001f)
+                        throw std::runtime_error("Fader rail does not span full Display plot");
+                    const auto previousValue=slider->getValue();
+                    const auto event=mouseEvent(*slider);
+                    slider->mouseDown(event); slider->mouseUp(event);
+                    if(slider->getSliderSnapsToMousePosition() || std::abs(slider->getValue()-previousValue)>0.001)
+                        throw std::runtime_error("Native mouseDown jumps the aligned boundary fader");
+                }
+            }
+            if(mode!=0 && editor.display.getBoundaryPlotForDomain(first).getY()>=editor.display.getBoundaryPlotForDomain(last).getY())
+                throw std::runtime_error("Stopped LR/MS mode retains stale single-plot geometry");
+        }
+        parameter(processor,"inputGainDb",0);
+        if(editor.compressionModeButton.getBounds()!=juce::Rectangle<int>(380,620,60,21))
+            throw std::runtime_error("Single/Dual switch not at requested bottom-panel location");
+        std::cout<<"PASS: full-length rail/thumb-to-Display alignment in ST/LR/MS with input trim, including stopped mode changes.\n";
+        parameter(processor,"domainLink",0);
+        const auto boundaryControls=editor.lowerBoundaryControls();
+        for(int compression=0;compression<2;++compression)
+        {
+            parameter(processor,"compressionMode",static_cast<float>(compression)); editor.timerCallback();
+            for(int domain=0;domain<5;++domain)
+            {
+                const int channelMode=domain==0 ? 0 : domain<3 ? 2 : 1;
+                parameter(processor,"processingMode",static_cast<float>(channelMode)); editor.timerCallback();
+                processor.setBoundaryForDomainDb(compression==1,false,domain,-40);
+                processor.setBoundaryForDomainDb(compression==1,true,domain,-20);
+                editor.timerCallback();
+                editor.beginBoundaryGesture(domain,false);
+                boundaryControls[static_cast<size_t>(domain)]->setValue(-10,juce::sendNotificationSync);
+                editor.endLinkedGesture();
+                if(std::abs(editor.upperBoundarySliders[static_cast<size_t>(domain)]->getValue()+10)>0.01
+                   ||std::abs(processor.getBoundaryForDomainDb(compression==1,true,domain)+10)>0.01f)
+                    throw std::runtime_error("Actual lower fader did not push upper fader");
+                editor.beginBoundaryGesture(domain,false);
+                boundaryControls[static_cast<size_t>(domain)]->setValue(-40,juce::sendNotificationSync);
+                editor.endLinkedGesture();
+                editor.beginBoundaryGesture(domain,true);
+                editor.upperBoundarySliders[static_cast<size_t>(domain)]->setValue(-60,juce::sendNotificationSync);
+                editor.endLinkedGesture();
+                if(std::abs(boundaryControls[static_cast<size_t>(domain)]->getValue()+60)>0.01
+                   ||std::abs(processor.getBoundaryForDomainDb(compression==1,false,domain)+60)>0.01f)
+                    throw std::runtime_error("Actual upper fader did not push lower fader");
+            }
+        }
+        parameter(processor,"processingMode",0); parameter(processor,"compressionMode",0); editor.timerCallback();
+        if(std::abs(editor.ratioSlider.getMinimum()-1.0/32.0)>1e-6 || editor.ratioSlider.getMaximum()!=32)
+            throw std::runtime_error("Single Ratio must span 1/32 to 32");
+        if(editor.downRatioSliders[0]->isVisible()) throw std::runtime_error("Single shows two ratios");
+        editor.compressionModeButton.onClick(); editor.timerCallback();
+        if(std::abs(editor.ratioSlider.getMinimum()-1.0/32.0)>1e-6 || editor.ratioSlider.getMaximum()!=1
+           || editor.downRatioSliders[0]->getMinimum()!=1 || editor.downRatioSliders[0]->getMaximum()!=32)
+            throw std::runtime_error("Dual Ratio ranges must be UP 1/32..1, DOWN 1..32");
+        if(!editor.downRatioSliders[0]->isVisible() || editor.compressionModeButton.getWidth()>64
+           ||editor.ratioSlider.getWidth()>70 || editor.downRatioSliders[0]->getWidth()>70)
+            throw std::runtime_error("Dual compact controls contract failed");
+        if(editor.upRatioNames[0].getText()!="UP RATIO" || editor.downRatioNames[0].getText()!="DOWN RATIO")
+            throw std::runtime_error("Dual ratio labels unclear");
+        const auto fractional=editor.ratioSlider.valueFromTextFunction("1/16");
+        editor.ratioSlider.setValue(fractional,juce::sendNotificationSync);
+        if(std::abs(processor.getAPVTS().getRawParameterValue("upRatio")->load()-0.0625f)>0.0001f)
+            throw std::runtime_error("Reciprocal numeric entry failed after mode reattachment");
+        editor.compressionModeButton.onClick(); editor.timerCallback();
+        if(editor.downRatioSliders[0]->isVisible()) throw std::runtime_error("Dual to Single leaves second ratio visible");
+        std::cout<<"PASS: actual ten-pair fader collision gestures, compact toggle, two smaller labelled ratios, reciprocal entry.\n";
+        parameter (processor, "inputGainDb", 0.0f);
+        parameter (processor, "outputGainDb", 0.0f);
+        parameter (processor, "makeupGainDb", 0.0f);
+        parameter (processor, "mix", 100.0f);
+        const char* thresholds[] {"thresholdDb","thresholdLDb","thresholdRDb","thresholdMDb","thresholdSDb"};
+        const char* ranges[] {"rangeDb","rangeLDb","rangeRDb","rangeMDb","rangeSDb"};
+        const char* upThresholds[] {"upThresholdDb","upThresholdLDb","upThresholdRDb","upThresholdMDb","upThresholdSDb"};
+        const char* downThresholds[] {"downThresholdDb","downThresholdLDb","downThresholdRDb","downThresholdMDb","downThresholdSDb"};
+        const char* upRatios[] {"upRatio","upRatioL","upRatioR","upRatioM","upRatioS"};
+        const char* downRatios[] {"downRatio","downRatioL","downRatioR","downRatioM","downRatioS"};
+        const char* ratios[] {"ratio","ratioL","ratioR","ratioM","ratioS"};
+        for (int i=0;i<5;++i)
+        {
+            parameter(processor, thresholds[i], -45.0f); parameter(processor, ranges[i], -8.0f);
+            parameter(processor, upThresholds[i], -24.0f); parameter(processor, downThresholds[i], -12.0f);
+            parameter(processor, upRatios[i], 0.125f); parameter(processor, downRatios[i], 8.0f);
+            parameter(processor, ratios[i], 0.125f);
+        }
+        const auto fillSyntheticHistory = [&]
+        {
+            for (auto& history : editor.display.histories)
+            {
+                history.points.clear();
+                for(int i=0;i<480;++i)
+                {
+                    DynamicDisplay::HistoryPoint point;
+                    point.inputDb = -26.0f + 23.0f*std::sin(i*0.033f) + 2.0f*std::sin(i*0.14f);
+                    point.detectorDb = point.inputDb;
+                    history.points.push_back(point);
+                }
+            }
+        };
+        for (int compression=0;compression<2;++compression)
+        {
+            parameter(processor,"compressionMode",static_cast<float>(compression));
+            for(int domainMode : {0,1,2})
+            {
+                parameter(processor,"processingMode",static_cast<float>(domainMode));
+                processor.getMeterState().processingMode.store(domainMode);
+                editor.timerCallback(); editor.display.timerCallback(); fillSyntheticHistory();
+                editor.display.refreshRenderCaches(domainMode);
+                bool hasBoost=false, hasCut=false;
+                for(const auto value : editor.display.renderCaches[0].projected.effectiveGainReduction)
+                { hasBoost=hasBoost || value < -0.01f; hasCut=hasCut || value > 0.01f; }
+                if(!hasBoost || (compression==0 && hasCut) || (compression==1 && !hasCut))
+                    throw std::runtime_error("Wrong sign branches in synthetic Display projection");
+                if(editor.display.renderCaches[0].projected.size!=480
+                   || (domainMode!=0 && editor.display.renderCaches[1].projected.size!=480))
+                    throw std::runtime_error("Display history budget changed");
+                for(auto theme : {qqsc::ui::Theme::light,qqsc::ui::Theme::dark,qqsc::ui::Theme::classic})
+                {
+                    editor.theme=theme; editor.applyTheme(); editor.setSize(1200,800);
+                    const juce::String skin=theme==qqsc::ui::Theme::light ? "light" : theme==qqsc::ui::Theme::dark ? "dark" : "classic";
+                    const juce::String name=skin+"-"+(compression==0 ? "single-up" : "dual")+"-"+qqsc::params::modeName(domainMode);
+                    snapshot(editor,dir.getChildFile(name+".png"));
+                    auto out=output(dir.getChildFile(name+"-bounds.txt")); bounds(editor.contentRoot,*out,"root");
+                    editor.setSize(1008,672); snapshot(editor,dir.getChildFile(name+"-minimum.png"));
+                }
+            }
+        }
+        // Exercise the real cached Display with changing parameters and software
+        // rasterization; both modes use the same history and pixel dimensions.
+        editor.setSize(1200,800); editor.theme=qqsc::ui::Theme::dark; editor.applyTheme();
+        parameter(processor,"processingMode",2); processor.getMeterState().processingMode.store(2); editor.timerCallback();
+        juce::Image buffer(juce::Image::RGB,editor.display.getWidth(),editor.display.getHeight(),true,juce::SoftwareImageType());
+        auto timings=output(dir.getChildFile("display-performance-1.2.0.txt"));
+        for(int compression=0;compression<2;++compression)
+        {
+            parameter(processor,"compressionMode",static_cast<float>(compression));
+            editor.timerCallback(); editor.display.timerCallback(); fillSyntheticHistory();
+            std::vector<double> samples;
+            for(int frame=0;frame<240;++frame)
+            {
+                const float db=-40.0f+10.0f*std::sin(frame*0.1f);
+                parameter(processor, compression==0 ? "thresholdLDb" : "upThresholdLDb",db);
+                const auto start=juce::Time::getMillisecondCounterHiRes();
+                editor.display.refreshRenderCaches(2);
+                {juce::Graphics g(buffer); editor.display.paint(g);}
+                samples.push_back(juce::Time::getMillisecondCounterHiRes()-start);
+            }
+            std::sort(samples.begin(),samples.end());
+            const auto line=juce::String(compression==0 ? "Single" : "Dual")+" LR cache+software-paint, median "+juce::String(samples[120],3)+" ms; p95 "+juce::String(samples[228],3)+" ms\n";
+            timings->writeText(line,false,false,"\n"); std::cout<<line;
+        }
+        parameter(processor,"processingMode",0); parameter(processor,"compressionMode",1);
+        processor.getMeterState().processingMode.store(0);
+        parameter(processor,"upThresholdDb",-20); parameter(processor,"downThresholdDb",-20);
+        editor.timerCallback(); editor.display.timerCallback(); fillSyntheticHistory(); editor.display.refreshRenderCaches(0);
+        for(size_t i=0;i<editor.display.renderCaches[0].projected.size;++i)
+            if(std::abs(editor.display.renderCaches[0].projected.effectiveGainReduction[i])>1e-5f)
+                throw std::runtime_error("Collapsed dual Display still shows dynamic gain");
+        snapshot(editor,dir.getChildFile("dark-dual-collapsed.png"));
+        auto& meters=processor.getMeterState();
+        meters.gainReductionDb0.store(-12); meters.gainReductionDb1.store(12);
+        meters.gainReductionHoldDb0.store(-16); meters.gainReductionHoldDb1.store(16);
+        snapshot(editor,dir.getChildFile("dark-signed-meter.png"));
+        editor.theme=qqsc::ui::Theme::light; editor.applyTheme();
+        for(bool dual : {true,false})
+        {
+            parameter(processor,"compressionMode",dual ? 1.0f : 0.0f); editor.timerCallback();
+            processor.setBoundaryForDomainDb(dual,false,0,-30);
+            processor.setBoundaryForDomainDb(dual,true,0,-6); editor.timerCallback();
+            for(auto* slider : {editor.lowerBoundaryControls()[0],editor.upperBoundarySliders[0].get()})
+            {
+                const auto alt=mouseEvent(*slider,true); slider->mouseDown(alt); slider->mouseUp(alt);
+            }
+            editor.timerCallback(); editor.display.timerCallback(); fillSyntheticHistory(); editor.display.refreshRenderCaches(0);
+            if(processor.getBoundaryForDomainDb(dual,false,0)!=qqsc::params::thresholdOffDb
+               || processor.getBoundaryForDomainDb(dual,true,0)!=(dual ? 0.0f : qqsc::params::rangeOffDb))
+                throw std::runtime_error("Alt reset does not restore Dual -inf/0 or Single RangeOFF");
+            snapshot(editor,dir.getChildFile(dual ? "light-dual-default-boundaries.png" : "light-single-range-off.png"));
+        }
+        std::cout<<"PASS: actual Alt resets restore Dual -inf/0 and Single RangeOFF.\n";
+        std::cout<<"PASS: single/dual three themes, ST/MS/LR and minimum size; collapsed projection and signed meter snapshots.\n";
     }
 
     static void darkCheck (QQSuperCompressionAudioProcessorEditor& editor,
@@ -439,11 +770,17 @@ struct QQSCVisualCheck
         if (! juce::PNGImageFormat().writeImageToStream (details, *detailStream)) return 3;
         meterGradientCheck (editor, processor, dir);
         darkCheck (editor, processor, dir);
+        upDownChecks (editor, processor, dir);
+        revisionThreeChecks (editor, processor, dir);
+        revisionFourChecks (editor, processor, dir);
         processor.releaseResources();
         std::cout << "PASS: actual editor offscreen snapshots; user preferences not written.\n";
         return 0;
     }
 };
+
+#include "ratio_revision3_checks.h"
+#include "branch_revision4_visual_checks.h"
 
 int main (int argc, char** argv)
 {

@@ -1,5 +1,20 @@
 # QQ Super Compression UI Design Notes
 
+## v1.1.6 Revision 2 — Accepted Interactive Material
+
+Use the exact accepted raster material compositor from the real JUCE study. The fixed body/shadow and movable pointer/emission are separate; normalized 0% emits no light, 10% lights the first tenth, 50% the left half, and 100% all effective travel. The original shallow-disc renderer below was rejected and must not be restored.
+
+LIGHT meters and Display share gray Input, orange Output and cyan-blue GR, including legends and relevant colored readouts. Meter wells are pale ivory with fine segments. Classic colors/rendering, complete widget geometry, parameter/gesture behavior, theme memory, DSP and Display algorithms are unchanged. Material assets are embedded; changed knobs alone recompose their frame, with bounded per-editor caches.
+
+## v1.1.6 Revision 1 — Warm Material Skin Candidate — REJECTED / HISTORICAL
+
+The user explicitly reopened the original warm-concept direction on 2026-09-07, but forbids layout/function changes and excludes Figma. Existing 1020x820 bounds, domain controls, popup, visibility, theme toggle and continuous interaction remain authoritative.
+
+Use one cached static satin-metal body/bevel/shadow image with live vector arc and inlaid index. This supersedes the rejected 128-frame approach without reactivating its assets. Lighting stays fixed in world space; the pointer never disappears at min/max; numbers stay editable. Main changes are restrained orange/cyan illumination, champagne/ivory surfaces, inset values, ceramic buttons and meter texture. Classic is preserved.
+
+Check actual JUCE output at default/minimum/maximum sizes, ST/LR/MS, sidechain enabled/disabled, edit/focus state and theme switch. A pretty concept or component sheet alone is not visual acceptance. Maintain the v1.1.5 opaque/cached Display and do not add full-surface blur or depth-dependent history effects.
+
+
 ## v1.1.2 Plan A candidate - Mix-aware Dynamic Display
 
 - Keep the approved 1020x820 layout, Display/Meter geometry, Side Chain popup, and both themes unchanged.

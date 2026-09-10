@@ -174,8 +174,10 @@ public:
         return juce::LookAndFeel_V4::getTypefaceForFont (font);
     }
 
-    juce::Font getTextButtonFont (juce::TextButton&, int buttonHeight) override
+    juce::Font getTextButtonFont (juce::TextButton& button, int buttonHeight) override
     {
+        if (static_cast<bool> (button.getProperties().getWithDefault ("qqscSmallLink", false)))
+            return juce::Font (juce::FontOptions (buttonHeight <= 14 ? 8.0f : 9.0f, juce::Font::plain));
         return juce::Font (juce::FontOptions (juce::jlimit (10.0f, 13.0f, buttonHeight * 0.38f), juce::Font::plain));
     }
 
@@ -216,8 +218,11 @@ public:
                                rotaryStartAngle, rotaryEndAngle, true);
 
         juce::Path valueArc;
+        const auto lightOrigin = knob_light::origin (slider);
+        const auto arcBegin = rotaryStartAngle + juce::jmin (lightOrigin, sliderPosProportional) * (rotaryEndAngle - rotaryStartAngle);
+        const auto arcEnd = rotaryStartAngle + juce::jmax (lightOrigin, sliderPosProportional) * (rotaryEndAngle - rotaryStartAngle);
         valueArc.addCentredArc (centre.x, centre.y, radius, radius, 0.0f,
-                                rotaryStartAngle, angle, true);
+                                arcBegin, arcEnd, true);
 
         if (ui::isClassicTheme())
         {

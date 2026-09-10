@@ -1,0 +1,334 @@
+{
+  "Version": "1.2.0 Rev3 Stable",
+  "CaptureMethod": "Production editor createComponentSnapshot at scale2; offscreen; no GUI windows",
+  "CaptureDriver": "D:\\Codex\\Workspaces\\QQSCManualCapture120\\manual_capture.cpp",
+  "ProductionSource": "D:\\Codex\\Workspaces\\QQSuperCompression-1.2.0-UpDown",
+  "SharedLibrary": "D:\\Codex\\Temp\\QQSuperCompression-1.2.0-UpDown\\QQSuperCompression_artefacts\\Release\\QQ Super Compression_SharedCode.lib",
+  "SharedLibrarySHA256": "C777820092F623E914E0C5C179CCEDCA4FC2004D98EACE14A69236D4E97DE906",
+  "ProductionPluginSHA256": "9AC4E801390563AE082B91CE6CE475F8D5F2F2BD44BA6EDA6DB7CB8687218642",
+  "LogicalSize": [
+    1200,
+    800
+  ],
+  "SampleRate": 48000,
+  "BlockSize": 800,
+  "BlocksPerAudioScenario": 520,
+  "Settings": "Dedicated documentation-only.settings injected before editor construction; processor global Lookahead read only then explicitly set26ms",
+  "Images": [
+    {
+      "File": "manual-light-ST.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 480916,
+      "SHA256": "B0C07A083EE4B321A23239110C8184AEFFC28154C1F6805BD1C10A35865C0CA2"
+    },
+    {
+      "File": "manual-light-controls.png",
+      "LogicalCropXYWH": [
+        16,
+        616,
+        1168,
+        168
+      ],
+      "PixelsWH": [
+        2336,
+        336
+      ],
+      "Bytes": 219101,
+      "SHA256": "41F7E38948955B7BC87430ACE512EB98989114C03A5DF2D944D194B1D3D441AF"
+    },
+    {
+      "File": "manual-light-display.png",
+      "LogicalCropXYWH": [
+        16,
+        76,
+        1168,
+        536
+      ],
+      "PixelsWH": [
+        2336,
+        1072
+      ],
+      "Bytes": 201450,
+      "SHA256": "3BDF619E8EA625290C76E626C4DED43EED27D3C72331F8A8A5BFE7356B263BB7"
+    },
+    {
+      "File": "manual-theme-button.png",
+      "LogicalCropXYWH": [
+        774,
+        12,
+        96,
+        46
+      ],
+      "PixelsWH": [
+        192,
+        92
+      ],
+      "Bytes": 4870,
+      "SHA256": "86D794A0B658ECC225285EFD4CB2566B48928A954330144AD00BDEDDFE6CBEFD"
+    },
+    {
+      "File": "manual-sidechain-panel.png",
+      "LogicalCropXYWH": [
+        443,
+        53,
+        340,
+        156
+      ],
+      "PixelsWH": [
+        680,
+        312
+      ],
+      "Bytes": 121179,
+      "SHA256": "87F5B4BD920BE87C554110061987897C65F49F6477FE57C72FEB57A3E80113CE"
+    },
+    {
+      "File": "manual-light-single-up.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 509337,
+      "SHA256": "57DD1CEF824CCC41AF3507080B4E5C6F8B392F9DD92CAAF01B707C65E8C56F46"
+    },
+    {
+      "File": "manual-ratio-single-up.png",
+      "LogicalCropXYWH": [
+        224,
+        615,
+        218,
+        160
+      ],
+      "PixelsWH": [
+        436,
+        320
+      ],
+      "Bytes": 66348,
+      "SHA256": "1462ABB3A542C8980537AB7CCECDBD01DA50B5ACB6AC28149CAA27855AB1298D"
+    },
+    {
+      "File": "manual-ratio-single-unity.png",
+      "LogicalCropXYWH": [
+        224,
+        615,
+        218,
+        160
+      ],
+      "PixelsWH": [
+        436,
+        320
+      ],
+      "Bytes": 64787,
+      "SHA256": "5BC88E0DD6ACF69045C702F3927A5DD25F135234D3588BCB692ABEDA113EAB52"
+    },
+    {
+      "File": "manual-ratio-single-down.png",
+      "LogicalCropXYWH": [
+        224,
+        615,
+        218,
+        160
+      ],
+      "PixelsWH": [
+        436,
+        320
+      ],
+      "Bytes": 65922,
+      "SHA256": "A3DFBFB560B5BFB0FCC1B9C8579AEC69255C568120AE026ADBCA8905FB1F1ECD"
+    },
+    {
+      "File": "manual-light-dual.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 527056,
+      "SHA256": "0355FA719E008262D07AD8A4845E6AAC918537899EC7E9B3F721616FF26C08F1"
+    },
+    {
+      "File": "manual-light-dual-controls.png",
+      "LogicalCropXYWH": [
+        188,
+        615,
+        256,
+        164
+      ],
+      "PixelsWH": [
+        512,
+        328
+      ],
+      "Bytes": 75710,
+      "SHA256": "66B30D8D960F5DC76677C7AC36E2EC03F541F586E7B8B8C3BB800D3DBCF41A30"
+    },
+    {
+      "File": "manual-ratio-dual-lights.png",
+      "LogicalCropXYWH": [
+        188,
+        615,
+        256,
+        164
+      ],
+      "PixelsWH": [
+        512,
+        328
+      ],
+      "Bytes": 76069,
+      "SHA256": "DC46446348F37D4705630FCD7C5CEA56EC72E5BC1D2B45E5C35250F478A4A523"
+    },
+    {
+      "File": "manual-light-dual-LR.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 621884,
+      "SHA256": "6A55BCF205FD528146AFCC24971DBF9772DC8177DD09C5418965864632ADF976"
+    },
+    {
+      "File": "manual-light-dual-MS.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 660569,
+      "SHA256": "38C959F7B7E79B3AF3E3A186F2B270DBE76E7621C079565D78934CACFCD4875C"
+    },
+    {
+      "File": "manual-light-LR.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 556046,
+      "SHA256": "64492A22219A1ED916C2D9995CBDED5DD8F2C77ED346B00E5A1FE1ABD5D5083D"
+    },
+    {
+      "File": "manual-light-LR-link.png",
+      "LogicalCropXYWH": [
+        16,
+        616,
+        1168,
+        168
+      ],
+      "PixelsWH": [
+        2336,
+        336
+      ],
+      "Bytes": 282584,
+      "SHA256": "028404DCBC60FC1BE6B91BF49413D49040EAC052B92128A00D6038C88CCBA2FE"
+    },
+    {
+      "File": "manual-light-MS.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 575783,
+      "SHA256": "EB42613084AE6E0C3F32D319A642D0A7F00B12CBE15B723229128CB7A5BDF854"
+    },
+    {
+      "File": "manual-light-0ms.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 486157,
+      "SHA256": "004A0C490CA31C4BC84FB7C3A436647CBDB9E7E2EF1F198BCFFCBC68BB6E9943"
+    },
+    {
+      "File": "manual-light-0ms-controls.png",
+      "LogicalCropXYWH": [
+        1008,
+        616,
+        176,
+        170
+      ],
+      "PixelsWH": [
+        352,
+        340
+      ],
+      "Bytes": 20819,
+      "SHA256": "DF488F2B332B72BF09ACA0ACB3F2D7D6234A98F0CB161A8B2FA0AF8481B15B92"
+    },
+    {
+      "File": "manual-dark.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 833824,
+      "SHA256": "9B6C8D0C0F844334F72ABF18D025D819BA41D658D75BCC232978F281EED52783"
+    },
+    {
+      "File": "manual-classic.png",
+      "LogicalCropXYWH": [
+        0,
+        0,
+        1200,
+        800
+      ],
+      "PixelsWH": [
+        2400,
+        1600
+      ],
+      "Bytes": 217127,
+      "SHA256": "5479495DA2985B4BA35C85FEDDF6019DB8C181E4A8922936AAE9AEB7C5E87BE6"
+    }
+  ]
+}

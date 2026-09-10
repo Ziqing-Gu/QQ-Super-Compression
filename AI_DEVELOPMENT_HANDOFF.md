@@ -1,36 +1,218 @@
+# Current checkpoint: 1.2.0 Rev4 Stable — 2026-09-10
+
+Rev4 supersedes the historical checkpoint below. See [STABLE_1.2.0.md](STABLE_1.2.0.md) and [VERIFICATION_REV4_1.2.0.md](VERIFICATION_REV4_1.2.0.md). The user authorized B, then C and D with the completed 23-page PDFs retained unchanged. Current production schema is 14.
+
+---
+
+# Current Stable — 1.2.0 Rev3 (schema13)
+
+## Chinese manual review after Plan B — 2026-09-10
+
+Chinese 1.2.0 manual updated to 23 pages in the active workspace, preserving the
+approved visual and writing style; awaiting the user's Chinese approval before
+any English revision. See `docs/manuals/source/REVIEW_1.2.0_ZH.md` for delivery,
+source, capture provenance and QA. Frozen Plan B remains the pre-manual checkpoint.
+The user requested removal of the Ratio lighting-direction chapter; it is removed
+and the remaining contents, page numbers and references are updated.
+The Stable audio/UI binary is unchanged. Earlier "manual deferred" statements
+below describe that completed Plan B checkpoint, not the current manual draft.
+
+## Stable promotion and frozen Plan B checkpoint
+
+2026-09-10: User accepted Rev3 and explicitly promoted it to Stable. Reuse the
+verified Windows build; promotion changes release records only. Formal Plan B:
+`D:\备份文件\Vibe Coding\QQ Super Compression\源代码\QQ Super Compression 1.2.0 Rev3-PlanB-Stable-20260910`.
+Completion and hashes: output `Verification/PlanB/PLAN_B_COMPLETION.json`.
+See `STABLE_1.2.0.md` for the checkpoint. Freeze after verification; later manual
+work stays in the active workspace and uses a new snapshot if another backup is
+needed. Do not revisit or overwrite the frozen snapshot. Manual revision is the
+next user-requested task, deferred until after this Plan B.
+
+2026-09-10. Windows Release build and compiled DSP/editor/LINK/settings tests
+pass. See `EXPERIMENT_1.2.0.md` for current semantics and `VERIFICATION_1.2.0.md`
+for evidence. Earlier headings below are historical, not the current spec.
+
+- UP is a lower gate; boost only UP<p<DOWN, down-only above DOWN. UP=-inf opens
+  the gate. The previous Rev2 below-UP activation was wrong and is superseded.
+- All15 Ratio defaults/reset targets are1. Existing stored numbers stay intact.
+- Dual Ratio LINK preserves UP*DOWN, defaults ON, remembers last click for new
+  instances and respects saved project state. It is independent of domain LINK.
+- Three themes share94px primary dials/216px spacing. Ratio arcs start at unity;
+  Single origin.5, Dual UP origin1, Dual DOWN origin0. Mode button(380,620,60,21);
+  Ratio LINK ST(278,644,36,17), LR/MS(281,636,30,14).
+- Source `D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown`; build remains
+  `D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown`; output
+  `D:\Codex\Outputs\QQ Super Compression 1.2.0 Rev3`.
+- Rev2 source checkpoint `D:\Codex\Archives\QQSuperCompression-1.2.0-Rev2-before-Rev3-20260910`.
+- Build targets QQSuperCompression_VST3, QQSCVisualCheck, QQSCDynamicsCheck.
+  Actual installation status/hashes: Rev3 output `Verification/INSTALLATION.json`.
+  Stable promotion and Plan B are the current scope; Plan C/D, remote publication,
+  macOS and multiband work remain outside this checkpoint.
+
+## Historical revisions
+
+# Current candidate — 1.2.0 Rev2, state schema 12
+
+2026-09-10. Continue the local Windows Single/Dual experiment. Plug-in version
+remains 1.2.0; 1.1.9 remains the Stable rollback. Rev2 Release build, compiled DSP,
+real editor/knob/gesture tests and ten inherited checks pass. Installed after
+confirming hosts closed, with full build/output/system bundle hash parity.
+Evidence: `VERIFICATION_1.2.0.md` and the Rev2 output `Verification/INSTALLATION.json`.
+Binary SHA256: `7702517E277EA3D04CD92D77AF01EC3F7BBC5B3400D783B62E2F728FE0A36341`.
+
+- Source: `D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown`.
+- Build: `D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown`.
+- Rev2 delivery: `D:\Codex\Outputs\QQ Super Compression 1.2.0 Rev2`.
+- Range defaults to the independent OFF endpoint: stored `rangeOffDb = +1`,
+  interpreted as unbounded, not physical +1 dB. Finite Range 0 dB remains a
+  strict cutoff; saved finite values and schema 11 Dual banks stay intact.
+  States with no Range use OFF. Keep schema 12 migration and A/B consistent.
+- New Dual instances use UP = -inf / DOWN = 0 dB, initially no dynamic gain;
+  moving the thresholds inward activates the corresponding branches. Defaults:
+  Single Ratio 8, Up Ratio 1/8, Down Ratio 8. Existing user states retain values.
+- Upward gain is now threshold-relative: `1 / (r + (1-r) * p/A)` below a
+  positive anchor A. Dual A is UP; Single A is finite Range or linear 1 with
+  Range OFF. Ratio 1/8 at 10 dB below A gives theoretical +7.92198 dB. The
+  earlier absolute-level upward law is historical and must not be restored.
+- The mode switch is at logical bounds `(394, 620, 60, 21)`, beside Ratio and
+  outside the full-height fader strip. Editor thumbs and dotted Display lines
+  use `getBoundaryPlotForDomain`, `getBoundaryYForDomainDb` and
+  `getBoundaryDbForY` for the same reference and ordinate. Stopped ST/LR/MS
+  switches follow APVTS geometry and skip stale-domain history samples.
+- Preserve collision pushing and coincident-pair unity. Finite boundary
+  transitions remain hard; 0 ms retains its colouring/oversampling behaviour.
+  Steady harmonics and boundary transitions require separate evidence.
+- Validate full-scale 599.9 Hz downward behaviour with Range OFF against 1.1.9,
+  explicit finite 0 dB cutoff/restore, neutral Dual defaults, upward strength
+  at several thresholds, state/A-B, signed Mix metering and fader/line geometry.
+  User DAW listening and acceptance remain separate from automated checks.
+- Rebinding during a real Ratio drag closes the old host gesture and cancels
+  the remaining drag until mouse-up; linked Up/Down numeric entry records both
+  parameter gestures. Both paths have actual production-control tests.
+- Windows experiment only: no GitHub/Actions publication, macOS package,
+  Plan B/C/D, Stable promotion or edits to the multiband project.
+
+--- Historical 1.2.0 Rev1 record; not Rev2 verification ---
+
+# 1.2.0 Rev1 Single / Dual experiment — historical build and installation
+
+2026-09-10. Candidate only; 1.1.9 remains the Stable rollback. Windows VST3 installed after two host-closure checks, with complete build/output/install SHA-256 parity. The previous installed 1.1.9 bundle is preserved and verified in the output rollback folder.
+
+- Source: D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown
+- Build: D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown
+- Output: D:\Codex\Outputs\QQ Super Compression 1.2.0 UpDown Experiment
+- Installed: C:\Program Files\Common Files\VST3\QQ Super Compression.vst3
+- Windows binary SHA-256: 359ACBB47019DC70ED64A9321EA6C2983CA8F4E600D6CC6FFFF15DD9A67B0C09
+- Actual processor audio/state tests, actual-editor fader/ratio tests, three-theme ST/MS/LR/minimum screenshots and ten inherited source/math regressions pass. See VERIFICATION_1.2.0.md and output Verification/INSTALLATION.json.
+- Single Ratio 1/32..32 default8; Dual Up Ratio1/32..1 default1/8; Dual Down Ratio1..32 default8. Dual defaults UP-24dB / DOWN-12dB. Smaller68x104 dual ST ratio controls and60x21 mode switch.
+- Display median Single4.218ms / Dual4.389ms at480 points, cached software rendering.
+- Known experiment limits: hard interval boundary jumps (test~12.49dB), changed old normalized Ratio automation mapping, and deferred companion notification for host-driven collisions. Use a fresh instance/session for user audition. User listening/acceptance remains pending.
+- No Plan B/C/D, GitHub, macOS, Stable promotion or multiband edits. Prior frozen backups were not accessed or changed. No further rebuild/install is required unless source changes.
+
+--- Historical entries below ---
+
 # AI Development Handoff - QQ Super Compression
 
-## Current Stable — v1.1.9 3:2 Landscape (2026-09-08)
+## Current Stable v1.1.9 — 3:2 Landscape (2026-09-08)
 
-- User explicitly requested Plan A/B/C/D. This project's standing Plan B rule promotes 1.1.9 to Stable; rollback: 1.1.8 Revision 2. User listening acceptance for 1.1.9 is not claimed.
-- Plan A complete: Windows x64 VST3, 15 source/math checks and real-editor three-theme/ST/LR/MS/minimum/maximum/sidechain checks. All DSP/state/parameter/Display/meter code and materials are byte-identical to active 1.1.8; only editor geometry, its separate size preference and version metadata change.
-- Plan B completed and frozen: 136 source files, 27,397,105 bytes, every copied file hash matched. Do not inspect, refresh or reopen frozen backups; subsequent stages use active source and a precise public commit/tag.
-- Default 1200x800, 3:2, limits 1008x672–1800x1200; Display 866x530. Three themes and remembered theme retained. Both 18-page manuals preserve original contents with one short final-page UI note.
-- Plan C complete: source/tag v1.1.9 at c70c50fe90c738ed9079464b7299aa67cb08081d; macOS run 34209677129 passed all three jobs and runner AU auval. Four archives, two manuals and two guides total 8 files / 37,428,774 bytes, hash-verified against source files and the desktop folder entry. Large files physically remain on D:; the desktop folder is a junction to avoid C: duplication. Windows reused Plan A (binary SHA-256 7C3FF0A7845998817E1B64FF1967D55656A9B1FA8B112269FF822A09452DFD65).
-- Downloaded Mac architectures/versions and minimum-OS/signing verified: Apple Silicon VST3 / Universal AU macOS 14+, Intel VST3 macOS 15+. VST3s ad-hoc signed; AU arm64 ad-hoc signed, Intel AU slice unsigned and not Intel-host tested. No notarization claimed.
-- Plan D published formal Release v1.1.9, ID 384602264, with all eight approved assets. Remote uploaded states, bytes and SHA-256 digests match; every public download URL returned HTTP 200. README download links use final API asset names. Release: https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.1.9. No Windows rebuild or frozen-backup access during C/D.
-- Preserve author README text and license. No multiband-project changes. Keep historical records below.
+Installation follow-up: user explicitly requested direct overwrite after finding the old 1.1.8 still installed. Relevant hosts were absent at both pre-install checks. Installed the exact verified 1.1.9 Plan A files into `C:\Program Files\Common Files\VST3\QQ Super Compression.vst3`; binary and moduleinfo SHA-256 match the released build. Prior 1.1.8 Rev2 was copied and hash-verified under the Plan A output's `Rollback - Installed 1.1.8 Rev2`. Evidence: `Verification/INSTALLATION_VERIFICATION.json`. Earlier statements that no installation occurred describe the preceding publication stage, not the current installed state. No DAW was launched and no frozen backup or GitHub content changed.
 
---- Historical handoffs below ---
+Desktop delivery correction: user explicitly requested a physical desktop copy, not a folder entry. The same desktop path now contains a real directory with all 8 files / 37,428,774 bytes; every SHA-256 matches the verified release files. The obsolete junction alone was removed; D-drive originals remain untouched. DESKTOP_MANIFEST.json now records desktop_entry_type=Directory, with DESKTOP_PHYSICAL_COPY_VERIFICATION.json as evidence. References to a desktop junction below describe the earlier, superseded delivery arrangement. No GitHub or frozen-backup changes for this correction.
 
-## Current Stable — v1.1.8 Revision 2 (2026-09-07)
+Plan A/B/C/D complete. User explicitly approved public destination and payload after the application asked for exact publication approval. Source/tag `v1.1.9`: `c70c50fe90c738ed9079464b7299aa67cb08081d`; final public documentation commit `f9da88a71326b89a801b510caf402b78bd8eeaba`. macOS run `34209677129` passed all three jobs and runner AU auval. All 27 binary inputs hash-match the Windows Plan A source. Release `https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.1.9`, ID `384602264`, formal Latest, 8 uploaded assets, 37,428,774 bytes; local/remote sizes and SHA-256 match and all public download links returned HTTP 200. Author/license prefix and all prior product/version content are preserved.
 
-- User accepted the wider, brighter Light pointer extended toward the centre. Plan A/B complete; previous Stable: v1.1.7.
-- Retain Light, Dark and Classic, their shared geometry and functions, and the last-theme preference. No DSP, parameter, state-schema or history-algorithm changes in this UI revision.
-- Light: approved bitmap materials, fixed 13 ticks, warm-white pointer core 22 / edge 30 / radius 60–184; 0% unlit. Do not widen its halo when changing pointer readability.
-- Dark: `RefinedDarkKnob.h`, static fine-grained `DarkPanelMaterial.h` on the bottom panel only; main Display remains clean near black. Do not reintroduce mottled backgrounds.
-- Plan B snapshots are frozen: never read, refresh, hash, overwrite or use them as future workspaces. Continue from active source and the exact public commit/tag instead.
-- User approved the restructured Chinese manual, requested the matching English edition, and then explicitly authorized Plan C followed by Plan D using the complete desktop package, including both manuals. Both manuals are coherent 18-page user guides with current editor captures and practical sidechain instructions, not historical guides with revision appendices.
-- Plan C reuses verified Windows Plan A and dispatches only three macOS jobs. Plan D publishes the verified desktop files to this repository's Release and updates README download links; completion must be verified before it is claimed.
-- Preserve the author's README introduction verbatim and in its existing position. Preserve the non-commercial license policy and historical entries.
-- See `VERSION_COVERAGE_1.1.8.md` and `CODEX_BUILD.md`. Cross-platform completion is recorded only after actual builds and downloaded bundles pass.
-- Plan C completed: source/tag `bdb73765d1ccd54b2229b721678c382a0aea9b99` / `v1.1.8`; macOS run `34138216384` passed three jobs and runner AU auval. Windows Plan A was reused. Four ZIPs, two installation guides and two 18-page manuals form the hash-verified desktop package (8 files, 37,317,194 bytes). Frozen backups untouched. Actual minimum macOS and AU Intel signature/host-test limitations are documented in the current installation guides and build brief. Plan D publication follows separately.
+Physical user package: `D:\Codex\Outputs\QQ Super Compression\1.1.9\Plan-C-Staging-20260908`. Desktop folder entry: `C:\Users\86189\Desktop\QQ Super Compression 1.1.9 Plan C 20260908` is a junction to that D: folder, avoiding duplicate large files on C:. Internal evidence: sibling `Plan-C-Verification-20260908`. Active/public source and manuals remain available; frozen Plan B was never revisited. No system-plugin overwrite or DAW launch in this run; installed single-band version is not claimed updated.
 
---- Historical handoffs below ---
+Mac binaries: Apple Silicon VST3 and Universal AU require macOS 14+, Intel VST3 15+. VST3s are ad-hoc signed; AU arm64 ad-hoc, Intel AU slice unsigned and not Intel-host-tested. No Developer ID notarization or full DAW/listening certification claimed. Helpers/checkpoint: `D:\Codex\Workspaces\QQSCRelease119`.
 
-## Historical Stable - v1.1.5 Fluid/Cached Dynamic Display Rendering
+Plan A/B completed: output `D:\Codex\Outputs\QQ Super Compression 1.1.9 Landscape Plan A`; Stable per the user's standing rule. Formal frozen backup `D:\备份文件\Vibe Coding\QQ Super Compression\源代码\QQ Super Compression 1.1.9-PlanB-Stable-20260908`: 136 files / 27,397,105 bytes, all SHA-256 matched. Completion evidence is in the output's `Verification/PLAN_B_COMPLETION.json`. Do not read the frozen directory again. Installation has not been performed in this run.
 
-**Status:** Plan A/B/C/D complete on 2026-09-02; current Stable and public Release.
+User requested the single-band 3:2 editor, then explicitly requested Plan A/B/C/D and only a short final-page UI supplement in the previous bilingual manuals. The project's existing rule promotes Plan B versions to Stable; previous Stable/rollback is 1.1.8 Revision 2. No new DAW/listening acceptance is claimed.
+
+- Active source: `D:\Codex\Workspaces\QQSuperCompression-1.1.9-Landscape`; build: `D:\Codex\Temp\QQSuperCompression-1.1.9-Landscape`.
+- Scope: default 1200x800, fixed 3:2, limits 1008x672–1800x1200. Widen the Display, retain knob proportions and three themes. Separate landscapeEditorWidth preference keeps old dimensions intact. No DSP/state/parameter/material/history changes.
+- Plan A build and actual-editor checks pass; see PLAN_A_VERIFICATION_1.1.9.md. Delivery, formal backup and remote completion must be recorded after verification.
+- Bilingual manuals retain all 18 original pages and add a short UI note in the last page's unused lower area. No rewritten chapters or developer implementation notes.
+- Follow current Plan A-F specification: Plan B freezes immediately; never revisit prior or new frozen snapshots. Plan C uses this Windows build and three public macOS jobs. Plan D publishes the verified eight-file cross-platform handoff, then updates download links using real remote asset names.
+- Preserve the author's README prefix verbatim, current non-commercial license and historical content. The multiband project is out of scope and untouched.
+
+--- Historical records below ---
+## Current Stable — v1.1.8 Revision 2, clearer Light pointer
+
+2026-09-07: After the wider/brighter/longer Light pointer was built, delivered and installed, the user explicitly confirmed this Revision 2 as Stable and requested Plan B. This supersedes the earlier interrupted promotion below. Reuse completed Plan A; do not rebuild, reinstall or rerun tests. Previous Stable/rollback: v1.1.7. Active workspace remains `D:\Codex\Workspaces\QQSuperCompression-1.1.8-DarkMaterial`.
+
+Plan B completed on 2026-09-07: `D:\备份文件\Vibe Coding\QQ Super Compression\源代码\QQ Super Compression 1.1.8 Rev2-PlanB-Stable-20260907`. Full source copy: 126 files; source/backup file-count and byte parity plus ten key-file SHA-256 comparisons passed. This final handoff record is copied and hash-verified before freezing. Snapshot is then frozen: future Plans must use this completion record and active workspace, never revisit, refresh, overwrite or clean the backup. Older backups are untouched. No rebuild/reinstall/test rerun/GitHub/Actions in Plan B; license inherited unchanged. User subsequently requested Plan C and inspection/update of manual screenshots, to be done from the active workspace after this freeze.
+
+### Plan C / D completed — 2026-09-07
+
+User approved the redesigned Chinese guide and requested the matching English manual, Plan C, then Plan D with the complete desktop package, under the current Plan A-F standard. Both manuals are coherent 18-page user guides with current real editor captures and practical sidechain/controls instructions. The earlier publication approval pause was explicitly superseded.
+
+Plan C source/tag: `bdb73765d1ccd54b2229b721678c382a0aea9b99` / `v1.1.8`; public repository `https://github.com/Ziqing-Gu/QQ-Super-Compression`. Current public README commit `5e9291bb712e68bf01667f89bd9da2307d5bda96`. All 27 binary inputs match the active Plan A source. Original author README/license prefix is retained. Existing keyring GitHub CLI and per-command `127.0.0.1:12000` proxy worked; no new login scheme. No Windows rebuild/Actions, reinstall or DAW launch. Frozen Plan B snapshots untouched.
+
+macOS run `34138216384` passed Apple Silicon VST3, Intel VST3 and Universal 2 AU jobs; AU auval passed on the arm64 runner. ZIP layouts, versions, architectures and hashes were checked after download. Actual minimum macOS is 14 for Apple Silicon VST3/AU and 15 for Intel VST3. Both VST3 packages are ad-hoc signed. AU arm64 is ad-hoc signed; its Intel slice has no embedded signature and is not Intel-host tested. No Developer ID signing/notarization is claimed. Current installation guides and Release describe these limits.
+
+Desktop package: `C:\Users\86189\Desktop\QQ Super Compression 1.1.8 Plan C 20260907` — 8 files, 37,317,194 bytes: 4 platform ZIPs, 2 installation guides, 2 user manuals. Exact files published to `https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.1.8`, Release ID `384190043`, formal Latest, draft=false/prerelease=false. All eight remote sizes/digests match and download URLs return HTTP 200. README current download table uses final API names/URLs; source ZIP warnings, license and prior product/version history remain. Public Chinese attachment names were clarified after GitHub normalized away Chinese characters; bytes unchanged.
+
+Proof: `D:\Codex\Outputs\QQ Super Compression\1.1.8\Plan-C-Verification-20260907`. Full local status: `D:\Codex\Workspaces\QQSC_1.1.8_PLAN_C_CHECKPOINT.md`. No C/D work remains. Do not rebuild, re-upload or revisit frozen backups simply to repeat checks; no shutdown was requested in this current turn.
+
+### Historical Plan C pause — superseded by completion above
+
+Prepared public source/docs in `D:\Codex\Workspaces\QQSuperCompression-1.1.8-PlanC`; 27 Source/Assets/CMake files match this active Plan A source. Author README prefix retained exactly. Bilingual manuals now use actual Rev2 editor screenshots in three current appendices (19 pages; original guide retained). GitHub login/fetch work with elevated git and the existing `127.0.0.1:12000` proxy. App auto-review rejected the public commit/tag/push before execution and requires explicit payload/destination approval. No commit/tag/push/Actions/Release occurred; remote base is `050adf5d3ea6c2cd8c3741f80ca1460cbcd3cd04`. Do not retry through another route. See `D:\Codex\Workspaces\QQSC_1.1.8_PLAN_C_CHECKPOINT.md` to resume after permission. This handoff update is not copied to the frozen Plan B snapshot.
+
+### Revision 2 development history (before final Stable confirmation)
+
+2026-09-07: User requested Stable/Plan B, then explicitly stopped it before the source copy started and requested a wider, brighter Light pointer. Plan B was NOT executed: no 1.1.8 source backup was created. The promotion is suspended; continue this revised build as a candidate until the user confirms it. Retain v1.1.7 as the last completed Stable/backup baseline. Active source: `D:\Codex\Workspaces\QQSuperCompression-1.1.8-DarkMaterial`. No GitHub/Actions/Plan B/C/D for this revision.
+
+Revision 2 changes only the Light pointer: warm-white core width 10 -> 22, orange edge 14 -> 30 material units, brighter core. User then asked for more inward extension: inner radius 92 -> 60, outer radius stays 184 (length 92 -> 124). Halo width/intensity are unchanged. The zero-position index is wider/darker but unlit. Retain the approved Dark knobs/grain, Light ticks/material/arc, Classic, layout and DSP. Plan A completed: built, visually checked, delivered and installed after two host checks; build/output/install hashes match. Output: `D:\Codex\Outputs\QQ Super Compression 1.1.8 Rev2 Pointer Plan A`, with a verified `Rollback - 1.1.8 Revision 1` copy. See `PLAN_A_VERIFICATION_1.1.8_REV2.md`; do not reuse Revision 1 hashes as current. Plan B remains stopped pending the user's confirmation. Older frozen backups remain untouched.
+
+### v1.1.8 Revision 1 implementation and completed Plan A history
+
+2026-09-07: User accepted the real JUCE refined-knob study and requested fine grain / a frosted finish on the bottom control-panel background. Integrate the accepted `RefinedDarkKnob.h` unchanged. Add only a stationary, finely grained Dark bottom finish; keep the main Display clean and near black. User then also requested fine fixed tick marks and a longer/brighter pointer for Light. Retain the Light material/arc compositor, Classic, layout, DSP, all parameters and theme persistence. The supplied Multiband screenshot is a visual reference, not authorization to modify that separate project. Work from the active v1.1.7 source, not its frozen backup.
+
+Active candidate: `D:\Codex\Workspaces\QQSuperCompression-1.1.8-DarkMaterial`. Stable/rollback remains v1.1.7 below. Plan A completed: Windows x64 VST3 built, verified and installed after PluginDoctor closed and two host checks passed. Output: `D:\Codex\Outputs\QQ Super Compression 1.1.8 Material Plan A`, including actual editor previews and a hash-verified rollback copy of the previously installed 1.1.7. Build/output/install hashes match. See `PLAN_A_VERIFICATION_1.1.8.md` for results, scoped image comparisons and known non-fatal CMake environment warning. User Cubase validation remains pending; no Stable promotion, Plan B/C/D, GitHub or Actions for this candidate. No need to repeat Plan A when subsequently requested to perform Plan B.
+
+## Previous Stable — v1.1.7, Light / Dark / Classic
+
+2026-09-07: User explicitly accepted v1.1.7, requested Stable promotion and Plan B. Reuse the completed Plan A without rebuilding, reinstalling or rerunning tests. Previous Stable/rollback is v1.1.6 Revision 3. GitHub/public Release remains v1.1.5; no Plan C/D was requested.
+
+Plan B completed on 2026-09-07: `D:\备份文件\Vibe Coding\QQ Super Compression\源代码\QQ Super Compression 1.1.7-PlanB-Stable-20260907`. Complete source snapshot: 120 files; source/backup file-count and byte parity plus ten key-file SHA-256 checks passed. This final handoff record is also copied and hash-verified before freezing. The backup is then a frozen historical snapshot: future Plans use this completion record and the active workspace, never revisit, refresh or overwrite the snapshot. Older backups remain untouched. No rebuild, reinstall, test rerun, GitHub or Actions in Plan B.
+
+### v1.1.7 implementation and Plan A history (before Stable promotion)
+
+2026-09-07: User approved the Dark study for implementation, then requested a darker near-black background with no mottling and explicitly retained **three** themes. Current scope is local Plan A only. Stable/rollback remains v1.1.6 Revision 3; its frozen Plan B backup is not accessed or changed.
+
+- Work from `D:\Codex\Workspaces\QQSuperCompression-1.1.7-Dark`; build under the matching `D:\Codex\Temp` directory. Output will be `D:\Codex\Outputs\QQ Super Compression 1.1.7 Dark Plan A`.
+- New Dark uses solid near-black chassis/display backgrounds, subdued segmented silver Input/orange Output/cyan GR, dark beveled controls, and continuous ice-blue knob arc/index lighting. No noise or photographic background textures. Only the controls have local material shading.
+- Light and Classic use their retained v1.1.6 Rev3 rendering branches. Keep all layout and DSP/history/state/parameter behavior. Do not replace Classic: that earlier implementation direction was superseded during this turn.
+- Three-theme button cycles Light -> Dark -> Classic -> Light. Persist `uiTheme` separately from audio state; missing keys migrate from the old `classicTheme` boolean to the actual original Light/Classic choice. Write the old boolean as a rollback fallback as well.
+- `DarkMaterial.h` renders the actual production controls and caches one frame per control with bounded base sizes. Geometry and shadows stay fixed; 0% has no emitted blue light; the normalized travel controls the lit arc length. No work added to the audio callback.
+- Plan A complete: Windows x64 VST3 built/delivered/installed after host closure checks. Build/output/install SHA-256 parity passed; original installed v1.1.6 Rev3 is hash-verified in the output rollback folder. See `PLAN_A_VERIFICATION_1.1.7.md` for paths, checks and hashes. This does not promote the candidate to Stable.
+- Validation passed: fourteen source/math checks, protected-source/layout parity, actual offscreen renders, three-theme disk preference migration/round-trip, progressive light/cache checks, Input meter contrast and Steinberg module-loading validator. All ten Light reference PNGs and Classic ST match outside the version label; Classic sidechain has one dial-edge pixel differing by <=3/255 per channel. Three-theme layout/visibility matches (popup z-order indices are normalized). Generated design mockups are not evidence of plugin rendering. Detailed DAW validation remains the user's check.
+- No Plan B/C/D, GitHub, Actions or automatic Stable promotion. Existing source/user README/license wording is retained; this section supersedes older current-status headings below.
+
+## Previous Stable — v1.1.6 Revision 3, LIGHT Warm Depth
+
+2026-09-07: User explicitly accepted Revision 3 and promoted it to Stable. Existing Plan A was built, delivered and installed; Plan B reuses that result without rebuilding, reinstalling or rerunning tests. Knob assets/compositor, layout, Classic, audio and history algorithms are retained. Previous Stable rollback is v1.1.5. No Plan C/D or publishing was requested.
+
+Plan B completed on 2026-09-07: `D:\备份文件\Vibe Coding\QQ Super Compression\源代码\QQ Super Compression 1.1.6 Rev3-PlanB-Stable-20260907`. Complete source snapshot: 116 files; file-count/byte parity and ten key-file SHA-256 checks passed. This is a frozen historical snapshot; future Plans must use this completion record and the active workspace, not revisit or refresh the backup. Older backups are retained. No build, install, tests, GitHub or Actions were repeated for Plan B.
+
+Output: `D:\Codex\Outputs\QQ Super Compression 1.1.6 Rev3 Warm Depth Plan A`. See `PLAN_A_VERIFICATION_1.1.6_REV3.md`. The previous installed Rev2 bundle is hash-verified in the output rollback folder. Classic ST/sidechain screenshots and ST/LR/MS layout manifests match Rev2 exactly. Keep the preceding Rev2 records below as history, not current installed hashes.
+
+## Previous Candidate — v1.1.6 Revision 2, Accepted Asset Knobs / Unified LIGHT Meters
+
+Local Plan A candidate, 2026-09-07. Stable/rollback stays v1.1.5. The user accepted the real interactive JUCE material study and authorized integration, not Stable promotion. Source: `D:\Codex\Workspaces\QQSuperCompression-1.1.6-WarmAsset`; build and outputs use the matching WarmAsset directories. See PLAN_A_VERIFICATION_1.1.6.md for final build/install status.
+
+**Plan A completed:** Windows 1.1.6 built, delivered to `D:\Codex\Outputs\QQ Super Compression 1.1.6 WarmAsset Plan A`, and installed after host closure was checked. Build/output/install hashes match; a verified copy of the prior installed v1.1.5 is in the output's rollback subdirectory. Complete-plugin user validation remains pending.
+
+- Revision 1 below was visually REJECTED: its code-generated shallow disk/white rings did not reproduce the reference. Keep that failure record; do not restore its knobMaterial()/rotary() renderer.
+- Revision 2 embeds the two original material-study PNGs and uses the exact approved compositor, plus per-control caches and bounded resolution storage. Metal/shadow stay fixed; at 0% all emission is off, 10% lights the first tenth, 50% the left half, and 100% the full effective arc. The unlit physical track is not light emission.
+- LIGHT Input is gray, Output orange, and GR cyan-blue across Meter, Display traces, legends and relevant readouts. Meter wells and fine segments borrow the reference style. Classic branches and colors remain unchanged.
+- Preserve all resized() geometry, all Slider/FineKnob attachments and interactions, DSP, parameter identities, A/B, theme memory, and v1.1.5 Display performance fixes. The draw cache lives on the message thread; no material work is added to audio processing.
+- The original material study used the built-in image tool; its final accepted images are embedded, with no runtime file dependency. No Figma, external image API, GitHub, Actions, Plan B/C/D, or Stable promotion is part of this integration.
+
+## Previous Stable / Latest Public Release - v1.1.5 Fluid/Cached Dynamic Display Rendering
+
+**Status:** Plan A/B/C/D complete on 2026-09-02; previous Stable rollback and latest public Release. Local Stable is now v1.1.6 Revision 3.
 **Based on:** v1.1.4 Reliable/Faster HPF Display Replay Candidate.
 **Previous Stable rollback:** v1.1.2 Mix-aware Dynamic Display Stable.
 
@@ -1806,3 +1988,37 @@ v1.0.0 Direct/Analytic 测试证明了“用户 Lookahead 可以不影响映射�
 ## v1.0.1 Candidate Revision 4 — Display Scale Rule
 
 用户要求 Dynamic Display 作为 Threshold 工作区时不要浪费大量高度给 <-90 dB 内容。当前可视纵轴固定为 `0…-90 dB`，刻度为 `0/-15/-30/-45/-60/-75/-90`。这是**纯显示层裁剪**：不要据此修改 DSP、Threshold OFF sentinel (-120 dB)、Meter 或参数范围。未来若调整显示范围，应继续保持“显示范围 != DSP/参数范围”的边界。
+
+---
+
+## v1.1.6 Revision 1 — Warm Material Skin Candidate — REJECTED / HISTORICAL
+
+**Date:** 2026-09-07
+**Status:** Candidate, not user-approved. Stable and rollback remain v1.1.5.
+**Scope:** Local-only UI implementation. No Figma, cloud services, GitHub, Actions, release, backup promotion, or system installation.
+
+### Request and failure review
+
+The user requested another attempt at the original ivory/champagne UI concept, without changing the current button/knob layout or functions. v0.9.0/0.9.1 approximated illumination with hard-edged translucent strokes and shallow ellipse pools. The v0.9.2 128-frame bitmap asset was also rejected visually, and v0.9.3 reverted it. The prior Figma run stopped after foundations; components and screens were never completed. These are distinct failures, not evidence that choosing bitmap assets alone fixes the material problem.
+
+### Implementation and reasoning
+
+- New light-only WarmMaterial renderer: one 384x384 cached satin/bevel/body/shadow image (576 KiB pixel storage), plus live continuous position arc and inlaid indicator. Static illumination does not rotate. No filmstrip stepping, external runtime assets, or paint-time bitmap regeneration.
+- Rounded ceramic buttons, fine inset numeric fields, material threshold thumb, subtly segmented meters, restrained neutral ivory/champagne surfaces and orange/cyan accents.
+- Light typography is lighter; normal/direct-entry numeric text remains real editable JUCE text. Classic retains its previous rendering.
+- The complete resized() implementation is unchanged, including compact LR/MS controls, Threshold geometry, sidechain popup, hidden controls and uniform scaling.
+- Processor, parameter definitions, DSP, meter state and DynamicDisplay.cpp remain byte-identical to v1.1.5. Theme remains a local preference, separate from APVTS/A-B, and last-theme restoration is unchanged.
+- Opt-in QQSCVisualCheck renders the actual editor offscreen without opening a DAW or writing user UI preferences. Friend declarations expose test access only.
+
+### Validation and boundaries
+
+- Existing twelve source/math regressions passed.
+- New warm_skin_contract_selftest passed protected-source byte identity and complete layout identity.
+- First-pass ST/LR/MS bounds manifests matched baseline. Classic ST image was byte-identical; its sidechain image differed by one antialiased pixel, not layout or palette.
+- Final Windows build, final images and artifact hashes are recorded in PLAN_A_VERIFICATION_1.1.6.md.
+- No macOS build or host/listening validation is claimed. Visual acceptance remains the user's decision.
+- Never replace Stable v1.1.5 automatically. This candidate was intentionally not installed.
+
+### Rollback
+
+Use the untouched v1.1.5 active repository / existing installed stable binary. Do not reopen frozen Plan B backups. If rejected, discard only this candidate's visual edits; never roll back audio or Display fixes.

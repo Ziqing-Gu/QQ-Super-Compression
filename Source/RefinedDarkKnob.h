@@ -1,5 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
+#include "KnobLight.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -37,29 +38,31 @@ public:
     static constexpr float travel = juce::MathConstants<float>::pi * 1.5f;
     static float angleForValue (float value) noexcept { return start + value * travel; }
 
-    juce::Image render (float value, int size)
+    juce::Image render (float value, int size, float origin = 0.0f)
     {
         value = juce::jlimit (0.0f, 1.0f, value);
+        origin = juce::jlimit (0.0f, 1.0f, origin);
         auto& base = baseFor (size);
         juce::Image image (juce::Image::ARGB, size, size, true);
         {
             juce::Image::BitmapData data (image, juce::Image::BitmapData::writeOnly);
-            const float finish = angleForValue (value);
             for (int y = 0; y < size; ++y)
             {
                 auto* row = reinterpret_cast<juce::PixelARGB*> (data.getLinePointer (y));
                 for (int x = 0; x < size; ++x)
                 {
                     const auto& p = base[static_cast<size_t> (y * size + x)];
-                    float lit = 0.0f;
-                    if (value > 0.0f)
+                    const auto cumulative = [&p] (float end)
                     {
+                        if (end <= 0.0f) return 0.0f;
+                        const float finish = angleForValue (end);
                         // The core has a precise endpoint; reflected light has
                         // a softer local falloff, confined to the same surface.
-                        lit = smooth (start - 0.006f, start + 0.006f, p.angle)
+                        const auto lit = smooth (start - 0.006f, start + 0.006f, p.angle)
                             * (1.0f - smooth (finish - p.feather, finish + p.feather, p.angle));
-                        lit *= juce::jmin (1.0f, value * 100.0f);
-                    }
+                        return lit * juce::jmin (1.0f, end * 100.0f);
+                    };
+                    const auto lit = std::abs (cumulative (value) - cumulative (origin));
                     const float spillAlpha = p.spill * lit;
                     const float alpha = p.alpha + spillAlpha * (1.0f - p.alpha);
                     if (alpha < 0.001f) continue;
@@ -78,7 +81,7 @@ public:
         {
             juce::Graphics g (image);
             g.addTransform (juce::AffineTransform::scale (static_cast<float> (size) / 100.0f));
-            paintPointer (g, value);
+            paintPointer (g, value, std::abs (value - origin));
         }
         return image;
     }
@@ -196,7 +199,7 @@ private:
         return bases.emplace (size, std::move (pixels)).first->second;
     }
 
-    static void paintPointer (juce::Graphics& g, float value)
+    static void paintPointer (juce::Graphics& g, float value, float strength)
     {
         const auto angle = angleForValue (value);
         const auto axis = juce::Point<float> (std::sin (angle), -std::cos (angle));
@@ -212,7 +215,7 @@ private:
         // Recessed index with a narrow lip. It stays readable at zero, unlit.
         stroke (juce::Colour (0xff636a6e).withAlpha (0.45f), 2.5f);
         stroke (juce::Colour (0xff14191d), 1.95f);
-        if (value <= 0.0f) { stroke (juce::Colour (0xff535d63), 0.62f); return; }
+        if (strength <= 0.0f) { stroke (juce::Colour (0xff535d63), 0.62f); return; }
         stroke (juce::Colour (0xff69b1d4).withAlpha (0.075f), 4.3f);
         stroke (juce::Colour (0xff467e9b).withAlpha (0.70f), 1.8f);
         stroke (juce::Colour (0xff9dd8eb), 0.82f);
@@ -225,6 +228,7 @@ public:
     void draw (juce::Graphics& g, juce::Rectangle<float> bounds, float value, juce::Slider& control)
     {
         value = juce::jlimit (0.0f, 1.0f, value);
+        const auto origin = knob_light::origin (control);
         entries.erase (std::remove_if (entries.begin(), entries.end(), [] (const Entry& e) { return e.control == nullptr; }), entries.end());
         auto entry = std::find_if (entries.begin(), entries.end(), [&] (const Entry& e) { return e.control.getComponent() == &control; });
         if (entry == entries.end()) { entries.push_back ({ juce::Component::SafePointer<juce::Slider> (&control) }); entry = entries.end() - 1; }
@@ -232,11 +236,12 @@ public:
         const auto requested = juce::roundToInt (diameter * juce::jmax (1.5f, g.getInternalContext().getPhysicalPixelScaleFactor() * 1.25f));
         int resolution = 512;
         for (int choice : { 128, 160, 192, 256, 384, 512 }) if (requested <= choice) { resolution = choice; break; }
-        if (! entry->image.isValid() || entry->resolution != resolution || entry->value != value)
+        if (! entry->image.isValid() || entry->resolution != resolution || entry->value != value || entry->origin != origin)
         {
-            entry->image = material.render (value, resolution);
+            entry->image = material.render (value, resolution, origin);
             entry->resolution = resolution;
             entry->value = value;
+            entry->origin = origin;
             ++renders;
         }
         juce::Graphics::ScopedSaveState save (g);
@@ -246,7 +251,7 @@ public:
     }
     size_t getRenderCount() const noexcept { return renders; }
 private:
-    struct Entry { juce::Component::SafePointer<juce::Slider> control; juce::Image image; int resolution = 0; float value = -1.0f; };
+    struct Entry { juce::Component::SafePointer<juce::Slider> control; juce::Image image; int resolution = 0; float value = -1.0f; float origin = -1.0f; };
     Material material;
     std::vector<Entry> entries;
     size_t renders = 0;

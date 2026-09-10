@@ -52,7 +52,42 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 
 
-# QQ Super Compression 1.1.9
+# QQ Super Compression 1.2.0 Stable
+
+**Single / Upward / Dual · Light / Dark / Classic · 3:2**
+
+在保留 Lookahead 动态处理方式的基础上，1.2.0 加入向上压缩、Single 的 Range 上截止、Dual 的独立 Up / Down Ratio 与相对 Ratio LINK。所有 Ratio 默认 1:1，Dual 默认 UP=-inf / DOWN=0 dB。上压提升门槛以上的有效部分；超过 DOWN 后只进行下压。
+
+1.2.0 adds upward processing, Single Range, independent Dual Up / Down Ratios and relative Ratio LINK to the lookahead dynamics approach. All Ratios default to 1:1; Dual starts at UP=-inf / DOWN=0 dB. Upward processing boosts eligible material above its lower gate; above DOWN, only downward processing applies.
+
+Rev4 修复有限 Range 的增益硬跳，并在 Dual 两个 Ratio 旁加入独立 ON/OFF 和 10 ms Crossfade；Display 同步反映开关状态。原有 Lookahead 延迟不变。两本已完成的 23 页说明书沿用原文件，新增修复和开关行为详见更新说明。
+
+Rev4 removes the finite-Range gain discontinuity and adds independent Dual ON/OFF controls with 10 ms crossfades and matching Display updates. Existing lookahead latency is unchanged. Both completed 23-page PDFs are retained; the release notes document the additional fixes and switches.
+
+[完整双语更新 / Bilingual release notes](RELEASE_NOTES_1.2.0.md) · [1.2.0 Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.0) · [Latest Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest)
+
+## 下载与手册 / Downloads and manuals
+
+Release 提供 Windows x64 VST3、macOS Apple Silicon VST3、Intel VST3、Universal 2 AU，双语安装指南，以及各 23 页的新版中英文手册。选择与宿主架构匹配的 Mac VST3；AU 宿主可使用 Universal 2 AU。具体系统要求与 macOS 加载说明见对应 Release 和安装指南。
+
+The Release provides Windows x64 VST3, Mac Apple Silicon / Intel VST3, Universal 2 AU, bilingual installation guides and two new 23-page manuals. Choose the Mac VST3 matching your host architecture, or Universal 2 AU for AU hosts. See the Release and installation guide for build requirements and macOS loading details.
+
+- [中文手册 · 23 页](docs/manuals/QQ%20Super%20Compression%20用户手册%20中文版_v1.2.0.pdf)
+- [English manual · 23 pages](docs/manuals/QQ%20Super%20Compression%20User%20Manual%20English_v1.2.0.pdf)
+- [中文安装说明](docs/QQ%20Super%20Compression%201.2.0%20Windows与macOS%20安装说明（中文）.txt)
+- [English installation guide](docs/QQ-Super-Compression-1.2.0-Windows-macOS-INSTALL.txt)
+
+旧工程保存的 Ratio 数值保留；Single Ratio 扩展范围会改变旧的归一化自动化映射，升级时请保留工程副本并核对自动化。 / Saved Ratio values remain, but the expanded Single Ratio range changes older normalized automation mapping. Keep project copies and check automation when upgrading.
+
+下图沿用手册插图；Rev4 的独立开关见更新说明。 / Illustrations are retained from the manuals; see release notes for the Rev4 branch switches.
+
+![Single upward processing](docs/manuals/images/1.2.0/manual-light-single-up.png)
+![Dual processing](docs/manuals/images/1.2.0/manual-light-dual.png)
+
+## 历史文档：1.1.9 及更早 / Historical documentation: 1.1.9 and earlier
+
+以下版本表、下载、校验结果和说明保留其当时状态；当前版本以本页上方和 1.2.0 更新说明为准。
+The version tables, downloads, validation results and descriptions below retain their historical status. Use the 1.2.0 section above for the current release.
 
 **Qing Audio 非商业源码公开动态处理器 / Non-commercial source-available dynamics processor by Qing Audio**
 

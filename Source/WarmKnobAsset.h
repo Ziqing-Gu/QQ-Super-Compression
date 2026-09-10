@@ -1,5 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
+#include "KnobLight.h"
 #include <QQSCWarmKnobData.h>
 #include <array>
 #include <algorithm>
@@ -48,21 +49,28 @@ public:
         return (smooth(position - feather, position + feather, value) - floor) / (ceiling - floor);
     }
 
-    juce::Image render(float value, int size)
+    juce::Image render(float value, int size, float origin = 0.0f)
     {
         value = juce::jlimit(0.0f, 1.0f, value);
+        origin = juce::jlimit(0.0f, 1.0f, origin);
         auto& basis = getBasis(size);
         juce::Image image(juce::Image::ARGB, size, size, true);
-        const float leftEndSpill = emission(value, 0.0f, 0.35f);
-        const float rightEndSpill = emission(value, 1.0f, 0.35f);
+        const float leftEndSpill = std::abs(emission(value, 0.0f, 0.35f) - emission(origin, 0.0f, 0.35f));
+        const float rightEndSpill = std::abs(emission(value, 1.0f, 0.35f) - emission(origin, 1.0f, 0.35f));
         {
             juce::Image::BitmapData dest(image, juce::Image::BitmapData::writeOnly);
             for (int y = 0, i = 0; y < size; ++y)
                 for (int x = 0; x < size; ++x, ++i)
                 {
                     const auto& p = basis.pixels[static_cast<size_t>(i)];
-                    const auto t = juce::jlimit(0.0f, 1.0f, (value - p.curveLow) * p.invSpan);
-                    const auto arcStrength = (t * t * (3.0f - 2.0f * t) - p.curveFloor) * p.curveScale;
+                    const auto cumulative = [&p](float end)
+                    {
+                        if (end <= 0.0f) return 0.0f;
+                        if (end >= 1.0f) return 1.0f;
+                        const auto t = juce::jlimit(0.0f, 1.0f, (end - p.curveLow) * p.invSpan);
+                        return (t * t * (3.0f - 2.0f * t) - p.curveFloor) * p.curveScale;
+                    };
+                    const auto arcStrength = std::abs(cumulative(value) - cumulative(origin));
                     const auto spill = leftEndSpill + (rightEndSpill - leftEndSpill) * p.spillBalance;
                     const auto strength = arcStrength + (spill - arcStrength) * p.gapWeight;
                     dest.setPixelColour(x, y, juce::Colour(
@@ -73,7 +81,7 @@ public:
         }
         juce::Graphics g(image);
         g.addTransform(juce::AffineTransform::scale(static_cast<float>(size) / sourceWidth));
-        paintPointer(g, value);
+        paintPointer(g, value, std::abs(value - origin));
         return image;
     }
 
@@ -155,7 +163,7 @@ private:
         return bases.emplace(size, std::move(b)).first->second;
     }
 
-    static void paintPointer(juce::Graphics& g, float value)
+    static void paintPointer(juce::Graphics& g, float value, float strength)
     {
         const float angle = juce::degreesToRadians(angleForValue(value));
         const juce::Point<float> axis(std::sin(angle), -std::cos(angle));
@@ -166,12 +174,12 @@ private:
         juce::Path pointer;
         pointer.startNewSubPath(inner);
         pointer.lineTo(outer);
-        if (value > 0.0f)
+        if (strength > 0.0f)
         {
             for (int layer = 12; layer >= 1; --layer)
             {
                 const float width = 12.0f + layer * 2.8f;
-                g.setColour(juce::Colour(0xffff984a).withAlpha(0.021f * juce::jmin(1.0f, value * 30.0f)));
+                g.setColour(juce::Colour(0xffff984a).withAlpha(0.021f * juce::jmin(1.0f, strength * 30.0f)));
                 g.strokePath(pointer, juce::PathStrokeType(width, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
             }
             // Readable at native/minimum UI size: a distinct luminous bar,
@@ -201,6 +209,7 @@ public:
               float position, juce::Slider& slider)
     {
         position = juce::jlimit(0.0f, 1.0f, position);
+        const float origin = knob_light::origin(slider);
         entries.erase(std::remove_if(entries.begin(), entries.end(),
             [](const Entry& e) { return e.slider == nullptr; }), entries.end());
         auto found = std::find_if(entries.begin(), entries.end(),
@@ -217,11 +226,12 @@ public:
         int resolution = 512;
         for (const int choice : {128, 160, 192, 256, 384, 512})
             if (requested <= choice) { resolution = choice; break; }
-        if (!found->image.isValid() || found->resolution != resolution || found->position != position)
+        if (!found->image.isValid() || found->resolution != resolution || found->position != position || found->origin != origin)
         {
-            found->image = material.render(position, resolution);
+            found->image = material.render(position, resolution, origin);
             found->resolution = resolution;
             found->position = position;
+            found->origin = origin;
             ++renderCount;
         }
         juce::Graphics::ScopedSaveState save(g);
@@ -240,6 +250,7 @@ private:
         juce::Image image;
         int resolution = 0;
         float position = -1.0f;
+        float origin = -1.0f;
     };
     Material material;
     std::vector<Entry> entries;

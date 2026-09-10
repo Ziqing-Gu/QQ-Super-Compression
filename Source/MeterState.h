@@ -24,11 +24,12 @@ struct MeterState
     std::atomic<float> displayDetectorDb1 { -120.0f };
 
     // Product-facing GR includes Mix (Makeup and Output Gain remain excluded).
+    // Signed: positive = downward reduction, negative = upward boost.
     std::atomic<float> gainReductionDb0 { 0.0f };
     std::atomic<float> gainReductionDb1 { 0.0f };
 
     // Recent Gain Reduction peak hold. The processor captures every audio block
-    // so short peaks cannot be missed by the slower GUI timer. A new larger GR
+    // so short peaks cannot be missed by the slower GUI timer. A new larger absolute GR
     // restarts the 2 s hold; when the hold expires it refreshes to the current
     // block value automatically.
     std::atomic<float> gainReductionHoldDb0 { 0.0f };

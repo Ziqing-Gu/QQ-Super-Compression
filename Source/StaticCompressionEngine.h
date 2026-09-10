@@ -79,8 +79,7 @@ public:
 
         currentLevel = queueCount > 0 ? frontValue() : magnitude;
         currentGain = gainForLevel (currentLevel, ratio, thresholdLinear);
-        currentGainReductionDb = juce::jmax (0.0f,
-            -juce::Decibels::gainToDecibels (juce::jmax (currentGain, 1.0e-9f), -180.0f));
+        currentGainReductionDb = -juce::Decibels::gainToDecibels (juce::jmax (currentGain, 1.0e-9f), -180.0f);
         return currentGain;
     }
 
@@ -104,12 +103,83 @@ public:
         return numerator / juce::jmax (1.0e-9f, denominator);
     }
 
+    // Shared audible/Display law. Boundaries are detector-linear values, with
+    // lower==upper deliberately disabling the COMPLETE dynamic stage in both modes.
+    // Boundary transitions stay inside the active interval. There is no temporal
+    // envelope or extra latency; the future-window detector remains unchanged.
+    static float singleGainForLevel (float level, float ratio, float lower, float upper) noexcept
+    {
+        level = juce::jlimit (0.0f, 1.0f, level);
+        lower = juce::jlimit (0.0f, 1.0f, lower);
+        // Range OFF is +infinity: retain it through the operating gate. A
+        // finite 0 dB Range is 1.0 and still restores unity at/above that level.
+        upper = juce::jmax (0.0f, upper);
+        ratio = juce::jlimit (1.0f / 32.0f, 32.0f, ratio);
+        if (lower >= upper || level <= lower || level >= upper || ratio == 1.0f)
+            return 1.0f;
+        if (ratio > 1.0f)
+        {
+            const auto gain = gainForLevel (level, ratio, lower);
+            // Infinite Range preserves the exact original downward law. For a
+            // finite Range, return continuously to unity BEFORE its upper edge.
+            if (! std::isfinite (upper)) return gain;
+            const auto width = juce::jmin (upper * 0.5f, (upper - lower) * 0.5f);
+            return 1.0f + (gain - 1.0f) * boundaryBlend ((upper - level) / width);
+        }
+        return gatedUpwardGain (level, ratio, lower, juce::jmin (1.0f, upper));
+    }
+
+    static float boundaryBlend (float position) noexcept
+    {
+        const auto t = juce::jlimit (0.0f, 1.0f, position);
+        return t * t * (3.0f - 2.0f * t);
+    }
+
+    static float gatedUpwardGain (float level, float ratio, float lower, float anchor) noexcept
+    {
+        if (level <= lower || lower >= anchor) return 1.0f;
+        const auto gain = upwardGainForLevel (level, ratio, anchor);
+        if (lower <= 0.0f) return gain;
+        const auto width = juce::jmin (lower, (anchor - lower) * 0.5f);
+        return 1.0f + (gain - 1.0f) * boundaryBlend ((level - lower) / width);
+    }
+
+    static float upwardGainForLevel (float level, float ratio, float anchor) noexcept
+    {
+        level = juce::jlimit (0.0f, 1.0f, level);
+        anchor = juce::jlimit (0.0f, 1.0f, anchor);
+        ratio = juce::jlimit (1.0f / 32.0f, 1.0f, ratio);
+        if (anchor <= 0.0f || level >= anchor || ratio == 1.0f)
+            return 1.0f;
+        // Threshold-relative QQ rational family: an equal distance below the
+        // anchor receives equal lift regardless of the absolute threshold dB.
+        // Gain is unity at the anchor, bounded by 1/ratio <= 32, and increases
+        // towards quieter levels. Output remains monotonic (no level inversion).
+        const auto relativeLevel = level / anchor;
+        return 1.0f / (ratio + (1.0f - ratio) * relativeLevel);
+    }
+
+    static float dualGainForLevel (float level, float upRatio, float downRatio,
+                                   float upThreshold, float downThreshold) noexcept
+    {
+        // UP is an enabling gate, never an invitation to raise sub-threshold
+        // material. The upward branch ends at DOWN, where its gain reaches
+        // unity and the retained downward branch takes over.
+        if (upThreshold >= downThreshold || level <= upThreshold)
+            return 1.0f;
+        if (level < downThreshold)
+            return gatedUpwardGain (level, upRatio, upThreshold, downThreshold);
+        if (level > downThreshold)
+            return gainForLevel (level, downRatio, downThreshold);
+        return 1.0f;
+    }
+
     // In QQ Super Compression, Mix is part of the user-facing compression
     // depth. Dry and compressed Wet are blended in the linear gain domain, so
     // effective GR is deliberately not core GR dB multiplied by Mix.
     static float effectiveGainForMix (float compressedGain, float wetMix) noexcept
     {
-        compressedGain = juce::jlimit (0.0f, 1.0f, compressedGain);
+        compressedGain = juce::jlimit (0.0f, 32.0f, compressedGain);
         wetMix = juce::jlimit (0.0f, 1.0f, wetMix);
         return 1.0f + (compressedGain - 1.0f) * wetMix;
     }
@@ -117,8 +187,7 @@ public:
     static float effectiveGainReductionDb (float compressedGain, float wetMix) noexcept
     {
         const auto effectiveGain = effectiveGainForMix (compressedGain, wetMix);
-        return juce::jmax (0.0f,
-            -juce::Decibels::gainToDecibels (juce::jmax (effectiveGain, 1.0e-9f), -180.0f));
+        return -juce::Decibels::gainToDecibels (juce::jmax (effectiveGain, 1.0e-9f), -180.0f);
     }
 
     float getCurrentLevel() const noexcept { return currentLevel; }

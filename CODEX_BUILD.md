@@ -1,29 +1,138 @@
+# Current checkpoint: 1.2.0 Rev4 Stable — 2026-09-10
+
+Rev4 supersedes the historical checkpoint below. See [STABLE_1.2.0.md](STABLE_1.2.0.md) and [VERIFICATION_REV4_1.2.0.md](VERIFICATION_REV4_1.2.0.md). The user authorized B, then C and D with the completed 23-page PDFs retained unchanged. Current production schema is 14.
+
+---
+
+# Current Stable — 1.2.0 Rev3 (schema13)
+
+2026-09-10: User-promoted Stable; reuse the verified Rev3 Windows build.
+See `STABLE_1.2.0.md` and `PLAN_A_VERIFICATION_1.2.0.md`. Plan B includes the exact
+JUCE 8.0.15 source under `_PlanB/Dependencies/JUCE-8.0.15`; reproduce in a fresh
+D-drive working copy using that directory as JUCE_PATH and QQSC_FETCH_JUCE=OFF.
+Never configure or build inside the frozen snapshot. Manuals are deferred.
+
+2026-09-10. Windows Release build and compiled DSP/editor/LINK/settings tests
+pass. See `EXPERIMENT_1.2.0.md` for current semantics and `VERIFICATION_1.2.0.md`
+for evidence. Earlier headings below are historical, not the current spec.
+
+- UP is a lower gate; boost only UP<p<DOWN, down-only above DOWN. UP=-inf opens
+  the gate. The previous Rev2 below-UP activation was wrong and is superseded.
+- All15 Ratio defaults/reset targets are1. Existing stored numbers stay intact.
+- Dual Ratio LINK preserves UP*DOWN, defaults ON, remembers last click for new
+  instances and respects saved project state. It is independent of domain LINK.
+- Three themes share94px primary dials/216px spacing. Ratio arcs start at unity;
+  Single origin.5, Dual UP origin1, Dual DOWN origin0. Mode button(380,620,60,21);
+  Ratio LINK ST(278,644,36,17), LR/MS(281,636,30,14).
+- Source `D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown`; build remains
+  `D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown`; output
+  `D:\Codex\Outputs\QQ Super Compression 1.2.0 Rev3`.
+- Rev2 source checkpoint `D:\Codex\Archives\QQSuperCompression-1.2.0-Rev2-before-Rev3-20260910`.
+- Build targets QQSuperCompression_VST3, QQSCVisualCheck, QQSCDynamicsCheck.
+  Actual installation status/hashes: Rev3 output `Verification/INSTALLATION.json`.
+  Stable promotion and Plan B are the current scope; Plan C/D, remote publication,
+  macOS and multiband work remain outside this checkpoint.
+
+## Historical revisions
+
+# Current build brief — 1.2.0 Rev2 Windows experiment
+
+The plug-in version is 1.2.0 and state schema is 12. Rev2 Windows Release build,
+compiled DSP/editor/gesture tests and ten inherited checks pass. Installation
+completed with hosts closed and build/output/system hash parity. Use
+`VERIFICATION_1.2.0.md` and output `Verification/INSTALLATION.json` for evidence.
+Older results and hashes below belong to their explicitly labelled revisions.
+
+- Source: `D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown`.
+- Build: `D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown`.
+- Delivery: `D:\Codex\Outputs\QQ Super Compression 1.2.0 Rev2`.
+- Retain the existing JUCE 8.0.15 / C++17 / Visual Studio 2022 x64 toolchain.
+  Build `QQSuperCompression_VST3`; enable `QQSC_BUILD_DYNAMICS_CHECK=ON` and
+  `QQSC_BUILD_VISUAL_CHECK=ON` for `QQSCDynamicsCheck` and `QQSCVisualCheck`.
+  Run the latter with its D-drive render-output directory argument.
+- Rev2 changes Range's default to an explicit OFF endpoint. The OFF state
+  removes only the upper cutoff; finite 0 dB and other finite saved Range
+  values retain `detector >= Range => unity`, including schema 11 restores.
+  Missing Range parameters migrate to OFF. Dual defaults are UP = -inf and
+  DOWN = 0 dB: new instances are neutral until the thresholds are moved.
+- Upward gain now uses `g = 1 / (r + (1-r) * p/A)`, with A = Dual UP,
+  Single finite Range, or linear 1 for Single Range OFF. Ratio 1/8 at 10 dB
+  below A gives theoretical +7.92198 dB independently of A's absolute level.
+- Render the bottom mode switch at `(394, 620, 60, 21)` and the full-height
+  boundary rails. Check shared thumb/line coordinates for ST/LR/MS and
+  internal/external key, including mode changes while audio is stopped.
+- Run actual-processor Range OFF/full-scale 599.9 Hz parity against 1.1.9,
+  finite-0 cutoff and state migration, neutral Dual defaults, threshold-relative
+  lift, collisions, state/A-B, Mix, signed peaks, latency and harmonic checks.
+  Measure the retained 480-point Display caches in both modes.
+- Finite boundary transitions remain hard. Test their behaviour separately
+  from steady-carrier harmonics. Lookahead 0 ms retains the existing colouring
+  mode and its 1x/8x/16x oversampling; it is not the transparency reference.
+- Scope is the Windows experiment. Do not publish to GitHub, build a macOS
+  delivery, promote Stable or modify the multiband project as part of Rev2.
+
+--- Historical 1.2.0 Rev1 record; not Rev2 verification ---
+
+# 1.2.0 Rev1 Single / Dual experiment — historical build and installation
+
+2026-09-10. Candidate only; 1.1.9 remains the Stable rollback. Windows VST3 installed after two host-closure checks, with complete build/output/install SHA-256 parity. The previous installed 1.1.9 bundle is preserved and verified in the output rollback folder.
+
+- Source: D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown
+- Build: D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown
+- Output: D:\Codex\Outputs\QQ Super Compression 1.2.0 UpDown Experiment
+- Installed: C:\Program Files\Common Files\VST3\QQ Super Compression.vst3
+- Windows binary SHA-256: 359ACBB47019DC70ED64A9321EA6C2983CA8F4E600D6CC6FFFF15DD9A67B0C09
+- Actual processor audio/state tests, actual-editor fader/ratio tests, three-theme ST/MS/LR/minimum screenshots and ten inherited source/math regressions pass. See VERIFICATION_1.2.0.md and output Verification/INSTALLATION.json.
+- Single Ratio 1/32..32 default8; Dual Up Ratio1/32..1 default1/8; Dual Down Ratio1..32 default8. Dual defaults UP-24dB / DOWN-12dB. Smaller68x104 dual ST ratio controls and60x21 mode switch.
+- Display median Single4.218ms / Dual4.389ms at480 points, cached software rendering.
+- Known experiment limits: hard interval boundary jumps (test~12.49dB), changed old normalized Ratio automation mapping, and deferred companion notification for host-driven collisions. Use a fresh instance/session for user audition. User listening/acceptance remains pending.
+- No Plan B/C/D, GitHub, macOS, Stable promotion or multiband edits. Prior frozen backups were not accessed or changed. No further rebuild/install is required unless source changes.
+
+--- Historical entries below ---
+
 # QQ Super Compression - Build / validation brief
 
-## Current Stable — 1.1.9 3:2 Landscape
+## Current 1.1.9 — 3:2 Landscape
 
-- Same JUCE 8.0.15, CMake/C++17 and MSVC 19.44 toolchain. Windows Plan A built locally and reused in Plan C; Windows Actions was not triggered.
-- Only editor sizing/layout and metadata change. All DSP/parameters/state/history/material code matches 1.1.8 Revision 2. Previous Stable: 1.1.8 Revision 2.
-- Windows VST3 binary SHA-256: `7C3FF0A7845998817E1B64FF1967D55656A9B1FA8B112269FF822A09452DFD65`.
-- All 15 source/math checks and actual-editor renderer checks pass. Configure `-DQQSC_BUILD_VISUAL_CHECK=ON`, build `QQSCVisualCheck`, run it with an output-directory argument. The new landscape contract replaces old skin-only geometry parity comparisons; retained audio/material checks still apply.
-- Use the exact `v1.1.9` source tag for `build-macos-vst3-au.yml`: Apple Silicon VST3, Intel VST3 and Universal 2 AU. Verify downloaded architecture/version/signing metadata before claiming cross-platform delivery. No DAW listening acceptance or Apple notarization is implied.
-- Frozen Plan B is complete and not a source of subsequent reads. See current handoff and PLAN_A_VERIFICATION_1.1.9.md. Prior results below remain historical.
-- Plan C verified complete at source c70c50fe90c738ed9079464b7299aa67cb08081d / v1.1.9: macOS run 34209677129 passed all three jobs and runner AU auval. Actual downloaded ZIPs/versions/architectures/signatures checked. Minimum macOS: Apple Silicon VST3 and Universal AU 14.0; Intel VST3 15.0. VST3s ad-hoc signed; AU Intel slice unsigned and not Intel-host-tested. Eight-file cross-platform package has 37,428,774 bytes; all source/staging/desktop-entry hashes match. Windows Actions was not run.
+Completed Plan A/B/C/D: public source/tag c70c50fe90c738ed9079464b7299aa67cb08081d / v1.1.9; macOS run 34209677129 succeeded for three jobs and runner AU auval. Four archives, two manuals and two guides passed version/architecture/hash checks and were published as eight Release assets. Windows Actions was not run, no installation performed, and frozen Plan B untouched. See current handoff for final paths and remote completion proof.
 
---- Historical briefs below ---
+Built with the same JUCE 8.0.15, CMake, C++17 and Visual Studio 2022 x64 toolchain as 1.1.8. No dependency or core DSP changes. Configure normally; add `-DQQSC_BUILD_VISUAL_CHECK=ON` to build the optional real-editor renderer. Run `QQSCVisualCheck <output-directory>` for three-theme/mode/bounds/cache/preference checks and `tests/*selftest.py` for source/math checks. `landscape_contract_selftest.py <active-1.1.8-source>` verifies protected source identity; older skin-only parity modes intentionally expect the old geometry and are historical tests.
 
+Windows formal output is built once in Plan A and reused in Plan C. Windows Actions is manual-only and not run by default. Dispatch `build-macos-vst3-au.yml` at the exact release tag for Apple Silicon VST3, Intel VST3 and Universal 2 AU. Check actual bundle versions/architectures and signing/minimum-OS metadata before delivery. No DAW certification is inferred from compilation or offscreen UI testing.
+
+Previous Stable/rollback: 1.1.8 Revision 2. Keep frozen Plan B snapshots untouched. See PLAN_A_VERIFICATION_1.1.9.md and current handoff for this version's evidence; entries below retain historical results.
+
+--- Historical build briefs below ---
 ## Current Stable — v1.1.8 Revision 2
 
-- User accepted the current revision; Plan A and frozen Plan B are complete. Previous Stable: v1.1.7.
-- Windows VST3 reuses the existing verified Plan A output; do not rebuild or run Windows Actions for Plan C.
-- Windows binary SHA-256: `7509DB02BADAAF10CDF72DDB54215C76EBF483B8A469AA5B1C4DCAB01F08F5EA`.
-- Windows ZIP SHA-256: `0322EE34DCB4811B8C662E6890FB934D4B78394421F7B9C0D2B54F5BB7EE5084`.
-- Completed checks include actual editor 1x/2x rendering, theme/layout parity, deterministic cached materials, preference/state checks and Steinberg module validator exit 0. These do not constitute macOS DAW certification.
-- Plan C source tag: `v1.1.8`, commit `bdb73765d1ccd54b2229b721678c382a0aea9b99`. Run `34138216384` passed all three macOS jobs and AU auval on the Apple Silicon runner. Windows Actions was not run. Downloaded versions, ZIP CRCs, root bundles, CPU architectures and hashes passed; the eight-file cross-platform desktop package was verified.
-- Measured minimum macOS: Apple Silicon VST3 and Universal 2 AU 14.0; Intel VST3 15.0. Both VST3 packages are ad-hoc signed. AU arm64 is ad-hoc signed; its x86_64 slice has no embedded signature and is not Intel-host tested. No Developer ID signing/notarization or all-DAW certification is claimed. Non-fatal compiler warnings remain.
-- Optional actual-editor renderer: configure with `-DQQSC_BUILD_VISUAL_CHECK=ON`; build `QQSCVisualCheck`. It is not part of the end-user package.
+2026-09-07: User confirmed the completed Revision 2 as Stable and requested Plan B. Reuse PLAN_A_VERIFICATION_1.1.8_REV2.md; do not rebuild, reinstall or rerun tests for this promotion. Previous Stable/rollback: 1.1.7. See AI_DEVELOPMENT_HANDOFF.md for Plan B completion/freeze. Earlier build/pause notes below are historical.
 
---- Historical briefs below ---
+### Revision 2 development history
+
+2026-09-07: User stopped the Stable / Plan B operation before the source copy and requested a wider, brighter Light pointer. This revision is a candidate; no 1.1.8 Plan B backup exists. Reuse the local 1.1.8 build directory for an incremental build and real-size pointer check. Last completed Stable/backup: v1.1.7. Revision 1 Plan A evidence remains historical in PLAN_A_VERIFICATION_1.1.8.md; do not confuse its hashes with Revision 2. Dark/Classic and all audio behavior remain unchanged.
+
+## Previous Stable — v1.1.7
+
+2026-09-07: User accepted/promoted v1.1.7 and requested Plan B. Inherit the completed Plan A evidence in PLAN_A_VERIFICATION_1.1.7.md; no rebuild, reinstall or test rerun for this promotion. Previous Stable/rollback: 1.1.6 Revision 3. Refer to AI_DEVELOPMENT_HANDOFF.md for Plan B completion. Older candidate/build notes below are historical.
+
+## v1.1.7 Candidate — Three Themes
+
+- Stable/rollback: v1.1.6 Revision 3. New near-black Dark; retain Light and Classic exactly except version readout.
+- Same offline JUCE 8.0.15 / MSVC x64 toolchain, target QQSuperCompression_VST3 and optional QQSCVisualCheck.
+- Run tests/*selftest.py. dark_skin_contract_selftest.py accepts the **active** v1.1.6 Rev3 source directory to check protected source and geometry. Never pass or revisit a frozen Plan B backup.
+- Visual renderer now checks all three themes, disk preference migration/restore using a test-only file, normalized blue emission, bounded caching, and Input meter contrast. User preference files are not written by tests.
+- No GitHub, Actions, macOS, Plan B/C/D or Stable promotion in this run.
+
+## v1.1.6 Revision 2 Candidate — Accepted Asset Knobs
+
+- Stable/rollback: v1.1.5. UI-only; no DSP, parameter, state or layout changes.
+- Build Windows Release VST3 with the existing JUCE 8.0.15/MSVC toolchain.
+- Optional CMake switch: QQSC_BUILD_VISUAL_CHECK=ON. Target QQSCVisualCheck renders the actual editor to an output directory supplied as its sole argument; it never opens a DAW or writes user UI preferences.
+- Run tests/*selftest.py. warm_skin_contract_selftest.py optionally accepts the untouched stable source root for byte-identity/layout checks.
+- The two approved study textures are embedded by QQSCWarmKnobAssets; no external runtime asset directory is needed. WarmKnobAsset.h is the production compositor, not the rejected WarmMaterial knob shader.
+- LIGHT Input/Output/GR colors are shared by meters and Display; Classic remains unchanged.
+- Install only after hosts close; see PLAN_A_VERIFICATION_1.1.6.md for actual installation status. No Stable promotion or publishing in this Plan A.
+
 ## v1.1.5 Stable - Fluid/Cached Dynamic Display Rendering
 
 - Base: v1.1.4 Candidate; previous Stable rollback: v1.1.2.

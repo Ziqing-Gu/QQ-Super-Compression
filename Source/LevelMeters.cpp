@@ -2,6 +2,23 @@
 #include "Parameters.h"
 #include "UTF8LookAndFeel.h"
 
+namespace
+{
+juce::Colour gainIncreaseColour() noexcept
+{
+    if (qqsc::ui::isDarkTheme())
+        return juce::Colour (0xff80c897);
+    return qqsc::ui::isClassicTheme() ? juce::Colour (0xff80d59c)
+                                      : juce::Colour (0xff2c8452);
+}
+
+juce::String signedGainText (float reductionDb)
+{
+    const auto gainDb = std::abs (reductionDb) < 0.05f ? 0.0f : -reductionDb;
+    return (gainDb > 0.0f ? "+" : "") + juce::String (gainDb, 1);
+}
+}
+
 void LevelMeters::paint (juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
@@ -36,10 +53,10 @@ void LevelMeters::paint (juce::Graphics& g)
                    m.outputDb1.load (std::memory_order_relaxed),
                    -60.0f, 3.0f, false, 0.0f, 0.0f, qqsc::ui::outputAccent());
 
-    drawDualMeter (g, grArea, "GAIN RED.", ch0, ch1,
+    drawDualMeter (g, grArea, "GAIN +/-", ch0, ch1,
                    m.gainReductionDb0.load (std::memory_order_relaxed),
                    m.gainReductionDb1.load (std::memory_order_relaxed),
-                   0.0f, 36.0f, true,
+                   -36.0f, 36.0f, true,
                    m.gainReductionHoldDb0.load (std::memory_order_relaxed),
                    m.gainReductionHoldDb1.load (std::memory_order_relaxed),
                    qqsc::ui::grAccent());
@@ -119,18 +136,25 @@ void LevelMeters::drawSingleBar (juce::Graphics& g,
             g.drawLine (barArea.getX() + 0.8f, lineY, barArea.getRight() - 0.8f, lineY, 0.5f);
     }
 
-    const auto proportion = juce::jlimit (0.0f, 1.0f, (valueDb - minDb) / (maxDb - minDb));
     auto fill = barArea;
-    const auto fillHeight = fill.getHeight() * proportion;
+    const auto zeroY = barArea.getCentreY();
+    const bool growsDownward = reductionMeter && valueDb >= 0.0f;
 
     if (reductionMeter)
     {
-        // 0 dB GR lives at the TOP. Increasing Gain Reduction grows DOWNWARD.
-        fill.setY (barArea.getY());
-        fill.setHeight (fillHeight);
+        // Processor GR stays positive for reduction. The visual is bipolar:
+        // boost rises above unity; reduction falls below unity.
+        const auto valueY = juce::jmap (juce::jlimit (minDb, maxDb, valueDb),
+                                        minDb, maxDb, barArea.getY(), barArea.getBottom());
+        fill.setY (juce::jmin (zeroY, valueY));
+        fill.setHeight (std::abs (valueY - zeroY));
+        if (valueDb < 0.0f)
+            barColour = gainIncreaseColour();
     }
     else
     {
+        const auto proportion = juce::jlimit (0.0f, 1.0f, (valueDb - minDb) / (maxDb - minDb));
+        const auto fillHeight = fill.getHeight() * proportion;
         fill.setY (barArea.getBottom() - fillHeight);
         fill.setHeight (fillHeight);
     }
@@ -141,8 +165,8 @@ void LevelMeters::drawSingleBar (juce::Graphics& g,
         {
             // Keep active silver visibly above the unlit well, with fine
             // segments and tonal depth but no bloom or full-height ghost fill.
-            const auto originY = reductionMeter ? fill.getY() : fill.getBottom();
-            const auto leadingY = reductionMeter ? fill.getBottom() : fill.getY();
+            const auto originY = growsDownward ? fill.getY() : fill.getBottom();
+            const auto leadingY = growsDownward ? fill.getBottom() : fill.getY();
             const auto pale = barColour.interpolatedWith (juce::Colour (0xffc4d1d2), 0.30f);
             g.setGradientFill (juce::ColourGradient (barColour.darker (0.16f), fill.getCentreX(), originY,
                                                     pale, fill.getCentreX(), leadingY, false));
@@ -152,15 +176,14 @@ void LevelMeters::drawSingleBar (juce::Graphics& g,
                 if (lineY > fill.getY() && lineY < fill.getBottom())
                     g.drawLine (fill.getX(), lineY, fill.getRight(), lineY, 1.1f);
             g.setColour (pale.withAlpha (0.75f));
-            const float edgeY = reductionMeter ? fill.getBottom() - 0.5f : fill.getY() + 0.5f;
+            const float edgeY = growsDownward ? fill.getBottom() - 0.5f : fill.getY() + 0.5f;
             g.drawLine (fill.getX() + 0.8f, edgeY, fill.getRight() - 0.8f, edgeY, 0.7f);
         }
         else if (! qqsc::ui::isClassicTheme())
         {
             // Rich colour at the origin, fading toward the moving leading edge.
-            // Mirror only the lighting for downward-growing GR; its dB map stays unchanged.
-            const auto originY = reductionMeter ? fill.getY() : fill.getBottom();
-            const auto leadingY = reductionMeter ? fill.getBottom() : fill.getY();
+            const auto originY = growsDownward ? fill.getY() : fill.getBottom();
+            const auto leadingY = growsDownward ? fill.getBottom() : fill.getY();
             const auto ivory = juce::Colour (0xfff8f5ef);
             juce::ColourGradient light (barColour.darker (0.12f), fill.getCentreX(), originY,
                                        barColour.interpolatedWith (ivory, 0.82f), fill.getCentreX(), leadingY, false);
@@ -189,7 +212,17 @@ void LevelMeters::drawSingleBar (juce::Graphics& g,
     g.setColour (qqsc::ui::border().withAlpha (0.78f));
     g.drawRoundedRectangle (barArea, 3.0f, 1.0f);
 
-    if (reductionMeter && holdDb > 0.05f)
+    if (reductionMeter)
+    {
+        g.setColour (qqsc::ui::textMuted().withAlpha (0.65f));
+        g.drawLine (barArea.getX(), zeroY, barArea.getRight(), zeroY, 1.0f);
+        g.setFont (7.2f);
+        g.drawText ("0", juce::Rectangle<float> (barArea.getX(), zeroY - 11.0f,
+                                                barArea.getWidth(), 10.0f).toNearestInt(),
+                    juce::Justification::centred);
+    }
+
+    if (reductionMeter && std::abs (holdDb) > 0.05f)
     {
         const auto holdProportion = juce::jlimit (0.0f, 1.0f, (holdDb - minDb) / (maxDb - minDb));
         const auto holdY = barArea.getY() + barArea.getHeight() * holdProportion;
@@ -202,12 +235,12 @@ void LevelMeters::drawSingleBar (juce::Graphics& g,
         auto currentArea = valueArea.removeFromTop (17.0f);
         g.setColour (qqsc::ui::text().withAlpha (0.82f));
         g.setFont (8.7f);
-        g.drawFittedText (juce::String (juce::jmax (0.0f, valueDb), 1) + " dB",
+        g.drawFittedText (signedGainText (valueDb) + " dB",
                           currentArea.toNearestInt(), juce::Justification::centred, 1);
 
         g.setColour (qqsc::ui::textMuted().withAlpha (0.66f));
         g.setFont (8.5f);
-        const auto holdText = juce::String (juce::jmax (0.0f, holdDb), 1);
+        const auto holdText = signedGainText (holdDb);
         g.drawFittedText (holdText, valueArea.toNearestInt(), juce::Justification::centredTop, 1);
     }
     else

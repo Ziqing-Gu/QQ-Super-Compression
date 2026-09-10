@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <array>
 #include <cmath>
+#include <limits>
 
 namespace qqsc::params
 {
@@ -39,9 +40,97 @@ namespace qqsc::params
     inline constexpr auto keyGainDb      = "keyGainDb";
     inline constexpr auto keyHpfHz       = "keyHpfHz";
 
+
+    // v1.2.0 parameters are appended after the complete v1.1.9 sequence.
+    inline constexpr auto compressionMode = "compressionMode";
+    inline constexpr auto rangeDb = "rangeDb";
+    inline constexpr auto rangeLDb = "rangeLDb";
+    inline constexpr auto rangeRDb = "rangeRDb";
+    inline constexpr auto rangeMDb = "rangeMDb";
+    inline constexpr auto rangeSDb = "rangeSDb";
+    inline constexpr auto upThresholdDb = "upThresholdDb";
+    inline constexpr auto upThresholdLDb = "upThresholdLDb";
+    inline constexpr auto upThresholdRDb = "upThresholdRDb";
+    inline constexpr auto upThresholdMDb = "upThresholdMDb";
+    inline constexpr auto upThresholdSDb = "upThresholdSDb";
+    inline constexpr auto downThresholdDb = "downThresholdDb";
+    inline constexpr auto downThresholdLDb = "downThresholdLDb";
+    inline constexpr auto downThresholdRDb = "downThresholdRDb";
+    inline constexpr auto downThresholdMDb = "downThresholdMDb";
+    inline constexpr auto downThresholdSDb = "downThresholdSDb";
+    inline constexpr auto upRatio = "upRatio";
+    inline constexpr auto dualRatioLink = "dualRatioLink";
+    inline constexpr auto upRatioL = "upRatioL";
+    inline constexpr auto upRatioR = "upRatioR";
+    inline constexpr auto upRatioM = "upRatioM";
+    inline constexpr auto upRatioS = "upRatioS";
+    inline constexpr auto downRatio = "downRatio";
+    inline constexpr auto downRatioL = "downRatioL";
+    inline constexpr auto downRatioR = "downRatioR";
+    inline constexpr auto downRatioM = "downRatioM";
+    inline constexpr auto downRatioS = "downRatioS";
+
+    // Rev4: appended branch enables; saved ratios and thresholds stay intact.
+    inline constexpr auto upEnabled = "upEnabled";
+    inline constexpr auto upEnabledL = "upEnabledL";
+    inline constexpr auto upEnabledR = "upEnabledR";
+    inline constexpr auto upEnabledM = "upEnabledM";
+    inline constexpr auto upEnabledS = "upEnabledS";
+    inline constexpr std::array<const char*, 5> upEnabledIds { upEnabled, upEnabledL, upEnabledR, upEnabledM, upEnabledS };
+    inline constexpr auto downEnabled = "downEnabled";
+    inline constexpr auto downEnabledL = "downEnabledL";
+    inline constexpr auto downEnabledR = "downEnabledR";
+    inline constexpr auto downEnabledM = "downEnabledM";
+    inline constexpr auto downEnabledS = "downEnabledS";
+    inline constexpr std::array<const char*, 5> downEnabledIds { downEnabled, downEnabledL, downEnabledR, downEnabledM, downEnabledS };
+
+    enum CompressionMode { singleCompression = 0, dualCompression = 1 };
+    inline constexpr std::array<const char*, 5> thresholdIds { thresholdDb, thresholdLDb, thresholdRDb, thresholdMDb, thresholdSDb };
+    inline constexpr std::array<const char*, 5> rangeIds { rangeDb, rangeLDb, rangeRDb, rangeMDb, rangeSDb };
+    inline constexpr std::array<const char*, 5> upThresholdIds { upThresholdDb, upThresholdLDb, upThresholdRDb, upThresholdMDb, upThresholdSDb };
+    inline constexpr std::array<const char*, 5> downThresholdIds { downThresholdDb, downThresholdLDb, downThresholdRDb, downThresholdMDb, downThresholdSDb };
+    inline constexpr std::array<const char*, 5> ratioIds { ratio, ratioL, ratioR, ratioM, ratioS };
+    inline constexpr std::array<const char*, 5> upRatioIds { upRatio, upRatioL, upRatioR, upRatioM, upRatioS };
+    inline constexpr std::array<const char*, 5> downRatioIds { downRatio, downRatioL, downRatioR, downRatioM, downRatioS };
+
+    inline juce::NormalisableRange<float> dynamicsRatioRange (float minimum = 1.0f / 32.0f, float maximum = 32.0f)
+    {
+        return { minimum, maximum,
+                 [] (float lo, float hi, float normalised) { return lo * std::pow (hi / lo, normalised); },
+                 [] (float lo, float hi, float value) { return std::log (juce::jlimit (lo, hi, value) / lo) / std::log (hi / lo); },
+                 [] (float lo, float hi, float value) { return juce::jlimit (lo, hi, value); } };
+    }
+
+    inline juce::String dynamicsRatioText (float value)
+    {
+        if (value < 0.99999f)
+            return "1:" + juce::String (1.0f / value, 2);
+        return juce::String (value, value < 10.0f ? 2 : 1) + ":1";
+    }
+
+    inline float dynamicsRatioFromText (const juce::String& text)
+    {
+        if (text.containsChar (':'))
+        {
+            const auto left = text.upToFirstOccurrenceOf (":", false, false).getFloatValue();
+            const auto right = text.fromFirstOccurrenceOf (":", false, false).getFloatValue();
+            return right > 0.0f ? left / right : 1.0f;
+        }
+        if (text.containsChar ('/'))
+        {
+            const auto left = text.upToFirstOccurrenceOf ("/", false, false).getFloatValue();
+            const auto right = text.fromFirstOccurrenceOf ("/", false, false).getFloatValue();
+            return right > 0.0f ? left / right : 1.0f;
+        }
+        return text.getFloatValue();
+    }
+
     // Threshold OFF is represented by the bottom endpoint. DSP maps this sentinel
     // to a true zero-linear threshold, i.e. the exact pre-Threshold (-inf) law.
     inline constexpr float thresholdOffDb = -120.0f;
+    // Virtual Range endpoint: +1 is a stored OFF sentinel, never physical dB.
+    // Finite 0 dB remains a distinct strict upper cutoff in saved projects.
+    inline constexpr float rangeOffDb = 1.0f;
     inline constexpr float keyHpfOffHz = 0.0f;
     inline constexpr float keyHpfMinHz = 20.0f;
     inline constexpr float keyHpfMaxHz = 500.0f;
@@ -57,6 +146,60 @@ namespace qqsc::params
             return 0.0f;
 
         return juce::Decibels::decibelsToGain (juce::jlimit (thresholdOffDb, 0.0f, db));
+    }
+
+    inline bool isRangeEnabled (float db) noexcept
+    {
+        return db <= 0.0f;
+    }
+
+    inline float clampRangeDb (float db) noexcept
+    {
+        return isRangeEnabled (db) ? juce::jlimit (thresholdOffDb, 0.0f, db) : rangeOffDb;
+    }
+
+    inline float rangeLinear (float db) noexcept
+    {
+        return isRangeEnabled (db) ? thresholdLinear (db) : std::numeric_limits<float>::infinity();
+    }
+
+    inline juce::String rangeText (float db)
+    {
+        if (! isRangeEnabled (db)) return "OFF";
+        if (! isThresholdEnabled (db)) return "-inf dB";
+        return juce::String (db, 2) + " dB";
+    }
+
+    inline float rangeFromText (const juce::String& text)
+    {
+        if (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("+inf")) return rangeOffDb;
+        if (text.containsIgnoreCase ("-inf")) return thresholdOffDb;
+        return juce::jlimit (thresholdOffDb, 0.0f, text.getFloatValue());
+    }
+
+    inline juce::NormalisableRange<float> rangeParameterRange()
+    {
+        // The final 2% of travel is an explicit OFF detent; finite 0 dB remains
+        // reachable immediately below it. No values between 0 and OFF are dB.
+        constexpr float finiteEnd = 0.98f;
+        return { thresholdOffDb, rangeOffDb,
+                 [finiteEnd] (float, float, float normalised)
+                 {
+                     return normalised > finiteEnd ? rangeOffDb
+                         : thresholdOffDb * (1.0f - normalised / finiteEnd);
+                 },
+                 [finiteEnd] (float, float, float value)
+                 {
+                     return isRangeEnabled (value)
+                         ? finiteEnd * (1.0f - juce::jlimit (thresholdOffDb, 0.0f, value) / thresholdOffDb)
+                         : 1.0f;
+                 },
+                 [] (float, float, float value)
+                 {
+                     return isRangeEnabled (value)
+                         ? std::round (clampRangeDb (value) * 100.0f) * 0.01f
+                         : rangeOffDb;
+                 } };
     }
 
     inline bool isKeyHpfEnabled (float hz) noexcept

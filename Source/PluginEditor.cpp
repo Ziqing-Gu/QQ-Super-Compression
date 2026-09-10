@@ -17,15 +17,43 @@ juce::String arrowText (const juce::String& left, const juce::String& right)
     const auto arrow = juce::String::fromUTF8 (u8"\u2192");
     return left + arrow + right;
 }
+
+juce::String ratioText (double value)
+{
+    return value < 1.0 ? "1:" + juce::String (1.0 / value, 2)
+                       : juce::String (value, value < 10.0 ? 2 : 1) + ":1";
 }
 
-QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (QQSuperCompressionAudioProcessor& p)
+double ratioFromText (const juce::String& text)
+{
+    const auto trimmed = text.trim();
+    for (const auto separator : { ':', '/' })
+        if (trimmed.containsChar (separator))
+        {
+            const auto numerator = trimmed.upToFirstOccurrenceOf (juce::String::charToString (separator), false, false).getDoubleValue();
+            const auto denominator = trimmed.fromFirstOccurrenceOf (juce::String::charToString (separator), false, false).getDoubleValue();
+            return denominator > 0.0 ? numerator / denominator : 1.0;
+        }
+    return trimmed.getDoubleValue();
+}
+
+juce::Colour boundaryColour (bool dual, bool upper)
+{
+    if (upper) return qqsc::ui::grAccent();
+    if (! dual) return qqsc::ui::warmAccent();
+    return juce::Colour (qqsc::ui::isDarkTheme() ? 0xff80c897u : qqsc::ui::isClassicTheme() ? 0xff80d59cu : 0xff2c8452u);
+}
+}
+
+QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (QQSuperCompressionAudioProcessor& p,
+    std::unique_ptr<juce::PropertiesFile> settingsOverride)
     : AudioProcessorEditor (&p),
       processor (p),
-      uiProperties (createUiProperties()),
+      uiProperties (settingsOverride != nullptr ? std::move (settingsOverride) : createUiProperties()),
       display (p),
       meters (p)
 {
+    processor.initialiseDualRatioLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("dualRatioLink", true));
     setLookAndFeel (&utf8LookAndFeel);
     setResizable (true, true);
     setResizeLimits (minEditorWidth, minEditorHeight, maxEditorWidth, maxEditorHeight);
@@ -124,7 +152,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
         configureKnob (*ratio);
         ratio->textFromValueFunction = [] (double v)
         {
-            return juce::String (v, v < 10.0 ? 2 : 1) + ":1";
+            return ratioText (v);
         };
     }
 
@@ -229,6 +257,11 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     modeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     oversamplingButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
     oversamplingButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    for (size_t d = 0; d < 5; ++d)
+    {
+        configureActionButton (upEnabledButtons[d]);
+        configureActionButton (downEnabledButtons[d]);
+    }
     aButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     bButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     bypassButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
@@ -393,6 +426,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     mixMSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixMS, mixMSlider, mixSSlider, text, "Mix M/S"); };
     mixSSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::mixMS, mixSSlider, mixMSlider, text, "Mix M/S"); };
 
+    initialiseCompressionControls();
     modeButton.onClick = [this] { cycleMode(); };
     monitorAllButton.onClick = [this] { selectMonitor (qqsc::params::monitorAll); };
     monitorFirstButton.onClick = [this] { selectMonitor (qqsc::params::monitorFirst); };
@@ -427,11 +461,13 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
 QQSuperCompressionAudioProcessorEditor::~QQSuperCompressionAudioProcessorEditor()
 {
+    finishCompressionControlGestures();
     stopTimer();
     processor.setSidechainListenEnabled (false);
 
     if (uiProperties != nullptr)
     {
+        uiProperties->reload();
         uiProperties->setValue ("landscapeEditorWidth", getWidth());
         uiProperties->saveIfNeeded();
     }
@@ -529,7 +565,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     lookaheadCombo.setColour (juce::ComboBox::textColourId, qqsc::ui::text());
     lookaheadCombo.setColour (juce::ComboBox::arrowColourId, technical);
 
-    for (auto* button : { &modeButton, &linkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
+    for (auto* button : { &modeButton, &linkButton, &dualRatioLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
                           &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
                           &keyExternalButton, &sidechainListenButton })
@@ -549,6 +585,30 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     keyInternalButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     keyExternalButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     sidechainListenButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
+    compressionModeButton.setColour (juce::TextButton::buttonColourId, qqsc::ui::panel());
+    compressionModeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
+    compressionModeButton.setColour (juce::TextButton::textColourOffId, qqsc::ui::text());
+    compressionModeButton.setColour (juce::TextButton::textColourOnId, qqsc::ui::text());
+    for (size_t i = 0; i < upperBoundarySliders.size(); ++i)
+    {
+        if (upperBoundarySliders[i] == nullptr) continue;
+        for (auto* label : { &lowerBoundaryNames[i], &upperBoundaryNames[i], &upRatioNames[i], &downRatioNames[i] })
+            label->setColour (juce::Label::textColourId, neutral);
+        for (auto* label : { &lowerBoundaryValues[i], &upperBoundaryValues[i] })
+        {
+            label->setColour (juce::Label::textColourId, qqsc::ui::text());
+            label->setColour (juce::Label::backgroundColourId, qqsc::ui::panel().withAlpha (0.80f));
+            label->setColour (juce::Label::outlineColourId, qqsc::ui::border().withAlpha (0.78f));
+            label->setColour (juce::Label::textWhenEditingColourId, qqsc::ui::text());
+            label->setColour (juce::Label::backgroundWhenEditingColourId, qqsc::ui::panel());
+        }
+        auto& ratio = *downRatioSliders[i];
+        ratio.setColour (juce::Slider::textBoxTextColourId, qqsc::ui::text());
+        ratio.setColour (juce::Slider::textBoxBackgroundColourId, qqsc::ui::panel().withAlpha (0.76f));
+        ratio.setColour (juce::Slider::textBoxOutlineColourId, qqsc::ui::border().withAlpha (0.78f));
+        ratio.setColour (juce::Slider::rotarySliderOutlineColourId, qqsc::ui::border());
+        ratio.setColour (juce::Slider::rotarySliderFillColourId, darkTheme ? juce::Colour (0xff9bd8ed) : qqsc::ui::warmAccent());
+    }
     bypassButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
     themeButton.setButtonText (qqsc::ui::themeLabel (theme));
     keyMeter.setColour (juce::ProgressBar::backgroundColourId, qqsc::ui::panelAlt());
@@ -702,13 +762,117 @@ void QQSuperCompressionAudioProcessorEditor::beginLinkedGesture (LinkedPair pair
     activeLinkTarget = &target;
     activeLinkSourceStart = source.getValue();
     activeLinkTargetStart = target.getValue();
+    const auto targetID = target.getProperties()["qqscParameterID"].toString();
+    if (linkButton.getToggleState() && targetID.isNotEmpty())
+        if (auto* parameter = processor.getAPVTS().getParameter (targetID))
+        {
+            parameter->beginChangeGesture();
+            companionGestureParameters.push_back (parameter);
+        }
 }
 
 void QQSuperCompressionAudioProcessorEditor::endLinkedGesture()
 {
+    dualRatioGestureActive = false;
+    for (auto* parameter : companionGestureParameters)
+        parameter->endChangeGesture();
+    companionGestureParameters.clear();
+    boundaryGestureActive = false;
     activeLinkedPair = LinkedPair::none;
     activeLinkSource = nullptr;
     activeLinkTarget = nullptr;
+}
+
+void QQSuperCompressionAudioProcessorEditor::beginDualRatioGesture (int domain, bool upward)
+{
+    endLinkedGesture();
+    beginUndoTransaction ("Dual Ratio Link");
+    dualRatioGestureActive = true;
+    dualRatioGestureDomain = domain;
+    dualRatioGestureUpward = upward;
+    dualRatioGestureCoupled = dualRatioLinkButton.getToggleState();
+    dualRatioGesturePartner = domain != 0 && linkButton.getToggleState()
+        ? (domain % 2 == 1 ? domain + 1 : domain - 1) : domain;
+    const auto up = mainRatioControls();
+    for (size_t d = 0; d < 5; ++d)
+    {
+        dualRatioStartUp[d] = up[d]->getValue();
+        dualRatioStartDown[d] = downRatioSliders[d]->getValue();
+    }
+    for (int d = 0; d < 5; ++d)
+        if (d == domain || d == dualRatioGesturePartner)
+            for (bool isUp : {true, false})
+                if ((isUp == upward || dualRatioGestureCoupled) && !(d == domain && isUp == upward))
+                {
+                    auto* slider = isUp ? up[static_cast<size_t> (d)] : downRatioSliders[static_cast<size_t> (d)].get();
+                    if (auto* parameter = processor.getAPVTS().getParameter (slider->getProperties()["qqscParameterID"].toString()))
+                    {
+                        parameter->beginChangeGesture();
+                        companionGestureParameters.push_back (parameter);
+                    }
+                }
+}
+
+double QQSuperCompressionAudioProcessorEditor::applyDualRatioChange (double requested, bool writeSource)
+{
+    const juce::ScopedValueSetter<bool> guard (dualRatioValueUpdateInProgress, true);
+    const auto up = mainRatioControls();
+    const auto& starts = dualRatioGestureUpward ? dualRatioStartUp : dualRatioStartDown;
+    double minDelta = -std::numeric_limits<double>::infinity();
+    double maxDelta = std::numeric_limits<double>::infinity();
+    for (int d = 0; d < 5; ++d)
+        if (d == dualRatioGestureDomain || d == dualRatioGesturePartner)
+        {
+            const auto i = static_cast<size_t> (d);
+            auto* driven = dualRatioGestureUpward ? up[i] : downRatioSliders[i].get();
+            auto* opposite = dualRatioGestureUpward ? downRatioSliders[i].get() : up[i];
+            auto minimum = driven->getMinimum(), maximum = driven->getMaximum();
+            if (dualRatioGestureCoupled)
+            {
+                // Preserve UP*DOWN. Bound the shared edit before writing any
+                // member, including an independently offset LR/MS partner.
+                const auto product = dualRatioStartUp[i] * dualRatioStartDown[i];
+                minimum = juce::jmax (minimum, product / opposite->getMaximum());
+                maximum = juce::jmin (maximum, product / opposite->getMinimum());
+            }
+            minDelta = juce::jmax (minDelta, minimum - starts[i]);
+            maxDelta = juce::jmin (maxDelta, maximum - starts[i]);
+        }
+    const auto delta = juce::jlimit (minDelta, maxDelta, requested - starts[static_cast<size_t> (dualRatioGestureDomain)]);
+    for (int d = 0; d < 5; ++d)
+        if (d == dualRatioGestureDomain || d == dualRatioGesturePartner)
+        {
+            const auto i = static_cast<size_t> (d);
+            auto* driven = dualRatioGestureUpward ? up[i] : downRatioSliders[i].get();
+            auto* opposite = dualRatioGestureUpward ? downRatioSliders[i].get() : up[i];
+            const auto next = starts[i] + delta;
+            if (writeSource || d != dualRatioGestureDomain)
+                driven->setValue (next, juce::sendNotificationSync);
+            if (dualRatioGestureCoupled)
+                opposite->setValue (dualRatioStartUp[i] * dualRatioStartDown[i] / next, juce::sendNotificationSync);
+        }
+    return starts[static_cast<size_t> (dualRatioGestureDomain)] + delta;
+}
+
+void QQSuperCompressionAudioProcessorEditor::handleDualRatioChange (int domain, bool upward)
+{
+    // Host automation/state restoration does not rewrite the other parameter.
+    // Coupling applies to explicit editor gestures and numeric commits only.
+    if (dualRatioValueUpdateInProgress || ! dualRatioGestureActive
+        || domain != dualRatioGestureDomain || upward != dualRatioGestureUpward) return;
+    auto* source = upward ? mainRatioControls()[static_cast<size_t> (domain)] : downRatioSliders[static_cast<size_t> (domain)].get();
+    applyDualRatioChange (source->getValue(), true);
+}
+
+double QQSuperCompressionAudioProcessorEditor::dualRatioFromText (int domain, bool upward, const juce::String& text)
+{
+    auto* source = upward ? mainRatioControls()[static_cast<size_t> (domain)] : downRatioSliders[static_cast<size_t> (domain)].get();
+    const auto requested = juce::jlimit (source->getMinimum(), source->getMaximum(), ratioFromText (text));
+    if (dualRatioValueUpdateInProgress) return requested;
+    beginDualRatioGesture (domain, upward);
+    const auto result = applyDualRatioChange (requested, false);
+    endLinkedGesture();
+    return result;
 }
 
 void QQSuperCompressionAudioProcessorEditor::handleLinkedValueChange (LinkedPair pair, FineKnob& source, FineKnob& target)
@@ -723,7 +887,25 @@ void QQSuperCompressionAudioProcessorEditor::handleLinkedValueChange (LinkedPair
     if (activeLinkedPair != pair || activeLinkSource != &source || activeLinkTarget != &target)
         return;
 
-    const bool thresholdPair = pair == LinkedPair::thresholdLR || pair == LinkedPair::thresholdMS;
+    const bool rangePair = attachedCompressionMode == 0
+        && (pair == LinkedPair::upperBoundaryLR || pair == LinkedPair::upperBoundaryMS);
+    if (rangePair)
+    {
+        const bool sourceOff = ! qqsc::params::isRangeEnabled (static_cast<float> (activeLinkSourceStart));
+        const bool targetOff = ! qqsc::params::isRangeEnabled (static_cast<float> (activeLinkTargetStart));
+        // OFF is an absent ceiling, not +1 physical dB. A finite offset to
+        // that endpoint is undefined, just like the lower -infinity endpoint.
+        if (sourceOff != targetOff) return;
+        if (sourceOff || ! qqsc::params::isRangeEnabled (static_cast<float> (source.getValue())))
+        {
+            const juce::ScopedValueSetter<bool> guard (linkedValueUpdateInProgress, true);
+            target.setValue (source.getValue(), juce::sendNotificationSync);
+            return;
+        }
+    }
+
+    const bool thresholdPair = attachedCompressionMode == 0
+        && (pair == LinkedPair::thresholdLR || pair == LinkedPair::thresholdMS);
     if (thresholdPair)
     {
         // OFF means -infinity conceptually, not -120 dB. A finite relative
@@ -761,13 +943,16 @@ double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair
     if (text.trim().isEmpty())
         return source.getValue();
 
-    const bool thresholdPair = pair == LinkedPair::thresholdLR || pair == LinkedPair::thresholdMS;
+    const bool thresholdPair = attachedCompressionMode == 0
+        && (pair == LinkedPair::thresholdLR || pair == LinkedPair::thresholdMS);
+    const bool ratioPair = pair == LinkedPair::ratioLR || pair == LinkedPair::ratioMS
+        || pair == LinkedPair::downRatioLR || pair == LinkedPair::downRatioMS;
 
     double requestedSource = 0.0;
     if (thresholdPair && (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("-inf")))
         requestedSource = static_cast<double> (qqsc::params::thresholdOffDb);
     else
-        requestedSource = text.getDoubleValue();
+        requestedSource = ratioPair ? ratioFromText (text) : text.getDoubleValue();
 
     requestedSource = juce::jlimit (source.getMinimum(), source.getMaximum(), requestedSource);
 
@@ -779,6 +964,23 @@ double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair
     const auto targetStart = target.getValue();
 
     beginUndoTransaction (undoName);
+    const auto setLinkedTarget = [this, &target] (double value)
+    {
+        if (std::abs (target.getValue() - value) <= 1.0e-9)
+            return;
+
+        // Native Slider text parsing occurs before the source's automatic
+        // ScopedDragNotification. Give the linked target its own balanced
+        // touch gesture so hosts also record this parameter's numeric edit.
+        const auto targetID = target.getProperties()["qqscParameterID"].toString();
+        auto* parameter = targetID.isNotEmpty() ? processor.getAPVTS().getParameter (targetID) : nullptr;
+        const bool companionAlreadyActive = parameter != nullptr
+            && std::find (companionGestureParameters.begin(), companionGestureParameters.end(), parameter) != companionGestureParameters.end();
+        const bool openGesture = parameter != nullptr && ! companionAlreadyActive && ! target.hasActiveNativeGesture();
+        if (openGesture) parameter->beginChangeGesture();
+        target.setValue (value, juce::sendNotificationSync);
+        if (openGesture) parameter->endChangeGesture();
+    };
 
     if (thresholdPair)
     {
@@ -797,8 +999,7 @@ double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair
         if (sourceOff && targetOff)
         {
             const juce::ScopedValueSetter<bool> guard (linkedValueUpdateInProgress, true);
-            if (std::abs (target.getValue() - requestedSource) > 1.0e-9)
-                target.setValue (requestedSource, juce::sendNotificationSync);
+            setLinkedTarget (requestedSource);
             return requestedSource;
         }
     }
@@ -816,10 +1017,482 @@ double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair
     const auto newTarget = targetStart + appliedDelta;
 
     const juce::ScopedValueSetter<bool> guard (linkedValueUpdateInProgress, true);
-    if (std::abs (target.getValue() - newTarget) > 1.0e-9)
-        target.setValue (newTarget, juce::sendNotificationSync);
+    setLinkedTarget (newTarget);
 
     return newSource;
+}
+
+void QQSuperCompressionAudioProcessorEditor::BoundaryLookAndFeel::drawLinearSlider (
+    juce::Graphics& g, int x, int y, int width, int height, float sliderPos, float, float,
+    juce::Slider::SliderStyle, juce::Slider& slider)
+{
+    const auto upper = static_cast<bool> (slider.getProperties()["qqscUpperBoundary"]);
+    const auto accent = boundaryColour (static_cast<bool> (slider.getProperties()["qqscDualBoundary"]), upper);
+    const auto cx = static_cast<float> (x) + static_cast<float> (width) * 0.5f;
+    auto track = juce::Rectangle<float> (cx - 2.2f, static_cast<float> (y), 4.4f, static_cast<float> (height));
+    if (auto* boundary = dynamic_cast<FineKnob*> (&slider); boundary != nullptr && boundary->boundaryPlotBounds)
+    {
+        const auto plot = boundary->boundaryPlotBounds();
+        track.setY (plot.getY());
+        track.setHeight (plot.getHeight());
+        sliderPos = boundary->getBoundaryThumbY();
+    }
+    g.setColour (qqsc::ui::isDarkTheme() ? juce::Colour (0xff414445) : juce::Colour (0xffd8d0c5));
+    g.fillRoundedRectangle (track, 2.2f);
+    g.setColour (accent.withAlpha (qqsc::ui::isDarkTheme() ? 0.42f : 0.70f));
+    g.fillRoundedRectangle (upper ? track.withBottom (sliderPos) : track.withTop (sliderPos), 2.0f);
+    const auto thumb = juce::Rectangle<float> (19.0f, 11.0f).withCentre ({ cx, sliderPos });
+    g.setColour (juce::Colours::black.withAlpha (0.18f));
+    g.fillRoundedRectangle (thumb.translated (0.0f, 1.0f).expanded (0.6f), 4.0f);
+    if (qqsc::ui::isDarkTheme()) qqsc::dark::surface (g, thumb, 4.0f);
+    else if (! qqsc::ui::isClassicTheme()) qqsc::warm::surface (g, thumb, 4.0f);
+    else
+    {
+        g.setColour (qqsc::ui::panel());
+        g.fillRoundedRectangle (thumb, 3.0f);
+        g.setColour (qqsc::ui::border());
+        g.drawRoundedRectangle (thumb, 3.0f, 1.0f);
+    }
+    g.setColour (accent);
+    g.drawLine (cx - 5.5f, sliderPos, cx + 5.5f, sliderPos, 1.3f);
+}
+
+std::array<QQSuperCompressionAudioProcessorEditor::FineKnob*, 5>
+QQSuperCompressionAudioProcessorEditor::lowerBoundaryControls()
+{
+    return { &thresholdSlider, &thresholdLSlider, &thresholdRSlider, &thresholdMSlider, &thresholdSSlider };
+}
+
+std::array<QQSuperCompressionAudioProcessorEditor::FineKnob*, 5>
+QQSuperCompressionAudioProcessorEditor::mainRatioControls()
+{
+    return { &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider };
+}
+
+void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
+{
+    configureActionButton (dualRatioLinkButton);
+    dualRatioLinkButton.getProperties().set ("qqscSmallLink", true);
+    dualRatioLinkButton.setTooltip ("Link UP/DOWN by inverse relative changes. Enabling LINK keeps current values. LR/MS domain LINK remains separate.");
+    contentRoot.addAndMakeVisible (dualRatioLinkButton);
+    registerKeyboardListener (dualRatioLinkButton);
+    dualRatioLinkButton.onClick = [this]
+    {
+        finishCompressionControlGestures();
+        beginUndoTransaction ("Up / Down Ratio Link");
+        const bool enabled = processor.getAPVTS().getRawParameterValue (qqsc::params::dualRatioLink)->load() < 0.5f;
+        setChoiceParameter (qqsc::params::dualRatioLink, enabled ? 1 : 0);
+        if (uiProperties != nullptr)
+        {
+            uiProperties->reload();
+            uiProperties->setValue ("dualRatioLink", enabled);
+            uiProperties->saveIfNeeded();
+        }
+        updateCompressionUi();
+    };
+    for (size_t d = 0; d < 5; ++d)
+        for (bool upward : { true, false })
+        {
+            auto& button = upward ? upEnabledButtons[d] : downEnabledButtons[d];
+            configureActionButton (button);
+            button.getProperties().set ("qqscSmallLink", true);
+            button.setTooltip (upward ? "Enable upward processing; keeps Up Ratio and both thresholds."
+                                     : "Enable downward processing; keeps Down Ratio and both thresholds.");
+            contentRoot.addAndMakeVisible (button);
+            registerKeyboardListener (button);
+            button.onClick = [this, d, upward]
+            {
+                const auto* id = (upward ? qqsc::params::upEnabledIds : qqsc::params::downEnabledIds)[d];
+                beginUndoTransaction (upward ? "Up processing On/Off" : "Down processing On/Off");
+                const bool enabled = processor.getAPVTS().getRawParameterValue (id)->load() < 0.5f;
+                setChoiceParameter (id, enabled ? 1 : 0);
+                updateCompressionUi();
+            };
+        }
+
+    configureActionButton (compressionModeButton);
+    compressionModeButton.getProperties().set ("qqscAlwaysLit", true);
+    compressionModeButton.setTooltip ("Single: process between Threshold and Range. Dual: independent upward and downward compression.");
+    contentRoot.addAndMakeVisible (compressionModeButton);
+    registerKeyboardListener (compressionModeButton);
+    compressionModeButton.onClick = [this]
+    {
+        endLinkedGesture();
+        beginUndoTransaction ("Single / Dual Compression");
+        setChoiceParameter ("compressionMode", attachedCompressionMode == 1 ? 0 : 1);
+        updateCompressionUi();
+        updateModeUi();
+    };
+    linkButton.setTooltip ("Relative Link: Ratio / Threshold / Range / Makeup / Mix");
+    const auto lower = lowerBoundaryControls();
+    const auto mainRatios = mainRatioControls();
+    for (size_t i = 0; i < lower.size(); ++i)
+    {
+        upperBoundarySliders[i] = std::make_unique<FineKnob> (0.0);
+        downRatioSliders[i] = std::make_unique<FineKnob> (1.0);
+        auto& upper = *upperBoundarySliders[i];
+        configureThresholdSlider (upper);
+        configureKnob (*downRatioSliders[i]);
+        downRatioSliders[i]->textFromValueFunction = ratioText;
+        downRatioSliders[i]->valueFromTextFunction = ratioFromText;
+        for (auto* slider : { lower[i], &upper })
+        {
+            slider->setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+            slider->setLookAndFeel (&boundaryLookAndFeel);
+            slider->getProperties().set ("qqscUpperBoundary", slider == &upper);
+            slider->boundaryPlotBounds = [this, i, slider]
+            {
+                return display.getBoundaryPlotForDomain (static_cast<int> (i)).translated (
+                    static_cast<float> (display.getX() - slider->getX()),
+                    static_cast<float> (display.getY() - slider->getY()));
+            };
+            slider->boundaryDbToY = [this, i, slider] (float db)
+            {
+                return display.getBoundaryYForDomainDb (static_cast<int> (i), db)
+                    + static_cast<float> (display.getY() - slider->getY());
+            };
+            slider->boundaryYToDb = [this, i, slider] (float localY)
+            {
+                return display.getBoundaryDbForY (static_cast<int> (i), localY
+                    + static_cast<float> (slider->getY() - display.getY()));
+            };
+        }
+        for (auto* slider : { &upper, downRatioSliders[i].get() })
+        {
+            contentRoot.addAndMakeVisible (*slider);
+            registerKeyboardListener (*slider);
+        }
+        for (auto* label : { &lowerBoundaryNames[i], &upperBoundaryNames[i], &upRatioNames[i], &downRatioNames[i] })
+        {
+            configureLabel (*label, {});
+            label->setFont (juce::Font (juce::FontOptions (8.5f, juce::Font::bold)));
+            contentRoot.addAndMakeVisible (*label);
+        }
+        for (const auto isUpper : { false, true })
+        {
+            auto& value = isUpper ? upperBoundaryValues[i] : lowerBoundaryValues[i];
+            configureLabel (value, {});
+            value.setFont (juce::Font (juce::FontOptions (10.5f)));
+            value.setEditable (false, true, false);
+            value.setTooltip ("Double-click to enter dB. Equal boundaries disable dynamic gain. Dragging one boundary into the other pushes both.");
+            contentRoot.addAndMakeVisible (value);
+            registerKeyboardListener (value);
+            value.onTextChange = [this, i, isUpper]
+            {
+                auto& slider = isUpper ? *upperBoundarySliders[i] : *lowerBoundaryControls()[i];
+                auto& readout = isUpper ? upperBoundaryValues[i] : lowerBoundaryValues[i];
+                beginBoundaryGesture (static_cast<int> (i), isUpper);
+                auto* parameter = processor.getAPVTS().getParameter (slider.getProperties()["qqscParameterID"].toString());
+                if (parameter != nullptr) parameter->beginChangeGesture();
+                slider.setValue (slider.getValueFromText (readout.getText()), juce::sendNotificationSync);
+                handleBoundaryChange (static_cast<int> (i), isUpper);
+                if (parameter != nullptr) parameter->endChangeGesture();
+                endLinkedGesture();
+                refreshBoundaryReadouts();
+            };
+        }
+        lower[i]->onGestureStart = [this, i] { beginBoundaryGesture (static_cast<int> (i), false); };
+        upper.onGestureStart = [this, i] { beginBoundaryGesture (static_cast<int> (i), true); };
+        lower[i]->onGestureEnd = upper.onGestureEnd = [this] { endLinkedGesture(); };
+        lower[i]->onValueChange = [this, i] { handleBoundaryChange (static_cast<int> (i), false); };
+        upper.onValueChange = [this, i] { handleBoundaryChange (static_cast<int> (i), true); };
+        if (i == 0)
+        {
+            downRatioSliders[i]->onGestureStart = [this] { beginUndoTransaction ("Down Ratio ST"); };
+            mainRatios[i]->valueFromTextFunction = ratioFromText;
+        }
+        else
+        {
+            const auto targetIndex = i % 2 == 1 ? i + 1 : i - 1;
+            const auto pair = i < 3 ? LinkedPair::downRatioLR : LinkedPair::downRatioMS;
+            downRatioSliders[i]->onGestureStart = [this, i, targetIndex, pair]
+            { beginLinkedGesture (pair, *downRatioSliders[i], *downRatioSliders[targetIndex], "Down Ratio Link"); };
+            downRatioSliders[i]->onGestureEnd = [this] { endLinkedGesture(); };
+            downRatioSliders[i]->onValueChange = [this, i, targetIndex, pair]
+            { handleLinkedValueChange (pair, *downRatioSliders[i], *downRatioSliders[targetIndex]); };
+            downRatioSliders[i]->valueFromTextFunction = [this, i, targetIndex, pair] (const juce::String& text)
+            { return handleLinkedTextEntry (pair, *downRatioSliders[i], *downRatioSliders[targetIndex], text, "Down Ratio Link"); };
+        }
+        // Boundary readouts start the same gesture snapshot as their faders, so
+        // numeric entry, dragging, fine dragging and Alt reset use one law.
+        for (auto* slider : { lower[i], &upper })
+            slider->valueFromTextFunction = [] (const juce::String& text)
+            { return text.containsIgnoreCase ("off") || text.containsIgnoreCase ("-inf") ? -120.0 : text.getDoubleValue(); };
+    }
+    for (size_t i = 0; i < mainRatios.size(); ++i)
+    {
+        const auto singleStart = mainRatios[i]->onGestureStart;
+        const auto singleChange = mainRatios[i]->onValueChange;
+        mainRatios[i]->onGestureStart = [this, i, singleStart]
+        {
+            if (attachedCompressionMode == 1) beginDualRatioGesture (static_cast<int> (i), true);
+            else if (singleStart) singleStart();
+        };
+        mainRatios[i]->onValueChange = [this, i, singleChange]
+        {
+            if (attachedCompressionMode == 1) handleDualRatioChange (static_cast<int> (i), true);
+            else if (singleChange) singleChange();
+        };
+        mainRatios[i]->onGestureEnd = downRatioSliders[i]->onGestureEnd = [this] { endLinkedGesture(); };
+        downRatioSliders[i]->onGestureStart = [this, i] { beginDualRatioGesture (static_cast<int> (i), false); };
+        downRatioSliders[i]->onValueChange = [this, i] { handleDualRatioChange (static_cast<int> (i), false); };
+    }
+    updateCompressionUi();
+}
+
+void QQSuperCompressionAudioProcessorEditor::finishCompressionControlGestures()
+{
+    // End old attachment gestures before any mode-driven detach, including
+    // hidden domains. Cancellation also ignores remaining drag events until
+    // physical mouseUp, preventing an old drag anchor from changing the new bank.
+    for (auto* slider : lowerBoundaryControls()) slider->cancelNativeDragForParameterRebind();
+    for (auto* slider : mainRatioControls()) slider->cancelNativeDragForParameterRebind();
+    for (auto& slider : upperBoundarySliders)
+        if (slider != nullptr) slider->cancelNativeDragForParameterRebind();
+    for (auto& slider : downRatioSliders)
+        if (slider != nullptr) slider->cancelNativeDragForParameterRebind();
+    endLinkedGesture();
+}
+
+void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool dual)
+{
+    finishCompressionControlGestures();
+    auto& state = processor.getAPVTS();
+    const std::array<const char*, 5> singleLower { "thresholdDb", "thresholdLDb", "thresholdRDb", "thresholdMDb", "thresholdSDb" };
+    const std::array<const char*, 5> singleUpper { "rangeDb", "rangeLDb", "rangeRDb", "rangeMDb", "rangeSDb" };
+    const std::array<const char*, 5> dualLower { "upThresholdDb", "upThresholdLDb", "upThresholdRDb", "upThresholdMDb", "upThresholdSDb" };
+    const std::array<const char*, 5> dualUpper { "downThresholdDb", "downThresholdLDb", "downThresholdRDb", "downThresholdMDb", "downThresholdSDb" };
+    const std::array<const char*, 5> singleRatio { "ratio", "ratioL", "ratioR", "ratioM", "ratioS" };
+    const std::array<const char*, 5> upRatio { "upRatio", "upRatioL", "upRatioR", "upRatioM", "upRatioS" };
+    const std::array<const char*, 5> downRatio { "downRatio", "downRatioL", "downRatioR", "downRatioM", "downRatioS" };
+    using Attachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    const std::array<std::unique_ptr<Attachment>*, 5> lowerAttachments { &thresholdAttachment, &thresholdLAttachment, &thresholdRAttachment, &thresholdMAttachment, &thresholdSAttachment };
+    const std::array<std::unique_ptr<Attachment>*, 5> ratioAttachments { &ratioAttachment, &ratioLAttachment, &ratioRAttachment, &ratioMAttachment, &ratioSAttachment };
+    const auto lower = lowerBoundaryControls();
+    const auto ratios = mainRatioControls();
+    const juce::ScopedValueSetter<bool> guard (boundaryValueUpdateInProgress, true);
+    for (size_t i = 0; i < lower.size(); ++i)
+    {
+        lowerAttachments[i]->reset();
+        ratioAttachments[i]->reset();
+        upperBoundaryAttachments[i].reset();
+        downRatioAttachments[i].reset();
+        const auto lowerID = dual ? dualLower[i] : singleLower[i];
+        const auto upperID = dual ? dualUpper[i] : singleUpper[i];
+        lower[i]->getProperties().set ("qqscParameterID", lowerID);
+        upperBoundarySliders[i]->getProperties().set ("qqscParameterID", upperID);
+        ratios[i]->getProperties().set ("qqscParameterID", dual ? upRatio[i] : singleRatio[i]);
+        downRatioSliders[i]->getProperties().set ("qqscParameterID", downRatio[i]);
+        ratios[i]->getProperties().set ("qqscLightOrigin", dual ? 1.0 : 0.5);
+        downRatioSliders[i]->getProperties().set ("qqscLightOrigin", 0.0);
+        *lowerAttachments[i] = std::make_unique<Attachment> (state, lowerID, *lower[i]);
+        upperBoundaryAttachments[i] = std::make_unique<Attachment> (state, upperID, *upperBoundarySliders[i]);
+        *ratioAttachments[i] = std::make_unique<Attachment> (state, dual ? upRatio[i] : singleRatio[i], *ratios[i]);
+        downRatioAttachments[i] = std::make_unique<Attachment> (state, downRatio[i], *downRatioSliders[i]);
+        // Attachments install parameter text converters. Restore the editor's
+        // reciprocal syntax and relative-LINK commit handlers after each bank
+        // switch, including host automation, Undo and A/B recalls.
+        ratios[i]->textFromValueFunction = ratioText;
+        downRatioSliders[i]->textFromValueFunction = ratioText;
+        lower[i]->valueFromTextFunction = [] (const juce::String& text)
+            { return text.containsIgnoreCase ("off") || text.containsIgnoreCase ("-inf") ? -120.0 : text.getDoubleValue(); };
+        upperBoundarySliders[i]->valueFromTextFunction = [dual] (const juce::String& text)
+        {
+            return ! dual ? static_cast<double> (qqsc::params::rangeFromText (text))
+                : (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("-inf") ? -120.0 : text.getDoubleValue());
+        };
+        if (i == 0)
+        {
+            ratios[i]->valueFromTextFunction = ratioFromText;
+            downRatioSliders[i]->valueFromTextFunction = ratioFromText;
+        }
+        else
+        {
+            const auto targetIndex = i % 2 == 1 ? i + 1 : i - 1;
+            const auto upPair = i < 3 ? LinkedPair::ratioLR : LinkedPair::ratioMS;
+            const auto downPair = i < 3 ? LinkedPair::downRatioLR : LinkedPair::downRatioMS;
+            ratios[i]->valueFromTextFunction = [this, i, targetIndex, upPair] (const juce::String& text)
+            {
+                const auto controls = mainRatioControls();
+                return handleLinkedTextEntry (upPair, *controls[i], *controls[targetIndex], text, "Ratio Link");
+            };
+            downRatioSliders[i]->valueFromTextFunction = [this, i, targetIndex, downPair] (const juce::String& text)
+            { return handleLinkedTextEntry (downPair, *downRatioSliders[i], *downRatioSliders[targetIndex], text, "Down Ratio Link"); };
+        }
+        if (dual)
+        {
+            ratios[i]->valueFromTextFunction = [this, i] (const juce::String& text)
+            { return dualRatioFromText (static_cast<int> (i), true, text); };
+            downRatioSliders[i]->valueFromTextFunction = [this, i] (const juce::String& text)
+            { return dualRatioFromText (static_cast<int> (i), false, text); };
+        }
+        ratios[i]->updateText();
+        downRatioSliders[i]->updateText();
+        lower[i]->setResetValue (-120.0);
+        upperBoundarySliders[i]->setResetValue (dual ? 0.0 : qqsc::params::rangeOffDb);
+        ratios[i]->setResetValue (1.0);
+        downRatioSliders[i]->setResetValue (1.0);
+        ratios[i]->setTooltip (dual ? "Upward Ratio: 1:32 to 1:1" : "Ratio: 1:32 to 32:1. Below 1:1 boosts; above 1:1 reduces.");
+        downRatioSliders[i]->setTooltip ("Downward Ratio: 1:1 to 32:1");
+        lower[i]->setTooltip (dual ? "UP gate: lift only above UP and below DOWN. At equality all dynamic gain stops." : "Threshold; lower boundary. Colliding with Range pushes it upward.");
+        upperBoundarySliders[i]->setTooltip (dual ? "Downward Threshold; upper boundary. At equality all dynamic gain stops." : "Range: finite values set an upper cutoff. The extra OFF endpoint removes the upper limit; finite 0 dB remains a cutoff.");
+    }
+}
+
+void QQSuperCompressionAudioProcessorEditor::beginBoundaryGesture (int domain, bool upper)
+{
+    endLinkedGesture();
+    boundaryGestureActive = true;
+    const auto controls = lowerBoundaryControls();
+    auto& source = upper ? *upperBoundarySliders[static_cast<size_t> (domain)] : *controls[static_cast<size_t> (domain)];
+    const auto targetIndex = domain == 0 ? 0 : (domain % 2 == 1 ? domain + 1 : domain - 1);
+    if (domain == 0)
+        beginUndoTransaction (upper ? "Upper Boundary" : "Lower Boundary");
+    else
+    {
+        auto& target = upper ? *upperBoundarySliders[static_cast<size_t> (targetIndex)] : *controls[static_cast<size_t> (targetIndex)];
+        const auto pair = upper ? (domain < 3 ? LinkedPair::upperBoundaryLR : LinkedPair::upperBoundaryMS)
+                                : (domain < 3 ? LinkedPair::thresholdLR : LinkedPair::thresholdMS);
+        beginLinkedGesture (pair, source, target, upper ? "Upper Boundary Link" : "Lower Boundary Link");
+    }
+    // A pushed boundary is a real parameter edit and must be part of the same
+    // host automation gesture and undo transaction as the boundary being held.
+    for (const auto index : { domain, targetIndex })
+    {
+        if (index != domain && ! linkButton.getToggleState()) continue;
+        for (auto* companion : { controls[static_cast<size_t> (index)], upperBoundarySliders[static_cast<size_t> (index)].get() })
+        {
+            if (companion == &source) continue;
+            auto* parameter = processor.getAPVTS().getParameter (companion->getProperties()["qqscParameterID"].toString());
+            if (parameter != nullptr && std::find (companionGestureParameters.begin(), companionGestureParameters.end(), parameter) == companionGestureParameters.end())
+            {
+                parameter->beginChangeGesture();
+                companionGestureParameters.push_back (parameter);
+            }
+        }
+    }
+}
+
+void QQSuperCompressionAudioProcessorEditor::handleBoundaryChange (int domain, bool upper)
+{
+    if (boundaryValueUpdateInProgress) return;
+    const auto lower = lowerBoundaryControls();
+    const auto index = static_cast<size_t> (domain);
+    if (domain != 0)
+    {
+        const auto targetIndex = static_cast<size_t> (domain % 2 == 1 ? domain + 1 : domain - 1);
+        const auto pair = upper ? (domain < 3 ? LinkedPair::upperBoundaryLR : LinkedPair::upperBoundaryMS)
+                                : (domain < 3 ? LinkedPair::thresholdLR : LinkedPair::thresholdMS);
+        handleLinkedValueChange (pair, upper ? *upperBoundarySliders[index] : *lower[index],
+                                 upper ? *upperBoundarySliders[targetIndex] : *lower[targetIndex]);
+    }
+    const juce::ScopedValueSetter<bool> guard (boundaryValueUpdateInProgress, true);
+    if (boundaryGestureActive)
+    {
+        auto lowerValue = static_cast<float> (lower[index]->getValue());
+        auto upperValue = static_cast<float> (upperBoundarySliders[index]->getValue());
+        if (lowerValue > upperValue)
+        {
+            if (upper) lowerValue = upperValue;
+            else upperValue = lowerValue;
+        }
+        // Publish the whole intended UI pair after LINK has clamped its shared
+        // delta. This also corrects a temporary raw-parameter crossing before
+        // the attachment delivered this callback, and handles same-value edits.
+        processor.setBoundaryForDomainDb (attachedCompressionMode == 1, upper, domain, upper ? upperValue : lowerValue);
+        processor.setBoundaryForDomainDb (attachedCompressionMode == 1, ! upper, domain, upper ? lowerValue : upperValue);
+    }
+    lower[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, false, domain), juce::dontSendNotification);
+    upperBoundarySliders[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, true, domain), juce::dontSendNotification);
+    refreshBoundaryReadouts();
+}
+
+void QQSuperCompressionAudioProcessorEditor::refreshBoundaryReadouts()
+{
+    if (upperBoundarySliders[0] == nullptr) return;
+    const auto lower = lowerBoundaryControls();
+    for (size_t i = 0; i < lower.size(); ++i)
+    {
+        const auto formatBoundary = [this, i] (double db, bool upper)
+        {
+            if (upper && attachedCompressionMode == 0 && ! qqsc::params::isRangeEnabled (static_cast<float> (db)))
+                return juce::String ("OFF");
+            if (! qqsc::params::isThresholdEnabled (static_cast<float> (db)))
+                return juce::String (attachedCompressionMode == 0 && ! upper ? "OFF" : "-inf");
+            return juce::String (db, i == 0 ? 2 : 1) + (i == 0 ? " dB" : "");
+        };
+        if (! lowerBoundaryValues[i].isBeingEdited())
+            lowerBoundaryValues[i].setText (formatBoundary (lower[i]->getValue(), false), juce::dontSendNotification);
+        if (! upperBoundaryValues[i].isBeingEdited())
+            upperBoundaryValues[i].setText (formatBoundary (upperBoundarySliders[i]->getValue(), true), juce::dontSendNotification);
+    }
+}
+
+void QQSuperCompressionAudioProcessorEditor::updateCompressionUi()
+{
+    if (upperBoundarySliders[0] == nullptr) return;
+    const bool dual = processor.getAPVTS().getRawParameterValue ("compressionMode")->load() >= 0.5f;
+    const int channelMode = juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load());
+    const bool changed = attachedCompressionMode != static_cast<int> (dual) || channelMode != laidOutProcessingMode;
+    const auto referenceGain = processor.getAPVTS().getRawParameterValue (qqsc::params::inputGainDb)->load();
+    const int referenceKeySource = juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::keySource)->load());
+    const bool referenceChanged = referenceGain != boundaryReferenceInputDb || referenceKeySource != boundaryReferenceKeySource;
+    boundaryReferenceInputDb = referenceGain;
+    boundaryReferenceKeySource = referenceKeySource;
+    if (attachedCompressionMode != static_cast<int> (dual))
+    {
+        attachedCompressionMode = static_cast<int> (dual);
+        reattachCompressionControls (dual);
+    }
+    laidOutProcessingMode = channelMode;
+    compressionModeButton.setButtonText (dual ? "DUAL" : "SINGLE");
+    compressionModeButton.setToggleState (dual, juce::dontSendNotification);
+    dualRatioLinkButton.setVisible (dual);
+    dualRatioLinkButton.setToggleState (processor.getAPVTS().getRawParameterValue (qqsc::params::dualRatioLink)->load() >= 0.5f,
+                                       juce::dontSendNotification);
+    const auto lower = lowerBoundaryControls();
+    const juce::ScopedValueSetter<bool> guard (boundaryValueUpdateInProgress, true);
+    for (size_t i = 0; i < lower.size(); ++i)
+    {
+        const bool visible = channelMode == qqsc::params::stereoLinked ? i == 0
+            : (channelMode == qqsc::params::leftRight ? i == 1 || i == 2 : i == 3 || i == 4);
+        const juce::String prefix = i == 0 ? "" : juce::String (i == 1 ? "L " : i == 2 ? "R " : i == 3 ? "M " : "S ");
+        lower[i]->getProperties().set ("qqscDualBoundary", dual);
+        upperBoundarySliders[i]->getProperties().set ("qqscDualBoundary", dual);
+        lowerBoundaryNames[i].setColour (juce::Label::textColourId, boundaryColour (dual, false));
+        upperBoundaryNames[i].setColour (juce::Label::textColourId, boundaryColour (dual, true));
+        lowerBoundaryValues[i].setColour (juce::Label::textColourId, dual ? boundaryColour (dual, false) : qqsc::ui::text());
+        upperBoundaryValues[i].setColour (juce::Label::textColourId, boundaryColour (dual, true));
+        if (changed || referenceChanged) { lower[i]->repaint(); upperBoundarySliders[i]->repaint(); }
+        lowerBoundaryNames[i].setText (prefix + (i == 0 ? (dual ? "UP THR" : "THRESHOLD") : (dual ? "UP" : "THR")), juce::dontSendNotification);
+        upperBoundaryNames[i].setText (prefix + (i == 0 ? (dual ? "DOWN THR" : "RANGE") : (dual ? "DOWN" : "RNG")), juce::dontSendNotification);
+        upRatioNames[i].setText (prefix + "UP RATIO", juce::dontSendNotification);
+        downRatioNames[i].setText (prefix + "DOWN RATIO", juce::dontSendNotification);
+        upperBoundarySliders[i]->setVisible (visible);
+        downRatioSliders[i]->setVisible (visible && dual);
+        for (auto* label : { &lowerBoundaryNames[i], &upperBoundaryNames[i], &lowerBoundaryValues[i], &upperBoundaryValues[i] })
+            label->setVisible (visible);
+        upRatioNames[i].setVisible (visible && dual);
+        downRatioNames[i].setVisible (visible && dual);
+        for (bool upward : { true, false })
+        {
+            auto& button = upward ? upEnabledButtons[i] : downEnabledButtons[i];
+            const auto* id = (upward ? qqsc::params::upEnabledIds : qqsc::params::downEnabledIds)[i];
+            const bool enabled = processor.getAPVTS().getRawParameterValue (id)->load() >= 0.5f;
+            button.setVisible (visible && dual);
+            button.setToggleState (enabled, juce::dontSendNotification);
+            button.setButtonText (enabled ? "ON" : "OFF");
+            auto* knob = upward ? mainRatioControls()[i] : downRatioSliders[i].get();
+            knob->setAlpha (! dual || enabled ? 1.0f : 0.45f);
+        }
+        if (activeLinkSource != lower[i] && activeLinkSource != upperBoundarySliders[i].get())
+        {
+            lower[i]->setValue (processor.getBoundaryForDomainDb (dual, false, static_cast<int> (i)), juce::dontSendNotification);
+            upperBoundarySliders[i]->setValue (processor.getBoundaryForDomainDb (dual, true, static_cast<int> (i)), juce::dontSendNotification);
+        }
+    }
+    refreshBoundaryReadouts();
+    if (changed) resized();
 }
 
 void QQSuperCompressionAudioProcessorEditor::configureLabel (juce::Label& label, const juce::String& text)
@@ -1026,6 +1699,7 @@ void QQSuperCompressionAudioProcessorEditor::timerCallback()
 
 void QQSuperCompressionAudioProcessorEditor::updateModeUi()
 {
+    updateCompressionUi();
     const auto mode = juce::jlimit (0, 2,
         juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load()));
 
@@ -1040,16 +1714,18 @@ void QQSuperCompressionAudioProcessorEditor::updateModeUi()
     ratioRSlider.setVisible (lr);
     ratioMSlider.setVisible (ms);
     ratioSSlider.setVisible (ms);
-    ratioChannel0Label.setVisible (! st);
-    ratioChannel1Label.setVisible (! st);
+    ratioChannel0Label.setVisible (! st && attachedCompressionMode != 1);
+    ratioChannel1Label.setVisible (! st && attachedCompressionMode != 1);
+    ratioLabel.setVisible (attachedCompressionMode != 1);
 
     thresholdSlider.setVisible (st);
     thresholdLSlider.setVisible (lr);
     thresholdRSlider.setVisible (lr);
     thresholdMSlider.setVisible (ms);
     thresholdSSlider.setVisible (ms);
-    thresholdChannel0Label.setVisible (! st);
-    thresholdChannel1Label.setVisible (! st);
+    thresholdLabel.setVisible (false);
+    thresholdChannel0Label.setVisible (false);
+    thresholdChannel1Label.setVisible (false);
 
     makeupSTSlider.setVisible (st);
     makeupLSlider.setVisible (lr);
@@ -1252,34 +1928,49 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     meters.setBounds (visualRow.removeFromRight (meterWidth));
     visualRow.removeFromRight (8);
 
-    // Threshold sits between Display and meters. ST uses one full-height fader.
-    // LR/MS follow the Display's stacked visual grammar: top-domain Threshold
-    // (L/M) above bottom-domain Threshold (R/S), instead of side-by-side faders.
+    // The original 76 px strip follows the Display's exact plot geometry.
+    // Slider/APVTS normalization never determines a thumb's visual ordinate.
     auto thresholdArea = visualRow.removeFromRight (76);
-    thresholdLabel.setBounds (thresholdArea.removeFromTop (18));
-
-    auto thresholdSTArea = thresholdArea;
-    thresholdSlider.setBounds (thresholdSTArea.withSizeKeepingCentre (58, thresholdSTArea.getHeight()));
-
-    auto thresholdFirst = thresholdArea.removeFromTop (thresholdArea.getHeight() / 2);
-    auto thresholdSecond = thresholdArea;
-    thresholdChannel0Label.setBounds (thresholdFirst.removeFromTop (14));
-    thresholdChannel1Label.setBounds (thresholdSecond.removeFromTop (14));
-    const auto thresholdFirstBounds = thresholdFirst.withSizeKeepingCentre (58, thresholdFirst.getHeight());
-    const auto thresholdSecondBounds = thresholdSecond.withSizeKeepingCentre (58, thresholdSecond.getHeight());
-    thresholdLSlider.setBounds (thresholdFirstBounds);
-    thresholdMSlider.setBounds (thresholdFirstBounds);
-    thresholdRSlider.setBounds (thresholdSecondBounds);
-    thresholdSSlider.setBounds (thresholdSecondBounds);
-
     visualRow.removeFromRight (6);
     display.setBounds (visualRow);
+    if (upperBoundarySliders[0] != nullptr)
+    {
+        const auto lower = lowerBoundaryControls();
+        const auto lane = thresholdArea.reduced (3, 0);
+        for (size_t index = 0; index < lower.size(); ++index)
+        {
+            const auto plot = display.getBoundaryPlotForDomain (static_cast<int> (index)).translated (
+                static_cast<float> (display.getX()), static_cast<float> (display.getY()));
+            const auto railTop = static_cast<int> (std::floor (plot.getY())) - 8;
+            const auto railBottom = static_cast<int> (std::ceil (plot.getBottom())) + 8;
+            const auto halfWidth = lane.getWidth() / 2;
+            lower[index]->setBounds (lane.getX(), railTop, halfWidth, railBottom - railTop);
+            upperBoundarySliders[index]->setBounds (lane.getX() + halfWidth, railTop, lane.getWidth() - halfWidth, railBottom - railTop);
+            if (index == 0)
+            {
+                upperBoundaryNames[index].setBounds (lane.getX(), juce::roundToInt (plot.getY()) - 45, lane.getWidth(), 14);
+                upperBoundaryValues[index].setBounds (lane.getX(), juce::roundToInt (plot.getY()) - 31, lane.getWidth(), 21);
+                lowerBoundaryValues[index].setBounds (lane.getX(), juce::roundToInt (plot.getBottom()) + 8, lane.getWidth(), 20);
+                lowerBoundaryNames[index].setBounds (lane.getX(), juce::roundToInt (plot.getBottom()) + 28, lane.getWidth(), 12);
+            }
+            else
+            {
+                const int headerY = juce::roundToInt (plot.getY()) - 19;
+                const int valueY = juce::roundToInt (plot.getBottom()) + 8;
+                lowerBoundaryNames[index].setBounds (lane.getX(), headerY, halfWidth, 13);
+                upperBoundaryNames[index].setBounds (lane.getX() + halfWidth, headerY, lane.getWidth() - halfWidth, 13);
+                lowerBoundaryValues[index].setBounds (lane.getX(), valueY, halfWidth - 1, 20);
+                upperBoundaryValues[index].setBounds (lane.getX() + halfWidth + 1, valueY, lane.getWidth() - halfWidth - 1, 20);
+            }
+        }
+    }
 
     area.removeFromTop (10);
 
     // Controls remain compact and functionally unchanged; the extra editor height
     // is intentionally spent on Display/Meters rather than larger knobs.
     auto controls = area.removeFromTop (158);
+    const auto controlsY = controls.getY();
     constexpr int controlGap = 6;
     constexpr int smallTrimW = 116;
     constexpr int modeW = 170;
@@ -1290,7 +1981,9 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     inputGainSlider.setBounds (inputArea.withSizeKeepingCentre (100, 116));
     controls.removeFromLeft (controlGap);
 
-    auto ratioArea = controls.removeFromLeft (mainW);
+    auto ratioArea = controls.removeFromLeft (mainW).withWidth (216);
+    ratioArea.setCentre (296, ratioArea.getCentreY());
+    const auto fullRatioArea = ratioArea;
     ratioLabel.setBounds (ratioArea.removeFromTop (18));
     ratioSlider.setBounds (ratioArea.withSizeKeepingCentre (130, 119));
 
@@ -1305,12 +1998,53 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     ratioMSlider.setBounds (ratioFirstKnob);
     ratioRSlider.setBounds (ratioSecondKnob);
     ratioSSlider.setBounds (ratioSecondKnob);
+    if (downRatioSliders[0] != nullptr)
+    {
+        const auto ratios = mainRatioControls();
+        for (auto* ratio : ratios)
+            ratio->setTextBoxStyle (juce::Slider::TextBoxBelow, false, 86, 24);
+        if (attachedCompressionMode == 1)
+        {
+            auto upColumn = fullRatioArea.withWidth (fullRatioArea.getWidth() / 2);
+            auto downColumn = fullRatioArea.withTrimmedLeft (upColumn.getWidth());
+            const auto placeRatio = [this, &ratios] (size_t index, juce::Rectangle<int> up, juce::Rectangle<int> down, bool compact)
+            {
+                upRatioNames[index].setBounds (up.removeFromTop (14));
+                downRatioNames[index].setBounds (down.removeFromTop (14));
+                const int knobWidth = compact ? 70 : 68;
+                const int knobHeight = compact ? 62 : 104;
+                ratios[index]->setTextBoxStyle (juce::Slider::TextBoxBelow, false, 66, compact ? 18 : 23);
+                downRatioSliders[index]->setTextBoxStyle (juce::Slider::TextBoxBelow, false, 66, compact ? 18 : 23);
+                ratios[index]->setBounds (up.withSizeKeepingCentre (knobWidth, knobHeight));
+                downRatioSliders[index]->setBounds (down.withSizeKeepingCentre (knobWidth, knobHeight));
+                const int width = compact ? 22 : 25, height = compact ? 12 : 15;
+                for (bool upward : { true, false })
+                {
+                    auto& button = upward ? upEnabledButtons[index] : downEnabledButtons[index];
+                    const auto bounds = upward ? ratios[index]->getBounds() : downRatioSliders[index]->getBounds();
+                    button.setBounds (bounds.getRight() + 1, bounds.getY() + (compact ? 23 : 29), width, height);
+                }
+            };
+            placeRatio (0, upColumn, downColumn, false);
+            auto upFirst = upColumn.removeFromTop (upColumn.getHeight() / 2);
+            auto downFirst = downColumn.removeFromTop (downColumn.getHeight() / 2);
+            placeRatio (1, upFirst, downFirst, true);
+            placeRatio (3, upFirst, downFirst, true);
+            placeRatio (2, upColumn, downColumn, true);
+            placeRatio (4, upColumn, downColumn, true);
+        }
+    }
     controls.removeFromLeft (controlGap);
 
-    auto makeupArea = controls.removeFromLeft (mainW);
+    auto makeupArea = controls.removeFromLeft (mainW).withWidth (216);
+    makeupArea.setCentre (512, makeupArea.getCentreY());
     auto makeupHeader = makeupArea.removeFromTop (20);
+    compressionModeButton.setBounds (380, controlsY, 60, 21);
+    const bool compactRatioLink = laidOutProcessingMode != qqsc::params::stereoLinked;
+    dualRatioLinkButton.setBounds (compactRatioLink ? 281 : 278, controlsY + (compactRatioLink ? 16 : 24),
+                                  compactRatioLink ? 30 : 36, compactRatioLink ? 14 : 17);
     auto matchArea = makeupHeader.removeFromRight (58).reduced (2, 0);
-    makeupLabel.setBounds (makeupHeader);
+    makeupLabel.setBounds (458, controlsY, 108, 20);
     matchButton.setBounds (matchArea);
 
     makeupSTSlider.setBounds (makeupArea.withSizeKeepingCentre (130, 117));
@@ -1331,7 +2065,8 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     makeupSSlider.setBounds (secondKnob);
     controls.removeFromLeft (controlGap);
 
-    auto mixArea = controls.removeFromLeft (mainW);
+    auto mixArea = controls.removeFromLeft (mainW).withWidth (216);
+    mixArea.setCentre (728, mixArea.getCentreY());
     mixLabel.setBounds (mixArea.removeFromTop (18));
     mixSlider.setBounds (mixArea.withSizeKeepingCentre (130, 119));
 
@@ -1352,6 +2087,23 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     outputGainLabel.setBounds (outputArea.removeFromTop (18));
     outputGainSlider.setBounds (outputArea.withSizeKeepingCentre (100, 116));
     controls.removeFromLeft (controlGap);
+
+    // Five equal visual dials, positioned by their centres rather than by
+    // differently sized label/text-box containers. The same geometry feeds all
+    // themes; paired LR/MS and compact Dual ratios retain their smaller dials.
+    const std::array<FineKnob*, 5> primaryDials {
+        &inputGainSlider, &ratioSlider, &makeupSTSlider, &mixSlider, &outputGainSlider
+    };
+    for (size_t i = 0; i < primaryDials.size(); ++i)
+    {
+        auto& dial = *primaryDials[i];
+        if (i != 1 || attachedCompressionMode == 0)
+        {
+            dial.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 86, 24);
+            dial.setBounds (30 + static_cast<int> (i) * 216, controlsY + 28, 100, 118);
+        }
+    }
+    outputGainLabel.setCentrePosition (944, outputGainLabel.getBounds().getCentreY());
 
     auto modeArea = controls;
 

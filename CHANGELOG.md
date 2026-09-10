@@ -1,53 +1,168 @@
+# 1.2.0 Rev4 Stable — 2026-09-10
+
+- **Range 边界修复（Rev4）**：有限 Range 内侧使用连续过渡，让动态增益在到达 Range 前回到 0 dB，修复原先边界硬跳产生的爆裂声。有限上压门槛内侧也加入连续过渡；Range OFF 保留原有向下处理曲线。这是随检测电平变化的静态增益曲线，没有新增 Attack / Release、检测窗口或延迟。
+- **Dual 独立 ON/OFF（Rev4）**：Up / Down Ratio 旁各有小开关，支持 ST / LR / MS。可独立试听上压或下压，保留 Ratio、阈值和 LINK；关闭一支不会扩大另一支的作用范围。每次开关使用 10 ms Crossfade，快速反向切换从当前淡变位置继续。Display 随对应开关更新。开关默认 ON，可自动化，并随工程和 A/B 保存；旧工程缺失的开关默认为 ON。
+
+- **Range boundary fix (Rev4):** a continuous transition inside finite Range brings dynamic gain back to 0 dB before the boundary, removing the previous hard gain step responsible for crackling. A finite upward gate also has an inner transition. Range OFF keeps the original downward curve. These are static detector-level gain curves, with no added Attack / Release, detector window or latency.
+- **Independent Dual ON/OFF (Rev4):** compact switches beside Up / Down Ratio work in ST / LR / MS. Audition either branch while retaining Ratios, thresholds and LINK; disabling one does not expand the other branch's interval. Each toggle uses a 10 ms crossfade, and rapid reversals continue from the current fade position. The Display follows the branch switches. They default ON, are automatable, save with projects and A/B, and default ON when missing from older projects.
+
+User approved Stable and B → C → D. The two completed 23-page manuals are retained unchanged. Production schema: 14.
+
+## Earlier checkpoints (historical)
+
+# 1.2.0 — Single / Upward / Dual — 2026-09-10
+
+Stable Rev3 / schema 13. 中文与英文新版手册各 23 页，作为跨平台 Release 附件。
+Both new 23-page manuals are included in the cross-platform Release.
+完整双语变更、范围、默认值、LINK 与升级兼容性说明见 [RELEASE_NOTES_1.2.0.md](RELEASE_NOTES_1.2.0.md)。
+See the linked bilingual notes for the complete change and compatibility details.
+
+## 历史开发记录 / Historical development checkpoints
+
+The following checkpoints retain their original scope and status.
+下列开发检查点保留当时范围与状态，不表示当前发布范围。
+
+# Current Stable — 1.2.0 Rev3 (schema13)
+
+2026-09-10：用户确认 Rev3 并设为 Stable，执行正式 Plan B。沿用已验证的
+Windows 成品，插件版本保持 1.2.0，schema 13；说明书修订留待备份后进行。
+User accepted Rev3 as Stable and requested formal Plan B. The verified Windows
+binary is unchanged; manual revision follows this backup. See `STABLE_1.2.0.md`.
+
+2026-09-10. Windows Release build and compiled DSP/editor/LINK/settings tests
+pass. See `EXPERIMENT_1.2.0.md` for current semantics and `VERIFICATION_1.2.0.md`
+for evidence. Earlier headings below are historical, not the current spec.
+
+- UP is a lower gate; boost only UP<p<DOWN, down-only above DOWN. UP=-inf opens
+  the gate. The previous Rev2 below-UP activation was wrong and is superseded.
+- All15 Ratio defaults/reset targets are1. Existing stored numbers stay intact.
+- Dual Ratio LINK preserves UP*DOWN, defaults ON, remembers last click for new
+  instances and respects saved project state. It is independent of domain LINK.
+- Three themes share94px primary dials/216px spacing. Ratio arcs start at unity;
+  Single origin.5, Dual UP origin1, Dual DOWN origin0. Mode button(380,620,60,21);
+  Ratio LINK ST(278,644,36,17), LR/MS(281,636,30,14).
+- Source `D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown`; build remains
+  `D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown`; output
+  `D:\Codex\Outputs\QQ Super Compression 1.2.0 Rev3`.
+- Rev2 source checkpoint `D:\Codex\Archives\QQSuperCompression-1.2.0-Rev2-before-Rev3-20260910`.
+- Build targets QQSuperCompression_VST3, QQSCVisualCheck, QQSCDynamicsCheck.
+  Actual installation status/hashes: Rev3 output `Verification/INSTALLATION.json`.
+  Stable promotion and Plan B are the current scope; Plan C/D, remote publication,
+  macOS and multiband work remain outside this checkpoint.
+
+## Historical revisions
+
+# 1.2.0 Rev2 — Range OFF and threshold-relative upward processing
+
+2026-09-10. Current Windows experiment; plug-in version remains 1.2.0 and state
+schema advances to 12. This entry describes source changes. Build, verification
+and installation results must come from the Rev2 verification record.
+
+- Range has an explicit OFF endpoint and defaults to OFF, removing the upper
+  cutoff for the original downward behaviour. Finite Range remains strict:
+  detector levels at or above it have unity dynamic gain. Saved finite 0 dB
+  values are preserved, including schema 11 states; missing Range parameters
+  migrate to OFF.
+- New Dual instances start at UP = -inf / DOWN = 0 dB, with no dynamic gain
+  until a threshold is moved inward. Ratio defaults remain Single 8,
+  Dual UP 1/8 and DOWN 8. Existing saved Dual values are retained.
+- Upward gain now uses the relative distance below its anchor:
+  `g = 1 / (r + (1 - r) * p/A)`. Ratio 1/8 at 10 dB below the anchor gives
+  theoretical +7.92198 dB lift at any finite active anchor. This replaces
+  Rev1's upward law, which weakened as the threshold was lowered.
+- The 60x21 SINGLE/DUAL switch moves to `(394, 620, 60, 21)` beside Ratio.
+  Full-height fader thumbs and Display lines use shared coordinates across
+  ST/LR/MS, Input Gain and external-key references, including stopped playback.
+  Range OFF displays a top tag without a finite upper line.
+- Boundary pushing, coincident-pair unity, hard finite boundaries and the
+  existing 0 ms colouring/oversampling mode remain. Display keeps its bounded
+  480-point history and shared final Output curve.
+- Mode rebinding during a drag now closes the old host parameter gesture;
+  linked Ratio numeric commits also notify the target parameter's gesture.
+- Delivery directory: `D:\Codex\Outputs\QQ Super Compression 1.2.0 Rev2`.
+  No GitHub publication, macOS delivery, Stable promotion or multiband changes.
+  Rev1 hashes, timings and installation results below are historical.
+
+--- Historical 1.2.0 Rev1 record; not Rev2 verification ---
+
+# 1.2.0 Rev1 Single / Dual experiment — historical build and installation
+
+2026-09-10. Candidate only; 1.1.9 remains the Stable rollback. Windows VST3 installed after two host-closure checks, with complete build/output/install SHA-256 parity. The previous installed 1.1.9 bundle is preserved and verified in the output rollback folder.
+
+- Source: D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown
+- Build: D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown
+- Output: D:\Codex\Outputs\QQ Super Compression 1.2.0 UpDown Experiment
+- Installed: C:\Program Files\Common Files\VST3\QQ Super Compression.vst3
+- Windows binary SHA-256: 359ACBB47019DC70ED64A9321EA6C2983CA8F4E600D6CC6FFFF15DD9A67B0C09
+- Actual processor audio/state tests, actual-editor fader/ratio tests, three-theme ST/MS/LR/minimum screenshots and ten inherited source/math regressions pass. See VERIFICATION_1.2.0.md and output Verification/INSTALLATION.json.
+- Single Ratio 1/32..32 default8; Dual Up Ratio1/32..1 default1/8; Dual Down Ratio1..32 default8. Dual defaults UP-24dB / DOWN-12dB. Smaller68x104 dual ST ratio controls and60x21 mode switch.
+- Display median Single4.218ms / Dual4.389ms at480 points, cached software rendering.
+- Known experiment limits: hard interval boundary jumps (test~12.49dB), changed old normalized Ratio automation mapping, and deferred companion notification for host-driven collisions. Use a fresh instance/session for user audition. User listening/acceptance remains pending.
+- No Plan B/C/D, GitHub, macOS, Stable promotion or multiband edits. Prior frozen backups were not accessed or changed. No further rebuild/install is required unless source changes.
+
+--- Historical entries below ---
+
 # Changelog
 
 ## 1.1.9 — 3:2 Landscape / 横向界面 — 2026-09-08
 
-- 单段版改为 1200×800 默认、3:2 等比例缩放，范围 1008×672–1800×1200。Display 更宽、旋钮不拉伸。The single-band editor uses 1200×800 by default, uniformly resizable from 1008×672 to 1800×1200, with a wider Display and undistorted knobs.
-- 横向尺寸单独记忆，保留旧尺寸偏好；Light、Dark、Classic 和上次主题记忆不变。Landscape size is remembered separately; legacy sizing, three themes and last-theme recall remain.
-- DSP、参数、状态、侧链、A/B、LINK、材质与历史计算不变。No DSP, parameter, state, sidechain, A/B, LINK, material-renderer or history-algorithm changes.
-- 两份 18 页手册只在结尾补充 UI 变化。Both 18-page manuals retain all original content with a short final-page UI note.
-- Plan A/B/C/D complete; Stable per the project's standing Plan B rule. Automated Windows/real-editor checks and all three macOS jobs pass. All eight Release assets match by size/SHA-256 and their public download links work. No user listening acceptance is claimed.
-- Coverage / 版本区间：1.1.8 → 1.1.9; omitted versions / 遗漏：none / 无。
+- Plan A/B/C/D 已完成；依项目规则设为 Stable。三项 Mac 构建与 AU auval 通过，8 个 Release 附件哈希及下载地址均核验。Plan A/B/C/D complete; Stable under the standing project rule. Three Mac jobs and AU auval passed; eight Release asset hashes/download links verified. No system installation or user listening acceptance claimed.
+
+- UI: 1200×800 default, fixed 3:2 resizing (1008×672–1800×1200); wider history, unchanged knob proportions. 界面改为 3:2，Display 更宽，旋钮保持原比例。
+- Behaviour: first landscape opening uses the new default; later opens remember its size separately from legacy size preferences. 三种主题和上次主题记忆保留；横向尺寸单独记忆。
+- No DSP, audio parameter, state-schema, sidechain, A/B, LINK, material-renderer or history-algorithm changes. 音频处理及功能不变。
+- Both approved 18-page manuals remain intact with only a short final-page UI update. 两份手册只在结尾补充界面变化。
+- Windows build, source/math regressions, real-editor renders and geometry/state checks pass. User DAW listening is not claimed. 本机自动检查不代表用户听感验收。
+- Previous Stable / 上一稳定版：1.1.8 Revision 2. No intermediate versions omitted / 无遗漏版本。
 
 ## 1.1.8 Revision 2 — Clearer Light pointer — STABLE
 
-- 2026-09-07：用户验收并晋升 Stable，Plan B 已完成；上一稳定基线 1.1.7。 / Accepted as Stable with Plan B complete; previous Stable: 1.1.7.
-- Light 暖白指针亮芯由 10 加宽到 22，橙边由 14 加宽到 30，内端半径从 92 向中心延伸到 60（长度约增加 35%），外端 184 不变。 / Light core width 10 → 22, orange edge 14 → 30, inner radius 92 → 60 (about 35% more inward length), outer radius remains 184.
-- 提高亮芯可见度，保持光晕宽度/强度、灯带、刻度、材质及 0% 不发光；Dark、Classic、布局、DSP、参数及历史不变。 / Brighter core; unchanged halo width/intensity, arc, ticks, material and unlit zero state. Dark, Classic, layout, DSP, parameters and history are unchanged.
-- Plan C 复用已验证 Windows Plan A，仅构建 macOS；中英文用户手册统一重排为 18 页，使用当前界面截图，重点讲解控件操作、主题切换、含 Mix 的 GR 与内部/外部侧链用法。 / Plan C reuses verified Windows Plan A and builds only macOS; the Chinese and English user manuals are rebuilt as coherent 18-page guides with current screenshots and practical controls, theme switching, Mix-aware GR, and internal/external sidechain workflows.
+- 2026-09-07：指针加宽、提亮、向中心延长后，用户再次明确确认当前 Rev2 为 Stable 并要求 Plan B。继承已完成的 Plan A，不重编译、安装或测试。After the pointer refinement, the user explicitly confirmed Revision 2 as Stable and requested Plan B, reusing completed Plan A. Previous Stable/rollback: 1.1.7. The earlier pause below is historical.
 
-## 1.1.8 Revision 1 — Dark material and Light ticks — SUPERSEDED
+- 2026-09-07：用户在复制源码前暂停 Stable / Plan B，要求 Light 指针灯更宽、更亮、更易辨认；本轮不执行备份或稳定晋升。User stopped Stable / Plan B before the copy and requested a wider, brighter Light pointer; this revision remains a candidate, with no Plan B backup created.
+- Light 暖白亮芯宽度提高到 Revision 1 的 2.2 倍，橙边加宽，并按用户追加要求向中心延伸约 35%；外端、刻度、光晕宽度/强度不变，0% 指示线加粗但仍不发光。Light's warm-white core is 2.2x wider, with a wider orange edge, brighter core and approximately 35% more length toward the centre. Its outer endpoint, ticks and halo width/intensity remain; the zero-position index is thicker but unlit.
 
-- Dark 采用用户认可的实际 JUCE 旋钮：倒角、侧壁、接触阴影与局部蓝光反射更明确。 / Approved JUCE Dark knobs with clearer bevel, sidewall, contact shadow and local blue reflections.
-- 只有底部控制面板加入固定细磨砂；主 Display 保持纯净近黑。 / Stationary fine grain only on the lower control panel; the main Display stays clean and near black.
-- Light 增加 13 条细刻度与较长暖白指针。用户随后要求继续加宽、提亮及向内延长，形成 Rev2；此前暂停的 Plan B 不算完成。 / Light adds 13 fine ticks and a longer warm-white pointer. Further width, brightness and inward reach requests produced Rev2; the interrupted earlier Plan B was not completed.
+- Dark 旋钮使用用户确认的实际 JUCE 样件：更明确的倒角、厚度、接触阴影和局部蓝光反射。Dark knobs use the approved JUCE material renderer with a beveled cap, visible sidewall, contact shadow and local blue reflections.
+- 仅底部控制区增加固定、细密、低对比度的磨砂颗粒；Display 保持纯净近黑。Only the bottom control panel receives a stationary fine-grained graphite finish; the Display stays clean and near black.
+- Light 加入细刻度，指针向内延长并加强暖白亮芯；保持原旋钮材质、灯带和 0% 无光行为。Light adds fixed fine ticks and a longer, clearer warm-white pointer, retaining the approved material, arc and unlit zero state.
+- 保留 Classic、布局和全部音频功能。Retains Classic, layout and all audio behavior. Previous Stable/rollback: 1.1.7.
 
-## 1.1.7 — Light / Dark / Classic — HISTORICAL STABLE
+## 1.1.7 — Light / Dark / Classic — STABLE
 
-- 新增纯净近黑 Dark、拟真蓝色渐进灯带，保留 Light 和原 Classic。 / Adds clean near-black Dark and progressive blue knob illumination, retaining Light and original Classic.
-- 银灰 Input、橙 Output、青 GR 在 Meter 和 Display 对应；三主题循环切换、恢复上次选择并兼容旧偏好。 / Matching silver-grey Input, orange Output and cyan GR; three-theme cycle, remembered choice and legacy preference migration.
-- 2026-09-07 验收并完成 Plan B；原布局、音频 DSP、参数及历史计算保留。 / Accepted with Plan B complete on 2026-09-07; layout, audio DSP, parameters and history retained.
+- 2026-09-07：用户验收并明确设为 Stable，执行 Plan B 完整源码备份。继承已完成的 Plan A，不重新编译或安装；user accepted and promoted v1.1.7 to Stable with a complete Plan B source backup, reusing the completed Plan A. Previous Stable/rollback: 1.1.6 Revision 3. No GitHub/Actions/publishing in this promotion.
 
-## 1.1.6 Revision 3 — Warm depth — HISTORICAL STABLE
+- 新增纯净近黑色 Dark，保留原 Light 与 Classic；adds a clean near-black Dark theme alongside the original Light and Classic.
+- Dark 使用拟真蓝色渐进灯带、金属旋钮与低亮度按钮；Dark uses tactile metal controls and progressive ice-blue lighting, with no background mottling.
+- Input 银灰、Output 橙、GR 青色统一到仪表和 Display，明确区分 Input 已亮电平与未亮底槽；matching meter/Display semantics with clearly separated Input active and inactive segments.
+- 右上角循环切换三主题，记住上次选择，旧主题偏好自动兼容；three-theme cycle, persisted last choice, and legacy preference migration.
+- 原布局、Light/Classic 画面、音频 DSP、参数、状态及历史计算保留；existing layout, Light/Classic appearance, audio DSP, parameters/state and history processing retained. Initially delivered as a local Plan A candidate; subsequently promoted to Stable as recorded above.
 
-- 暖灰底板略加深并加入柔和明暗，保留已认可旋钮与布局。 / Slightly deeper warm-grey panels with soft shading; accepted knobs and layout retained.
-- Meter 与 Display 使用同色系深浅渐变，GR 对应向下增长方向，复用缓存路径。 / Tonal meter/Display gradients, mirrored for downward-growing GR, reusing cached paths.
-- 2026-09-07 验收并完成 Plan B，上一稳定版为 1.1.5；Classic、DSP、参数与主题记忆不变。 / Accepted with Plan B complete on 2026-09-07; previous Stable 1.1.5. Classic, DSP, parameters and theme memory unchanged.
+## 1.1.6 Revision 3 — LIGHT Warm Depth — STABLE
 
-## 1.1.6 Revision 2 — Accepted asset knobs — HISTORICAL CANDIDATE
+- 2026-09-07：LIGHT 大面板略微加深为暖灰，加入柔和明暗，已认可的旋钮素材和布局不变；slightly deeper warm-grey backplates with soft shading, retaining accepted knobs and layout.
+- Meter 增加由浓到浅的纵向渐变，GR 按向下增长方向对应；vertical rich-to-pale meter gradients, mirrored for downward-growing GR.
+- Display 原有缓存曲线使用固定电平位置的同色系渐变，不新增历史重算或大面积 GR 填充；level-aligned tonal strokes reuse cached paths, without new history processing or full-area GR fills.
+- Classic、DSP、参数及主题记忆不变。Plan A 已构建、交付并覆盖安装，保留 Rev2 安装回退；Classic, DSP, parameters and theme memory retained. Plan A built/delivered/installed with Rev2 installation rollback.
+- 2026-09-07：用户验收并明确设为 Stable，执行 Plan B 源码备份；user accepted and explicitly promoted Revision 3 to Stable, with Plan B source backup. Previous Stable is v1.1.5; no rebuild or GitHub publishing for this promotion.
 
-- 认可真实交互 JUCE 样件后接入同一素材合成器，灯带连续按归一化数值增长，0% 全灭。 / Integrates the accepted interactive JUCE asset compositor; continuous normalized arc illumination with a fully unlit zero state.
-- Light 的灰 Input、橙 Output、青蓝 GR 统一到 Meter、Display、图例及读数；缓存有界，布局、Classic 和音频保留。 / Unified Light palette across meters, Display, legends and readouts; bounded caches, retained layout, Classic and audio.
-- 仅本地候选，未单独公开发布。 / Local candidate, not separately published.
+## 1.1.6 Revision 2 — Accepted Asset Knobs / Unified LIGHT Palette — CANDIDATE
 
-## 1.1.6 Revision 1 — Early warm material — REJECTED / HISTORICAL
+- 2026-09-07：用户验收真实 JUCE 单旋钮后，将同一材质与动态合成接入暖色主题；integrates the same real asset compositor after the user accepted its interactive JUCE study.
+- 发光长度随归一化数值连续增长：0% 全灭，10% 前十分之一，50% 左半弧，100% 全有效弧；continuous normalized illumination, including a genuinely unlit zero state.
+- LIGHT 的 Input 灰、Output 橙、GR 青蓝在 Meter、Display、图例和相应读数间统一；the LIGHT meters, Display traces, legends and relevant readouts share gray Input, orange Output and cyan-blue GR. Fine meter segments and ivory wells follow the reference.
+- 保持原有布局、Classic、主题记忆、音频、参数、侧链和 Display 算法；existing layout, Classic, theme memory, audio, parameters, sidechain and Display algorithms are retained.
+- 每个控件只缓存当前绘制帧，分辨率缓存有界；unchanged controls reuse their current frame with bounded resolution caches.
+- 本机 Plan A 候选，不晋升稳定、不同步仓库；local Plan A candidate, with no Stable promotion or repository publishing.
 
-- 早期代码绘制的浅盘式暖色旋钮未达到用户认可的材质效果，被否决。 / The early code-shaded shallow warm disk did not meet the accepted material reference and was rejected.
-- 本地候选，未覆盖安装或公开发布；保留记录以避免重复该失败方案。 / Local candidate, not installed over the existing plug-in or published; retained to avoid repeating this rejected approach.
+## 1.1.6 Revision 1 — Warm Material Skin — REJECTED / HISTORICAL
 
----
+- 用户否决了本次早期的浅盘式代码材质。以下保留当时实现记录，不代表当前已认可方案；the early code-shaded disk was rejected by the user. The following records the earlier implementation, not the accepted current approach.
 
-The following entries retain their historical status. / 以下条目保留当时状态。
+- 2026-09-07：重做 LIGHT 暖色皮肤，加入缓存金属旋钮材质、实时灯带/指针、陶瓷按钮、内嵌数值框和细分段仪表；reworked LIGHT skin with cached satin-metal knobs, live arcs/indices, ceramic buttons, inset values and fine meter segments.
+- 保持布局、功能、Classic、主题记忆、DSP、参数和 Display 算法不变；layout, functions, Classic, theme memory, DSP, parameters and Display algorithms are unchanged.
+- 完整离屏 JUCE 界面截图与布局/DSP 不变性回归；actual offscreen JUCE renders and layout/DSP identity checks.
+- 独立本机候选，未覆盖安装或发布；separate local candidate, not installed or published. Stable remains v1.1.5.
+
 
 ## 1.1.5 - Fluid/Cached Dynamic Display Rendering - STABLE
 - 发布日期 / Release date: 2026-09-02

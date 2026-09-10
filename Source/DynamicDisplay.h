@@ -20,6 +20,12 @@ public:
     void beginKeyHpfGesture() noexcept;
     void endKeyHpfGesture();
 
+    // Shared geometry for boundary lines and the adjacent fader thumbs.
+    // Domain indices: 0 ST, 1 L, 2 R, 3 M, 4 S. Coordinates are Display-local.
+    juce::Rectangle<float> getBoundaryPlotForDomain (int parameterDomainIndex) const noexcept;
+    float getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb) const noexcept;
+    float getBoundaryDbForY (int parameterDomainIndex, float localY) const noexcept;
+
 private:
     friend struct QQSCVisualCheck;
     class HpfReplayWorker;
@@ -82,9 +88,11 @@ private:
         ProjectedHistory projected;
         juce::Path inputPath;
         juce::Path gainReductionPath;
+        juce::Path gainIncreasePath;
         juce::Path outputPath;
         juce::Path externalKeyPath;
         juce::Path gainReductionShadePath;
+        juce::Path gainIncreaseShadePath;
         float currentGainReductionDb = 0.0f;
         bool valid = false;
     };
@@ -93,9 +101,12 @@ private:
     void pushHistory (HistorySet&, HistoryPoint);
     void updatePath (juce::Path&, const std::array<float, historyLength>& values,
                      size_t valueCount, juce::Rectangle<float> plot) const;
-    void updateGainReductionShadePath (juce::Path&,
+    void updateGainChangePaths (juce::Path& reductionPath, juce::Path& increasePath,
+                                const ProjectedHistory&, juce::Rectangle<float> plot) const;
+    void updateGainReductionShadePath (juce::Path& reductionPath, juce::Path& increasePath,
                                        const std::array<float, historyLength>& upper,
                                        const std::array<float, historyLength>& lower,
+                                       const std::array<float, historyLength>& gainReduction,
                                        size_t valueCount, juce::Rectangle<float> plot) const;
     float dbToY (float db, juce::Rectangle<float> plot) const noexcept;
     juce::Rectangle<float> domainPanelBounds (int domainIndex, int mode) const noexcept;
@@ -104,7 +115,7 @@ private:
     void drawDomainPanel (juce::Graphics&, juce::Rectangle<float> panel, int domainIndex,
                           const juce::String& domainName, int mode);
     float thresholdDbForDomain (int domainIndex, int mode) const noexcept;
-    float ratioForDomain (int domainIndex, int mode) const noexcept;
+    float upperBoundaryDbForDomain (int domainIndex, int mode) const noexcept;
     float makeupDbForDomain (int domainIndex, int mode) const noexcept;
     float mixForDomain (int domainIndex, int mode) const noexcept;
     void projectHistory (int domainIndex, int mode, bool externalKey,

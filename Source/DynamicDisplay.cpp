@@ -25,9 +25,34 @@ float readParameter (QQSuperCompressionAudioProcessor& processor, const char* pa
     return fallback;
 }
 
+int displayProcessingMode (QQSuperCompressionAudioProcessor& processor) noexcept
+{
+    return juce::jlimit (static_cast<int> (qqsc::params::stereoLinked),
+                         static_cast<int> (qqsc::params::leftRight),
+                         juce::roundToInt (readParameter (processor, qqsc::params::processingMode)));
+}
+
 juce::String grText (float db)
 {
-    return juce::String (juce::jmax (0.0f, db), 1) + " dB";
+    const auto gainDb = std::abs (db) < 0.05f ? 0.0f : -db;
+    return (gainDb > 0.0f ? "+" : "") + juce::String (gainDb, 1) + " dB";
+}
+
+juce::Colour gainIncreaseColour() noexcept
+{
+    if (qqsc::ui::isDarkTheme())
+        return juce::Colour (0xff80c897);
+    return qqsc::ui::isClassicTheme() ? juce::Colour (0xff80d59c)
+                                      : juce::Colour (0xff2c8452);
+}
+
+int processorDomain (int domainIndex, int mode) noexcept
+{
+    if (mode == qqsc::params::leftRight)
+        return domainIndex + 1;
+    if (mode == qqsc::params::midSide)
+        return domainIndex + 3;
+    return 0;
 }
 
 struct ReplayHighPassCoefficients
@@ -182,10 +207,12 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
     for (auto& cache : renderCaches)
     {
         cache.inputPath.preallocateSpace (historyLength * 3);
-        cache.gainReductionPath.preallocateSpace (historyLength * 3);
+        cache.gainReductionPath.preallocateSpace (historyLength * 6);
+        cache.gainIncreasePath.preallocateSpace (historyLength * 6);
         cache.outputPath.preallocateSpace (historyLength * 3);
         cache.externalKeyPath.preallocateSpace (historyLength * 3);
         cache.gainReductionShadePath.preallocateSpace (gainReductionShadeSegments * 6);
+        cache.gainIncreaseShadePath.preallocateSpace (gainReductionShadeSegments * 6);
     }
 
     processor.setDisplayKeyHistoryCaptureEnabled (true);
@@ -211,7 +238,7 @@ DynamicDisplay::~DynamicDisplay()
 
 void DynamicDisplay::resized()
 {
-    const auto mode = processor.getMeterState().processingMode.load (std::memory_order_relaxed);
+    const auto mode = displayProcessingMode (processor);
     refreshRenderCaches (mode);
 }
 
@@ -241,9 +268,11 @@ void DynamicDisplay::clearHistories()
         cache.projected.size = 0;
         cache.inputPath.clear();
         cache.gainReductionPath.clear();
+        cache.gainIncreasePath.clear();
         cache.outputPath.clear();
         cache.externalKeyPath.clear();
         cache.gainReductionShadePath.clear();
+        cache.gainIncreaseShadePath.clear();
         cache.currentGainReductionDb = 0.0f;
         cache.valid = false;
     }
@@ -257,7 +286,7 @@ void DynamicDisplay::clearHistories()
 void DynamicDisplay::timerCallback()
 {
     auto& m = processor.getMeterState();
-    const auto mode = m.processingMode.load (std::memory_order_relaxed);
+    const auto mode = displayProcessingMode (processor);
     const auto position = processor.getDisplayKeyHistoryPosition();
     const auto keySource = juce::jlimit (
         static_cast<int> (qqsc::params::keyInternal),
@@ -275,25 +304,31 @@ void DynamicDisplay::timerCallback()
         lastCaptureGeneration = position.generation;
     }
 
-    HistoryPoint point0;
-    point0.inputDb = m.displayInputDb0.load (std::memory_order_relaxed);
-    point0.detectorDb = m.displayDetectorDb0.load (std::memory_order_relaxed);
-    point0.capturedInputGainDb = capturedInputGainDb;
-    point0.capturedKeyGainDb = capturedKeyGainDb;
-    point0.captureGeneration = position.generation;
-    point0.captureCounter = position.counter;
-    pushHistory (histories[0], point0);
-
-    if (mode != qqsc::params::stereoLinked)
+    // Host audio may be stopped when the user switches ST/LR/MS. Geometry
+    // follows the current parameter immediately; never relabel old-domain
+    // meter data as a new-domain history while waiting for the audio callback.
+    if (mode == m.processingMode.load (std::memory_order_relaxed))
     {
-        HistoryPoint point1;
-        point1.inputDb = m.displayInputDb1.load (std::memory_order_relaxed);
-        point1.detectorDb = m.displayDetectorDb1.load (std::memory_order_relaxed);
-        point1.capturedInputGainDb = capturedInputGainDb;
-        point1.capturedKeyGainDb = capturedKeyGainDb;
-        point1.captureGeneration = position.generation;
-        point1.captureCounter = position.counter;
-        pushHistory (histories[1], point1);
+        HistoryPoint point0;
+        point0.inputDb = m.displayInputDb0.load (std::memory_order_relaxed);
+        point0.detectorDb = m.displayDetectorDb0.load (std::memory_order_relaxed);
+        point0.capturedInputGainDb = capturedInputGainDb;
+        point0.capturedKeyGainDb = capturedKeyGainDb;
+        point0.captureGeneration = position.generation;
+        point0.captureCounter = position.counter;
+        pushHistory (histories[0], point0);
+
+        if (mode != qqsc::params::stereoLinked)
+        {
+            HistoryPoint point1;
+            point1.inputDb = m.displayInputDb1.load (std::memory_order_relaxed);
+            point1.detectorDb = m.displayDetectorDb1.load (std::memory_order_relaxed);
+            point1.capturedInputGainDb = capturedInputGainDb;
+            point1.capturedKeyGainDb = capturedKeyGainDb;
+            point1.captureGeneration = position.generation;
+            point1.captureCounter = position.counter;
+            pushHistory (histories[1], point1);
+        }
     }
 
     const auto currentHpfHz = readParameter (processor, qqsc::params::keyHpfHz,
@@ -344,6 +379,46 @@ float DynamicDisplay::dbToY (float db, juce::Rectangle<float> plot) const noexce
     return juce::jmap (juce::jlimit (minDb, maxDb, db), maxDb, minDb, plot.getY(), plot.getBottom());
 }
 
+juce::Rectangle<float> DynamicDisplay::getBoundaryPlotForDomain (int parameterDomainIndex) const noexcept
+{
+    const auto domain = juce::jlimit (0, 4, parameterDomainIndex);
+    const auto mode = domain == 0 ? qqsc::params::stereoLinked
+                                  : (domain <= 2 ? qqsc::params::leftRight : qqsc::params::midSide);
+    const auto panelIndex = domain == 0 ? 0 : (domain - 1) % 2;
+    return plotBoundsForPanel (domainPanelBounds (panelIndex, mode));
+}
+
+float DynamicDisplay::getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb) const noexcept
+{
+    const auto plot = getBoundaryPlotForDomain (parameterDomainIndex);
+    // OFF is an unbounded Range, not a finite +1 dB threshold.
+    if (! qqsc::params::isRangeEnabled (detectorDb))
+        return plot.getY();
+
+    const bool externalKey = juce::roundToInt (readParameter (processor, qqsc::params::keySource))
+                             == qqsc::params::keyExternal;
+    const auto inputGainDb = readParameter (processor, qqsc::params::inputGainDb);
+    return dbToY (externalKey ? detectorDb
+                              : qqsc::params::effectiveDisplayThresholdDb (detectorDb, inputGainDb), plot);
+}
+
+float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY) const noexcept
+{
+    const auto plot = getBoundaryPlotForDomain (parameterDomainIndex);
+    if (plot.getHeight() <= 0.0f)
+        return qqsc::params::thresholdOffDb;
+
+    const auto displayDb = juce::jmap (juce::jlimit (plot.getY(), plot.getBottom(), localY),
+                                      plot.getY(), plot.getBottom(), maxDb, minDb);
+    const bool externalKey = juce::roundToInt (readParameter (processor, qqsc::params::keySource))
+                             == qqsc::params::keyExternal;
+    const auto detectorDb = externalKey ? displayDb
+                                        : displayDb + readParameter (processor, qqsc::params::inputGainDb);
+    // A drag maps finite values only. The fader explicitly chooses the OFF
+    // endpoint, keeping it distinct from a finite 0 dB upper boundary.
+    return juce::jlimit (qqsc::params::thresholdOffDb, 0.0f, detectorDb);
+}
+
 void DynamicDisplay::updatePath (juce::Path& path,
                                  const std::array<float, historyLength>& values,
                                  size_t valueCount, juce::Rectangle<float> plot) const
@@ -368,12 +443,58 @@ void DynamicDisplay::updatePath (juce::Path& path,
     }
 }
 
+void DynamicDisplay::updateGainChangePaths (
+    juce::Path& reductionPath, juce::Path& increasePath,
+    const ProjectedHistory& projected, juce::Rectangle<float> plot) const
+{
+    reductionPath.clear();
+    increasePath.clear();
+    if (projected.size == 0)
+        return;
+
+    const auto denom = static_cast<float> (historyLength - 1);
+    const auto startOffset = historyLength - static_cast<int> (projected.size);
+    auto pointAt = [&] (size_t i)
+    {
+        return juce::Point<float> (
+            plot.getX() + plot.getWidth() * static_cast<float> (startOffset + static_cast<int> (i)) / denom,
+            dbToY (projected.gainReductionBoundary[i], plot));
+    };
+
+    auto previous = pointAt (0);
+    auto previousGr = projected.effectiveGainReduction[0];
+    auto* active = previousGr < 0.0f ? &increasePath : &reductionPath;
+    active->startNewSubPath (previous);
+    for (size_t i = 1; i < projected.size; ++i)
+    {
+        const auto next = pointAt (i);
+        const auto nextGr = projected.effectiveGainReduction[i];
+        auto* nextPath = nextGr < 0.0f ? &increasePath : &reductionPath;
+        if (nextPath != active)
+        {
+            // The sign change crosses unity. Join both colours at that
+            // crossing so one history needs only one traversal and no overlay.
+            const auto fraction = previousGr / (previousGr - nextGr);
+            const auto crossing = previous + (next - previous) * fraction;
+            active->lineTo (crossing);
+            nextPath->startNewSubPath (crossing);
+            active = nextPath;
+        }
+        active->lineTo (next);
+        previous = next;
+        previousGr = nextGr;
+    }
+}
+
 void DynamicDisplay::updateGainReductionShadePath (
-    juce::Path& path, const std::array<float, historyLength>& upper,
-    const std::array<float, historyLength>& lower, size_t valueCount,
+    juce::Path& reductionPath, juce::Path& increasePath,
+    const std::array<float, historyLength>& upper,
+    const std::array<float, historyLength>& lower,
+    const std::array<float, historyLength>& gainReduction, size_t valueCount,
     juce::Rectangle<float> plot) const
 {
-    path.clear();
+    reductionPath.clear();
+    increasePath.clear();
     if (valueCount == 0)
         return;
 
@@ -392,6 +513,7 @@ void DynamicDisplay::updateGainReductionShadePath (
 
         const auto xIndex = static_cast<float> (startOffset + static_cast<int> (i));
         const auto x = plot.getX() + plot.getWidth() * xIndex / denom;
+        auto& path = gainReduction[i] < 0.0f ? increasePath : reductionPath;
         path.startNewSubPath (x, upperY);
         path.lineTo (x, lowerY);
     }
@@ -437,9 +559,11 @@ void DynamicDisplay::refreshRenderCaches (int mode)
             cache.projected.size = 0;
             cache.inputPath.clear();
             cache.gainReductionPath.clear();
+            cache.gainIncreasePath.clear();
             cache.outputPath.clear();
             cache.externalKeyPath.clear();
             cache.gainReductionShadePath.clear();
+            cache.gainIncreaseShadePath.clear();
             cache.currentGainReductionDb = 0.0f;
             cache.valid = false;
             continue;
@@ -448,12 +572,14 @@ void DynamicDisplay::refreshRenderCaches (int mode)
         projectHistory (domain, mode, externalKey, bypassed, cache.projected);
         const auto plot = plotBoundsForPanel (domainPanelBounds (domain, mode));
         updatePath (cache.inputPath, cache.projected.input, cache.projected.size, plot);
-        updatePath (cache.gainReductionPath, cache.projected.gainReductionBoundary,
-                    cache.projected.size, plot);
+        updateGainChangePaths (cache.gainReductionPath, cache.gainIncreasePath,
+                               cache.projected, plot);
         updatePath (cache.outputPath, cache.projected.output, cache.projected.size, plot);
         updatePath (cache.externalKeyPath, cache.projected.externalKey, cache.projected.size, plot);
-        updateGainReductionShadePath (cache.gainReductionShadePath, cache.projected.input,
+        updateGainReductionShadePath (cache.gainReductionShadePath, cache.gainIncreaseShadePath,
+                                      cache.projected.input,
                                       cache.projected.gainReductionBoundary,
+                                      cache.projected.effectiveGainReduction,
                                       cache.projected.size, plot);
         cache.currentGainReductionDb = cache.projected.size == 0
             ? 0.0f : cache.projected.effectiveGainReduction[cache.projected.size - 1];
@@ -463,26 +589,14 @@ void DynamicDisplay::refreshRenderCaches (int mode)
 
 float DynamicDisplay::thresholdDbForDomain (int domainIndex, int mode) const noexcept
 {
-    const char* parameterID = qqsc::params::thresholdDb;
-
-    if (mode == qqsc::params::leftRight)
-        parameterID = domainIndex == 0 ? qqsc::params::thresholdLDb : qqsc::params::thresholdRDb;
-    else if (mode == qqsc::params::midSide)
-        parameterID = domainIndex == 0 ? qqsc::params::thresholdMDb : qqsc::params::thresholdSDb;
-
-    return readParameter (processor, parameterID, qqsc::params::thresholdOffDb);
+    const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
+    return processor.getBoundaryForDomainDb (dual, false, processorDomain (domainIndex, mode));
 }
 
-float DynamicDisplay::ratioForDomain (int domainIndex, int mode) const noexcept
+float DynamicDisplay::upperBoundaryDbForDomain (int domainIndex, int mode) const noexcept
 {
-    const char* parameterID = qqsc::params::ratio;
-
-    if (mode == qqsc::params::leftRight)
-        parameterID = domainIndex == 0 ? qqsc::params::ratioL : qqsc::params::ratioR;
-    else if (mode == qqsc::params::midSide)
-        parameterID = domainIndex == 0 ? qqsc::params::ratioM : qqsc::params::ratioS;
-
-    return readParameter (processor, parameterID, 1.0f);
+    const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
+    return processor.getBoundaryForDomainDb (dual, true, processorDomain (domainIndex, mode));
 }
 
 float DynamicDisplay::makeupDbForDomain (int domainIndex, int mode) const noexcept
@@ -516,8 +630,7 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
     const auto inputGainDb = readParameter (processor, qqsc::params::inputGainDb);
     const auto keyGainDb = readParameter (processor, qqsc::params::keyGainDb);
     const auto inputGain = juce::Decibels::decibelsToGain (inputGainDb);
-    const auto ratio = ratioForDomain (domainIndex, mode);
-    const auto thresholdLinear = qqsc::params::thresholdLinear (thresholdDbForDomain (domainIndex, mode));
+    const auto domain = processorDomain (domainIndex, mode);
     const auto wetMix = mixForDomain (domainIndex, mode);
     const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode));
     const auto outputGain = juce::Decibels::decibelsToGain (
@@ -540,8 +653,8 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
 
         detectorDb = juce::jlimit (silenceDb, maxDb, detectorDb);
 
-        const auto compressedGain = qqsc::StaticCompressionEngine::gainForLevel (
-            dbToDetectorLevel (detectorDb), ratio, thresholdLinear);
+        const auto compressedGain = processor.getDynamicsGainForDomain (
+            dbToDetectorLevel (detectorDb), domain);
         const auto effectiveGr = bypassed ? 0.0f
                                           : qqsc::StaticCompressionEngine::effectiveGainReductionDb (
                                                 compressedGain, wetMix);
@@ -811,11 +924,11 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
     g.drawFittedText (domainName, domainArea.toNearestInt(), juce::Justification::centredLeft, 1);
 
-    auto readout = "GR (MIX)  " + grText (currentGr);
+    auto readout = "GAIN (MIX)  " + grText (currentGr);
     if (externalKey && ! externalAvailable)
         readout += "   EXT N/A";
 
-    g.setColour (qqsc::ui::grAccent());
+    g.setColour (currentGr < -0.05f ? gainIncreaseColour() : qqsc::ui::grAccent());
     g.setFont (juce::Font (juce::FontOptions (9.5f, juce::Font::bold)));
     g.drawFittedText (readout, readoutArea.toNearestInt(),
                       juce::Justification::centredRight, 1);
@@ -834,29 +947,45 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
                     juce::Justification::right);
     }
 
-    const auto thresholdDb = thresholdDbForDomain (domainIndex, mode);
-    if (qqsc::params::isThresholdEnabled (thresholdDb))
+    const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
+    const auto lowerDb = thresholdDbForDomain (domainIndex, mode);
+    const auto upperDb = upperBoundaryDbForDomain (domainIndex, mode);
+    const auto parameterDomainIndex = processorDomain (domainIndex, mode);
+    const auto boundaryY = [&] (float db)
     {
-        const auto inputGainDb = readParameter (processor, qqsc::params::inputGainDb);
-        const auto effectiveThresholdDb = externalKey
-            ? thresholdDb : qqsc::params::effectiveDisplayThresholdDb (thresholdDb, inputGainDb);
-        const auto thresholdY = dbToY (effectiveThresholdDb, plot);
-        const float dashPattern[] { 5.0f, 4.0f };
-        g.setColour (qqsc::ui::warmAccent().withAlpha (0.82f));
-        g.drawDashedLine ({ plot.getX(), thresholdY, plot.getRight(), thresholdY }, dashPattern, 2, 1.2f);
+        return getBoundaryYForDomainDb (parameterDomainIndex, db);
+    };
+    const auto tagY = [&] (float db)
+    {
+        return juce::jlimit (plot.getY(), plot.getBottom() - 16.0f, boundaryY (db) - 8.0f);
+    };
+    const bool tagsOverlap = std::abs (tagY (lowerDb) - tagY (upperDb)) < 18.0f;
+    const auto drawBoundary = [&] (float db, bool upper)
+    {
+        const bool rangeOff = ! dual && upper && ! qqsc::params::isRangeEnabled (db);
+        const auto y = boundaryY (db);
+        const auto colour = dual ? (upper ? qqsc::ui::grAccent() : gainIncreaseColour())
+                                  : (upper ? qqsc::ui::grAccent() : qqsc::ui::warmAccent());
+        if (! rangeOff)
+        {
+            const float dashPattern[] { 5.0f, 4.0f };
+            g.setColour (colour.withAlpha (0.82f));
+            g.drawDashedLine ({ plot.getX(), y, plot.getRight(), y }, dashPattern, 2, 1.0f);
+        }
 
-        const auto thresholdText = juce::String (thresholdDb, 2) + " dB";
-        const auto tagWidth = 70.0f;
-        auto tag = juce::Rectangle<float> (plot.getRight() - tagWidth - 2.0f,
-                                            thresholdY - 8.0f, tagWidth, 16.0f);
-        tag.setY (juce::jlimit (plot.getY(), plot.getBottom() - tag.getHeight(), tag.getY()));
+        const juce::String name = dual ? (upper ? "DOWN " : "UP ") : (upper ? "RANGE " : "THR ");
+        const auto value = rangeOff ? juce::String ("OFF")
+                                    : (qqsc::params::isThresholdEnabled (db) ? juce::String (db, 1) : juce::String ("-inf"));
+        constexpr float tagWidth = 88.0f;
+        const auto offset = upper && tagsOverlap ? tagWidth + 3.0f : 0.0f;
+        auto tag = juce::Rectangle<float> (plot.getRight() - tagWidth - 2.0f - offset,
+                                            tagY (db), tagWidth, 16.0f);
         g.setColour (qqsc::ui::panel().withAlpha (0.90f));
         g.fillRoundedRectangle (tag, 4.0f);
-        g.setColour (qqsc::ui::warmAccent().darker (0.12f));
+        g.setColour (colour);
         g.setFont (juce::Font (juce::FontOptions (8.5f, juce::Font::bold)));
-        g.drawFittedText (thresholdText, tag.toNearestInt(), juce::Justification::centred, 1);
-    }
-
+        g.drawFittedText (name + value, tag.toNearestInt(), juce::Justification::centred, 1);
+    };
     g.saveState();
     g.reduceClipRegion (plot.toNearestInt());
 
@@ -887,21 +1016,26 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
         g.strokePath (cache.externalKeyPath, juce::PathStrokeType (1.0f));
     }
 
-    // The former full-area translucent polygon made paint cost grow
-    // with GR depth. A single cached sparse shade path preserves the
-    // visual band without blending every pixel in the compressed area.
+    // Both signs share the same sparse-shade budget. There is no extra
+    // full-area translucent fill when upward and downward processing coexist.
     tracePaint (qqsc::ui::grAccent().withAlpha (0.24f));
     g.strokePath (cache.gainReductionShadePath, juce::PathStrokeType (1.15f));
+    tracePaint (gainIncreaseColour().withAlpha (0.24f));
+    g.strokePath (cache.gainIncreaseShadePath, juce::PathStrokeType (1.15f));
 
     tracePaint (qqsc::ui::dryTrace().withAlpha (0.82f));
     g.strokePath (cache.inputPath, juce::PathStrokeType (1.15f));
 
     tracePaint (qqsc::ui::grAccent().withAlpha (0.90f));
     g.strokePath (cache.gainReductionPath, juce::PathStrokeType (1.25f));
+    tracePaint (gainIncreaseColour().withAlpha (0.90f));
+    g.strokePath (cache.gainIncreasePath, juce::PathStrokeType (1.25f));
 
     tracePaint (qqsc::ui::outputAccent().withAlpha (0.96f));
     g.strokePath (cache.outputPath, juce::PathStrokeType (1.5f));
     g.restoreState();
+    drawBoundary (lowerDb, false);
+    drawBoundary (upperDb, true);
 }
 
 void DynamicDisplay::paint (juce::Graphics& g)
@@ -913,20 +1047,20 @@ void DynamicDisplay::paint (juce::Graphics& g)
     g.setColour (qqsc::ui::border().withAlpha (0.72f));
     g.drawRoundedRectangle (bounds.reduced (0.5f), 12.0f, 1.0f);
 
-    auto& m = processor.getMeterState();
-    const auto mode = m.processingMode.load (std::memory_order_relaxed);
+    const auto mode = displayProcessingMode (processor);
 
     auto header = bounds.reduced (14.0f, 5.0f).removeFromTop (22.0f);
     auto titleArea = header.removeFromLeft (juce::jmin (290.0f, header.getWidth() * 0.62f));
     g.setColour (qqsc::ui::text().withAlpha (0.84f));
     g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
-    g.drawFittedText ("DYNAMIC LEVEL / GAIN REDUCTION HISTORY", titleArea.toNearestInt(),
+    g.drawFittedText ("DYNAMIC LEVEL / GAIN HISTORY", titleArea.toNearestInt(),
                       juce::Justification::centredLeft, 1);
     g.setColour ((hpfReplayBusy ? qqsc::ui::cyanAccent() : qqsc::ui::textMuted())
                     .withAlpha (0.82f));
     g.setFont (9.5f);
     const auto headerStatus = (hpfReplayBusy ? juce::String ("HPF UPDATING   ") : juce::String())
-                            + "MODE  " + qqsc::params::modeName (mode);
+                            + (readParameter (processor, qqsc::params::compressionMode) >= 0.5f ? "DUAL  " : "SINGLE  ")
+                            + qqsc::params::modeName (mode);
     g.drawFittedText (headerStatus, header.toNearestInt(),
                       juce::Justification::centredRight, 1);
 
@@ -948,7 +1082,7 @@ void DynamicDisplay::paint (juce::Graphics& g)
     const bool externalKey = juce::roundToInt (
         readParameter (processor, qqsc::params::keySource)) == qqsc::params::keyExternal;
     auto legendArea = juce::Rectangle<int> (54, getHeight() - 22, juce::jmax (1, getWidth() - 64), 17);
-    const int itemCount = externalKey ? 4 : 3;
+    const int itemCount = externalKey ? 5 : 4;
     const auto itemW = legendArea.getWidth() / itemCount;
 
     auto drawLegend = [&] (juce::Rectangle<int> item, juce::Colour colour, const juce::String& text)
@@ -962,8 +1096,9 @@ void DynamicDisplay::paint (juce::Graphics& g)
     };
 
     drawLegend (legendArea.removeFromLeft (itemW), qqsc::ui::dryTrace(), "Dry / Input");
-    drawLegend (legendArea.removeFromLeft (itemW), qqsc::ui::grAccent(), "GR incl. Mix");
-    drawLegend (legendArea.removeFromLeft (itemW), qqsc::ui::outputAccent(), "Output post-mix");
+    drawLegend (legendArea.removeFromLeft (itemW), qqsc::ui::grAccent(), "Cut / Mix");
+    drawLegend (legendArea.removeFromLeft (itemW), gainIncreaseColour(), "Boost / Mix");
+    drawLegend (legendArea.removeFromLeft (itemW), qqsc::ui::outputAccent(), "Output");
 
     if (externalKey)
         drawLegend (legendArea, qqsc::ui::cyanAccent().withAlpha (0.45f), "External key");

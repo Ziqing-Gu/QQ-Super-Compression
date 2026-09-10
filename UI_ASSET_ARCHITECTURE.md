@@ -1,12 +1,24 @@
-# CURRENT ARCHITECTURE — v1.1.8 Revision 2
+# CURRENT STATUS — v1.1.8 Revision 2 Stable
 
-- Light uses the accepted embedded `Assets/WarmKnob/approved-lit.png` and `unlit-base.png` material compositor, not the rejected v0.9.2 filmstrip. Material and contact shadow remain fixed while the arc and pointer follow the control value.
-- `LightKnobScale.h` adds 13 fixed, non-emissive ticks. `WarmKnobAsset.h` paints the wider, brighter, inward-extended pointer; zero remains unlit. Current-frame caches are bounded and reused.
-- Dark uses the approved actual JUCE renderer in `RefinedDarkKnob.h`; bottom-panel-only stationary grain is cached by `DarkPanelMaterial.h`. The Display background remains clean near black.
-- Classic is retained. All themes share geometry, parameters, audio and history behaviour, and remember the last theme.
-- The following rejected approaches are retained as historical evidence, not current implementation guidance.
+2026-09-07: User confirmed the finished Revision 2 as Stable and requested Plan B. Previous Stable: 1.1.7. No code, asset, build or installed-binary change in this promotion. See PLAN_A_VERIFICATION_1.1.8_REV2.md for final pointer verification and AI_DEVELOPMENT_HANDOFF.md for the backup completion record. The initial pause below is development history.
 
-# STATUS UPDATE — v0.9.3
+2026-09-07: User stopped Stable / Plan B before any source copy, requesting a wider/brighter Light pointer and then more inward extension. Its warm-white core is now 22 material units, the orange edge 30, inner radius 60 and outer radius 184. Halo width/intensity are retained. Revision 2 remains a candidate; last completed Stable/backup is v1.1.7. No Plan B was performed for 1.1.8.
+
+Dark uses the exact accepted `RefinedDarkKnob.h` study renderer. `DarkPanelMaterial.h` adds a stationary fine-grained graphite finish only to the bottom control panel, generated once and cached; the main Display stays pure near-black. Light keeps its approved bitmap material/compositor with a longer/brighter index in `WarmKnobAsset.h` and non-emissive fixed ticks in `LightKnobScale.h`. Classic, layout, parameters, audio and history behavior are retained. See `PLAN_A_VERIFICATION_1.1.8.md` for actual build/delivery evidence and `AI_DEVELOPMENT_HANDOFF.md` for Plan B status.
+
+## Previous status — v1.1.7 Three-Theme Stable
+
+2026-09-07: User accepted and promoted this implementation to Stable, with Plan B. No asset/code/build change accompanies the promotion; previous Stable is 1.1.6 Revision 3.
+
+The final user request retains Light, Dark and Classic. Light keeps the approved embedded assets and compositor; Classic keeps its established vector-rendered controls. New Dark uses `DarkMaterial.h`, with bounded base-resolution caching, one current frame per slider, stationary shaded metal/shadows, and progressive blue guide/index lighting. Backgrounds are solid near-black, not raster textures or noise. The production offscreen renderer checks zero/partial/full emission and reuses the same code as the VST3, not an image-generation mockup. See `PLAN_A_VERIFICATION_1.1.7.md` for actual delivery status.
+
+## Previous status — v1.1.6 Revision 2
+
+The user approved a real interactive JUCE knob study on 2026-09-07. The LIGHT skin now embeds its lit/unlit material images under `Assets/WarmKnob` and uses `Source/WarmKnobAsset.h` for continuous emission, fixed material/shadow and per-control frame caching. This is not the historical 128-frame filmstrip below. Classic remains vector-rendered and unchanged. See `PLAN_A_VERIFICATION_1.1.6.md` for the actual installed candidate.
+
+---
+
+# HISTORICAL STATUS UPDATE — v0.9.3
 
 > **Historical / rejected UI path.** The v0.9.2 128-frame bitmap-filmstrip knob architecture was tested by the user in the real plug-in and rejected visually. v0.9.3 no longer links or renders these assets. This document and the PNG files are intentionally preserved as development history so future AI/Codex does not accidentally repeat the same experiment.
 >
