@@ -8,6 +8,9 @@
 
 namespace qqsc::params
 {
+    inline constexpr auto algorithmMode = "algorithmMode"; // Appended host parameter in v1.2.4
+    enum AlgorithmMode { classicAlgorithm = 0, superAlgorithm = 1 };
+
     inline constexpr auto inputGainDb    = "inputGainDb";
     inline constexpr auto ratio          = "ratio";          // ST / legacy Ratio
     inline constexpr auto ratioL         = "ratioL";
@@ -146,8 +149,10 @@ namespace qqsc::params
         return text.getFloatValue();
     }
 
-    // Threshold OFF is represented by the bottom endpoint. DSP maps this sentinel
-    // to a true zero-linear threshold, i.e. the exact pre-Threshold (-inf) law.
+    // Preserve the host numeric endpoint. Super interprets it as -inf;
+    // Classic clamps stored values below -90 dB inside its transfer functions.
+    // Keeping the per-algorithm mapping in the engine also preserves both
+    // sides of the Classic/Super crossfade at this shared stored value.
     inline constexpr float thresholdOffDb = -120.0f;
     // Virtual Range endpoint: +1 is a stored OFF sentinel, never physical dB.
     // Finite 0 dB remains a distinct strict upper cutoff in saved projects.
@@ -184,10 +189,18 @@ namespace qqsc::params
         return isRangeEnabled (db) ? thresholdLinear (db) : std::numeric_limits<float>::infinity();
     }
 
-    inline juce::String rangeText (float db)
+    inline juce::String boundaryText (float db, bool classic, int decimals = 2)
+    {
+        if (classic) db = juce::jmax (classicThresholdMinimumDb, db);
+        return classic || isThresholdEnabled (db)
+            ? juce::String (db, decimals) + " dB" : juce::String ("-inf dB");
+    }
+
+    inline juce::String rangeText (float db, bool classic = false)
     {
         if (! isRangeEnabled (db)) return "OFF";
-        if (! isThresholdEnabled (db)) return "-inf dB";
+        if (! classic && ! isThresholdEnabled (db)) return "-inf dB";
+        if (classic) db = juce::jmax (classicThresholdMinimumDb, db);
         return juce::String (db, 2) + " dB";
     }
 

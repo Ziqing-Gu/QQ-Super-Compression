@@ -1,0 +1,12 @@
+QQ Super Compression 1.2.6 — Installation and update
+
+Win/: Windows x64 VST3 ZIP. Extract and copy the complete QQ Super Compression.vst3 folder to C:\Program Files\Common Files\VST3. Close all audio hosts before replacing the existing formal version, then rescan plugins.
+
+Mac/: Select Apple Silicon or Intel VST3 to match the host process architecture. Logic uses Universal 2 AU. macOS 11 or newer. Copy VST3 to /Library/Audio/Plug-Ins/VST3 and AU to /Library/Audio/Plug-Ins/Components, or the equivalent user Library location. Close the host before copying the complete bundle, then rescan. Mac packages are ad-hoc signed and not Apple-notarized; download only from the official project release and follow system approval prompts.
+
+Changes: remembered Classic/Super choice; Classic -90 dB floor and Super -inf; A/B comparison and fades; MATCH without the absolute detection gate and +/-120 dB Makeup; aligned 26 ms default Lookahead to improve pre-dips. Single Ratio spans 1:1000 to 1000:1, while Dual has independent branch switches and relative Ratio LINK. No additional installer is required for the plugin's audio processing.
+
+The formal VST3 identity is unchanged, but older sessions use the new detector timing and dynamic material may sound different. Preview sessions need manual replacement with the formal plugin. Both supplied 28-page PDFs describe this release; read the algorithms, MATCH, A/B, Display and Lookahead sections. Some rapid-AM residuals increase; this is not a universal zero-distortion guarantee.
+
+Non-commercial use only. Complete corresponding source and license: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.6
+Official download: https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.6

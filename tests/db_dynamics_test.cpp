@@ -23,7 +23,7 @@ void setupDb(QQSuperCompressionAudioProcessor& p,int dual,int mode,float lower,f
 }
 void fixedDbChecks()
 {
-    for(auto threshold:{-10.0f,-30.0f,-90.0f,-110.0f})for(auto ratio:{2.0f,5.0f,6.75f,8.0f,1000.0f})
+    for(auto threshold:{-10.0f,-30.0f,-80.0f,-90.0f})for(auto ratio:{2.0f,5.0f,6.75f,8.0f,1000.0f})
     {
         const float inputDb=threshold+10,amplitude=std::pow(10.0f,inputDb/20);
         QQSuperCompressionAudioProcessor p;setupDb(p,0,0,threshold,1,ratio);
@@ -36,7 +36,7 @@ void fixedDbChecks()
         const auto quiet=std::pow(10.0f,(threshold-3)/20);
         check(std::abs(rmsGain(render(p,quiet),quiet)-1)<1e-5,"Finite downward threshold affects sub-threshold material");
     }
-    std::cout<<"PASS: finite thresholds -10/-30/-90/-110 and Ratios2/5/6.75/8/1000; equal exceedance/equal dB reduction; actual0dB to-8dB at5:1/-10dB.\n";
+    std::cout<<"PASS: finite thresholds -10/-30/-80/-90 and Ratios2/5/6.75/8/1000; equal exceedance/equal dB reduction; actual0dB to-8dB at5:1/-10dB.\n";
 }
 void dbDomainChecks()
 {
@@ -59,6 +59,7 @@ void dbLegacyAndSymmetryChecks()
     for(float ratio:{0.001f,0.125f,1.0f,8.0f,1000.0f})for(float db:{-80.0f,-30.0f,-6.0f})
     {
         const auto amp=std::pow(10.0f,db/20);QQSuperCompressionAudioProcessor p;setupDb(p,0,0,-120,1,ratio);
+        set(p,"algorithmMode",1); // The -inf rational law now belongs only to Super.
         const auto expected=ratio<1?1/(ratio+(1-ratio)*amp):1/(1+(ratio-1)*amp);
         check(std::abs(rmsGain(render(p,amp),amp)/expected-1)<0.0001,"-inf fallback does not preserve the original family");
     }
@@ -74,12 +75,12 @@ void dbLegacyAndSymmetryChecks()
         for(size_t i=15000;i<a.output.size();++i)peakError=std::max(peakError,std::abs(b.output[i]*std::pow(10.0,-symmetryOffset/20)-a.output[i]));
         check(peakError<1e-7,"Matched reciprocal waveforms do not null in their common interior");
     }
-    QQSuperCompressionAudioProcessor p;setupDb(p,0,0,-110,1,0.125f);
-    constexpr float amp=1e-5f;const auto deep=render(p,amp);
+    QQSuperCompressionAudioProcessor p;setupDb(p,0,0,-90,1,0.125f);
+    constexpr float amp=1e-4f;const auto deep=render(p,amp);
     const auto boost=20*std::log10(rmsGain(deep,amp));
-    check(std::abs(boost-87.5)<0.01 && std::abs(deep.meter+87.5)<0.02,"Deep finite Up boost is clipped or meter is wrong");
+    check(std::abs(boost-70.0)<0.01 && std::abs(deep.meter+70.0)<0.02,"Deep finite Up boost is clipped or meter is wrong");
     for(auto sample:render(p,0).output)check(sample==0,"Silence produced output");
-    std::cout<<"PASS: -inf legacy fallback; actual8:1/1:8 common-interior waveforms null after constant35dB compensation; deep finite Up +87.5dB and silence.\n";
+    std::cout<<"PASS: -inf legacy fallback; actual8:1/1:8 common-interior waveforms null after constant35dB compensation; deep finite Up +70.0dB and silence.\n";
 }
 void deepDownPrecisionChecks()
 {
@@ -87,10 +88,10 @@ void deepDownPrecisionChecks()
     for(int dual:{0,1})for(int domain:{0,1,2,3})for(float mix:{0.0f,25.0f,100.0f})
     {
         const int mode=domain==0?0:domain==1?2:1;
-        QQSuperCompressionAudioProcessor p;setupDb(p,dual,mode,dual?-119.9f:-110.0f,dual?-110.0f:1.0f,1000);
+        QQSuperCompressionAudioProcessor p;setupDb(p,dual,mode,dual?-90.0f:-80.0f,dual?-80.0f:1.0f,1000);
         for(auto id:mixes)set(p,id,mix);
         const auto result=render(p,1,256,false,400,48000,domain==3?-1.0f:1.0f);
-        const double wet=std::pow(10.0,-110*.999/20),amount=mix/100;
+        const double wet=std::pow(10.0,-80*.999/20),amount=mix/100;
         const double expected=wet*amount+1-amount,wantedDb=20*std::log10(expected);
         check(std::abs(20*std::log10(rmsGain(result,1))-wantedDb)<.01,
               "Deep Down lost precision during wet/dry or branch blending");
@@ -98,18 +99,25 @@ void deepDownPrecisionChecks()
         check(std::abs(meter+wantedDb)<.01,"Deep Down gain meter prematurely floors to silence");
         if(mix==100 && domain==0)check(harmonicDb(result)<-110,"Deep Down float cancellation adds carrier harmonics");
     }
-    std::cout<<"PASS: -109.89dB deep Down with accurate audio/Mix/meters, ST/LR/M/S Single/Dual and0/25/100% Mix.\n";
+    std::cout<<"PASS: -79.92dB deep Down with accurate audio/Mix/meters, ST/LR/M/S Single/Dual and0/25/100% Mix.\n";
 }
 }
+#include "algorithm_checks.h"
+#include "floor_checks.h"
+#include "ab_match_checks.h"
+#include "preview_detector_checks.h"
 int main()
 {
     juce::ScopedJuceInitialiser_GUI initialiser;
     try
     {
+        previewDetectorChecks();
         fixedDbChecks();dbDomainChecks();dbLegacyAndSymmetryChecks();deepDownPrecisionChecks();
+        algorithmStateChecks();superAudioChecks();algorithmFadeChecks();
         collisionChecks();stateChecks();blockChecks();domainChecks();
         boundaryContinuityChecks();branchEnableStateChecks();branchCrossfadeChecks();rangeCrossingAudioChecks();branchOversampledCrossfadeChecks();
-        std::cout<<"PASS: QQ Super Compression 1.2.3 Stable fixed-dB dynamics.\n";return 0;
+        floorAndLinkChecks();matchedABChecks();deepMatchChecks();
+        std::cout<<"PASS: QQ Super Compression 1.2.6 Stable aligned-detector dynamics.\n";return 0;
     }
     catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 }

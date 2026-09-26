@@ -1,7 +1,7 @@
 void QQSCVisualCheck::dbComparisonChecks(QQSuperCompressionAudioProcessorEditor& e,
                                        QQSuperCompressionAudioProcessor& p,const juce::File& dir)
 {
-    parameter(p,"processingMode",0);parameter(p,"compressionMode",0);
+    parameter(p,"algorithmMode",0);parameter(p,"processingMode",0);parameter(p,"compressionMode",0);
     parameter(p,"inputGainDb",0);parameter(p,"outputGainDb",0);parameter(p,"makeupGainDb",0);
     parameter(p,"mix",100);parameter(p,"inputOutputLink",0);parameter(p,"dualRatioLink",0);
     parameter(p,"keySource",0);parameter(p,"keyHpfHz",0);parameter(p,"bypass",0);
@@ -19,9 +19,9 @@ void QQSCVisualCheck::dbComparisonChecks(QQSuperCompressionAudioProcessorEditor&
     };
     checkPoint(0,-8);checkPoint(-12,-12);
     // A finite deep gate must preserve the new dB boost above the old 60dB cap.
-    p.setBoundaryForDomainDb(false,false,0,-110);parameter(p,"ratio",.125f);e.timerCallback();
-    checkPoint(-100,-12.5f);
-    parameter(p,"ratio",1000);e.timerCallback();checkPoint(0,-109.89f);
+    p.setBoundaryForDomainDb(false,false,0,-90);parameter(p,"ratio",.125f);e.timerCallback();
+    checkPoint(-80,-10.0f);
+    parameter(p,"ratio",1000);e.timerCallback();checkPoint(0,-89.91f);
     for(int dual:{0,1})
     {
         parameter(p,"compressionMode",static_cast<float>(dual));
@@ -43,5 +43,5 @@ void QQSCVisualCheck::dbComparisonChecks(QQSuperCompressionAudioProcessorEditor&
             snapshot(e,dir.getChildFile("db-"+skin+"-"+(dual?"dual":"single")+".png"));
         }
     }
-    std::cout<<"PASS: fixed-dB Display 0->-8dB at5:1/-10dB, sub-threshold unity, +87.5dB deep Up; formal-name three-theme Single/Dual snapshots.\n";
+    std::cout<<"PASS: fixed-dB Display 0->-8dB at5:1/-10dB, sub-threshold unity, +70dB deep Up; formal-name three-theme Single/Dual snapshots.\n";
 }

@@ -2,6 +2,7 @@ void QQSCVisualCheck::up1000Checks(QQSuperCompressionAudioProcessorEditor& e,
                                   QQSuperCompressionAudioProcessor& p,const juce::File& dir)
 {
     constexpr float minimum=1.0f/1000;
+    parameter(p,"algorithmMode",1); // This legacy -inf oracle is specifically Super.
     const auto require=[](bool ok,const char* why){if(!ok)throw std::runtime_error(why);};
     const auto raw=[&](const char* id){return p.getAPVTS().getRawParameterValue(id)->load();};
     const auto enter=[&](auto& slider,const char* text)

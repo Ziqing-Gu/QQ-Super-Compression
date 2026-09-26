@@ -16,7 +16,7 @@ void QQSCVisualCheck::inputOutputLinkChecks(QQSuperCompressionAudioProcessorEdit
             {input->setText(value);slider.hideTextBox(false);return;}
         throw std::runtime_error("Gain text editor missing");
     };
-    require(raw("inputOutputLink")==0,"Input/Output LINK must default OFF");
+    parameter(p,"inputOutputLink",0);e.timerCallback(); // Isolate toggle/drag tests from remembered preference.
     parameter(p,"processingMode",0);parameter(p,"inputGainDb",2);parameter(p,"outputGainDb",-4);e.timerCallback();
     {
         GestureProbe touch(*p.getAPVTS().getParameter("inputOutputLink"));e.inputOutputLinkButton.onClick();

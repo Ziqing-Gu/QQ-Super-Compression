@@ -53,6 +53,8 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
       meters (p)
 {
     processor.initialiseDualRatioLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("dualRatioLink", true));
+    processor.initialiseInputOutputLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("inputOutputLink", true));
+    processor.initialiseAlgorithmPreference (uiProperties != nullptr ? uiProperties->getIntValue ("lastAlgorithmMode", 0) : 0);
     setLookAndFeel (&utf8LookAndFeel);
     setResizable (true, true);
     setResizeLimits (minEditorWidth, minEditorHeight, maxEditorWidth, maxEditorHeight);
@@ -242,6 +244,27 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureActionButton (bButton);
     configureActionButton (aToBButton);
     configureActionButton (bToAButton);
+    configureActionButton (algorithmButton);
+    algorithmButton.getProperties().set ("qqscAlwaysLit", true);
+    algorithmButton.setComponentID ("algorithmMode");
+    algorithmButton.setTooltip ("Classic = fixed dB ratio; Super = original QQ curve. 10 ms crossfade. New instances remember your last choice; saved project and A/B states take priority.");
+    contentRoot.addAndMakeVisible (algorithmButton);
+    registerKeyboardListener (algorithmButton);
+    algorithmButton.onClick = [this]
+    {
+        endLinkedGesture();
+        beginUndoTransaction ("Classic / Super Algorithm");
+        const auto current = processor.getAPVTS().getRawParameterValue (qqsc::params::algorithmMode)->load();
+        setChoiceParameter (qqsc::params::algorithmMode, current >= 0.5f ? 0 : 1);
+        if (uiProperties != nullptr)
+        {
+            uiProperties->reload();
+            uiProperties->setValue ("lastAlgorithmMode", current >= 0.5f ? 0 : 1);
+            uiProperties->saveIfNeeded();
+        }
+        updateAlgorithmUi();
+    };
+    updateAlgorithmUi();
     configureActionButton (themeButton);
     configureActionButton (oversamplingButton);
     configureActionButton (sidechainButton);
@@ -265,6 +288,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     bButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     bypassButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::outputAccent());
     themeButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
+    algorithmButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     themeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     themeButton.setTooltip ("Switch Light / Dark / Classic. Your last theme is remembered.");
     sidechainButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
@@ -573,7 +597,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
     for (auto* button : { &modeButton, &linkButton, &dualRatioLinkButton, &inputOutputLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
-                          &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
+                          &algorithmButton, &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
                           &keyExternalButton, &sidechainListenButton })
     {
         button->setColour (juce::TextButton::buttonColourId, qqsc::ui::panel());
@@ -586,6 +610,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     monitorAllButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     monitorFirstButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     monitorSecondButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    algorithmButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     themeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     sidechainButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     keyInternalButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
@@ -746,11 +771,8 @@ void QQSuperCompressionAudioProcessorEditor::configureThresholdSlider (FineKnob&
     slider.setColour (juce::Slider::textBoxTextColourId, qqsc::ui::text());
     slider.setColour (juce::Slider::textBoxBackgroundColourId, qqsc::ui::panel().withAlpha (0.80f));
     slider.setColour (juce::Slider::textBoxOutlineColourId, qqsc::ui::border().withAlpha (0.78f));
-    slider.textFromValueFunction = [] (double v)
-    {
-        return qqsc::params::isThresholdEnabled (static_cast<float> (v))
-            ? juce::String (v, 2) + " dB" : juce::String ("OFF");
-    };
+    slider.textFromValueFunction = [this] (double v)
+    { return qqsc::params::boundaryText (static_cast<float> (v), processor.isClassicAlgorithm()); };
     slider.valueFromTextFunction = [] (const juce::String& text)
     {
         return (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("-inf"))
@@ -932,7 +954,7 @@ void QQSuperCompressionAudioProcessorEditor::handleLinkedValueChange (LinkedPair
 
     const bool thresholdPair = attachedCompressionMode == 0
         && (pair == LinkedPair::thresholdLR || pair == LinkedPair::thresholdMS);
-    if (thresholdPair)
+    if (thresholdPair && ! processor.isClassicAlgorithm())
     {
         // OFF means -infinity conceptually, not -120 dB. A finite relative
         // offset to -infinity is undefined, so if exactly one side starts OFF
@@ -1009,7 +1031,7 @@ double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair
         if (openGesture) parameter->endChangeGesture();
     };
 
-    if (thresholdPair)
+    if (thresholdPair && ! processor.isClassicAlgorithm())
     {
         const bool sourceOff = ! qqsc::params::isThresholdEnabled (static_cast<float> (sourceStart));
         const bool targetOff = ! qqsc::params::isThresholdEnabled (static_cast<float> (targetStart));
@@ -1100,7 +1122,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
 {
     configureActionButton (inputOutputLinkButton);
     inputOutputLinkButton.getProperties().set ("qqscSmallLink", true);
-    inputOutputLinkButton.setTooltip ("Link Input/Output gain by equal, opposite dB changes. Keeps the current offset; no change when enabled.");
+    inputOutputLinkButton.setTooltip ("Link Input/Output gain by equal, opposite dB changes. Keeps the current offset; no gain change when enabled. Your last Link choice is remembered for new instances.");
     contentRoot.addAndMakeVisible (inputOutputLinkButton);
     registerKeyboardListener (inputOutputLinkButton);
     inputOutputLinkButton.onClick = [this]
@@ -1111,6 +1133,12 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
         beginUndoTransaction ("Input / Output Gain Link");
         const bool enabled = processor.getAPVTS().getRawParameterValue (qqsc::params::inputOutputLink)->load() < 0.5f;
         setChoiceParameter (qqsc::params::inputOutputLink, enabled ? 1 : 0);
+        if (uiProperties != nullptr)
+        {
+            uiProperties->reload();
+            uiProperties->setValue ("inputOutputLink", enabled);
+            uiProperties->saveIfNeeded();
+        }
         updateCompressionUi();
     };
     configureActionButton (dualRatioLinkButton);
@@ -1461,7 +1489,7 @@ void QQSuperCompressionAudioProcessorEditor::refreshBoundaryReadouts()
         {
             if (upper && attachedCompressionMode == 0 && ! qqsc::params::isRangeEnabled (static_cast<float> (db)))
                 return juce::String ("OFF");
-            if (! qqsc::params::isThresholdEnabled (static_cast<float> (db)))
+            if (! processor.isClassicAlgorithm() && ! qqsc::params::isThresholdEnabled (static_cast<float> (db)))
                 return juce::String (attachedCompressionMode == 0 && ! upper ? "OFF" : "-inf");
             return juce::String (db, i == 0 ? 2 : 1) + (i == 0 ? " dB" : "");
         };
@@ -1500,6 +1528,12 @@ void QQSuperCompressionAudioProcessorEditor::updateCompressionUi()
     const juce::ScopedValueSetter<bool> guard (boundaryValueUpdateInProgress, true);
     for (size_t i = 0; i < lower.size(); ++i)
     {
+        const auto minimum = processor.isClassicAlgorithm() ? double(qqsc::classicThresholdMinimumDb)
+                                                           : double(qqsc::params::thresholdOffDb);
+        if (lower[i]->getMinimum() != minimum) lower[i]->setRange (minimum, 0.0, 0.01);
+        if (upperBoundarySliders[i]->getMinimum() != minimum)
+            upperBoundarySliders[i]->setRange (minimum, dual ? 0.0 : double(qqsc::params::rangeOffDb), 0.01);
+        lower[i]->setResetValue (minimum);
         const bool visible = channelMode == qqsc::params::stereoLinked ? i == 0
             : (channelMode == qqsc::params::leftRight ? i == 1 || i == 2 : i == 3 || i == 4);
         const juce::String prefix = i == 0 ? "" : juce::String (i == 1 ? "L " : i == 2 ? "R " : i == 3 ? "M " : "S ");
@@ -1713,8 +1747,17 @@ void QQSuperCompressionAudioProcessorEditor::cycleMode()
     updateModeUi();
 }
 
+void QQSuperCompressionAudioProcessorEditor::updateAlgorithmUi()
+{
+    const bool super = processor.getAPVTS().getRawParameterValue (qqsc::params::algorithmMode)->load() >= 0.5f;
+    algorithmButton.setButtonText (super ? "ALGO: SUPER" : "ALGO: CLASSIC");
+    algorithmButton.setToggleState (super, juce::dontSendNotification);
+    updateCompressionUi();
+}
+
 void QQSuperCompressionAudioProcessorEditor::timerCallback()
 {
+    updateAlgorithmUi();
     updateModeUi();
 
     bool latencyChoiceChangedOutsideUiGesture = false;
@@ -1940,7 +1983,9 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     themeButton.setBounds (right - 76, headerButtonY, 76, headerButtonH);
     right -= 76 + smallGap;
     sidechainButton.setBounds (right - 86, headerButtonY, 86, headerButtonH);
-    right -= 86 + 12;
+    right -= 86 + smallGap;
+    algorithmButton.setBounds (right - 118, headerButtonY, 118, headerButtonH);
+    right -= 118 + 12;
 
     // The existing sidechain popup grows
     // leftward from the Side Chain button and adds HPF beside Key Gain.

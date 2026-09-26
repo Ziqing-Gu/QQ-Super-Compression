@@ -201,7 +201,7 @@ private:
         void drawLinearSlider (juce::Graphics&, int, int, int, int, float, float, float,
                                juce::Slider::SliderStyle, juce::Slider&) override;
     };
-    static void configureThresholdSlider (FineKnob&);
+    void configureThresholdSlider (FineKnob&);
     void initialiseCompressionControls();
     void updateCompressionUi();
     void reattachCompressionControls (bool dual);
@@ -343,6 +343,8 @@ private:
     juce::TextButton aToBButton;
     juce::TextButton bToAButton;
     juce::TextButton themeButton { "LIGHT" };
+    juce::TextButton algorithmButton { "ALGO: CLASSIC" };
+    void updateAlgorithmUi();
     juce::TextButton sidechainButton { "SC: INT" };
     juce::TextButton keyInternalButton { "INT" };
     juce::TextButton keyExternalButton { "EXT" };

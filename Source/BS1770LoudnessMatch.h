@@ -1,4 +1,5 @@
 #pragma once
+#include "DynamicsLimits.h"
 
 #include <array>
 #include <vector>
@@ -138,10 +139,9 @@ public:
         if (energies.empty())
             return negativeInfinity();
 
-        // L = -0.691 + 10 log10(E). Therefore the -70 LUFS absolute gate can
-        // be applied directly in the energy domain.
-        constexpr double absoluteGateLufs = -70.0;
-        const double absoluteGateEnergy = std::pow (10.0, (absoluteGateLufs + 0.691) / 10.0);
+        // MATCH deliberately has no absolute level gate. Any positive energy
+        // can be matched; the relative programme gate remains scale invariant.
+        constexpr double absoluteGateEnergy = 0.0;
 
         double absoluteSum = 0.0;
         uint64_t absoluteCount = 0;
@@ -161,9 +161,7 @@ public:
 
         const auto absoluteMean = absoluteSum / static_cast<double> (absoluteCount);
 
-        // The relative gate is 10 LU below the absolute-gated loudness. In the
-        // linear energy domain that is exactly one tenth of the absolute-gated
-        // mean energy. Both absolute and relative gates must be passed.
+        // Relative gate is 10 LU below the nonzero programme mean.
         const auto relativeGateEnergy = absoluteMean * 0.1;
         const auto finalGateEnergy = std::max (absoluteGateEnergy, relativeGateEnergy);
 
@@ -310,8 +308,7 @@ private:
         if (blocks.empty())
             return negativeInfinity();
 
-        constexpr double absoluteGateLufs = -70.0;
-        const double absoluteGateEnergy = std::pow (10.0, (absoluteGateLufs + 0.691) / 10.0);
+        constexpr double absoluteGateEnergy = 0.0; // No fixed low-level cutoff for MATCH.
 
         double absoluteSum = 0.0;
         uint64_t absoluteCount = 0;
@@ -371,6 +368,7 @@ private:
         setDifference (dryR,  wetR,  latestMatch.r,  latestMatch.validR);
         setDifference (dryM,  wetM,  latestMatch.m,  latestMatch.validM);
         setDifference (dryS,  wetS,  latestMatch.s,  latestMatch.validS);
+
     }
 
     static void setDifference (double dryLufs, double wetLufs,
@@ -383,7 +381,7 @@ private:
             return;
         }
 
-        destination = std::clamp (static_cast<float> (dryLufs - wetLufs), -36.0f, 36.0f);
+        destination = std::clamp (static_cast<float> (dryLufs - wetLufs), -maximumMakeupDb, maximumMakeupDb);
     }
 
     double sampleRate = 44100.0;

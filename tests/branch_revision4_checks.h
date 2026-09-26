@@ -146,7 +146,7 @@ void rangeCrossingAudioChecks()
         std::cout<<"RANGE DIAGNOSTIC @"<<rate<<": max gain change "<<maxJump<<"\n";
         // New finite dB reduction is much stronger than the legacy curve here.
         // Compare the actual waveform against an independent double-precision
-        // future-peak + continuous-range reference rather than the old curve's
+        // two-sided peak + continuous-range reference rather than the old curve's
         // absolute per-sample gain-change limit.
         double maxError=0,maxReferenceJump=0,previousReference=1;
         for(int i=static_cast<int>(rate*.3)-1;i<count;++i)
@@ -154,6 +154,10 @@ void rangeCrossingAudioChecks()
             double peak=0;
             for(int j=i-latency;j<=i;++j)
                 peak=std::max(peak,std::abs(static_cast<double>(input[static_cast<size_t>(j)])));
+            double pastPeak=0;
+            for(int j=i-2*latency;j<=i-latency;++j)
+                pastPeak=std::max(pastPeak,std::abs(static_cast<double>(input[static_cast<size_t>(j)])));
+            peak=std::min(peak,pastPeak);
             const double lower=std::pow(10.0,-40.0/20.0),upper=std::pow(10.0,-6.0/20.0);
             double reference=1;
             if(peak>lower && peak<upper)
@@ -166,9 +170,9 @@ void rangeCrossingAudioChecks()
             if(i>=static_cast<int>(rate*.3))maxReferenceJump=std::max(maxReferenceJump,std::abs(reference-previousReference));
             previousReference=reference;
         }
+        std::cout<<"RANGE REFERENCE: max waveform error "<<maxError<<", max continuous reference gain change "<<maxReferenceJump<<"\n";
         check(maxError<2e-6 && maxJump<=maxReferenceJump+2e-6,
               "Actual Range crossing differs from independent continuous-curve reference");
-        std::cout<<"RANGE REFERENCE: max waveform error "<<maxError<<", max continuous reference gain change "<<maxReferenceJump<<"\n";
         check(latency==static_cast<int>(std::round(rate*0.026)),"Range fix added latency");
         std::cout<<"PASS: actual 600Hz carrier crossing Range at 3Hz @"<<rate<<"; max adjacent gain change "<<maxJump<<", unchanged 26ms latency.\n";
     }

@@ -52,7 +52,56 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 
 
-# QQ Super Compression 1.2.3 Stable
+# QQ Super Compression 1.2.6 Stable
+
+**Classic / Super · Single / Upward / Dual · ST / LR / MS · Light / Dark / Classic**
+
+新增 Classic / Super 选择与记忆、完整结果 A/B 淡变、Classic −90 dB 阈值下限、深度压缩 MATCH 和对齐 Lookahead。默认预读仍为 26 ms；Ratio 保持 1:1000～1000:1。新版中英文手册各 28 页。
+
+Adds remembered Classic/Super algorithms, complete-result A/B fades, the Classic −90 dB floor, deep-compression MATCH and aligned Lookahead. Default lookahead remains 26 ms and Ratio spans 1:1000–1000:1. Both new manuals have 28 pages.
+
+[下载 / Release 1.2.6](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.6) · [完整更新 / Full update](RELEASE_NOTES_1.2.6.md) · [历史 / Changelog](CHANGELOG.md)
+
+- [中文安装指南](docs/QQ-Super-Compression-1.2.6-INSTALL-CN.txt)
+- [English installation guide](docs/QQ-Super-Compression-1.2.6-INSTALL-EN.txt)
+- [中文用户手册 · 28 页](docs/manuals/QQ-Super-Compression-1.2.6-User-Manual-Chinese.pdf)
+- [English user manual · 28 pages](docs/manuals/QQ-Super-Compression-1.2.6-User-Manual-English.pdf)
+
+Windows x64 VST3 / macOS Apple Silicon VST3 / Intel VST3 / Universal 2 AU。Mac 最低 macOS 11，临时签名、未公证。Mac requires 11 or newer; ad-hoc signed, not notarized.
+
+## 上压与双压 / Upward and Dual
+
+上压提升下门槛以上、上边界以下的有效部分。Single 用 Threshold / Range 控制区间；Dual 用 UP / DOWN 阈值和两个 Ratio，达到 DOWN 后只进行下压。两个分支各有 ON/OFF，可直接试听其作用。LINK 相对反向联动，不强行重设为倒数。
+
+Upward processing boosts eligible material above the lower gate and below the upper boundary. Single uses Threshold/Range; Dual uses UP/DOWN thresholds and two ratios, with Down alone above DOWN. Independent branch switches support auditioning, while LINK preserves relative inverse changes.
+
+![1.2.6 Single Up / Dark](docs/screenshots/v1.2.6/manual-dark.png)
+
+![1.2.6 Dual / Light](docs/screenshots/v1.2.6/manual-light-dual.png)
+
+新检测改善了已验证阶跃测试的提前凹陷；少数快速调幅信号会增加残差，已接受的最大压力测试变化约 4.09 dB。详见发行说明；这不是稳态 THD，也不是任意信号零失真的承诺。
+
+The new detector improves the tested pre-dip, with some increased rapid-AM residuals (up to about 4.09 dB in the accepted stress test). See the release notes; this is not steady-tone THD or a universal zero-distortion claim.
+
+## 以下为历史记录 / Earlier records
+
+## 1.2.6 本地 Stable 阶段 / Local Stable checkpoint
+
+2026-09-27 用户确认接受双侧峰值检测的取舍，将 1.2.6 Preview 的声音作为正式最新版。Classic / Super 同时采用新检测，保持默认 26 ms 预读，改善电平上升前的凹陷。正式插件名、Qscp 身份及 QQSuperCompression 用户偏好文件恢复，参数 ID 和顺序不变。当前阶段完成本机正式 VST3 替换、移除 Preview 和 Plan B 完整源码备份。
+
+请阅读 [1.2.6 Stable 记录](STABLE_1.2.6.md) 与 [双语发行说明](RELEASE_NOTES_1.2.6.md)，使用 `build-stable.cmd` 构建。已有说明书不改动；较新的行为与边界以此发行说明为准。下面的旧版内容保留作历史参考。
+
+User-approved 1.2.6 Stable adopts the accepted Preview audio in both Classic and Super with the default 26 ms lookahead. The formal product identity and preference file are restored, preserving parameter IDs/order. See the release notes for measured modulation tradeoffs. This is a local Windows / Plan B release; no new GitHub, macOS or desktop release is included.
+
+## 历史基线：1.2.5 Stable
+
+2026-09-27 经用户确认，将 Classic −90 dB 修订版设为 Stable。保留 Classic / Super、完整结果 A/B 淡变、记忆的 I/O LINK 和算法选择、取消绝对检测门限且支持 ±120 dB 补偿的 MATCH。声音与已安装、已试听的 Classic90 验证版完全相同。
+
+当前说明和兼容边界见 [1.2.5 Stable 记录](STABLE_1.2.5.md) 与 [发行说明](RELEASE_NOTES_1.2.5.md)。Plan B 保存完整源码及精确 JUCE 依赖。后续前瞻实验在独立工作区进行，不纳入此稳定基线；分段压缩、远程发布和桌面打包尚未执行。
+
+User-approved Stable as of 2026-09-27. Audio is identical to the auditioned Classic90 revision. See [Stable record](STABLE_1.2.5.md) and [release notes](RELEASE_NOTES_1.2.5.md). Plan B preserves full source and exact JUCE dependencies. The lookahead experiment is separate; no multiband changes or new remote release are included. Older documentation below is historical.
+
+## 已发布版本 / Released version: 1.2.3 Stable
 
 **Fixed dB Ratio · Single / Upward / Dual · ST / LR / MS · Light / Dark / Classic**
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "ABTransfer.h"
 
 #include <JuceHeader.h>
 #include <array>
@@ -64,6 +65,9 @@ public:
     // with a pushed companion yet. Caller owns the surrounding host gesture.
     void setBoundaryForDomainDb (bool dual, bool upper, int domain, float value);
     void initialiseDualRatioLinkPreference (bool enabled);
+    void initialiseInputOutputLinkPreference (bool enabled);
+    void initialiseAlgorithmPreference (int algorithm);
+    bool isClassicAlgorithm() const noexcept { return classicAlgorithmForText.load (std::memory_order_relaxed); }
 
 
     // Headphone-reference audition monitor for the independent LR/MS domains.
@@ -118,13 +122,14 @@ public:
     void copyAToB();
     void copyBToA();
 
-    // Strict Integrated LUFS Match (ITU-R BS.1770 / EBU R128 gating). During
+    // K-weighted loudness Match with relative gating, without the -70 LUFS
+    // absolute gate (not a strict EBU R128 integrated meter). During
     // host playback the processor measures Dry vs compressed Wet pre-Makeup in
     // ST, LR and MS domains simultaneously. Match writes the relevant Makeup.
     bool hasMatchData() const noexcept;
     bool applyMatchForCurrentMode();
 
-    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout (const std::atomic<bool>* classicForText = nullptr);
 
 private:
     struct DisplayKeyHistoryStorage;
@@ -138,6 +143,8 @@ private:
     std::array<std::atomic<uint64_t>, 10> boundaryPairs {};
     std::atomic<bool> restoringDynamicsState { false };
     std::atomic<bool> dualRatioLinkPreferenceInitialised { false };
+    std::atomic<bool> inputOutputLinkPreferenceInitialised { false };
+    std::atomic<bool> algorithmPreferenceInitialised { false };
 
 
     struct KeyHighPassCoefficients
@@ -195,6 +202,7 @@ private:
         int keySource = qqsc::params::keyInternal;
         float keyGainDb = 0.0f;
         float keyHpfHz = qqsc::params::keyHpfOffHz;
+        int algorithmMode = qqsc::params::classicAlgorithm;
         int compressionMode = qqsc::params::singleCompression;
         std::array<float, 5> range { qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb };
         std::array<float, 5> upThreshold { -120, -120, -120, -120, -120 };
@@ -210,6 +218,8 @@ private:
     float effectiveDualRatio (size_t domain, bool upward) const noexcept;
 
     ParameterSnapshot captureCurrentSnapshot() const noexcept;
+    static qqsc::ABTransfer makeABTransfer (const ParameterSnapshot&) noexcept;
+    void queueABTransfer (const ParameterSnapshot&, const ParameterSnapshot&);
     void applySnapshot (const ParameterSnapshot&);
     void refreshActiveSnapshot();
     void writeABStateTo (juce::ValueTree& state);
@@ -235,6 +245,9 @@ private:
     std::shared_ptr<DisplayKeyHistoryStorage> createDisplayKeyHistoryStorage();
 
     juce::UndoManager undoManager;
+    // Constructed before APVTS; host text callbacks never access a partly
+    // constructed parameter tree, and never take locks on the audio thread.
+    std::atomic<bool> classicAlgorithmForText { true };
     juce::AudioProcessorValueTreeState apvts;
 
     // All four future-window peak analysers run continuously so ST/MS/LR
@@ -310,6 +323,17 @@ private:
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> upRatioSmoothers;
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> downRatioSmoothers;
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> upEnableFades, downEnableFades;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> algorithmFade; // 0 Classic, 1 Super
+    juce::AudioBuffer<float> mixControlBuffer; // five Makeup, five Mix, Output, four Dry matrix coefficients
+    juce::SpinLock abTransferLock;
+    std::atomic<bool> abTransferPending { false };
+    qqsc::ABTransfer requestedABFrom, requestedABTo, abFrom, abTo;
+    qqsc::ABTransfer::Matrix abFrozen {1,0,0,1}, abLastMatrix {1,0,0,1};
+    qqsc::ABTransfer::Matrix abFrozenDry {}, abLastDryMatrix {};
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> abFade;
+    bool abActive = false, abFromFrozen = false;
+    bool requestedABCompatible = true;
+    int abTailSamples = 0;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupSTSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupLSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> makeupRSmoother;

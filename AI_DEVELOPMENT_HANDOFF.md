@@ -1,4 +1,34 @@
-# 1.2.3 Plan C/D release checkpoint — 2026-09-26
+# 1.2.6 Plan C/D release checkpoint — 2026-09-27
+
+User explicitly requested Plan C then D for QQ Super Compression (not multiband), with the approved new Chinese and English manuals. Release source: D:/Codex/Workspaces/QQSuperCompression-1.2.6-PlanCD. Output/evidence: D:/Codex/Outputs/QQ Super Compression/1.2.6. Public repository: Ziqing-Gu/QQ-Super-Compression.
+
+Reuse the validated installed Windows Stable 1.2.6 bundle: B7AB486AE66BB57997FA88CF44255C886602F913ACAAE3FC26B856CDFD885493. Production Source/Assets/CMake are byte-identical to Stable. Both approved 28-page PDFs are integrated without alteration, with their source builders/assets. Only docs and workflow labels differ from Stable. Source/version and native cross-platform tests must match before publication. Historical workflows and binary identities remain.
+
+Create a NEW complete source + exact JUCE 8.0.15 snapshot under the existing D:/备份文件/Vibe Coding/QQ Super Compression/源代码 hierarchy. The external Verification/PLAN_B_COMPLETION.json is authoritative; COMPLETE freezes that snapshot. Never reopen or refresh old completed snapshots. Later source changes require another new snapshot, not mutation.
+
+Final package: actual desktop directory QQ Super Compression 1.2.6, root bilingual installation guides and new PDF manuals, Win/ and Mac/ ZIPs. Keep proof files out of it. Publish the exact same eight files on v1.2.6 and verify asset digests/unauthenticated availability. Verification/RELEASE_COMPLETION.json records final success. This checkpoint does not claim pending remote jobs, backup or packaging have already completed. No multiband modification or new Windows install/rebuild is required.
+
+---
+
+# Current: 1.2.6 Stable — 2026-09-27
+
+Follow [STABLE_1.2.6.md](STABLE_1.2.6.md) and RELEASE_NOTES_1.2.6.md. The user accepted the Preview tradeoff and requested formal replacement, Preview VST3 removal and Plan B. Both algorithms use the accepted 26ms aligned detector. Restore the formal Qscp identity and QQSuperCompression preferences, preserve accepted audio, verify old formal state compatibility, and complete the formal source/dependency snapshot. Completion authority: output Verification/PLAN_B_COMPLETION.json. Older instructions below apply only to their dated baselines.
+
+---
+
+# Historical: 1.2.5 Stable — 2026-09-27
+
+Follow [STABLE_1.2.5.md](STABLE_1.2.5.md). User approved Classic90 as the unchanged Stable baseline and Plan B. Subsequent lookahead work must be isolated. No desktop, multiband or publication work is authorized in this stage. The existing installed binary is the Stable binary; verify its hash before any proposed replacement.
+
+---
+
+# Historical candidate checkpoint
+
+# Current: 1.2.5 audition candidate — 2026-09-26
+
+This checkout is the 1.2.5 candidate, not the historical 1.2.3 release below. Follow [CANDIDATE_CHECKPOINT_1.2.5.md](CANDIDATE_CHECKPOINT_1.2.5.md) and [TRY_1.2.5.md](TRY_1.2.5.md). Stable, publication and multiband work are paused pending user audition. No desktop output unless the user requests Plan C. The final MATCH design removes the absolute detection gate; do not restore the earlier fallback.
+
+# Historical: 1.2.3 Plan C/D release checkpoint — 2026-09-26
 
 User authorized Plan C/D after approving the accepted 1.2.3 Stable algorithm. Production code and assets remain byte-identical to the accepted Stable workspace. Original PDF manuals are unchanged. Current release work updates documentation and Mac workflows, including native DSP regression, macOS 11 minimum and explicit ad-hoc signing.
 

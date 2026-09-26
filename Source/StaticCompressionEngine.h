@@ -8,24 +8,26 @@
 
 namespace qqsc
 {
+enum class CompressionAlgorithm { classic, super };
 // QQ Super Compression transparent lookahead level engine.
 //
-// v1.0.1 returns to the approved v0.9.4/v0.9.7 FUTURE-WINDOW PEAK core.
-// The audible path is delayed by N samples while the detector sees the complete
-// future window for the delayed sample and uses that window's peak as the level
-// estimate. This deliberately trades a small microscopic pre-influence around
-// abrupt level changes for much lower carrier-following harmonic distortion.
+// v1.2.6: align the detector to the audible sample t with two peak windows:
+// min(max |x[t-N .. t]|, max |x[t .. t+N]|). Both include the current sample.
+// The audible delay remains N; the past window prevents an upcoming loud event
+// from attenuating a preceding quiet plateau. Steady tones still use peak hold.
+// This is not a guarantee of zero modulation distortion on changing signals.
 //
 // There is intentionally NO compressor Attack or Release envelope here.
 // Gain is derived directly from the current lookahead-window level:
 //
 //     legacy gain = 1 / (1 + (ratio - 1) * level)
 //
-// This independent dB experiment preserves the legacy equation only at -inf.
+// Classic uses a finite -90 dB minimum throughout. Super uses the original
+// rational law at both finite and -inf thresholds.
 // Finite Down thresholds use constant dB ratio; finite Up gates use the same
 // dB slope as reciprocal Down, anchored at Range/Dual Down/0dB. Existing static
-// boundary blends and branch crossfades remain. Detector/window semantics and
-// the audible delay are unchanged; no Attack/Release envelope is introduced.
+// boundary blends and branch crossfades remain. The audible delay is unchanged;
+// no Attack/Release envelope is introduced.
 //
 // Lookahead=0 degenerates to a one-sample window. The established product logic
 // therefore keeps the old 0 ms-only 1x/8x/16x Oversampling choices to reduce
@@ -39,6 +41,7 @@ public:
         const auto capacity = static_cast<size_t> (maxLookaheadSamples + 4);
         queueValues.assign (capacity, 0.0f);
         queueIndices.assign (capacity, 0);
+        peakHistory.assign (capacity, 0.0f);
         lookaheadSamples = juce::jlimit (0, maxLookaheadSamples, lookaheadSamples);
         reset();
     }
@@ -53,14 +56,17 @@ public:
     {
         queueHead = 0;
         queueCount = 0;
+        peakHistoryWrite = 0;
+        peakHistoryCount = 0;
         currentLevel = 0.0f;
         currentGain = 1.0f;
         currentGainReductionDb = 0.0f;
     }
 
     // Feed the current non-delayed domain sample. The returned gain belongs to
-    // the sample delayed by lookaheadSamples, because the monotonic queue contains
-    // the complete future window ending at currentSampleIndex.
+    // the sample delayed by lookaheadSamples. The queue gives its future peak;
+    // the queue result from N samples ago gives its past peak without another
+    // queue, allocation, or scan on the audio thread.
     float processSample (float sample, float ratio, float thresholdLinear, int64_t currentSampleIndex) noexcept
     {
         const auto magnitude = juce::jlimit (0.0f, 1.0f, std::abs (sample));
@@ -78,24 +84,40 @@ public:
         while (queueCount > 0 && frontIndex() < oldestAllowed)
             popFront();
 
-        currentLevel = queueCount > 0 ? frontValue() : magnitude;
+        const auto futurePeak = queueCount > 0 ? frontValue() : magnitude;
+        peakHistory[peakHistoryWrite] = futurePeak;
+        const auto delay = static_cast<size_t> (lookaheadSamples);
+        const auto pastIndex = (peakHistoryWrite + peakHistory.size() - delay) % peakHistory.size();
+        const auto pastPeak = peakHistoryCount >= delay ? peakHistory[pastIndex] : 0.0f;
+        currentLevel = juce::jmin (futurePeak, pastPeak);
+        peakHistoryWrite = (peakHistoryWrite + 1) % peakHistory.size();
+        peakHistoryCount = juce::jmin (peakHistoryCount + 1, peakHistory.size());
         currentGain = gainForLevel (currentLevel, ratio, thresholdLinear);
         currentGainReductionDb = -juce::Decibels::gainToDecibels (juce::jmax (currentGain, 1.0e-9f), -180.0f);
         return currentGain;
     }
 
-    static float gainForLevel (float level, float ratio, float thresholdLinear) noexcept
+    static float gainForLevel (float level, float ratio, float thresholdLinear,
+                              CompressionAlgorithm algorithm = CompressionAlgorithm::classic) noexcept
     {
         level = juce::jlimit (0.0f, 1.0f, level);
         ratio = juce::jmax (1.0f, ratio);
         thresholdLinear = juce::jlimit (0.0f, 1.0f, thresholdLinear);
 
-        // Threshold OFF: exact pre-Threshold QQ law.
+        // The shared host endpoint is clamped to -90 dB in Classic; only
+        // Super interprets it as -inf and uses the old rational law.
+        if (algorithm == CompressionAlgorithm::classic)
+            thresholdLinear = juce::jmax (classicThresholdMinimumGain, thresholdLinear);
+
         if (thresholdLinear <= 0.0f)
             return 1.0f / (1.0f + (ratio - 1.0f) * level);
 
         if (level <= thresholdLinear)
             return 1.0f;
+
+        if (algorithm == CompressionAlgorithm::super)
+            return (1.0f + (ratio - 1.0f) * thresholdLinear)
+                 / juce::jmax (1.0e-9f, 1.0f + (ratio - 1.0f) * level);
 
         // Fixed dB ratio above a finite threshold:
         // outputDb = thresholdDb + (levelDb - thresholdDb) / ratio.
@@ -107,7 +129,8 @@ public:
     // lower==upper deliberately disabling the COMPLETE dynamic stage in both modes.
     // Boundary transitions stay inside the active interval. There is no temporal
     // envelope or extra latency; the future-window detector remains unchanged.
-    static float singleGainForLevel (float level, float ratio, float lower, float upper) noexcept
+    static float singleGainForLevel (float level, float ratio, float lower, float upper,
+                                    CompressionAlgorithm algorithm = CompressionAlgorithm::classic) noexcept
     {
         level = juce::jlimit (0.0f, 1.0f, level);
         lower = juce::jlimit (0.0f, 1.0f, lower);
@@ -115,11 +138,16 @@ public:
         // finite 0 dB Range is 1.0 and still restores unity at/above that level.
         upper = juce::jmax (0.0f, upper);
         ratio = juce::jlimit (minimumUpRatio, maximumDownRatio, ratio);
+        if (algorithm == CompressionAlgorithm::classic)
+        {
+            lower = juce::jmax (classicThresholdMinimumGain, lower);
+            upper = juce::jmax (classicThresholdMinimumGain, upper);
+        }
         if (lower >= upper || level <= lower || level >= upper || ratio == 1.0f)
             return 1.0f;
         if (ratio > 1.0f)
         {
-            const auto gain = gainForLevel (level, ratio, lower);
+            const auto gain = gainForLevel (level, ratio, lower, algorithm);
             // Infinite Range leaves the selected downward law unbounded. For a
             // finite Range, return continuously to unity BEFORE its upper edge.
             if (! std::isfinite (upper)) return gain;
@@ -127,7 +155,7 @@ public:
             const auto blend = boundaryBlend ((upper - level) / width);
             return (1.0f - blend) + gain * blend;
         }
-        return gatedUpwardGain (level, ratio, lower, juce::jmin (1.0f, upper));
+        return gatedUpwardGain (level, ratio, lower, juce::jmin (1.0f, upper), algorithm);
     }
 
     static float boundaryBlend (float position) noexcept
@@ -136,18 +164,26 @@ public:
         return t * t * (3.0f - 2.0f * t);
     }
 
-    static float gatedUpwardGain (float level, float ratio, float lower, float anchor) noexcept
+    static float gatedUpwardGain (float level, float ratio, float lower, float anchor,
+                                 CompressionAlgorithm algorithm = CompressionAlgorithm::classic) noexcept
     {
+        if (algorithm == CompressionAlgorithm::classic)
+        {
+            lower = juce::jmax (classicThresholdMinimumGain, lower);
+            anchor = juce::jmax (classicThresholdMinimumGain, anchor);
+        }
         if (level <= lower || lower >= anchor) return 1.0f;
-        // -inf explicitly preserves the original QQ upward family.
+        // Only Super has a true -inf gate.
         if (lower <= 0.0f) return upwardGainForLevel (level, ratio, anchor);
         // Same dB slope as the reciprocal Down ratio, anchored at the upper
         // boundary: upGainDb = (anchorDb - levelDb) * (1 - ratio).
         // Matching Up/Down differs by a constant gain in the interior; the
         // retained gate/Range transitions intentionally affect the edges.
         ratio = juce::jlimit (minimumUpRatio, 1.0f, ratio);
-        const auto gain = level >= anchor || ratio == 1.0f ? 1.0f
-            : juce::jmin (maximumUpwardGain, std::pow (anchor / level, 1.0f - ratio));
+        const auto gain = algorithm == CompressionAlgorithm::super
+            ? upwardGainForLevel (level, ratio, anchor)
+            : (level >= anchor || ratio == 1.0f ? 1.0f
+                : juce::jmin (maximumUpwardGain, std::pow (anchor / level, 1.0f - ratio)));
         const auto width = juce::jmin (lower, (anchor - lower) * 0.5f);
         return 1.0f + (gain - 1.0f) * boundaryBlend ((level - lower) / width);
     }
@@ -168,17 +204,23 @@ public:
     }
 
     static float dualGainForLevel (float level, float upRatio, float downRatio,
-                                   float upThreshold, float downThreshold) noexcept
+                                   float upThreshold, float downThreshold,
+                                   CompressionAlgorithm algorithm = CompressionAlgorithm::classic) noexcept
     {
         // UP is an enabling gate, never an invitation to raise sub-threshold
         // material. The upward branch ends at DOWN, where its gain reaches
         // unity and the retained downward branch takes over.
+        if (algorithm == CompressionAlgorithm::classic)
+        {
+            upThreshold = juce::jmax (classicThresholdMinimumGain, upThreshold);
+            downThreshold = juce::jmax (classicThresholdMinimumGain, downThreshold);
+        }
         if (upThreshold >= downThreshold || level <= upThreshold)
             return 1.0f;
         if (level < downThreshold)
-            return gatedUpwardGain (level, upRatio, upThreshold, downThreshold);
+            return gatedUpwardGain (level, upRatio, upThreshold, downThreshold, algorithm);
         if (level > downThreshold)
-            return gainForLevel (level, downRatio, downThreshold);
+            return gainForLevel (level, downRatio, downThreshold, algorithm);
         return 1.0f;
     }
 
@@ -251,6 +293,9 @@ private:
     std::vector<int64_t> queueIndices;
     size_t queueHead = 0;
     size_t queueCount = 0;
+    std::vector<float> peakHistory;
+    size_t peakHistoryWrite = 0;
+    size_t peakHistoryCount = 0;
 
     float currentLevel = 0.0f;
     float currentGain = 1.0f;

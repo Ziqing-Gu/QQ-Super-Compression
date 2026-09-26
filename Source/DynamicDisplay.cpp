@@ -97,7 +97,14 @@ public:
         while (! queue.empty() && queue.front().first < oldestAllowed)
             queue.pop_front();
 
-        currentLevel = queue.empty() ? magnitude : queue.front().second;
+        const auto futurePeak = queue.empty() ? magnitude : queue.front().second;
+        peakHistory.push_back (futurePeak);
+        currentLevel = 0.0f;
+        if (peakHistory.size() > static_cast<size_t> (lookaheadSamples))
+        {
+            currentLevel = juce::jmin (futurePeak, peakHistory.front());
+            peakHistory.pop_front();
+        }
     }
 
     float getCurrentLevel() const noexcept { return currentLevel; }
@@ -105,6 +112,7 @@ public:
 private:
     int lookaheadSamples = 0;
     std::deque<std::pair<int64_t, float>> queue;
+    std::deque<float> peakHistory;
     float currentLevel = 0.0f;
 };
 
@@ -390,6 +398,7 @@ juce::Rectangle<float> DynamicDisplay::getBoundaryPlotForDomain (int parameterDo
 
 float DynamicDisplay::getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb) const noexcept
 {
+    if (processor.isClassicAlgorithm()) detectorDb = juce::jmax (qqsc::classicThresholdMinimumDb, detectorDb);
     const auto plot = getBoundaryPlotForDomain (parameterDomainIndex);
     // OFF is an unbounded Range, not a finite +1 dB threshold.
     if (! qqsc::params::isRangeEnabled (detectorDb))
@@ -416,7 +425,7 @@ float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY)
                                         : displayDb + readParameter (processor, qqsc::params::inputGainDb);
     // A drag maps finite values only. The fader explicitly chooses the OFF
     // endpoint, keeping it distinct from a finite 0 dB upper boundary.
-    return juce::jlimit (qqsc::params::thresholdOffDb, 0.0f, detectorDb);
+    return juce::jlimit (processor.isClassicAlgorithm() ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb, 0.0f, detectorDb);
 }
 
 void DynamicDisplay::updatePath (juce::Path& path,
@@ -590,13 +599,15 @@ void DynamicDisplay::refreshRenderCaches (int mode)
 float DynamicDisplay::thresholdDbForDomain (int domainIndex, int mode) const noexcept
 {
     const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
-    return processor.getBoundaryForDomainDb (dual, false, processorDomain (domainIndex, mode));
+    const auto db = processor.getBoundaryForDomainDb (dual, false, processorDomain (domainIndex, mode));
+    return processor.isClassicAlgorithm() ? juce::jmax (qqsc::classicThresholdMinimumDb, db) : db;
 }
 
 float DynamicDisplay::upperBoundaryDbForDomain (int domainIndex, int mode) const noexcept
 {
     const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
-    return processor.getBoundaryForDomainDb (dual, true, processorDomain (domainIndex, mode));
+    const auto db = processor.getBoundaryForDomainDb (dual, true, processorDomain (domainIndex, mode));
+    return processor.isClassicAlgorithm() ? juce::jmax (qqsc::classicThresholdMinimumDb, db) : db;
 }
 
 float DynamicDisplay::makeupDbForDomain (int domainIndex, int mode) const noexcept
@@ -632,7 +643,7 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
     const auto inputGain = juce::Decibels::decibelsToGain (inputGainDb);
     const auto domain = processorDomain (domainIndex, mode);
     const auto wetMix = mixForDomain (domainIndex, mode);
-    const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode));
+    const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode), -180.0f);
     const auto outputGain = juce::Decibels::decibelsToGain (
         readParameter (processor, qqsc::params::outputGainDb));
 
@@ -975,7 +986,7 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
 
         const juce::String name = dual ? (upper ? "DOWN " : "UP ") : (upper ? "RANGE " : "THR ");
         const auto value = rangeOff ? juce::String ("OFF")
-                                    : (qqsc::params::isThresholdEnabled (db) ? juce::String (db, 1) : juce::String ("-inf"));
+                                    : (processor.isClassicAlgorithm() || qqsc::params::isThresholdEnabled (db) ? juce::String (db, 1) : juce::String ("-inf"));
         constexpr float tagWidth = 88.0f;
         const auto offset = upper && tagsOverlap ? tagWidth + 3.0f : 0.0f;
         auto tag = juce::Rectangle<float> (plot.getRight() - tagWidth - 2.0f - offset,

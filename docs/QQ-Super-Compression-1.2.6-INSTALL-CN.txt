@@ -1,0 +1,12 @@
+QQ Super Compression 1.2.6 — 安装与更新
+
+Win/：Windows x64 VST3 ZIP。解压后把完整 QQ Super Compression.vst3 文件夹放到 C:\Program Files\Common Files\VST3。先退出所有宿主，再覆盖原正式版本，重新扫描插件。
+
+Mac/：Apple Silicon 与 Intel VST3 分别匹配宿主进程架构；Logic 使用 Universal 2 AU。macOS 11 或更新。VST3 放入 /Library/Audio/Plug-Ins/VST3，AU 放入 /Library/Audio/Plug-Ins/Components；也可放入对应的用户 Library 目录。退出宿主后复制完整 bundle，再重新扫描。Mac 包为临时签名，未做 Apple 公证；仅从本项目正式下载页获取并按系统提示允许加载。
+
+新版要点：Classic / Super 及模式记忆，Classic 最低 −90 dB，Super 保留 −inf；支持 A/B 比较与淡变；MATCH 取消绝对检测门限，Makeup ±120 dB；默认 26 ms 的对齐 Lookahead 改善提前凹陷。Single Ratio 1:1000～1000:1；Dual 两路可分别开关并相对 LINK。原始声音处理不依赖这些 ZIP 之外的额外安装程序。
+
+原正式 VST3 身份保持，旧工程会采用新检测时序，动态声音可能变化。Preview 工程需手动换成正式插件。两个 28 页 PDF 是本版当前说明书，请重点阅读算法、MATCH、A/B、Display 和 Lookahead 章节。部分快速调幅残差会增加，不能理解为任意信号零失真。
+
+禁止商业使用。完整对应源代码和许可：https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.6
+正式下载：https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.6

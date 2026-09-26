@@ -4,6 +4,8 @@
 
 struct QQSCVisualCheck
 {
+    static void floorChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
+    static void algorithmChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
     static void revisionThreeChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
     static void revisionFourChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
     static void up1000Checks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
@@ -439,12 +441,12 @@ struct QQSCVisualCheck
                 const auto alt=mouseEvent(*slider,true); slider->mouseDown(alt); slider->mouseUp(alt);
             }
             editor.timerCallback(); editor.display.timerCallback(); fillSyntheticHistory(); editor.display.refreshRenderCaches(0);
-            if(processor.getBoundaryForDomainDb(dual,false,0)!=qqsc::params::thresholdOffDb
+            if(processor.getBoundaryForDomainDb(dual,false,0)!=(processor.isClassicAlgorithm()?qqsc::classicThresholdMinimumDb:qqsc::params::thresholdOffDb)
                || processor.getBoundaryForDomainDb(dual,true,0)!=(dual ? 0.0f : qqsc::params::rangeOffDb))
-                throw std::runtime_error("Alt reset does not restore Dual -inf/0 or Single RangeOFF");
+                throw std::runtime_error("Alt reset does not restore algorithm minimum/0 or Single RangeOFF");
             snapshot(editor,dir.getChildFile(dual ? "light-dual-default-boundaries.png" : "light-single-range-off.png"));
         }
-        std::cout<<"PASS: actual Alt resets restore Dual -inf/0 and Single RangeOFF.\n";
+        std::cout<<"PASS: actual Alt resets restore algorithm minimum/0 and Single RangeOFF.\n";
         std::cout<<"PASS: single/dual three themes, ST/MS/LR and minimum size; collapsed projection and signed meter snapshots.\n";
     }
 
@@ -617,7 +619,11 @@ struct QQSCVisualCheck
         QQSuperCompressionAudioProcessor processor;
         processor.setRateAndBufferSizeDetails (48000.0, 800);
         processor.prepareToPlay (48000.0, 800);
-        QQSuperCompressionAudioProcessorEditor editor (processor);
+        juce::PropertiesFile::Options isolatedOptions;
+        isolatedOptions.storageFormat = juce::PropertiesFile::storeAsXML;
+        auto isolatedSettings = std::make_unique<juce::PropertiesFile>
+            (dir.getNonexistentChildFile ("ui-isolated-preferences", ".settings"), isolatedOptions);
+        QQSuperCompressionAudioProcessorEditor editor (processor, std::move (isolatedSettings));
         // Never change the user's remembered size or theme while rendering tests.
         editor.uiProperties.reset();
         editor.stopTimer();
@@ -779,6 +785,8 @@ struct QQSCVisualCheck
         up1000Checks (editor, processor, dir);
         inputOutputLinkChecks (editor, processor, dir);
         dbComparisonChecks (editor, processor, dir);
+        algorithmChecks (editor, processor, dir);
+        floorChecks (editor, processor, dir);
         processor.releaseResources();
         std::cout << "PASS: actual editor offscreen snapshots; user preferences not written.\n";
         return 0;
@@ -790,6 +798,8 @@ struct QQSCVisualCheck
 #include "up1000_visual_checks.h"
 #include "input_output_link_checks.h"
 #include "db_visual_checks.h"
+#include "algorithm_visual_checks.h"
+#include "floor_visual_checks.h"
 
 int main (int argc, char** argv)
 {
