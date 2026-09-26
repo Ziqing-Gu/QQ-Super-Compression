@@ -1,0 +1,24 @@
+Source / license: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.3
+Qing Audio Non-Commercial Source-Share License 1.0. No commercial use.
+Author: Ziqing Gu / Qing Audio. Original product: QQ Super Compression.
+Changes: 2026-09-26, official 1.2.3 release by the original project; fixed-dB finite thresholds and extended Ratio ranges.
+
+QQ Super Compression 1.2.3 Stable — Installation and current-version supplement
+
+Windows: close all audio hosts. Extract Windows-x64-VST3.zip and copy the entire QQ Super Compression.vst3 folder to C:\Program Files\Common Files\VST3, replacing the older bundle. Rescan and check v1.2.3 in the editor.
+
+Mac: requires macOS 11 or newer. Use Apple-Silicon-VST3 for native arm64 hosts, Intel-VST3 for Intel or Rosetta hosts, or Universal-AU for Logic / AU hosts. Copy the complete .vst3 to ~/Library/Audio/Plug-Ins/VST3 or .component to ~/Library/Audio/Plug-Ins/Components. The two VST3 packages are architecture alternatives, not separate plugins.
+
+Mac bundles are ad-hoc signed, not Apple-notarized. If macOS blocks a bundle verified to come from this official release, remove quarantine only from that installed plugin:
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+For AU use "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component" instead. Restart the host and rescan.
+
+Finite Down law: output = threshold + (detector - threshold) / Ratio. With threshold -10 dB, Ratio 5:1, Range OFF, Mix 100% and other gains at 0 dB, steady 0 dB input produces -8 dB; steady -12 dB stays -12 dB. Thresholds apply to the lookahead detector envelope, not individual waveform samples.
+
+Up boosts only above its lower gate and below the upper boundary. With a finite gate, boost dB = (upper boundary dB - detector dB) * (1 - Up Ratio), including the existing gate transition. The upper boundary is finite Single Range, 0 dB for Range OFF, or Dual DOWN. Corresponding -inf thresholds/gates retain the legacy law. Reciprocal 8:1 / 1:8 retain symmetry after a constant gain offset in their common active interval, away from transitions.
+
+Single: 1:1000..1000:1. Dual Up: 1:1000..1:1. Dual Down: 1:1..1000:1. All default to unity. Ratio LINK preserves existing relative offsets; Input/Output LINK changes gains equally and oppositely. Dual branch switches use 10 ms crossfades. At finite Single Range, dynamic gain returns to unity. At Dual DOWN, Up stops and Down takes over above it.
+
+Formal identity and parameter IDs remain. Finite-threshold projects change sound with the new law. Saved absolute Ratio values load, but the extended range changes older normalized automation mapping. Separate QQ dB Compression test instances need manual replacement. Original approved 1.2.0 PDFs are unchanged; this guide and online 1.2.3 supplements take precedence for new algorithms, ranges and links.
+
+This folder contains four platform ZIPs, two installation guides and two PDFs. Complete corresponding source is available without charge at the version URL above. No commercial use; redistribution must provide complete corresponding source and preserve authorship and license notices.

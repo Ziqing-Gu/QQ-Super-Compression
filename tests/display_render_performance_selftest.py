@@ -6,7 +6,7 @@ cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
 header = (root / "Source" / "DynamicDisplay.h").read_text(encoding="utf-8")
 source = (root / "Source" / "DynamicDisplay.cpp").read_text(encoding="utf-8")
 
-assert "VERSION 1.2.0" in cmake
+assert "VERSION 1.2.3" in cmake
 
 # Keep the previous eight-second history while doubling temporal resolution.
 assert "displayRefreshHz = 60" in header

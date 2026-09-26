@@ -43,11 +43,14 @@ void QQSCVisualCheck::revisionThreeChecks(QQSuperCompressionAudioProcessorEditor
         parameter(processor,upId,0.5f); parameter(processor,downId,1.5f);
         dragTo(up,1);
         require(std::abs(raw(upId)-0.75f)<1e-6 && std::abs(raw(downId)-1)<1e-6,"Shared range limit must stop UP at .75 when DOWN reaches1");
-        parameter(processor,upId,1.0f/32); parameter(processor,downId,2);
+        parameter(processor,upId,1.0f/1000); parameter(processor,downId,2);
         dragTo(down,32);
-        require(std::abs(raw(upId)-1.0f/32)<1e-6 && std::abs(raw(downId)-2)<1e-5,"Range limit must stop both linked ratios");
+        if(std::abs(raw(upId)-1.0f/1000)>=1e-6 || std::abs(raw(downId)-2)>=1e-5)
+            std::cout<<"LINK boundary diagnostic domain="<<d<<" up="<<raw(upId)<<" down="<<raw(downId)
+                     <<" upSlider="<<up.getValue()<<" downSlider="<<down.getValue()<<" upMin="<<up.getMinimum()<<"\n";
+        require(std::abs(raw(upId)-1.0f/1000)<1e-6 && std::abs(raw(downId)-2)<1e-5,"Range limit must stop both linked ratios");
         dragTo(down,1);
-        require(std::abs(raw(upId)-1.0f/16)<1e-6,"Reversing a clamped linked gesture must reopen travel");
+        require(std::abs(raw(upId)-1.0f/500)<1e-6,"Reversing a clamped linked gesture must reopen travel");
         const auto beforeUp=raw(upId), beforeDown=raw(downId);
         editor.dualRatioLinkButton.onClick();
         require(raw("dualRatioLink")==0 && raw(upId)==beforeUp && raw(downId)==beforeDown,"Disabling LINK must not change ratios");

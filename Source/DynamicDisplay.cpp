@@ -13,7 +13,7 @@ constexpr float silenceDb = -120.0f;
 float dbToDetectorLevel (float db) noexcept
 {
     return db <= silenceDb + 0.1f ? 0.0f
-                                  : juce::Decibels::decibelsToGain (juce::jmin (0.0f, db));
+                                  : juce::Decibels::decibelsToGain (juce::jmin (0.0f, db), silenceDb);
 }
 
 float readParameter (QQSuperCompressionAudioProcessor& processor, const char* parameterID,
@@ -664,7 +664,7 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         {
             // Makeup affects only the Wet leg, exactly as in processBlock.
             // It changes Output, but it is intentionally not part of GR.
-            const auto mixedGain = 1.0f + (compressedGain * makeupGain - 1.0f) * wetMix;
+            const auto mixedGain = (1.0f - wetMix) + compressedGain * makeupGain * wetMix;
             const auto totalGain = inputGain * juce::jmax (0.0f, mixedGain) * outputGain;
             projectedOutputDb += juce::Decibels::gainToDecibels (
                 juce::jmax (totalGain, 1.0e-9f), -180.0f);

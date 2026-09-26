@@ -11,12 +11,12 @@ editor = (root / "Source" / "PluginEditor.cpp").read_text(encoding="utf-8")
 editor_header = (root / "Source" / "PluginEditor.h").read_text(encoding="utf-8")
 cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
 
-assert "VERSION 1.2.0" in cmake
+assert "VERSION 1.2.3" in cmake
 assert 'keyHpfHz       = "keyHpfHz"' in params
 assert params.index('keyGainDb      = "keyGainDb"') < params.index('keyHpfHz       = "keyHpfHz"')
 assert "keyHpfOffHz = 0.0f" in params
 assert "keyHpfMinHz = 20.0f" in params and "keyHpfMaxHz = 500.0f" in params
-assert "currentStateSchemaVersion = 14" in processor
+assert "currentStateSchemaVersion = 17" in processor
 
 # HPF is post source selection/Key Gain and pre meter, detector oversampling and
 # SC Listen storage. The carrier remains in channels 0/1 and is never replaced.

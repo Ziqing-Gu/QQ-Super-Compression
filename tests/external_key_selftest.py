@@ -9,7 +9,7 @@ editor = (root / "Source" / "PluginEditor.cpp").read_text(encoding="utf-8")
 editor_header = (root / "Source" / "PluginEditor.h").read_text(encoding="utf-8")
 cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
 
-assert "VERSION 1.2.0" in cmake
+assert "VERSION 1.2.3" in cmake
 assert '.withInput  ("Sidechain", juce::AudioChannelSet::stereo(), false)' in processor
 assert 'keySource      = "keySource"' in params
 assert 'keyGainDb      = "keyGainDb"' in params

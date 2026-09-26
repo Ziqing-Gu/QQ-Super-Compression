@@ -1,4 +1,4 @@
-name: Build macOS VST3 and AU 1.2.0
+name: Build macOS VST3 and AU 1.2.3
 
 on:
   workflow_dispatch:
@@ -17,11 +17,11 @@ jobs:
           - name: Apple Silicon (arm64)
             runner: macos-14
             expected_arch: arm64
-            artifact_name: QQ-Super-Compression-1.2.0-macOS-Apple-Silicon-VST3
+            artifact_name: QQ-Super-Compression-1.2.3-macOS-Apple-Silicon-VST3
           - name: Intel (x86_64)
             runner: macos-15-intel
             expected_arch: x86_64
-            artifact_name: QQ-Super-Compression-1.2.0-macOS-Intel-VST3
+            artifact_name: QQ-Super-Compression-1.2.3-macOS-Intel-VST3
 
     steps:
       - name: Check out source
@@ -33,15 +33,22 @@ jobs:
           -B build-macos
           -DQQSC_FETCH_JUCE=ON
           -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
           -DCMAKE_OSX_ARCHITECTURES=${{ matrix.expected_arch }}
+          -DQQSC_BUILD_DYNAMICS_CHECK=ON
 
       - name: Build VST3
-        run: cmake --build build-macos --target QQSuperCompression_VST3 --config Release --parallel 3
+        run: cmake --build build-macos --target QQSuperCompression_VST3 QQSCDynamicsCheck --config Release --parallel 3
+
+      - name: Verify native dynamics
+        run: build-macos/QQSCDynamicsCheck_artefacts/Release/QQSCDynamicsCheck
 
       - name: Verify architecture and package VST3
         shell: bash
         run: |
           vst3='build-macos/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3'
+          codesign --force --deep --sign - "$vst3"
+          codesign --verify --deep --strict --verbose=2 "$vst3"
           vst3_binary=$(find "$vst3/Contents/MacOS" -type f -print -quit)
           test -n "$vst3_binary"
           lipo -archs "$vst3_binary" | tr ' ' '\n' | grep -Fx '${{ matrix.expected_arch }}'
@@ -69,6 +76,7 @@ jobs:
           -B build-macos-au
           -DQQSC_FETCH_JUCE=ON
           -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
           '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64'
 
       - name: Build Universal 2 AU
@@ -78,6 +86,8 @@ jobs:
         shell: bash
         run: |
           au='build-macos-au/QQSuperCompression_artefacts/Release/AU/QQ Super Compression.component'
+          codesign --force --deep --sign - "$au"
+          codesign --verify --deep --strict --verbose=2 "$au"
           mkdir -p "$HOME/Library/Audio/Plug-Ins/Components"
           ditto "$au" "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
           killall -9 AudioComponentRegistrar || true
@@ -93,12 +103,12 @@ jobs:
           printf '%s\n' "$archs"
           printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx arm64
           printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx x86_64
-          ditto -c -k --keepParent "$au" 'QQ-Super-Compression-1.2.0-macOS-Universal-AU.zip'
+          ditto -c -k --keepParent "$au" 'QQ-Super-Compression-1.2.3-macOS-Universal-AU.zip'
 
       - name: Upload packaged AU
         uses: actions/upload-artifact@v4
         with:
-          name: QQ-Super-Compression-1.2.0-macOS-Universal-AU
-          path: QQ-Super-Compression-1.2.0-macOS-Universal-AU.zip
+          name: QQ-Super-Compression-1.2.3-macOS-Universal-AU
+          path: QQ-Super-Compression-1.2.3-macOS-Universal-AU.zip
           if-no-files-found: error
           retention-days: 7

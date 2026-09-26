@@ -20,8 +20,7 @@ juce::String arrowText (const juce::String& left, const juce::String& right)
 
 juce::String ratioText (double value)
 {
-    return value < 1.0 ? "1:" + juce::String (1.0 / value, 2)
-                       : juce::String (value, value < 10.0 ? 2 : 1) + ":1";
+    return qqsc::params::dynamicsRatioText (static_cast<float> (value));
 }
 
 double ratioFromText (const juce::String& text)
@@ -344,11 +343,18 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, qqsc::params::bypass, bypassButton);
     linkAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, qqsc::params::domainLink, linkButton);
 
-    inputGainSlider.onGestureStart = [this] { beginUndoTransaction ("Input Gain"); };
+    inputGainSlider.getProperties().set ("qqscParameterID", qqsc::params::inputGainDb);
+    outputGainSlider.getProperties().set ("qqscParameterID", qqsc::params::outputGainDb);
+    inputGainSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::inputOutput, inputGainSlider, outputGainSlider, "Input / Output Gain"); };
     ratioSlider.onGestureStart = [this] { beginUndoTransaction ("Ratio ST"); };
     makeupSTSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup ST"); };
     mixSlider.onGestureStart = [this] { beginUndoTransaction ("Mix ST"); };
-    outputGainSlider.onGestureStart = [this] { beginUndoTransaction ("Output Gain"); };
+    outputGainSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::inputOutput, outputGainSlider, inputGainSlider, "Output / Input Gain"); };
+    inputGainSlider.onGestureEnd = outputGainSlider.onGestureEnd = [this] { endLinkedGesture(); };
+    inputGainSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::inputOutput, inputGainSlider, outputGainSlider); };
+    outputGainSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::inputOutput, outputGainSlider, inputGainSlider); };
+    inputGainSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::inputOutput, inputGainSlider, outputGainSlider, text, "Input / Output Gain"); };
+    outputGainSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::inputOutput, outputGainSlider, inputGainSlider, text, "Output / Input Gain"); };
     thresholdSlider.onGestureStart = [this] { beginUndoTransaction ("Threshold ST"); };
     keyGainSlider.onGestureStart = [this] { beginUndoTransaction ("Key Gain"); };
     keyHpfSlider.onGestureStart = [this]
@@ -565,7 +571,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     lookaheadCombo.setColour (juce::ComboBox::textColourId, qqsc::ui::text());
     lookaheadCombo.setColour (juce::ComboBox::arrowColourId, technical);
 
-    for (auto* button : { &modeButton, &linkButton, &dualRatioLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
+    for (auto* button : { &modeButton, &linkButton, &dualRatioLinkButton, &inputOutputLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
                           &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
                           &keyExternalButton, &sidechainListenButton })
@@ -763,7 +769,8 @@ void QQSuperCompressionAudioProcessorEditor::beginLinkedGesture (LinkedPair pair
     activeLinkSourceStart = source.getValue();
     activeLinkTargetStart = target.getValue();
     const auto targetID = target.getProperties()["qqscParameterID"].toString();
-    if (linkButton.getToggleState() && targetID.isNotEmpty())
+    const bool linked = pair == LinkedPair::inputOutput ? inputOutputLinkButton.getToggleState() : linkButton.getToggleState();
+    if (linked && targetID.isNotEmpty())
         if (auto* parameter = processor.getAPVTS().getParameter (targetID))
         {
             parameter->beginChangeGesture();
@@ -847,9 +854,9 @@ double QQSuperCompressionAudioProcessorEditor::applyDualRatioChange (double requ
             auto* opposite = dualRatioGestureUpward ? downRatioSliders[i].get() : up[i];
             const auto next = starts[i] + delta;
             if (writeSource || d != dualRatioGestureDomain)
-                driven->setValue (next, juce::sendNotificationSync);
+                setLinkedControlValue (*driven, next);
             if (dualRatioGestureCoupled)
-                opposite->setValue (dualRatioStartUp[i] * dualRatioStartDown[i] / next, juce::sendNotificationSync);
+                setLinkedControlValue (*opposite, dualRatioStartUp[i] * dualRatioStartDown[i] / next);
         }
     return starts[static_cast<size_t> (dualRatioGestureDomain)] + delta;
 }
@@ -875,15 +882,34 @@ double QQSuperCompressionAudioProcessorEditor::dualRatioFromText (int domain, bo
     return result;
 }
 
+void QQSuperCompressionAudioProcessorEditor::setLinkedControlValue (FineKnob& slider, double value)
+{
+    slider.setValue (value, juce::sendNotificationSync);
+    // A logarithmic float round-trip may re-enter onValueChange while JUCE's
+    // attachment temporarily ignores slider writes. A shared-boundary clamp
+    // must still reach the processor, not just the knob. The caller owns the
+    // linked-update guard and host gesture; this also preserves Undo handling.
+    const auto id = slider.getProperties()["qqscParameterID"].toString();
+    if (auto* parameter = processor.getAPVTS().getParameter (id))
+    {
+        const auto normalised = parameter->convertTo0to1 (static_cast<float> (slider.getValue()));
+        if (parameter->getValue() != normalised)
+            parameter->setValueNotifyingHost (normalised);
+    }
+}
+
 void QQSuperCompressionAudioProcessorEditor::handleLinkedValueChange (LinkedPair pair, FineKnob& source, FineKnob& target)
 {
-    if (linkedValueUpdateInProgress || ! linkButton.getToggleState())
+    const bool opposite = pair == LinkedPair::inputOutput;
+    const bool linked = opposite ? inputOutputLinkButton.getToggleState() : linkButton.getToggleState();
+    if (linkedValueUpdateInProgress || ! linked)
         return;
 
     // Link never equalises values. It preserves the pair's numeric difference
     // captured at gesture start: 3:1 / 5:1 -> +1 becomes 4:1 / 6:1;
     // -20 / -10 dB -> +2 becomes -18 / -8 dB. The same rule applies to Makeup
-    // and Mix percentage points.
+    // and Mix percentage points. Input/Output instead preserves the dB sum
+    // with equal, opposite changes.
     if (activeLinkedPair != pair || activeLinkSource != &source || activeLinkTarget != &target)
         return;
 
@@ -920,19 +946,19 @@ void QQSuperCompressionAudioProcessorEditor::handleLinkedValueChange (LinkedPair
 
     const auto requestedDelta = source.getValue() - activeLinkSourceStart;
     const auto minDelta = juce::jmax (source.getMinimum() - activeLinkSourceStart,
-                                      target.getMinimum() - activeLinkTargetStart);
+                                      opposite ? activeLinkTargetStart - target.getMaximum() : target.getMinimum() - activeLinkTargetStart);
     const auto maxDelta = juce::jmin (source.getMaximum() - activeLinkSourceStart,
-                                      target.getMaximum() - activeLinkTargetStart);
+                                      opposite ? activeLinkTargetStart - target.getMinimum() : target.getMaximum() - activeLinkTargetStart);
     const auto appliedDelta = juce::jlimit (minDelta, maxDelta, requestedDelta);
 
     const auto newSource = activeLinkSourceStart + appliedDelta;
-    const auto newTarget = activeLinkTargetStart + appliedDelta;
+    const auto newTarget = activeLinkTargetStart + (opposite ? -appliedDelta : appliedDelta);
 
     const juce::ScopedValueSetter<bool> guard (linkedValueUpdateInProgress, true);
     if (std::abs (source.getValue() - newSource) > 1.0e-9)
-        source.setValue (newSource, juce::sendNotificationSync);
+        setLinkedControlValue (source, newSource);
     if (std::abs (target.getValue() - newTarget) > 1.0e-9)
-        target.setValue (newTarget, juce::sendNotificationSync);
+        setLinkedControlValue (target, newTarget);
 }
 
 double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair pair, FineKnob& source,
@@ -957,7 +983,8 @@ double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair
     requestedSource = juce::jlimit (source.getMinimum(), source.getMaximum(), requestedSource);
 
     // With LINK off, direct entry should remain an ordinary one-parameter edit.
-    if (! linkButton.getToggleState())
+    const bool opposite = pair == LinkedPair::inputOutput;
+    if (! (opposite ? inputOutputLinkButton.getToggleState() : linkButton.getToggleState()))
         return requestedSource;
 
     const auto sourceStart = source.getValue();
@@ -978,7 +1005,7 @@ double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair
             && std::find (companionGestureParameters.begin(), companionGestureParameters.end(), parameter) != companionGestureParameters.end();
         const bool openGesture = parameter != nullptr && ! companionAlreadyActive && ! target.hasActiveNativeGesture();
         if (openGesture) parameter->beginChangeGesture();
-        target.setValue (value, juce::sendNotificationSync);
+        setLinkedControlValue (target, value);
         if (openGesture) parameter->endChangeGesture();
     };
 
@@ -1009,12 +1036,12 @@ double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair
     // its range, clamp the *shared delta* rather than clipping just one member.
     const auto requestedDelta = requestedSource - sourceStart;
     const auto minDelta = juce::jmax (source.getMinimum() - sourceStart,
-                                      target.getMinimum() - targetStart);
+                                      opposite ? targetStart - target.getMaximum() : target.getMinimum() - targetStart);
     const auto maxDelta = juce::jmin (source.getMaximum() - sourceStart,
-                                      target.getMaximum() - targetStart);
+                                      opposite ? targetStart - target.getMinimum() : target.getMaximum() - targetStart);
     const auto appliedDelta = juce::jlimit (minDelta, maxDelta, requestedDelta);
     const auto newSource = sourceStart + appliedDelta;
-    const auto newTarget = targetStart + appliedDelta;
+    const auto newTarget = targetStart + (opposite ? -appliedDelta : appliedDelta);
 
     const juce::ScopedValueSetter<bool> guard (linkedValueUpdateInProgress, true);
     setLinkedTarget (newTarget);
@@ -1071,6 +1098,21 @@ QQSuperCompressionAudioProcessorEditor::mainRatioControls()
 
 void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
 {
+    configureActionButton (inputOutputLinkButton);
+    inputOutputLinkButton.getProperties().set ("qqscSmallLink", true);
+    inputOutputLinkButton.setTooltip ("Link Input/Output gain by equal, opposite dB changes. Keeps the current offset; no change when enabled.");
+    contentRoot.addAndMakeVisible (inputOutputLinkButton);
+    registerKeyboardListener (inputOutputLinkButton);
+    inputOutputLinkButton.onClick = [this]
+    {
+        inputGainSlider.cancelNativeDragForParameterRebind();
+        outputGainSlider.cancelNativeDragForParameterRebind();
+        endLinkedGesture();
+        beginUndoTransaction ("Input / Output Gain Link");
+        const bool enabled = processor.getAPVTS().getRawParameterValue (qqsc::params::inputOutputLink)->load() < 0.5f;
+        setChoiceParameter (qqsc::params::inputOutputLink, enabled ? 1 : 0);
+        updateCompressionUi();
+    };
     configureActionButton (dualRatioLinkButton);
     dualRatioLinkButton.getProperties().set ("qqscSmallLink", true);
     dualRatioLinkButton.setTooltip ("Link UP/DOWN by inverse relative changes. Enabling LINK keeps current values. LR/MS domain LINK remains separate.");
@@ -1245,6 +1287,8 @@ void QQSuperCompressionAudioProcessorEditor::finishCompressionControlGestures()
     // End old attachment gestures before any mode-driven detach, including
     // hidden domains. Cancellation also ignores remaining drag events until
     // physical mouseUp, preventing an old drag anchor from changing the new bank.
+    inputGainSlider.cancelNativeDragForParameterRebind();
+    outputGainSlider.cancelNativeDragForParameterRebind();
     for (auto* slider : lowerBoundaryControls()) slider->cancelNativeDragForParameterRebind();
     for (auto* slider : mainRatioControls()) slider->cancelNativeDragForParameterRebind();
     for (auto& slider : upperBoundarySliders)
@@ -1332,8 +1376,8 @@ void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool d
         upperBoundarySliders[i]->setResetValue (dual ? 0.0 : qqsc::params::rangeOffDb);
         ratios[i]->setResetValue (1.0);
         downRatioSliders[i]->setResetValue (1.0);
-        ratios[i]->setTooltip (dual ? "Upward Ratio: 1:32 to 1:1" : "Ratio: 1:32 to 32:1. Below 1:1 boosts; above 1:1 reduces.");
-        downRatioSliders[i]->setTooltip ("Downward Ratio: 1:1 to 32:1");
+        ratios[i]->setTooltip (dual ? "Upward Ratio: 1:1000 to 1:1" : "Ratio: 1:1000 to 1000:1. Below 1:1 boosts; above 1:1 reduces.");
+        downRatioSliders[i]->setTooltip ("Downward Ratio: 1:1 to 1000:1");
         lower[i]->setTooltip (dual ? "UP gate: lift only above UP and below DOWN. At equality all dynamic gain stops." : "Threshold; lower boundary. Colliding with Range pushes it upward.");
         upperBoundarySliders[i]->setTooltip (dual ? "Downward Threshold; upper boundary. At equality all dynamic gain stops." : "Range: finite values set an upper cutoff. The extra OFF endpoint removes the upper limit; finite 0 dB remains a cutoff.");
     }
@@ -1448,6 +1492,8 @@ void QQSuperCompressionAudioProcessorEditor::updateCompressionUi()
     compressionModeButton.setButtonText (dual ? "DUAL" : "SINGLE");
     compressionModeButton.setToggleState (dual, juce::dontSendNotification);
     dualRatioLinkButton.setVisible (dual);
+    inputOutputLinkButton.setToggleState (processor.getAPVTS().getRawParameterValue (qqsc::params::inputOutputLink)->load() >= 0.5f,
+                                         juce::dontSendNotification);
     dualRatioLinkButton.setToggleState (processor.getAPVTS().getRawParameterValue (qqsc::params::dualRatioLink)->load() >= 0.5f,
                                        juce::dontSendNotification);
     const auto lower = lowerBoundaryControls();
@@ -1978,6 +2024,8 @@ void QQSuperCompressionAudioProcessorEditor::resized()
 
     auto inputArea = controls.removeFromLeft (smallTrimW);
     inputGainLabel.setBounds (inputArea.removeFromTop (18));
+    const bool compactInputLink = laidOutProcessingMode != qqsc::params::stereoLinked;
+    inputOutputLinkButton.setBounds (142, controlsY + 2, compactInputLink ? 30 : 36, compactInputLink ? 14 : 17);
     inputGainSlider.setBounds (inputArea.withSizeKeepingCentre (100, 116));
     controls.removeFromLeft (controlGap);
 

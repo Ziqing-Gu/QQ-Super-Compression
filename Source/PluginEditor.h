@@ -237,6 +237,7 @@ private:
     enum class LinkedPair
     {
         none,
+        inputOutput,
         ratioLR, ratioMS,
         thresholdLR, thresholdMS,
         upperBoundaryLR, upperBoundaryMS,
@@ -251,6 +252,7 @@ private:
     double applyDualRatioChange (double requested, bool writeSource);
     double dualRatioFromText (int domain, bool upward, const juce::String&);
     void handleLinkedValueChange (LinkedPair, FineKnob& source, FineKnob& target);
+    void setLinkedControlValue (FineKnob&, double value);
     double handleLinkedTextEntry (LinkedPair, FineKnob& source, FineKnob& target,
                                   const juce::String& text, const juce::String& undoName);
 
@@ -273,6 +275,7 @@ private:
     juce::Label inputGainLabel;
     juce::Label ratioLabel;
     juce::TextButton dualRatioLinkButton { "LINK" };
+    juce::TextButton inputOutputLinkButton { "LINK" };
     std::array<juce::TextButton, 5> upEnabledButtons, downEnabledButtons;
     juce::Label ratioChannel0Label;
     juce::Label ratioChannel1Label;

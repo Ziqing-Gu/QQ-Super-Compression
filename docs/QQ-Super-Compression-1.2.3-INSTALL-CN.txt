@@ -1,0 +1,24 @@
+Source / license: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.3
+Qing Audio Non-Commercial Source-Share License 1.0. No commercial use.
+Author: Ziqing Gu / Qing Audio. Original product: QQ Super Compression.
+Changes: 2026-09-26, official 1.2.3 release by the original project; fixed-dB finite thresholds and extended Ratio ranges.
+
+QQ Super Compression 1.2.3 Stable — 安装与本版补充
+
+Windows：使用 Win 内的 Windows-x64-VST3.zip。关闭所有音频宿主，将完整的 QQ Super Compression.vst3 文件夹放到 C:\Program Files\Common Files\VST3，替换旧版同名目录。重新扫描，确认界面版本 v1.2.3。
+
+macOS：要求 macOS 11 或更新。原生 Apple Silicon 宿主选择 Apple-Silicon-VST3；Intel 或 Rosetta 宿主选择 Intel-VST3。Logic / AU 宿主选择 Universal-AU。完整 .vst3 放到 ~/Library/Audio/Plug-Ins/VST3；完整 .component 放到 ~/Library/Audio/Plug-Ins/Components。两个 VST3 架构是替代选项，请勿互相覆盖后当成两个插件。
+
+Mac 包采用临时签名，未经过 Apple 公证。如果确认来自上述官方 Release，而系统阻止加载，可仅对刚安装的本插件包执行：
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+AU 对应路径改为 "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"。然后重启宿主并重新扫描。
+
+新算法：有限 Down 阈值的输出 = 阈值 + (检测电平 - 阈值) / Ratio。阈值 -10 dB、5:1、Range OFF、Mix 100%、其他增益 0 dB 时，0 dB 稳态输入得到 -8 dB；-12 dB 稳态保持 -12 dB。阈值作用于 Lookahead 检测包络，不是逐采样削波。
+
+上压仍只提升 gate 以上、上边界以下的部分。有限 gate 的提升量 = (上边界 dB - 检测电平 dB) × (1 - Up Ratio)，包含原有 gate 过渡。上边界为 Single 有限 Range、Range OFF 时 0 dB，或 Dual DOWN 阈值。对应的 -inf gate / threshold 保留旧曲线。Ratio 8:1 与 1:8 在共同有效区间内保留匹配固定增益后的对称性，边界过渡除外。
+
+Single Ratio：1:1000～1000:1；Dual Up：1:1000～1:1；Dual Down：1:1～1000:1。默认全部 1:1。相对 Ratio LINK 保留已有比例偏移；Input/Output LINK 等量反向联动。Dual 分支独立 ON/OFF 使用 10 ms Crossfade。Single 达到有限 Range 时回到 0 dB 动态增益；Dual 达到 DOWN 时停止 Up，之后 Down 接管。
+
+原产品身份和参数 ID 保留。有限阈值旧工程声音会变化；保存的 Ratio 实际值保留，但旧范围的归一化自动化映射会变化。独立 QQ dB Compression 测试实例须手动替换。原版 1.2.0 中英 PDF 沿用原文件，最新算法、范围及联动以本说明和在线 1.2.3 补充指南为准。
+
+本文件夹包含四种平台 ZIP、两份安装说明及两本 PDF；所有对应源码在上方版本链接免费公开。禁止商业使用；再分发须同时免费提供完整对应源码并保留作者与许可声明。

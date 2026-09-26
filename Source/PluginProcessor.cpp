@@ -25,7 +25,7 @@ constexpr auto stateSchemaProperty = "qqscStateSchemaVersion";
 constexpr auto monitorLRProperty = "qqscMonitorLRSelection";
 constexpr auto monitorMSProperty = "qqscMonitorMSSelection";
 constexpr int oversamplingSchemaVersion = 2; // v0.1.10: 0 ms-only 1x/8x/16x Oversampling schema
-constexpr int currentStateSchemaVersion = 14; // v1.2.0 rev4 candidate: independent Dual branch enables
+constexpr int currentStateSchemaVersion = 17; // v1.2.3 Stable: accepted fixed-dB finite-threshold curve
 constexpr float centeredChannelMonitorGain = 0.70710678118654752440f; // 1/sqrt(2), -3.0103 dB
 
 juce::Identifier abProperty (const juce::String& suffix)
@@ -633,8 +633,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
             layout.add (std::make_unique<juce::AudioParameterFloat> (
                 juce::ParameterID { upward ? qqsc::params::upRatioIds[d] : qqsc::params::downRatioIds[d], 1 },
                 (upward ? "Up Ratio " : "Down Ratio ") + domainNames[d],
-                upward ? qqsc::params::dynamicsRatioRange (1.0f / 32.0f, 1.0f)
-                       : qqsc::params::dynamicsRatioRange (1.0f, 32.0f),
+                upward ? qqsc::params::dynamicsRatioRange (qqsc::minimumUpRatio, 1.0f)
+                       : qqsc::params::dynamicsRatioRange (1.0f, qqsc::maximumDownRatio),
                 1.0f,
                 juce::AudioParameterFloatAttributes().withStringFromValueFunction ([] (float v, int)
                 { return qqsc::params::dynamicsRatioText (v); })
@@ -650,6 +650,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
         layout.add (std::make_unique<juce::AudioParameterBool> (
             juce::ParameterID { qqsc::params::downEnabledIds[d], 1 }, "Down Enabled " + domainNames[d], true));
     }
+    // Append after all existing parameters; this workflow preference is shared
+    // by A/B sound banks and defaults to the original independent trim behavior.
+    layout.add (std::make_unique<juce::AudioParameterBool> (
+        juce::ParameterID { qqsc::params::inputOutputLink, 1 }, "Input Output Gain Link", false));
     return layout;
 }
 
@@ -931,11 +935,11 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
     const auto ratioRCurrent = ratioRSmoother.getCurrentValue();
     const auto ratioMCurrent = ratioMSmoother.getCurrentValue();
     const auto ratioSCurrent = ratioSSmoother.getCurrentValue();
-    const auto ratioTarget = juce::jmax (1.0f / 32.0f, apvts.getRawParameterValue (qqsc::params::ratio)->load());
-    const auto ratioLTarget = juce::jmax (1.0f / 32.0f, apvts.getRawParameterValue (qqsc::params::ratioL)->load());
-    const auto ratioRTarget = juce::jmax (1.0f / 32.0f, apvts.getRawParameterValue (qqsc::params::ratioR)->load());
-    const auto ratioMTarget = juce::jmax (1.0f / 32.0f, apvts.getRawParameterValue (qqsc::params::ratioM)->load());
-    const auto ratioSTarget = juce::jmax (1.0f / 32.0f, apvts.getRawParameterValue (qqsc::params::ratioS)->load());
+    const auto ratioTarget = juce::jmax (qqsc::minimumUpRatio, apvts.getRawParameterValue (qqsc::params::ratio)->load());
+    const auto ratioLTarget = juce::jmax (qqsc::minimumUpRatio, apvts.getRawParameterValue (qqsc::params::ratioL)->load());
+    const auto ratioRTarget = juce::jmax (qqsc::minimumUpRatio, apvts.getRawParameterValue (qqsc::params::ratioR)->load());
+    const auto ratioMTarget = juce::jmax (qqsc::minimumUpRatio, apvts.getRawParameterValue (qqsc::params::ratioM)->load());
+    const auto ratioSTarget = juce::jmax (qqsc::minimumUpRatio, apvts.getRawParameterValue (qqsc::params::ratioS)->load());
 
     currentOversamplingIndex = requestedOversamplingIndex;
     currentKeySource = requestedKeySource;
@@ -1311,8 +1315,10 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             const auto upAmount = upEnableFades[d].getNextValue();
             const auto downAmount = downEnableFades[d].getNextValue();
             if (dualCompression)
-                gains[d] = 1.0f + (gains[d] - 1.0f)
-                    * (levels[d] < upperBoundaries[d] ? upAmount : downAmount);
+            {
+                const auto amount = levels[d] < upperBoundaries[d] ? upAmount : downAmount;
+                gains[d] = (1.0f - amount) + gains[d] * amount;
+            }
             if (useExternalKey && levels[d] <= 1.0e-9f) gains[d] = 1.0f;
         }
         const auto linkedGain = gains[0];
@@ -1466,8 +1472,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
 
         float wetL = wetLinkedL;
         float wetR = wetLinkedR;
-        float mixedL = dryL + (wetLinkedL * makeupST - dryL) * mixST;
-        float mixedR = dryR + (wetLinkedR * makeupST - dryR) * mixST;
+        float mixedL = dryL * (1.0f - mixST) + wetLinkedL * makeupST * mixST;
+        float mixedR = dryR * (1.0f - mixST) + wetLinkedR * makeupST * mixST;
 
         if (mode == qqsc::params::midSide)
         {
@@ -1478,8 +1484,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             // back to L/R. With equal Mix values this is exactly equivalent to
             // the legacy shared post-decode blend; unequal values now remain
             // genuinely independent.
-            const float mixedM = dryM + (wetM * makeupM - dryM) * mixM;
-            const float mixedS = dryS + (wetS * makeupS - dryS) * mixS;
+            const float mixedM = dryM * (1.0f - mixM) + wetM * makeupM * mixM;
+            const float mixedS = dryS * (1.0f - mixS) + wetS * makeupS * mixS;
             mixedL = stereoBus ? mixedM + mixedS : mixedM;
             mixedR = stereoBus ? mixedM - mixedS : 0.0f;
 
@@ -1490,8 +1496,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         {
             wetL = wetIndependentL;
             wetR = wetIndependentR;
-            mixedL = dryL + (wetL * makeupL - dryL) * mixL;
-            mixedR = dryR + (wetR * makeupR - dryR) * mixR;
+            mixedL = dryL * (1.0f - mixL) + wetL * makeupL * mixL;
+            mixedR = dryR * (1.0f - mixR) + wetR * makeupR * mixR;
 
             meterInputPeak[0] = juce::jmax (meterInputPeak[0], std::abs (dryL));
             meterInputPeak[1] = juce::jmax (meterInputPeak[1], std::abs (dryR));
@@ -1607,7 +1613,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
 
     const auto effectiveGrForMeter = [] (float coreGrDb, float wetMix)
     {
-        const auto compressedGain = juce::Decibels::decibelsToGain (-coreGrDb);
+        const auto compressedGain = juce::Decibels::decibelsToGain (-coreGrDb, -180.0f);
         return qqsc::StaticCompressionEngine::effectiveGainReductionDb (compressedGain, wetMix);
     };
 
@@ -2108,6 +2114,7 @@ void QQSuperCompressionAudioProcessor::getStateInformation (juce::MemoryBlock& d
     auto state = apvts.copyState();
     writeCanonicalBoundariesTo (state);
     state.setProperty (stateSchemaProperty, currentStateSchemaVersion, nullptr);
+    state.setProperty ("qqscCurveVariant", "fixed-db-finite-threshold", nullptr);
     state.setProperty (monitorLRProperty, getDomainMonitorSelection (qqsc::params::leftRight), nullptr);
     state.setProperty (monitorMSProperty, getDomainMonitorSelection (qqsc::params::midSide), nullptr);
     writeABStateTo (state);
@@ -2124,6 +2131,7 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
             auto state = juce::ValueTree::fromXml (*xml);
             dualRatioLinkPreferenceInitialised.store (true);
             const bool stateHasDualRatioLink = stateContainsParameter (state, qqsc::params::dualRatioLink);
+            const bool stateHasInputOutputLink = stateContainsParameter (state, qqsc::params::inputOutputLink);
             const auto schemaVersion = static_cast<int> (state.getProperty (stateSchemaProperty, 0));
             const bool legacyOversamplingSchema = schemaVersion < oversamplingSchemaVersion;
             const bool stateHasOversampling = stateContainsParameter (state, qqsc::params::oversampling);
@@ -2153,6 +2161,8 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
             apvts.replaceState (state);
             if (! stateHasDualRatioLink)
                 setActualParameterValue (qqsc::params::dualRatioLink, 1.0f);
+            if (! stateHasInputOutputLink)
+                setActualParameterValue (qqsc::params::inputOutputLink, 0.0f);
             setDomainMonitorSelection (qqsc::params::leftRight, restoredMonitorLR);
             setDomainMonitorSelection (qqsc::params::midSide, restoredMonitorMS);
 

@@ -11,10 +11,10 @@ params = (root / 'Source' / 'Parameters.h').read_text(encoding='utf-8')
 cmake = (root / 'CMakeLists.txt').read_text(encoding='utf-8')
 
 # Product identity/state wiring.
-assert 'VERSION 1.2.0' in cmake
+assert 'VERSION 1.2.3' in cmake
 for token in ('monitorAll', 'monitorFirst', 'monitorSecond'):
     assert token in params, token
-for token in ('qqscMonitorLRSelection', 'qqscMonitorMSSelection', 'currentStateSchemaVersion = 14'):
+for token in ('qqscMonitorLRSelection', 'qqscMonitorMSSelection', 'currentStateSchemaVersion = 17'):
     assert token in processor, token
 
 # Exact centered audition contract agreed with the user.

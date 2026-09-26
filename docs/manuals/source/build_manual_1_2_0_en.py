@@ -239,6 +239,10 @@ for lang in ('en',):
     para('Set up A, copy with A→B, then switch to B and try another approach. Click A or B to compare. B→A copies in the other direction; copying replaces the destination’s sound settings.')
     para('A/B includes sidechain Source, Key Gain and HPF. Theme is not a sound setting; Bypass, LINK and SC LISTEN are not recalled by the A/B sound snapshot.')
     note('0% Mix is not full Bypass','At 0% Mix, Input Gain and Output Gain still apply. Bypass compares the original signal without those gain and compression stages.')
+    heading('Level-matched upward and downward processing')
+    para('With the same input, channel mode and detector settings, set both Single alternatives to <b>Threshold OFF (-inf), Range OFF and Mix 100%</b>. Compare <b>8:1 downward</b> with <b>1:8 upward</b>, then match their output levels. In theory, they produce the same relative dynamics: the relationship between louder and quieter moments is identical, while the overall level differs.',9.6)
+    para('Dual defaults to <b>UP = -inf and DOWN = 0 dB</b>. Keep those thresholds and use LINK from its default starting point: the level-matched result can still be the same as the corresponding Single setting. Selecting Dual does not automatically create a different dynamic shape. Watch the <b>Display</b> and adjust <b>both thresholds and both Ratios</b> to choose what to lift and what to reduce. This comparison assumes Mix 100%; reassess the result after changing the processing interval or blend.',9.6)
+
 
     # 8
     start('Read the Display and meters')

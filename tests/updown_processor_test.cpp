@@ -536,10 +536,11 @@ void upwardGateAndUnityDefaults()
     std::cout<<"PASS: all 15 unity defaults; UP is a lower gate; exact DOWN handoff and independent downward branch across five domains.\n";
 }
 #include "branch_revision4_checks.h"
+#include "up1000_checks.h"
 }
 int main()
 {
     juce::ScopedJuceInitialiser_GUI initialiser;
-    try { collisionChecks(); audioChecks(); stateChecks(); blockChecks(); domainChecks(); signedMixPeakCheck(); additionalToneChecks(); revisionTwoDefaultsAndRangeOff(); legacySchemaMigrationChecks(); upwardThresholdStrength(); upwardGateAndUnityDefaults(); boundaryContinuityChecks(); branchEnableStateChecks(); branchCrossfadeChecks(); rangeCrossingAudioChecks(); branchOversampledCrossfadeChecks(); return 0; }
+    try { collisionChecks(); audioChecks(); stateChecks(); blockChecks(); domainChecks(); signedMixPeakCheck(); additionalToneChecks(); revisionTwoDefaultsAndRangeOff(); legacySchemaMigrationChecks(); upwardThresholdStrength(); upwardGateAndUnityDefaults(); boundaryContinuityChecks(); branchEnableStateChecks(); branchCrossfadeChecks(); rangeCrossingAudioChecks(); branchOversampledCrossfadeChecks(); up1000Checks(); return 0; }
     catch (const std::exception& e) { std::cerr << "FAIL: " << e.what() << '\n'; return 1; }
 }

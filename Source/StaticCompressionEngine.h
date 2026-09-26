@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "DynamicsLimits.h"
 #include <cmath>
 #include <cstdint>
 #include <vector>
@@ -20,11 +21,11 @@ namespace qqsc
 //
 //     legacy gain = 1 / (1 + (ratio - 1) * level)
 //
-// Threshold is only a lower operating boundary around that existing law.
-// Threshold OFF maps to linear 0 (-inf) and therefore executes the exact legacy
-// equation. A finite Threshold leaves levels at/below it untouched and re-anchors
-// the same curve to unity at the boundary. It does not change detector/window
-// semantics and does not introduce Attack, Release, knee or segmentation.
+// This independent dB experiment preserves the legacy equation only at -inf.
+// Finite Down thresholds use constant dB ratio; finite Up gates use the same
+// dB slope as reciprocal Down, anchored at Range/Dual Down/0dB. Existing static
+// boundary blends and branch crossfades remain. Detector/window semantics and
+// the audible delay are unchanged; no Attack/Release envelope is introduced.
 //
 // Lookahead=0 degenerates to a one-sample window. The established product logic
 // therefore keeps the old 0 ms-only 1x/8x/16x Oversampling choices to reduce
@@ -96,11 +97,10 @@ public:
         if (level <= thresholdLinear)
             return 1.0f;
 
-        // Same law re-anchored at Threshold so the transition is continuous and
-        // exactly unity at the boundary.
-        const auto numerator = 1.0f + (ratio - 1.0f) * thresholdLinear;
-        const auto denominator = 1.0f + (ratio - 1.0f) * level;
-        return numerator / juce::jmax (1.0e-9f, denominator);
+        // Fixed dB ratio above a finite threshold:
+        // outputDb = thresholdDb + (levelDb - thresholdDb) / ratio.
+        // p and T are detector amplitudes, not individual carrier samples.
+        return std::pow (thresholdLinear / level, 1.0f - 1.0f / ratio);
     }
 
     // Shared audible/Display law. Boundaries are detector-linear values, with
@@ -114,17 +114,18 @@ public:
         // Range OFF is +infinity: retain it through the operating gate. A
         // finite 0 dB Range is 1.0 and still restores unity at/above that level.
         upper = juce::jmax (0.0f, upper);
-        ratio = juce::jlimit (1.0f / 32.0f, 32.0f, ratio);
+        ratio = juce::jlimit (minimumUpRatio, maximumDownRatio, ratio);
         if (lower >= upper || level <= lower || level >= upper || ratio == 1.0f)
             return 1.0f;
         if (ratio > 1.0f)
         {
             const auto gain = gainForLevel (level, ratio, lower);
-            // Infinite Range preserves the exact original downward law. For a
+            // Infinite Range leaves the selected downward law unbounded. For a
             // finite Range, return continuously to unity BEFORE its upper edge.
             if (! std::isfinite (upper)) return gain;
             const auto width = juce::jmin (upper * 0.5f, (upper - lower) * 0.5f);
-            return 1.0f + (gain - 1.0f) * boundaryBlend ((upper - level) / width);
+            const auto blend = boundaryBlend ((upper - level) / width);
+            return (1.0f - blend) + gain * blend;
         }
         return gatedUpwardGain (level, ratio, lower, juce::jmin (1.0f, upper));
     }
@@ -138,8 +139,15 @@ public:
     static float gatedUpwardGain (float level, float ratio, float lower, float anchor) noexcept
     {
         if (level <= lower || lower >= anchor) return 1.0f;
-        const auto gain = upwardGainForLevel (level, ratio, anchor);
-        if (lower <= 0.0f) return gain;
+        // -inf explicitly preserves the original QQ upward family.
+        if (lower <= 0.0f) return upwardGainForLevel (level, ratio, anchor);
+        // Same dB slope as the reciprocal Down ratio, anchored at the upper
+        // boundary: upGainDb = (anchorDb - levelDb) * (1 - ratio).
+        // Matching Up/Down differs by a constant gain in the interior; the
+        // retained gate/Range transitions intentionally affect the edges.
+        ratio = juce::jlimit (minimumUpRatio, 1.0f, ratio);
+        const auto gain = level >= anchor || ratio == 1.0f ? 1.0f
+            : juce::jmin (maximumUpwardGain, std::pow (anchor / level, 1.0f - ratio));
         const auto width = juce::jmin (lower, (anchor - lower) * 0.5f);
         return 1.0f + (gain - 1.0f) * boundaryBlend ((level - lower) / width);
     }
@@ -148,12 +156,12 @@ public:
     {
         level = juce::jlimit (0.0f, 1.0f, level);
         anchor = juce::jlimit (0.0f, 1.0f, anchor);
-        ratio = juce::jlimit (1.0f / 32.0f, 1.0f, ratio);
+        ratio = juce::jlimit (minimumUpRatio, 1.0f, ratio);
         if (anchor <= 0.0f || level >= anchor || ratio == 1.0f)
             return 1.0f;
         // Threshold-relative QQ rational family: an equal distance below the
         // anchor receives equal lift regardless of the absolute threshold dB.
-        // Gain is unity at the anchor, bounded by 1/ratio <= 32, and increases
+        // Gain is unity at the anchor, bounded by 1/ratio <= 1000, and increases
         // towards quieter levels. Output remains monotonic (no level inversion).
         const auto relativeLevel = level / anchor;
         return 1.0f / (ratio + (1.0f - ratio) * relativeLevel);
@@ -179,9 +187,11 @@ public:
     // effective GR is deliberately not core GR dB multiplied by Mix.
     static float effectiveGainForMix (float compressedGain, float wetMix) noexcept
     {
-        compressedGain = juce::jlimit (0.0f, 32.0f, compressedGain);
+        compressedGain = juce::jlimit (0.0f, maximumUpwardGain, compressedGain);
         wetMix = juce::jlimit (0.0f, 1.0f, wetMix);
-        return 1.0f + (compressedGain - 1.0f) * wetMix;
+        // Weighted sum retains tiny wet gains at 100% Mix; subtracting a
+        // near-unity value from unity loses precision for deep dB reduction.
+        return (1.0f - wetMix) + compressedGain * wetMix;
     }
 
     static float effectiveGainReductionDb (float compressedGain, float wetMix) noexcept

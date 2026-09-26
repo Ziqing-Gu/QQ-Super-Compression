@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "DynamicsLimits.h"
 #include <array>
 #include <cmath>
 #include <limits>
@@ -24,6 +25,7 @@ namespace qqsc::params
     inline constexpr auto mixM           = "mixM";
     inline constexpr auto mixS           = "mixS";
     inline constexpr auto outputGainDb   = "outputGainDb";
+    inline constexpr auto inputOutputLink = "inputOutputLink";
     inline constexpr auto lookaheadMs    = "lookaheadMs";
     inline constexpr auto oversampling   = "oversampling";
     inline constexpr auto processingMode = "processingMode";
@@ -93,8 +95,24 @@ namespace qqsc::params
     inline constexpr std::array<const char*, 5> upRatioIds { upRatio, upRatioL, upRatioR, upRatioM, upRatioS };
     inline constexpr std::array<const char*, 5> downRatioIds { downRatio, downRatioL, downRatioR, downRatioM, downRatioS };
 
-    inline juce::NormalisableRange<float> dynamicsRatioRange (float minimum = 1.0f / 32.0f, float maximum = 32.0f)
+    inline juce::NormalisableRange<float> dynamicsRatioRange (float minimum = qqsc::minimumUpRatio, float maximum = qqsc::maximumDownRatio)
     {
+        // Keep Single's unity position at the exact midpoint with finite,
+        // logarithmic upward and downward ranges on their respective halves.
+        if (minimum < 1.0f && maximum > 1.0f)
+            return { minimum, maximum,
+                     [] (float lo, float hi, float n)
+                     {
+                         return n < 0.5f ? lo * std::pow (1.0f / lo, n * 2.0f)
+                                         : std::pow (hi, (n - 0.5f) * 2.0f);
+                     },
+                     [] (float lo, float hi, float value)
+                     {
+                         value = juce::jlimit (lo, hi, value);
+                         return value < 1.0f ? 0.5f * std::log (value / lo) / std::log (1.0f / lo)
+                                            : 0.5f + 0.5f * std::log (value) / std::log (hi);
+                     },
+                     [] (float lo, float hi, float value) { return juce::jlimit (lo, hi, value); } };
         return { minimum, maximum,
                  [] (float lo, float hi, float normalised) { return lo * std::pow (hi / lo, normalised); },
                  [] (float lo, float hi, float value) { return std::log (juce::jlimit (lo, hi, value) / lo) / std::log (hi / lo); },
@@ -104,8 +122,11 @@ namespace qqsc::params
     inline juce::String dynamicsRatioText (float value)
     {
         if (value < 0.99999f)
-            return "1:" + juce::String (1.0f / value, 2);
-        return juce::String (value, value < 10.0f ? 2 : 1) + ":1";
+        {
+            const auto denominator = 1.0f / value;
+            return "1:" + juce::String (denominator, denominator >= 999.5f ? 0 : denominator >= 100.0f ? 1 : 2);
+        }
+        return juce::String (value, value >= 999.5f ? 0 : value < 10.0f ? 2 : 1) + ":1";
     }
 
     inline float dynamicsRatioFromText (const juce::String& text)
@@ -145,7 +166,7 @@ namespace qqsc::params
         if (! isThresholdEnabled (db))
             return 0.0f;
 
-        return juce::Decibels::decibelsToGain (juce::jlimit (thresholdOffDb, 0.0f, db));
+        return juce::Decibels::decibelsToGain (juce::jlimit (thresholdOffDb, 0.0f, db), thresholdOffDb);
     }
 
     inline bool isRangeEnabled (float db) noexcept

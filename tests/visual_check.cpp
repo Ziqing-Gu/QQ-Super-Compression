@@ -6,6 +6,9 @@ struct QQSCVisualCheck
 {
     static void revisionThreeChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
     static void revisionFourChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
+    static void up1000Checks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
+    static void inputOutputLinkChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
+    static void dbComparisonChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
     struct GestureProbe final : juce::AudioProcessorParameter::Listener
     {
         explicit GestureProbe(juce::AudioProcessorParameter& parameterIn) : watched(parameterIn) { watched.addListener(this); }
@@ -180,7 +183,7 @@ struct QQSCVisualCheck
             if(lift<=previousLift+0.1 || (wantedRatio==1.0 && std::abs(lift)>0.001))
                 throw std::runtime_error("Actual UP knob does not progressively raise eligible audio");
             previousLift=lift;
-            const auto expected=20.0*std::log10(1.0/(wantedRatio+(1.0-wantedRatio)*std::pow(10.0,-10.0/20.0)));
+            const auto expected=10.0*(1.0-wantedRatio); // finite gate: fixed dB slope, 10dB below anchor
             if(std::abs(lift-expected)>0.01) throw std::runtime_error("UP knob output does not match displayed Ratio value");
             std::cout<<"PASS: real UP knob "<<wantedRatio<<" -> upRatio="<<actualParameter<<" -> actual lift "<<lift<<" dB (-40dB signal, UP -50dB, DOWN -30dB).\n";
         }
@@ -310,13 +313,13 @@ struct QQSCVisualCheck
             }
         }
         parameter(processor,"processingMode",0); parameter(processor,"compressionMode",0); editor.timerCallback();
-        if(std::abs(editor.ratioSlider.getMinimum()-1.0/32.0)>1e-6 || editor.ratioSlider.getMaximum()!=32)
-            throw std::runtime_error("Single Ratio must span 1/32 to 32");
+        if(std::abs(editor.ratioSlider.getMinimum()-1.0/1000.0)>1e-6 || editor.ratioSlider.getMaximum()!=1000)
+            throw std::runtime_error("Single Ratio must span 1/1000 to 1000");
         if(editor.downRatioSliders[0]->isVisible()) throw std::runtime_error("Single shows two ratios");
         editor.compressionModeButton.onClick(); editor.timerCallback();
-        if(std::abs(editor.ratioSlider.getMinimum()-1.0/32.0)>1e-6 || editor.ratioSlider.getMaximum()!=1
-           || editor.downRatioSliders[0]->getMinimum()!=1 || editor.downRatioSliders[0]->getMaximum()!=32)
-            throw std::runtime_error("Dual Ratio ranges must be UP 1/32..1, DOWN 1..32");
+        if(std::abs(editor.ratioSlider.getMinimum()-1.0/1000.0)>1e-6 || editor.ratioSlider.getMaximum()!=1
+           || editor.downRatioSliders[0]->getMinimum()!=1 || editor.downRatioSliders[0]->getMaximum()!=1000)
+            throw std::runtime_error("Dual Ratio ranges must be UP 1/1000..1, DOWN 1..1000");
         if(!editor.downRatioSliders[0]->isVisible() || editor.compressionModeButton.getWidth()>64
            ||editor.ratioSlider.getWidth()>70 || editor.downRatioSliders[0]->getWidth()>70)
             throw std::runtime_error("Dual compact controls contract failed");
@@ -773,6 +776,9 @@ struct QQSCVisualCheck
         upDownChecks (editor, processor, dir);
         revisionThreeChecks (editor, processor, dir);
         revisionFourChecks (editor, processor, dir);
+        up1000Checks (editor, processor, dir);
+        inputOutputLinkChecks (editor, processor, dir);
+        dbComparisonChecks (editor, processor, dir);
         processor.releaseResources();
         std::cout << "PASS: actual editor offscreen snapshots; user preferences not written.\n";
         return 0;
@@ -781,6 +787,9 @@ struct QQSCVisualCheck
 
 #include "ratio_revision3_checks.h"
 #include "branch_revision4_visual_checks.h"
+#include "up1000_visual_checks.h"
+#include "input_output_link_checks.h"
+#include "db_visual_checks.h"
 
 int main (int argc, char** argv)
 {

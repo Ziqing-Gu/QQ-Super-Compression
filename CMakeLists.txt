@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.2.0 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.2.3 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,7 +29,7 @@ endif()
 option(QQSC_BUILD_DYNAMICS_CHECK "Build actual processor dynamics regression checks" OFF)
 if(QQSC_BUILD_DYNAMICS_CHECK)
     juce_add_console_app(QQSCDynamicsCheck PRODUCT_NAME "QQSC Dynamics Check")
-    target_sources(QQSCDynamicsCheck PRIVATE tests/updown_processor_test.cpp)
+    target_sources(QQSCDynamicsCheck PRIVATE tests/db_dynamics_test.cpp)
     target_include_directories(QQSCDynamicsCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
     target_link_libraries(QQSCDynamicsCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
     if(MSVC)
@@ -44,7 +44,7 @@ juce_add_plugin(QQSuperCompression
     PLUGIN_CODE Qscp
     FORMATS VST3 AU
     PRODUCT_NAME "QQ Super Compression"
-    DESCRIPTION "Transparent lookahead dynamics processor with independent ST/LR/MS domains and external key"
+    DESCRIPTION "Transparent lookahead dynamics processor with fixed dB Ratio and independent ST/LR/MS domains"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
@@ -65,6 +65,7 @@ juce_add_binary_data(QQSCWarmKnobAssets
 
 target_sources(QQSuperCompression PRIVATE
     Source/Parameters.h
+    Source/DynamicsLimits.h
     Source/StaticCompressionEngine.h
     Source/MeterState.h
     Source/BS1770LoudnessMatch.h

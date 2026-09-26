@@ -1,3 +1,19 @@
+# 1.2.3 Stable / Plan B — 2026-09-26
+
+User selected the dB comparison algorithm as the official Super Compression. Formal name and original VST3 identity restored, installed1.2.2 replaced and separate test installation removed. See STABLE_1.2.3.md for the external backup completion authority. Original manuals and previous version history retained.
+
+
+--- Historical records below ---
+
+# 1.2.2 Stable / Plan B — 2026-09-26
+
+The user accepted1.2.2 and requested Stable promotion plus Plan B. The existing
+validated Windows build is retained without production changes. See
+[release notes](RELEASE_NOTES_1.2.2.md) and [Stable record](STABLE_1.2.2.md).
+Backup completion is recorded externally at `D:\Codex\Outputs\QQ Super Compression 1.2.2 Stable\Verification\PlanB\PLAN_B_COMPLETION.json`.
+
+--- Earlier records below are historical ---
+
 # QQ Super Compression — Development History
 ## v1.1.5 - Fluid/Cached Dynamic Display Rendering - Stable
 

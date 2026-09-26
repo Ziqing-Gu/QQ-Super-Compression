@@ -239,6 +239,10 @@ for lang in ('zh',):
     para('先在 A 调好一组设置，用 A→B 复制，再切换到 B 做另一种调整。之后点 A 或 B 比较。反向复制使用 B→A；复制会替换目标一侧的声音参数。')
     para('A/B 包含侧链的 Source、Key Gain 和 HPF。主题不属于声音比较；Bypass、LINK 与 SC LISTEN 也不随 A/B 声音快照切换。')
     note('Mix = 0% 不等于完整 Bypass','Mix 为 0% 时仍经过 Input Gain 与 Output Gain。Bypass 则用于比较未经这些音量与压缩处理的原始信号。')
+    heading('等响度比较：上压与下压可以有相同的动态')
+    para('在相同输入、声道模式与检测设置下，若两种 Single 设置的 <b>Threshold 均为 OFF（-inf）、Range 为 OFF、Mix 为 100%</b>，分别使用 <b>8:1 下压</b>与 <b>1:8 上压</b>，再将两者的输出音量匹配，理论上会得到相同的动态结果：声音起伏之间的相对关系相同，只是整体音量不同。',9.6)
+    para('Dual 默认阈值为 <b>UP = -inf、DOWN = 0 dB</b>。保留这组阈值，并从默认状态用 LINK 联动两个 Ratio 时，等响度比较的效果仍可与对应的 Single 相同。切到 Dual 并不自动带来不同的动态。请仔细观察 <b>Display</b>，按素材需要调整 <b>上下阈值和上下 Ratio</b>，明确哪些部分要抬升、哪些部分要压低。上述比较以 Mix 100% 为前提；改变作用区间或混合比例后，应重新判断。',9.6)
+
 
     # 8
     start('看懂 Display 与 Meter')
