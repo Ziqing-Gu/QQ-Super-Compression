@@ -124,7 +124,16 @@ void collisionChecks()
         check (std::abs (p.getBoundaryForDomainDb (i >= 5, false, i % 5) + 60.0f) < 0.01f, "Upper does not push lower");
         set (p, upper[i], 0.0f);
         set (p, lower[i], 0.0f);
-        check (get (p, upper[i]) == 0.0f, "Boundary endpoint mismatch");
+        // ARM's fused arithmetic may round the normalized finite endpoint a
+        // few micro-dB below zero. Keep a limit 100x below the 0.01 dB step,
+        // and independently prove that it never becomes the Range OFF sentinel.
+        const auto endpoint = get (p, upper[i]);
+        std::cout << "Boundary endpoint " << upper[i] << " = " << endpoint << " dB\n";
+        check (std::abs (endpoint) < 0.0001f, "Boundary endpoint mismatch");
+        if (i < 5)
+            check (qqsc::params::isRangeEnabled (endpoint)
+                   && std::isfinite (qqsc::params::rangeLinear (endpoint)),
+                   "Finite zero dB Range became OFF during parameter conversion");
     }
     std::cout << "PASS: all ten ST/LR/MS boundary pairs push, separate and reach endpoints through host edits.\n";
 }

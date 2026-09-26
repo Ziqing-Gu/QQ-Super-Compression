@@ -8,3 +8,5 @@
 User approved 1.2.3 Stable / Plan B and requested Plan C/D. Release workflow changes are limited to platform builds, native regression checks, packaging and documentation. Windows production source and verified binary remain the accepted Stable versions.
 
 Corresponding source includes assets, tests, complete CMake definitions and pinned JUCE 8.0.15 retrieval. Formal local Plan B also contains the exact dependency source. Original bilingual PDFs are unchanged. No claim of notarization or unrestricted commercial licensing is made.
+
+Native ARM regression uses a 0.0001 dB parameter-roundtrip tolerance with an independent finite-Range sentinel check; audio tolerances and production code are unchanged.

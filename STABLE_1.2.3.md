@@ -1,14 +1,18 @@
 # 1.2.3 Plan C/D release checkpoint — 2026-09-26
 
-User authorized Plan C/D after approving the accepted 1.2.3 Stable algorithm. Production code, assets and tests remain byte-identical to the accepted Stable workspace. Original PDF manuals are unchanged. Current release work updates documentation and Mac workflows, including native DSP regression, macOS 11 minimum and explicit ad-hoc signing.
+User authorized Plan C/D after approving the accepted 1.2.3 Stable algorithm. Production code and assets remain byte-identical to the accepted Stable workspace. Original PDF manuals are unchanged. Current release work updates documentation and Mac workflows, including native DSP regression, macOS 11 minimum and explicit ad-hoc signing.
 
 - Release source: `D:\Codex\Workspaces\QQSuperCompression-1.2.3-PlanCD`.
-- New formal source snapshot: `D:\备份文件\Vibe Coding\QQ Super Compression\源代码\QQ Super Compression 1.2.3-PlanB-Release-20260926-203700`.
-- External completion authority: `D:\Codex\Outputs\QQ Super Compression\1.2.3\Verification\PlanB\PLAN_B_COMPLETION.json`.
+- New formal source snapshot: `D:\备份文件\Vibe Coding\QQ Super Compression\源代码\QQ Super Compression 1.2.3-PlanB-Release-20260926-205600`.
+- External completion authority: `D:\Codex\Outputs\QQ Super Compression\1.2.3\Verification\PlanB-Mac-Validation\PLAN_B_COMPLETION.json`.
 - Public source / release: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.3
 - Platform test and publication completion authority: `D:\Codex\Outputs\QQ Super Compression\1.2.3\Verification\RELEASE_COMPLETION.json`.
 
 Only COMPLETE in those external records certifies completion. Never reopen, rehash or modify a completed snapshot. The earlier Stable Plan B remains frozen; release documentation requires this new full source + exact dependency snapshot. GitHub publication and platform packaging are verified externally after this source checkpoint. Use current 1.2.3 guides and release checklist; older sections below record their historical scopes.
+
+# Mac native validation follow-up
+
+The first arm64 job passed all fixed-dB, deep-threshold and reciprocal audio checks, then exposed an exact-float assertion in a historical parameter endpoint test. The test now permits less than 0.0001 dB (100 times below its 0.01 dB control step), logs the endpoint, and independently requires finite Range to remain enabled. Production code and the accepted Windows binary are unchanged. A new complete Plan B includes this test correction before final publication.
 
 ---
 
