@@ -96,7 +96,11 @@ struct QQSCLimiterCheck
 
         QQSuperCompressionAudioProcessor p;baseline(p);set(p,"algorithmMode",0);set(p,"rangeDb",1);set(p,"compressionMode",1);
         QQSuperCompressionAudioProcessorEditor e(p,settings(root));sync(p,e);e.limiterButton.onClick();sync(p,e);
-        check(get(p,"ceilingDb")==0,"Fresh Ceiling default must be 0 dBFS");
+        // ARM fused arithmetic can leave a few micro-dB after range normalisation.
+        // This is 1000 times smaller than the parameter's 0.01 dB step.
+        const auto ceilingZero=get(p,"ceilingDb");
+        std::cout<<"CHECK: stored Ceiling default="<<ceilingZero<<"\n";
+        check(std::abs(ceilingZero)<1e-5f,"Fresh Ceiling default must be 0 dBFS");
         // Numeric edit and the exact global keyboard handlers requested by the user.
         p.getUndoManager().clearUndoHistory();
         e.ceilingValue.setText("-3.25",juce::sendNotificationSync);sync(p,e);
@@ -121,12 +125,12 @@ struct QQSCLimiterCheck
         const auto altClick=mouse(e.ceilingValue,e.ceilingValue.getLocalBounds().toFloat().getCentre(),true);
         std::cout<<"CHECK: Ceiling Alt-click reset.\n";
         e.ceilingValue.mouseDown(altClick);e.ceilingValue.mouseUp(altClick);sync(p,e);
-        check(get(p,"ceilingDb")==0,"Alt-click did not reset Ceiling to zero");
+        check(get(p,"ceilingDb")==ceilingZero,"Alt-click did not restore the stored Ceiling default");
         check(!e.ceilingValue.isBeingEdited(),"Alt-click must not open inline editing");
         e.keyPressed(juce::KeyPress('Z',ctrl,0),&e);sync(p,e);
         check(std::abs(get(p,"ceilingDb")+.7)<.001,"Alt-click reset must undo to previous Ceiling");
         e.keyPressed(juce::KeyPress('Z',ctrl|juce::ModifierKeys::shiftModifier,0),&e);sync(p,e);
-        check(get(p,"ceilingDb")==0,"Alt-click reset redo");
+        check(get(p,"ceilingDb")==ceilingZero,"Alt-click reset redo");
         p.getMeterState().truePeakHoldDb.store(2.0f);
         std::cout<<"CHECK: TP double-click.\n";
         e.meters.mouseDoubleClick(mouse(e.meters,{3.0f,100.0f}));

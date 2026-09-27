@@ -7,6 +7,11 @@ on:
         description: Reuse an already verified AU with identical production inputs
         type: boolean
         default: false
+      vst3_arch:
+        description: VST3 architecture to build
+        type: choice
+        options: [all, arm64, x86_64]
+        default: all
 
 permissions:
   contents: read
@@ -18,6 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        exclude: ${{ inputs.vst3_arch == 'arm64' && fromJSON('[{"expected_arch":"x86_64"}]') || inputs.vst3_arch == 'x86_64' && fromJSON('[{"expected_arch":"arm64"}]') || fromJSON('[]') }}
         include:
           - name: Apple Silicon (arm64)
             runner: macos-14
