@@ -60,14 +60,18 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 Version 1.2.8 fixes downward-threshold continuity when switching Single / Dual in Limiter mode. Single Threshold and Dual DOWN Threshold now carry the current value in both directions, while Makeup, Mix and Output Gain remain unchanged. The 1.2.7 Limiter, Ceiling, TP, headphone 1:1, independent Dual algorithms and strict Output LINK behavior are retained.
 
-[下载 / Release 1.2.8](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.8) · [完整更新 / Release notes](RELEASE_NOTES_1.2.8.md) · [历史 / Changelog](CHANGELOG.md)
+当前阶段：1.2.8 源码同步（Plan C）；Windows Plan A 已验证。Plan D 跨平台成品与正式 Release 暂缓，版本标签不代表成品已发布。
+
+Current stage: 1.2.8 source synchronization (Plan C), with Windows Plan A verified. Cross-platform packages and the formal Release (Plan D) are deferred; a version tag does not indicate a published binary release.
+
+[已发布版本 / Published releases](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases) · [完整更新 / Release notes](RELEASE_NOTES_1.2.8.md) · [历史 / Changelog](CHANGELOG.md)
 
 - [中文安装指南](docs/QQ-Super-Compression-1.2.8-INSTALL-CN.txt)
 - [English installation guide](docs/QQ-Super-Compression-1.2.8-INSTALL-EN.txt)
 - [1.2.7 中文用户手册 · 历史功能参考](docs/manuals/QQ-Super-Compression-1.2.7-User-Manual-Chinese.pdf)
 - [1.2.7 English manual · historical feature reference](docs/manuals/QQ-Super-Compression-1.2.7-User-Manual-English.pdf)
 
-Windows x64 VST3 / macOS Apple Silicon VST3 / Intel VST3 / Universal 2 AU。Mac 最低 macOS 11，临时签名、未公证。Mac requires 11 or newer; bundles are ad-hoc signed, not notarized.
+计划交付格式 / Planned package formats: Windows x64 VST3 / macOS Apple Silicon VST3 / Intel VST3 / Universal 2 AU。macOS 构建目标为 11 或更高，采用临时签名；1.2.8 Mac 成品验证与交付待 Plan D 完成。The macOS build target is 11 or newer with ad-hoc signing; 1.2.8 Mac package validation and delivery await Plan D.
 
 ## 1.2.8 Limiter Single / Dual 连续性 / continuity
 
@@ -79,9 +83,9 @@ Normal compression keeps separate Single / Dual threshold memories. A/B, project
 
 ## Limiter、TP 与耳机监听 / Limiter, TP and monitoring
 
-Limiter 支持两种算法、Single / Dual 和 ST / LR / MS。下压 Ratio 为 20:1 至 1000:1；上压仍可使用。Ceiling 为 -24 至 0 dB，默认 0，Alt 单击复位。TP 与 Ceiling 只在 Limiter 下生效。TP 表读取实际最终 L/R 输出，保留约 20 秒峰值，双击清零。
+Limiter 支持两种算法、Single / Dual 和 ST / LR / MS。下压 Ratio 为 200:1 至 1000:1；上压仍可使用。Ceiling 为 -24 至 0 dB，默认 0，Alt 单击复位。TP 与 Ceiling 只在 Limiter 下生效。TP 表读取实际最终 L/R 输出，保留约 20 秒峰值，双击清零。
 
-Limiter supports both algorithms, Single / Dual and ST / LR / MS. Downward Ratio spans 20:1 to 1000:1; upward processing remains available. Ceiling spans -24 to 0 dB, defaults to 0 and resets with Alt-click. TP and Ceiling act only in Limiter. The meter reads actual final L/R true peaks, with about 20 seconds of hold and double-click reset.
+Limiter supports both algorithms, Single / Dual and ST / LR / MS. Downward Ratio spans 200:1 to 1000:1; upward processing remains available. Ceiling spans -24 to 0 dB, defaults to 0 and resets with Alt-click. TP and Ceiling act only in Limiter. The meter reads actual final L/R true peaks, with about 20 seconds of hold and double-click reset.
 
 ![Limiter / Light](docs/screenshots/v1.2.7/manual-limiter-light.png)
 

@@ -19,6 +19,19 @@
 
 若接续后的阈值与 UP gate / Range 发生交叉，沿用原有的边界推移与相等规则；不额外发明动态处理策略。
 
+## English changes
+
+- In Limiter mode, switching Single to Dual carries the current Single Threshold into DOWN Threshold; switching back carries the current DOWN Threshold into Single Threshold.
+- ST, L, R, M and S carry their own values independently of Limiter, channel and Ratio links. Makeup, Mix, Output Gain, ratios and algorithm choices are preserved.
+- Normal compression retains independent Single / Dual threshold memories. A/B, project restore and Undo/Redo preserve their state semantics. Existing parameter IDs/order, plug-in identity and state schema 22 are retained.
+- Boundary collisions retain the existing UP gate / Range rules. This update does not redesign the audio algorithms.
+
+## 发布阶段 / Publication stage
+
+当前仅执行 Plan C 源码同步；Plan B 已由用户确认完成。Plan D、跨平台成品交付和正式 GitHub Release 暂缓。历史 1.2.7 中英文手册为功能参考，不是匹配 1.2.8 的新版完整手册。
+
+This stage covers Plan C source synchronization only; the user has already confirmed Plan B complete. Plan D, cross-platform package delivery and the formal GitHub Release are deferred. The historical bilingual 1.2.7 manuals are feature references, not newly revised complete 1.2.8 manuals.
+
 ## 验证 / Validation
 
 Implemented on the supplied verified 1.2.7 source, not an older repository checkout. The full JUCE Windows build and real editor/APVTS continuity regression pass. Full Limiter, Unity and loudness suites pass. Real VST3 comparison against the installed 1.2.7 covers 120 normal-mode and 24 Limiter cases with zero residual; identity, parameter count/order and latency are unchanged. The installed and delivered Windows bundles match the build hashes. Cubase listening/workflow validation remains user-owned and is not claimed as completed by automation.
