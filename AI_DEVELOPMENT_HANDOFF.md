@@ -1,4 +1,18 @@
-# 1.2.6 Plan C/D release checkpoint — 2026-09-27
+# Current: 1.2.8 Plan C correction — 2026-09-28
+
+Desktop delivery is now verified: eight files, 43,518,833 bytes, comprising Windows x64 VST3, Apple Silicon VST3, Intel VST3, Universal 2 AU, bilingual installation guides and two clearly labelled historical 1.2.7 manuals. Apple Silicon job 108719043229 passed in run 36354377015 at f5891559f24d54abe272d37d2941cdb1e068ba89. Intel job 108717571154 passed in run 36353856702 at 9ca6e6ff284dc133d7c7ecd3137861c6fc314093; the run's aggregate failure belongs to its earlier ARM attempt and is not reported as a successful run. AU job 108714126279 passed at a281cd9700b57d29378820b8fdb1fd9080e72767. All three successful jobs have identical production inputs; the 36 production source/resource/build files match the accepted Plan A workspace. The ARM Ceiling test now accounts for sub-step floating-point rounding and requires reset/redo to restore the exact stored default. The transient matrix-selection failure in run 36354310433 was corrected before the successful ARM build. Windows was reused without rebuilding. Plan D remains deferred.
+
+Product: QQ Super Compression, not QQ Super Multiband Compression. Public repository: Ziqing-Gu/QQ-Super-Compression. Input: the user's 1.2.8 Limiter Mode Continuity source, based on 1.2.7 Strict Output Link. Plan A is complete, with Windows binary SHA-256 9A5E39848AB2691AFF7F70AAF3781D6FDBE7004B90D62C3CF57B9A0327F8B7E3. Plan B was already confirmed complete by the user; do not inspect, refresh or change frozen backups. This instruction supersedes historical checkpoint advice below about refreshing backups.
+
+The governing Plan definitions changed on 2026-09-01: Plan C includes source synchronization, native Apple Silicon/Intel VST3, Universal 2 AU and the actual desktop user package. Plan D means the formal GitHub Release and is deferred. Previous claims that source push alone completed Plan C were incorrect. AU passed in macOS run 36352181159 attempt 2, from a281cd9700b57d29378820b8fdb1fd9080e72767. The VST3 checks exposed two portability issues: comparison against the requested decimal rather than the stored float on arm64, and Ctrl instead of Command for undo on macOS. Commit 9ca6e6ff284dc133d7c7ecd3137861c6fc314093 uses exact pre/post stored-value equality and the platform command modifier; production source is unchanged. Run 36353856702 rebuilds the two VST3s and reuses the verified AU. Windows reuses Plan A; no Windows Actions build is required.
+
+The first Mac run used the historical QQSCDynamicsCheck and failed on its obsolete 26ms total-latency assumption. Attempts to adapt old tests were fully reverted. The current workflow uses the supplied 1.2.8 Limiter, Unity, Dual algorithm and Continuity suites, plus architecture/version/signature checks and AU validation. Do not claim the obsolete suite passed. Historical tag v1.2.8 remains at 365ee5c; the exact Mac build commit above is authoritative for this package, with identical production inputs.
+
+Only the verified, physically present desktop package establishes Plan C completion. Keep internal evidence separate from the user package. The existing 35-page bilingual 1.2.7 manuals may be supplied only under their original version as historical references; they are not complete 1.2.8 manuals. DAW listening and user acceptance are not inferred from automation.
+
+---
+
+# Historical: 1.2.6 Plan C/D release checkpoint — 2026-09-27
 
 User explicitly requested Plan C then D for QQ Super Compression (not multiband), with the approved new Chinese and English manuals. Release source: D:/Codex/Workspaces/QQSuperCompression-1.2.6-PlanCD. Output/evidence: D:/Codex/Outputs/QQ Super Compression/1.2.6. Public repository: Ziqing-Gu/QQ-Super-Compression.
 

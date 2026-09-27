@@ -60,9 +60,9 @@ At its core, this is a dynamic processor. That is why I refer to it as "Compress
 
 Version 1.2.8 fixes downward-threshold continuity when switching Single / Dual in Limiter mode. Single Threshold and Dual DOWN Threshold now carry the current value in both directions, while Makeup, Mix and Output Gain remain unchanged. The 1.2.7 Limiter, Ceiling, TP, headphone 1:1, independent Dual algorithms and strict Output LINK behavior are retained.
 
-当前阶段：1.2.8 源码同步（Plan C）；Windows Plan A 已验证。Plan D 跨平台成品与正式 Release 暂缓，版本标签不代表成品已发布。
+当前阶段：Plan C（公开源码同步、四类跨平台成品与桌面用户包）。Windows 复用已验证的 Plan A 成品；macOS 构建与交付核验以本次 Plan C 记录为准。Plan D 仅指正式 GitHub Release，现暂缓；版本标签不代表成品已发布。
 
-Current stage: 1.2.8 source synchronization (Plan C), with Windows Plan A verified. Cross-platform packages and the formal Release (Plan D) are deferred; a version tag does not indicate a published binary release.
+Current stage: Plan C (public source synchronization, four platform packages and desktop delivery). Windows reuses the verified Plan A output; macOS build and delivery verification are recorded for this Plan C. Plan D means the formal GitHub Release only and is deferred; a version tag does not indicate a published binary release.
 
 [已发布版本 / Published releases](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases) · [完整更新 / Release notes](RELEASE_NOTES_1.2.8.md) · [历史 / Changelog](CHANGELOG.md)
 
@@ -71,9 +71,24 @@ Current stage: 1.2.8 source synchronization (Plan C), with Windows Plan A verifi
 - [1.2.7 中文用户手册 · 历史功能参考](docs/manuals/QQ-Super-Compression-1.2.7-User-Manual-Chinese.pdf)
 - [1.2.7 English manual · historical feature reference](docs/manuals/QQ-Super-Compression-1.2.7-User-Manual-English.pdf)
 
-计划交付格式 / Planned package formats: Windows x64 VST3 / macOS Apple Silicon VST3 / Intel VST3 / Universal 2 AU。macOS 构建目标为 11 或更高，采用临时签名；1.2.8 Mac 成品验证与交付待 Plan D 完成。The macOS build target is 11 or newer with ad-hoc signing; 1.2.8 Mac package validation and delivery await Plan D.
+Plan C 交付格式 / Plan C package formats: Windows x64 VST3 / macOS Apple Silicon VST3 / Intel VST3 / Universal 2 AU。macOS 构建目标为 11 或更高，采用临时签名、未经公证。The macOS build target is 11 or newer with ad-hoc signing, without Apple notarization.
+
+四类成品已核验并交付桌面用户包。Apple Silicon 与 Intel 原生 Limiter、Unity、Dual 算法及模式连续性测试通过，Universal 2 AU 通过 auval；Windows 复用已验证的 Plan A 成品。三类 Mac 成品来自生产输入完全一致的公开提交，具体提交和任务见 [REPRODUCE.md](REPRODUCE.md)。正式 GitHub Release 仍待单独执行 Plan D。
+
+All four packages have been verified and delivered in the desktop user package. Native Apple Silicon and Intel Limiter, Unity, Dual-algorithm and continuity checks pass; Universal 2 AU passes auval. Windows reuses the verified Plan A output. The Mac packages use public commits with identical production inputs; exact commits and jobs are documented in [REPRODUCE.md](REPRODUCE.md). The formal GitHub Release remains deferred to Plan D.
 
 ## 1.2.8 Limiter Single / Dual 连续性 / continuity
+
+### 本次同步版本范围 / Versions covered by this synchronization
+
+远端此前完整记录到 1.2.6。本次包括 1.2.7 与 1.2.8，遗漏版本：无。
+
+The previous fully documented remote version was 1.2.6. This synchronization covers 1.2.7 and 1.2.8; omitted versions: none.
+
+- **1.2.7：** 新增 Limiter 独立参数库、最终 Ceiling、TP/Peak、耳机 1:1 和 MATCH。该版本后续迭代加入普通/Limiter 独立模式记忆、LUFS、Ratio/Mix 修正、Dual Up/Down 独立算法和严格 Output LINK。最终输入基线为 Strict Output Link；1.2.7 历史手册不覆盖所有后续细节，当前行为以源码和补充说明为准。
+- **1.2.7:** Added the independent Limiter bank, final Ceiling, TP/Peak, headphone 1:1 and MATCH. Later revisions within this version added independent Normal/Limiter mode memories, LUFS, Ratio/Mix fixes, independent Dual Up/Down algorithms and strict Output LINK. Strict Output Link is the input baseline; the historical manuals do not cover every later revision, so current behavior is defined by source and supplemental notes.
+- **1.2.8：** 修复 Limiter Single/Dual 双向切换的向下阈值接续；保留 Makeup、Mix、Output、正常模式独立阈值、算法、插件身份和工程兼容性。
+- **1.2.8:** Fixes downward-threshold continuity in both directions of Limiter Single/Dual switching, preserving Makeup, Mix, Output, normal-mode independent thresholds, algorithms, plug-in identity and project compatibility.
 
 Limiter 中从 Single 切到 Dual 时，当前 Single Threshold 写入目标 DOWN Threshold；从 Dual 切回 Single 时，当前 DOWN Threshold 写入目标 Threshold。ST、L、R、M、S 分别接续自己的值。该规则不依赖 Limiter LINK、声道 LINK 或 Ratio LINK，且不会改写 Makeup、Mix、Output Gain、Ratio 或算法选择。
 

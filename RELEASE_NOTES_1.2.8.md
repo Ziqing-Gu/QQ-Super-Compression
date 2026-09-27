@@ -28,9 +28,9 @@
 
 ## 发布阶段 / Publication stage
 
-当前仅执行 Plan C 源码同步；Plan B 已由用户确认完成。Plan D、跨平台成品交付和正式 GitHub Release 暂缓。历史 1.2.7 中英文手册为功能参考，不是匹配 1.2.8 的新版完整手册。
+当前执行 Plan C：公开源码同步、四类跨平台成品核验及桌面用户包。Plan B 已由用户确认完成，备份冻结且不再访问。Plan D 正式 GitHub Release 暂缓。历史 1.2.7 中英文手册为功能参考，不是匹配 1.2.8 的新版完整手册。
 
-This stage covers Plan C source synchronization only; the user has already confirmed Plan B complete. Plan D, cross-platform package delivery and the formal GitHub Release are deferred. The historical bilingual 1.2.7 manuals are feature references, not newly revised complete 1.2.8 manuals.
+This stage covers Plan C: public source synchronization, validation of all four platform packages and desktop delivery. The user has confirmed Plan B complete; its frozen backups are not revisited. Plan D, the formal GitHub Release, is deferred. The historical bilingual 1.2.7 manuals are feature references, not newly revised complete 1.2.8 manuals.
 
 ## 验证 / Validation
 

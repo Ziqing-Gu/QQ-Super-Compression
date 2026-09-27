@@ -1,12 +1,109 @@
-QQ Super Compression 1.2.8 - Installation and update
+QQ Super Compression 1.2.8 - Installation Guide
+Manufacturer: Qing Audio | Version: 1.2.8 | Document date: 2026-09-28
 
-Windows: Extract the Windows x64 ZIP and copy the complete QQ Super Compression.vst3 folder to C:\Program Files\Common Files\VST3. Save the session and fully close every DAW/audio host before replacing it. Reopen the host and rescan afterward. Do not copy only the binary inside the bundle.
+Supported systems: Windows 10/11 64-bit; macOS 11.0 or later.
+This package contains one plug-in. VST3 and AU are separate formats; install only the formats your host needs.
+Upgrade all installed formats together to 1.2.8. This user package does not include source code. The project uses the Qing Audio Non-Commercial Source-Share License; commercial use is prohibited. Redistribution requires freely available complete corresponding source, preserved attribution, license and source notices, and identification of modifications.
+This product is QQ Super Compression, not QQ Super Multiband Compression.
+Public source and license: https://github.com/Ziqing-Gu/QQ-Super-Compression
+Before upgrading, back up your sessions and existing plug-in bundles. The included bilingual 1.2.7 manuals are historical feature references, not fully updated 1.2.8 manuals.
+This delivery provides Windows x64 VST3, macOS Apple Silicon VST3, Intel VST3 and Universal 2 AU packages.
 
-macOS: Use the Apple Silicon VST3 with an Apple Silicon host and the Intel VST3 with an Intel host; use the Universal 2 AU in Logic. Requires macOS 11 or newer. Install VST3 to /Library/Audio/Plug-Ins/VST3 and AU to /Library/Audio/Plug-Ins/Components, or the matching user Library folders. Mac bundles are ad-hoc signed and not Apple-notarized. Download from the official Release and follow system approval prompts.
+1. Choose the correct ZIP
 
-Version 1.2.8 fixes Limiter Single / Dual downward-threshold continuity: Single Threshold and Dual DOWN Threshold carry the current value in both directions, while Makeup, Mix and Output Gain remain unchanged. Normal compression retains independent Single / Dual threshold memories.
+Windows 64-bit hosts:
+Win/QQ Super Compression 1.2.8 Windows x64 VST3.zip
 
-Save sessions and retain the previous version before updating. After opening an older session, check Limiter, Single / Dual, each channel domain, A/B, Output LINK and automation. The 35-page 1.2.7 manuals remain a reference for established features; README and RELEASE_NOTES_1.2.8.md define the 1.2.8 change.
+Native Apple Silicon hosts (arm64):
+Mac/QQ Super Compression 1.2.8 macOS Apple Silicon VST3.zip
 
-Non-commercial use only. Complete corresponding source and license: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.8
-Official download: https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.8
+Intel Macs, or Intel hosts running through Rosetta on Apple Silicon (x86_64):
+Mac/QQ Super Compression 1.2.8 macOS Intel x86_64 VST3.zip
+
+Logic Pro or other AU hosts:
+Mac/QQ Super Compression 1.2.8 macOS Universal 2 AU.zip
+
+Universal 2 AU contains both arm64 and x86_64. Choose only one macOS VST3 architecture to match the host's actual process architecture. Do not install both Apple Silicon and Intel VST3 bundles.
+
+2. Windows x64 VST3 installation and upgrade
+
+1. Fully quit Cubase, Nuendo, REAPER, Studio One and any other hosts that load or scan plug-ins. Confirm that background scanning processes have also ended.
+2. Extract Win/QQ Super Compression 1.2.8 Windows x64 VST3.zip.
+3. The extracted folder should be:
+   QQ Super Compression.vst3
+   This is a VST3 bundle. Do not copy only the binary inside Contents, and do not rename the bundle.
+4. Open the system VST3 folder:
+   C:\Program Files\Common Files\VST3
+   Writing here usually requires administrator confirmation.
+5. When upgrading, first move the complete existing QQ Super Compression.vst3 bundle out of all scanned folders and retain it as a rollback copy. Then copy the complete new bundle into the VST3 folder. Do not leave old and new versions together or duplicate copies in custom scanning folders.
+6. Reopen your host and run a full VST3 rescan in its plug-in manager. Look under Qing Audio or search by product name.
+7. If the plug-in does not appear, confirm that the host is 64-bit, the bundle is complete and no duplicates remain. Clear the host's failed-scan/blocklist entry and rescan. Restart the host or Windows if necessary. If a runtime is reported missing, install Microsoft's official Visual C++ 2015-2022 x64 Redistributable.
+
+3. macOS VST3 installation and upgrade
+
+1. Fully quit all hosts and plug-in scanners.
+2. Choose one VST3 ZIP matching your host: Apple Silicon for native Apple Silicon hosts, or Intel x86_64 for Intel Macs and Intel hosts running through Rosetta. Do not install both.
+3. Extract the selected ZIP to obtain the complete bundle:
+   QQ Super Compression.vst3
+4. In Finder, choose Go -> Go to Folder and enter:
+   ~/Library/Audio/Plug-Ins/VST3
+   Your user Library is hidden by default. You can also hold Option while opening Finder's Go menu and choose Library. Create the destination folder if it does not exist.
+5. Copy the entire bundle into that user folder. For all users, you may instead install it in:
+   /Library/Audio/Plug-Ins/VST3
+   The system folder usually requires administrator permission. Keep only one copy across the user and system locations.
+6. When upgrading or switching between native and Rosetta hosts, move the old same-name bundle out of all scanned folders before copying the new one. Do not install the two architectures side by side.
+7. Reopen your host and run a VST3 rescan. If it is still missing, check the host architecture, duplicate copies and macOS security prompts before restarting the host or computer.
+
+4. macOS Audio Unit (AU) installation and upgrade
+
+1. Fully quit all hosts and plug-in scanners, then extract Mac/QQ Super Compression 1.2.8 macOS Universal 2 AU.zip.
+2. The extracted bundle should be:
+   QQ Super Compression.component
+3. Copy the complete bundle to:
+   ~/Library/Audio/Plug-Ins/Components
+   Or, for all users:
+   /Library/Audio/Plug-Ins/Components
+   The system folder may require administrator permission. Keep only one copy across the two locations.
+4. Universal 2 AU contains both Apple Silicon arm64 and Intel x86_64. AU and VST3 are independent; an AU-only host does not need VST3 installed.
+5. When upgrading, move the old same-name .component out of scanned folders and save it before copying the new version.
+6. Reopen Logic Pro, select the plug-in in Settings/Preferences -> Plug-in Manager, and choose Reset & Rescan Selection. Use the equivalent rescan function in other AU hosts. Restart the computer if necessary.
+
+5. macOS security prompts and loading failures
+
+The macOS bundles are ad-hoc signed, without Apple Developer ID signing or Apple notarization. Download quarantine may prevent the plug-in from loading for the first time.
+
+First check System Settings -> Privacy & Security for an applicable permission prompt. Only if you trust the delivery source, run the applicable command below in Terminal for the single installed bundle:
+
+User VST3 folder:
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+
+User AU folder:
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+For a system installation, replace the path with the actual /Library/Audio/Plug-Ins/VST3 or /Library/Audio/Plug-Ins/Components location. Use sudo only when permissions require it. Apply the command only to the complete bundle named above, never to an entire disk or Library folder. Do not run it for files of uncertain origin.
+
+Reopen the host and rescan afterward. If loading still fails, check the host architecture, duplicate copies and installation path, then restart the computer if necessary. Do not disable system-wide security protection.
+
+6. Upgrading to 1.2.8
+
+1. Save copies of your sessions and retain the previous complete .vst3 or .component bundles for rollback.
+2. Follow this order: quit the host -> move the old same-name bundle out -> copy the 1.2.8 bundle -> rescan. Plug-in identity is retained; verify old-session loading, parameter state and automation after upgrading.
+3. Version 1.2.8 changes Single / Dual switching in Limiter mode: the current value carries between Single Threshold and Dual DOWN Threshold in both directions, while Makeup, Mix and Output Gain remain unchanged. ST/LR/MS domains carry their values independently of LINK switches.
+4. Normal compression retains separate Single / Dual threshold memories. Check Limiter, Single/Dual, A/B, Output LINK and existing automation, and listen in your own host after upgrading.
+5. The included bilingual 1.2.7 PDFs retain their actual version names and are historical feature references. This guide and the repository's 1.2.8 update notes describe the current changes. QQ Super Multiband Compression packages and manuals do not apply to this plug-in.
+6. To roll back, quit the host, move the 1.2.8 bundle out, restore your saved previous-version bundle, run a full rescan and open a session copy saved before upgrading.
+
+7. Compatibility, first scan and troubleshooting
+
+- Windows provides x64 VST3 only; macOS requires version 11.0 or later.
+- Native Apple Silicon hosts use arm64 VST3. Intel or Rosetta hosts use x86_64 VST3. Universal 2 AU contains both architectures.
+- Do not leave duplicate copies of the same format in user, system or custom scanning folders.
+- If the plug-in is missing, first check the ZIP name, bundle name, installation path, host bitness/architecture and security prompts. Then run a full rescan; restart the host or computer afterward if necessary.
+- No additional installer is required. Hosts, device routing and long-running sessions may behave differently; this guide does not replace listening and verification in your own host.
+- Non-commercial use only. Redistribution of original or modified versions requires freely available complete corresponding source, preserved authorship, license and source notices, and identification of modifications. Consult the repository license for the full terms.
+- Corresponding public source and license:
+  Apple Silicon VST3: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/f5891559f24d54abe272d37d2941cdb1e068ba89
+  Intel VST3: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/9ca6e6ff284dc133d7c7ecd3137861c6fc314093
+  Universal 2 AU: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/a281cd9700b57d29378820b8fdb1fd9080e72767
+  All three commits have identical plug-in source, assets and build configuration, matching the Windows production inputs. Differences are confined to tests and build workflow corrections.
+- This is a desktop Plan C delivery. The formal GitHub Release has not been published.
