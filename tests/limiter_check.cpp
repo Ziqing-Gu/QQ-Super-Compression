@@ -62,8 +62,11 @@ struct QQSCLimiterCheck
             check(!p.isUnityMonitorEnabled(),"Monitor must default off");
             check(e.ceilingValue.getText().contains("dBTP"),"TP ceiling unit");
             const auto outputBefore=get(p,"limiterOutputDb");
+            // Preserve the stored value, not the requested decimal before float normalisation.
+            const auto normalOutputBefore=get(p,"outputGainDb");
+            std::cout<<"CHECK: output requested="<<out<<" stored="<<std::setprecision(10)<<normalOutputBefore<<" delta="<<(normalOutputBefore-out)<<"\n";
             e.inputGainSlider.onGestureStart();e.inputGainSlider.setValue(3,juce::sendNotificationSync);e.inputGainSlider.onGestureEnd();
-            check(std::abs(get(p,"limiterOutputDb")-outputBefore)<1e-6 && std::abs(get(p,"outputGainDb")-out)<1e-6,"Hidden I/O Link still active");
+            check(get(p,"limiterOutputDb")==outputBefore && get(p,"outputGainDb")==normalOutputBefore,"Hidden I/O Link still active");
             const auto parse=e.inputGainSlider.getValueFromText("5");e.inputGainSlider.setValue(parse,juce::sendNotificationSync);
             check(std::abs(get(p,"limiterOutputDb")-outputBefore)<1e-6,"Input numeric entry still links");
             // DOWN threshold adjusts Output; UP threshold does not.
@@ -98,8 +101,8 @@ struct QQSCLimiterCheck
         p.getUndoManager().clearUndoHistory();
         e.ceilingValue.setText("-3.25",juce::sendNotificationSync);sync(p,e);
         check(std::abs(get(p,"ceilingDb")+3.25)<.001,"Ceiling numeric commit");
-        const auto ctrl=juce::ModifierKeys::ctrlModifier;
-        check(e.keyPressed(juce::KeyPress('Z',ctrl,0),&e),"Ctrl+Z not consumed");sync(p,e);
+        const auto ctrl=juce::ModifierKeys::commandModifier;
+        check(e.keyPressed(juce::KeyPress('Z',ctrl,0),&e),"Platform undo shortcut not consumed");sync(p,e);
         check(std::abs(get(p,"ceilingDb"))<.001,"Ceiling undo must return to the 0 dB default");
         e.keyPressed(juce::KeyPress('Z',ctrl|juce::ModifierKeys::shiftModifier,0),&e);sync(p,e);
         check(std::abs(get(p,"ceilingDb")+3.25)<.001,"Ceiling redo");

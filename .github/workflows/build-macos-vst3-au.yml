@@ -2,6 +2,11 @@ name: Build macOS VST3 and AU 1.2.8
 
 on:
   workflow_dispatch:
+    inputs:
+      vst3_only:
+        description: Reuse an already verified AU with identical production inputs
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -70,6 +75,7 @@ jobs:
           retention-days: 7
 
   build-au:
+    if: ${{ !inputs.vst3_only }}
     name: AU Universal 2 (arm64 + x86_64)
     runs-on: macos-14
 
