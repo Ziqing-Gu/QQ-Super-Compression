@@ -1,0 +1,19 @@
+{
+  "InstalledAt": "2026-09-27T19:27:02.5682135+08:00",
+  "InstalledBundle": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+  "SourceBundle": "D:\\Codex\\Outputs\\QQ Super Compression 1.2.7 Unity Monitor\\Win\\QQ Super Compression.vst3",
+  "BackupBundle": "D:\\Codex\\Archives\\QQSuperCompression-1.2.7-before-Unity-Monitor-20260927-192702\\QQ Super Compression.vst3",
+  "HostProcessesFound": 0,
+  "VerifiedFiles": [
+    {
+      "File": "Contents\\Resources\\moduleinfo.json",
+      "Bytes": 1115,
+      "SHA256": "F1F02EB3F87B9F282AFCD517F2791394C94D285146DEE2F4A51BA8A168300B1F"
+    },
+    {
+      "File": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+      "Bytes": 10571264,
+      "SHA256": "292F588A9E91FF8EC5BBD609BDFB3E9CD6165DDA1D2B22C2C28427AE2B2DAAC6"
+    }
+  ]
+}

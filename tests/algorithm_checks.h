@@ -5,7 +5,9 @@ void algorithmStateChecks()
     QQSuperCompressionAudioProcessor p;
     check(get(p,"algorithmMode")==0,"New instances must default to Classic");
     auto* last=dynamic_cast<juce::AudioProcessorParameterWithID*>(p.getParameters().getLast());
-    check(last && last->paramID=="algorithmMode","Algorithm must be appended to host contract");
+    check(last && last->paramID=="limiterDownThresholdSDb","Limiter parameters must be appended to host contract");
+    check(p.getParameters().indexOf(p.getAPVTS().getParameter("algorithmMode"))
+        ==p.getParameters().indexOf(p.getAPVTS().getParameter("inputOutputLink"))+1,"Algorithm legacy index changed");
     set(p,"algorithmMode",1);p.copyAToB();set(p,"algorithmMode",0);
     p.selectABSlot(1);check(get(p,"algorithmMode")==1,"B did not retain Super");
     p.selectABSlot(0);check(get(p,"algorithmMode")==0,"A did not retain Classic");
@@ -123,23 +125,12 @@ void algorithmFadeChecks()
     // Both curves are identical at unity: linear crossfade must not boost it.
     QQSuperCompressionAudioProcessor p;setupDb(p,0,0,-40,1,1);p.prepareToPlay(48000,1);
     juce::MidiBuffer midi;juce::AudioBuffer<float> b(2,1);
-    // JUCE's 0.01 dB snapping can retain sub-micro-dB rounding with ARM FMA.
-    // Test the actual configured trims, so a static offset is not mistaken
-    // for modulation caused by the algorithm crossfade. Keep the same bound.
-    const float unityExpected=.25f*juce::Decibels::decibelsToGain(get(p,"inputGainDb"))
-        *juce::Decibels::decibelsToGain(get(p,"makeupGainDb"))
-        *juce::Decibels::decibelsToGain(get(p,"outputGainDb"));
-    double unityError=0;
     for(int n=0;n<6000;++n)
     {
         if(n%73==0)set(p,"algorithmMode",float((n/73)%2));
         b.setSample(0,0,.25f);b.setSample(1,0,.25f);p.processBlock(b,midi);
-        if(n>1500)unityError=std::max(unityError,double(std::abs(b.getSample(0,0)-unityExpected)));
+        if(n>1500)check(std::abs(b.getSample(0,0)-.25f)<1e-7,"Equal-signal algorithm crossfade changes level");
     }
-    std::cout<<"Unity crossfade: actual trim dB="<<get(p,"inputGainDb")<<","<<get(p,"makeupGainDb")
-             <<","<<get(p,"outputGainDb")<<"; reference offset="<<unityExpected-.25f
-             <<"; maximum fade error="<<unityError<<'\n';
-    check(unityError<1e-7,"Equal-signal algorithm crossfade changes level");
     std::cout<<"PASS: actual 10ms direct algorithm / 20ms complete A/B crossfade, both directions / mid-fade reversal, 44.1/48/96kHz, 26ms and0ms1x/8x/16x, Up/Down Single/Dual, unity and latency.\n";
 }
 }

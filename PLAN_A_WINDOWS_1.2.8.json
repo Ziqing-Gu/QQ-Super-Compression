@@ -1,0 +1,46 @@
+{
+  "product": "QQ Super Compression",
+  "version": "1.2.8",
+  "status": "Candidate - Plan A built, tested, delivered, and installed for user validation",
+  "timestamp": "2026-09-28T03:23:21.8686184+08:00",
+  "sourceWorkspace": "D:\\Codex\\Workspaces\\QQSuperCompression-1.2.8-Limiter-Mode-Continuity",
+  "sourceZip": "C:\\Users\\86189\\Downloads\\QQSuperCompression-1.2.8-Limiter-Mode-Continuity-Source.zip",
+  "sourceZipSha256": "A8A7C812647E96186FB3D3E0A0F7C52919F59E7D83D963B3C955EBAB5F121655",
+  "sourceManifestEntries": 363,
+  "sourceManifestFailures": 0,
+  "buildBundle": "D:\\Codex\\Temp\\QQSuperCompression-1.2.8-Limiter-Mode-Continuity\\QQSuperCompression_artefacts\\Release\\VST3\\QQ Super Compression.vst3",
+  "deliveryBundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.8 Limiter Mode Continuity Candidate\\Win\\QQ Super Compression.vst3",
+  "installedBundle": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+  "rollbackBundle": "D:\\Codex\\Archives\\QQ Super Compression\\Pre-1.2.8-Installed-20260928-032321\\QQ Super Compression.vst3",
+  "tests": {
+    "continuity": "passed",
+    "limiterFull": "passed",
+    "unity": "passed",
+    "loudness": "passed",
+    "vstParity": "passed: 120 normal + 24 limiter cases, zero residual"
+  },
+  "oldInstalledFiles": [
+    {
+      "relative": "Contents\\Resources\\moduleinfo.json",
+      "length": 1115,
+      "sha256": "F1F02EB3F87B9F282AFCD517F2791394C94D285146DEE2F4A51BA8A168300B1F"
+    },
+    {
+      "relative": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+      "length": 10614784,
+      "sha256": "B9E073E7283AB4C4288FB646FE516866CFE8EC04E27142F3C12EA9CAA78D5704"
+    }
+  ],
+  "newFiles": [
+    {
+      "relative": "Contents\\Resources\\moduleinfo.json",
+      "length": 1115,
+      "sha256": "01359145A4E47E08A56D0633B90396FBE0394CBF76C798D242EABEB79C4AEC4E"
+    },
+    {
+      "relative": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+      "length": 10620416,
+      "sha256": "9A5E39848AB2691AFF7F70AAF3781D6FDBE7004B90D62C3CF57B9A0327F8B7E3"
+    }
+  ]
+}

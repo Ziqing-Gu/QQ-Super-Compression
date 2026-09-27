@@ -8,6 +8,14 @@ struct MeterState
 {
     // The three dedicated meters use two channels. In ST/LR these are L/R;
     // in MS these are Mid/Side.
+    // Post-Ceiling physical L/R true-peak estimate. Hold 20 s of processed
+    // audio without decay; double-clicking TP clears the accumulated peak.
+    // Final audible output, independent of MATCH and the A/B parameter banks.
+    std::atomic<float> outputIntegratedLufs { -120.0f };
+    std::atomic<float> outputLoudnessSeconds { 0.0f };
+    std::atomic<bool> outputLoudnessMeasuring { false };
+
+    std::atomic<float> truePeakHoldDb { -120.0f };
     std::atomic<float> inputDb0  { -120.0f };
     std::atomic<float> inputDb1  { -120.0f };
     std::atomic<float> outputDb0 { -120.0f };

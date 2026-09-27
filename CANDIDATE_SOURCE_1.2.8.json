@@ -1,0 +1,24 @@
+{
+  "version": "1.2.8",
+  "status": "source_candidate_pending_windows_validation",
+  "base_archive": "QQSuperCompression-1.2.7-Strict-Output-Link.zip",
+  "base_archive_sha256": "d065afb3f0618d79ccc81807610cb44eb1ca1a5c1ccc55573542da9d054eccff",
+  "confirmed_1_2_7_vst3_sha256": "B9E073E7283AB4C4288FB646FE516866CFE8EC04E27142F3C12EA9CAA78D5704",
+  "new_binary_built": false,
+  "installed": false,
+  "plan_b_completed": false,
+  "github_published": false,
+  "production_files_modified": [
+    "CMakeLists.txt",
+    "Source/LimiterMode.cpp",
+    "Source/PluginEditor.cpp",
+    "Source/PluginProcessor.cpp",
+    "Source/PluginProcessor.h"
+  ],
+  "production_files_added": [
+    "Source/LimiterModeContinuity.h"
+  ],
+  "baseline_records_archived_under": "docs/history/1.2.7-verified-baseline",
+  "retained_state_schema": 22,
+  "windows_juce_regression_status": "included_not_run"
+}

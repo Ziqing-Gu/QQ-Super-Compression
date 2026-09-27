@@ -207,20 +207,26 @@ public:
                                    float upThreshold, float downThreshold,
                                    CompressionAlgorithm algorithm = CompressionAlgorithm::classic) noexcept
     {
+        return dualGainForLevel(level,upRatio,downRatio,upThreshold,downThreshold,algorithm,algorithm);
+    }
+
+    static float dualGainForLevel (float level, float upRatio, float downRatio,
+                                   float upThreshold, float downThreshold,
+                                   CompressionAlgorithm upAlgorithm, CompressionAlgorithm downAlgorithm) noexcept
+    {
         // UP is an enabling gate, never an invitation to raise sub-threshold
         // material. The upward branch ends at DOWN, where its gain reaches
         // unity and the retained downward branch takes over.
-        if (algorithm == CompressionAlgorithm::classic)
-        {
+        if (upAlgorithm == CompressionAlgorithm::classic)
             upThreshold = juce::jmax (classicThresholdMinimumGain, upThreshold);
+        if (downAlgorithm == CompressionAlgorithm::classic)
             downThreshold = juce::jmax (classicThresholdMinimumGain, downThreshold);
-        }
         if (upThreshold >= downThreshold || level <= upThreshold)
             return 1.0f;
         if (level < downThreshold)
-            return gatedUpwardGain (level, upRatio, upThreshold, downThreshold, algorithm);
+            return gatedUpwardGain (level, upRatio, upThreshold, downThreshold, upAlgorithm);
         if (level > downThreshold)
-            return gainForLevel (level, downRatio, downThreshold, algorithm);
+            return gainForLevel (level, downRatio, downThreshold, downAlgorithm);
         return 1.0f;
     }
 

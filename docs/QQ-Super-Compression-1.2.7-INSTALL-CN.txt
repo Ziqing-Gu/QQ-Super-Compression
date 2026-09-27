@@ -1,0 +1,16 @@
+QQ Super Compression 1.2.7 - 安装与更新
+
+Win/：解压 Windows x64 ZIP，将完整 QQ Super Compression.vst3 文件夹复制到 C:\Program Files\Common Files\VST3。覆盖前保存工程并完全退出所有 DAW / 音频宿主，再打开宿主重新扫描。不要只复制 bundle 里面的二进制文件。
+
+Mac/：选择与宿主进程架构一致的 Apple Silicon 或 Intel VST3；Logic 使用 Universal 2 AU。最低 macOS 11。完整 VST3 bundle 放到 /Library/Audio/Plug-Ins/VST3，AU 放到 /Library/Audio/Plug-Ins/Components；也可使用对应的用户 Library 目录。复制前关闭宿主，随后重新扫描。Mac 包为临时签名、未经 Apple 公证；从官方 Release 下载并按系统提示批准。
+
+1.2.7 新增 Limiter、最终 Ceiling、默认打开且可关闭的 TP 保护、耳机 1:1 监听与对应 MATCH。Limiter 下压 Ratio 20:1 至 1000:1，Ceiling -24 至 0 dB，默认 0，Alt 单击复位。TP 保持约 20 秒，双击清零。耳机保留完整限幅效果，在最后抵消可见 Output Gain，MON 显示换算后的上限。
+
+耳机等响比较：打开 Limiter 和耳机，关闭 SC LISTEN，声道 MONITOR 选 ALL。播放代表性片段建立测量，点击 MATCH，再用插件 Bypass 比较原声。结束后关闭耳机，重新检查正常输出和 TP。耳机状态独立于 A/B，Limiter / TP / Ceiling 随 A/B 保存。
+
+26 ms 仍是初始 Lookahead。最终峰值保护另有约 7-8.5 ms 固定缓冲（48 kHz 下约 8.17 ms）；关闭 Limiter / TP 也保持同样延迟，由宿主补偿。正式插件身份保留；旧工程没有新参数时 Limiter 默认关闭。旧版 Preview / QQ dB Compression 实例仍需手动替换。
+
+两本 35 页 PDF 均对应本版。Classic / Super、上压、Dual、LINK、MATCH 和 Lookahead 详见手册；Limiter 从第 25 页开始。先保存工程再更新，保留旧版安装包供必要时回退。
+
+禁止商业使用。完整对应源代码及许可证：https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.7
+官方下载：https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.7

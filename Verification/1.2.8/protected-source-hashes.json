@@ -1,0 +1,94 @@
+[
+  {
+    "path": "Source/ABTransfer.h",
+    "sha256": "b3975f95d779f5eee7d44d5e757659c16b2297b1e8ec18f50c16ff5ca19b4484"
+  },
+  {
+    "path": "Source/BS1770LoudnessMatch.h",
+    "sha256": "83180e164dd62d97366e680c45359520c48947ac5cc5c096b3eb353091cb4306"
+  },
+  {
+    "path": "Source/DarkMaterial.h",
+    "sha256": "01a9199659164f9a475a3481dd96721fbb4f7b4819c7eafdfd256ee53ed8e5c7"
+  },
+  {
+    "path": "Source/DarkPanelMaterial.h",
+    "sha256": "970cefedf1d23472ab7b6248eaf927c7bac0b0e3c80b7e4a18d2a0dcd280cf4f"
+  },
+  {
+    "path": "Source/DynamicDisplay.cpp",
+    "sha256": "9f538cf2bd4598a9fce0fcdce6f1da297adcf8828099a2f6cc4f4ca0ed308386"
+  },
+  {
+    "path": "Source/DynamicDisplay.h",
+    "sha256": "ff1adb1d949e7a5c2eaaaa2ecf422de3db312d9f20314cdac1bdec03ce3d53f9"
+  },
+  {
+    "path": "Source/DynamicsLimits.h",
+    "sha256": "d8daab8325ffc401d1fc5d1bc11fc475fe7a2d145f215dd0b836ccb7f83a744f"
+  },
+  {
+    "path": "Source/IntegratedLoudnessMeter.h",
+    "sha256": "09efad60e18c9c5bb4ff0e3d990a061301c945fcb29acf336e6633866acfc3e7"
+  },
+  {
+    "path": "Source/KWeightingFilter.h",
+    "sha256": "ea1e4c922ea38b6e185e90beb14f3ec5cd8fd60b03555617bf31a85f6eca2825"
+  },
+  {
+    "path": "Source/KnobLight.h",
+    "sha256": "5e77f1aab99b5130b81286319434b9672d3a70e8372e89b85511ba405ddbc748"
+  },
+  {
+    "path": "Source/LevelMeters.cpp",
+    "sha256": "6ba7e3bbfaf6eb36fb0ef3c230f382bf17f003eca6a150dec84f84117ca759b4"
+  },
+  {
+    "path": "Source/LevelMeters.h",
+    "sha256": "9ac7e9f287d160343b6349e2f8dfc4e81b069b118e7ba3b1349839407be3531e"
+  },
+  {
+    "path": "Source/LightKnobScale.h",
+    "sha256": "813c0f01ede8f6ddb93d461f715e17c4bb10ba36d6aacbe6a33eb4e37aeb087d"
+  },
+  {
+    "path": "Source/LimiterEditor.cpp",
+    "sha256": "4870be2167c4150d963b7f3c65ff229aab59e06cdc6d70467c3abc278d689e22"
+  },
+  {
+    "path": "Source/MeterState.h",
+    "sha256": "d9030f83b32fe8591a50cd007f07a3c92cab7fa9dc7b1b15e8893b7763bf8dc3"
+  },
+  {
+    "path": "Source/OutputCeiling.h",
+    "sha256": "b36e0db8987c2b15ad9c297b962df6e15094d068dda70fbf2687824615b99343"
+  },
+  {
+    "path": "Source/Parameters.h",
+    "sha256": "3d56413316ee650ff69831d0abd0370448b9970962dc9014ba1a0a30da1b0f30"
+  },
+  {
+    "path": "Source/PluginEditor.h",
+    "sha256": "5461b590c8cca558e26ad75531a63b15cf5be420287425193cacdd460728f37e"
+  },
+  {
+    "path": "Source/RefinedDarkKnob.h",
+    "sha256": "8124d7cc94d5de2459f2fdeb3a04e5d7152c42337639eea69241257a5118c574"
+  },
+  {
+    "path": "Source/StaticCompressionEngine.h",
+    "sha256": "51b36d3aa7be1113aa4e90ac6c0c534163a9b7a3a9edc2dfe24d455cad3fa6ba"
+  },
+  {
+    "path": "Source/UTF8LookAndFeel.h",
+    "sha256": "935982cf81b6d8f3a29bf87c9ad394f68c47a4c20658187b34f82a001736e98a"
+  },
+  {
+    "path": "Source/WarmKnobAsset.h",
+    "sha256": "75bed09c5d7aa49be759c67a15a72a3e11f0585a959496d1cc64be3feb9bace0"
+  },
+  {
+    "path": "Source/WarmMaterial.h",
+    "sha256": "940c14435c861307f87e9e29e198daea39c8dc86adac2ac125ce01461c925ff7"
+  }
+]

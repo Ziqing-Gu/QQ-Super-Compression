@@ -1,0 +1,18 @@
+{
+  "pdf": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.6 中文说明书曲线更新\\QQ Super Compression 用户手册 中文版_v1.2.6.pdf",
+  "pages": 28,
+  "bookmarks": 28,
+  "text_changed_pages": [
+    5
+  ],
+  "drawing_changed_pages": [
+    5
+  ],
+  "other_pages": "All 27 unchanged pages have identical decoded PDF drawing streams and extracted text.",
+  "baseline": "Original published Chinese/English PDFs and builders unchanged.",
+  "bounds_issues": [],
+  "bytes": 6844304,
+  "sha256": "687b23a16f2d928088776e63f4355810238397f6789dd5148354eb06127b57f3",
+  "visual_review": "PASS: page 5 rendered at 140 DPI and visually inspected; other 27 pages retain identical decoded drawing streams and extracted text.",
+  "status": "Interim Chinese draft on hold at user request; future Limiter content pending; not a final release manual."
+}

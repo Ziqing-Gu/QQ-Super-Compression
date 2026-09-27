@@ -14,9 +14,11 @@ public:
     }
 
     void paint (juce::Graphics& g) override;
+    void mouseDoubleClick (const juce::MouseEvent&) override;
 
 private:
     void timerCallback() override { repaint(); }
+    juce::Rectangle<float> truePeakBounds() const noexcept;
 
     void drawDualMeter (juce::Graphics&,
                         juce::Rectangle<float>,

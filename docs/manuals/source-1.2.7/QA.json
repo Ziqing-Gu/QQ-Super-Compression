@@ -1,0 +1,17 @@
+{
+  "PDF": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.7 中文说明书\\QQ Super Compression 用户手册 中文版_v1.2.7.pdf",
+  "Pages": 35,
+  "Bookmarks": 35,
+  "ChineseOnly": true,
+  "English": "Not created; awaiting Chinese approval",
+  "Bytes": 7714005,
+  "SHA256": "AE25DD0467596EF37487CFC359581A46F63412F8C88C52A3838D49082D75D935",
+  "TextBoundsIssues": [],
+  "RequiredContent": "passed",
+  "ObsoleteStatements": "removed",
+  "OriginalHeldDraftSHA256": "unchanged",
+  "VisualReview": "passed",
+  "RenderedPages": "D:\\Codex\\Temp\\QQSCManual127",
+  "VisualReviewDetails": "All 35 rendered pages reviewed; modified pages 7, 11, 25, 27 and 28 checked again; original typography and transfer chart retained; no text overflow or obstructed controls.",
+  "VisualReviewDate": "2026-09-27T20:22:55.8574836+08:00"
+}

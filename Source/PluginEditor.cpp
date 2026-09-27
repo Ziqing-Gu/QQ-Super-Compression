@@ -55,6 +55,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     processor.initialiseDualRatioLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("dualRatioLink", true));
     processor.initialiseInputOutputLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("inputOutputLink", true));
     processor.initialiseAlgorithmPreference (uiProperties != nullptr ? uiProperties->getIntValue ("lastAlgorithmMode", 0) : 0);
+    processor.initialiseDualAlgorithmPreferences(
+        uiProperties != nullptr ? uiProperties->getIntValue("lastUpAlgorithmMode",int(processor.readSoundParameter("algorithmMode"))) : 0,
+        uiProperties != nullptr ? uiProperties->getIntValue("lastDownAlgorithmMode",int(processor.readSoundParameter("algorithmMode"))) : 0);
     setLookAndFeel (&utf8LookAndFeel);
     setResizable (true, true);
     setResizeLimits (minEditorWidth, minEditorHeight, maxEditorWidth, maxEditorHeight);
@@ -140,7 +143,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
     for (auto* label : { &inputGainLabel, &ratioLabel, &ratioChannel0Label, &ratioChannel1Label,
                           &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
-                          &mixLabel, &mixChannel0Label, &mixChannel1Label, &outputGainLabel, &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
+                          &mixLabel, &mixChannel0Label, &mixChannel1Label, &ceilingLabel, &outputGainLabel, &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
                           &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel })
         contentRoot.addAndMakeVisible (*label);
 
@@ -208,7 +211,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
     for (auto* slider : { &inputGainSlider, &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider,
                           &makeupSTSlider, &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider,
-                          &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider, &outputGainSlider, &thresholdSlider, &thresholdLSlider, &thresholdRSlider,
+                          &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider, &ceilingSlider, &outputGainSlider, &thresholdSlider, &thresholdLSlider, &thresholdRSlider,
                           &thresholdMSlider, &thresholdSSlider })
     {
         contentRoot.addAndMakeVisible (*slider);
@@ -227,7 +230,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     lookaheadCombo.setColour (juce::ComboBox::arrowColourId, qqsc::ui::cyanAccent().darker (0.30f));
     lookaheadCombo.setSelectedItemIndex (
         qqsc::params::lookaheadChoiceIndexForMs (
-            processor.getAPVTS().getRawParameterValue (qqsc::params::lookaheadMs)->load()),
+            processor.readSoundParameter(qqsc::params::lookaheadMs)),
         juce::dontSendNotification);
     lookaheadCombo.onChange = [this] { commitLookaheadChoice(); };
     contentRoot.addAndMakeVisible (lookaheadCombo);
@@ -246,6 +249,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureActionButton (bToAButton);
     configureActionButton (algorithmButton);
     algorithmButton.getProperties().set ("qqscAlwaysLit", true);
+    algorithmButton.getProperties().set ("qqscSmallLink", true);
     algorithmButton.setComponentID ("algorithmMode");
     algorithmButton.setTooltip ("Classic = fixed dB ratio; Super = original QQ curve. 10 ms crossfade. New instances remember your last choice; saved project and A/B states take priority.");
     contentRoot.addAndMakeVisible (algorithmButton);
@@ -254,7 +258,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     {
         endLinkedGesture();
         beginUndoTransaction ("Classic / Super Algorithm");
-        const auto current = processor.getAPVTS().getRawParameterValue (qqsc::params::algorithmMode)->load();
+        const auto current = processor.readSoundParameter(qqsc::params::algorithmMode);
         setChoiceParameter (qqsc::params::algorithmMode, current >= 0.5f ? 0 : 1);
         if (uiProperties != nullptr)
         {
@@ -264,6 +268,30 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
         }
         updateAlgorithmUi();
     };
+    for(bool upward:{true,false})
+    {
+        auto& button=upward ? upAlgorithmButton : downAlgorithmButton;
+        configureActionButton(button);
+        button.getProperties().set("qqscAlwaysLit",true);
+        button.getProperties().set("qqscSmallLink",true);
+        button.setComponentID(upward ? "upAlgorithmMode" : "downAlgorithmMode");
+        button.setTooltip(juce::String(upward ? "Up" : "Down")+" algorithm: Classic / Super. Shared across L/R and M/S. 10 ms crossfade. Independent of Output Gain; saved in each A/B and Normal/Limiter bank.");
+        contentRoot.addAndMakeVisible(button);registerKeyboardListener(button);
+        button.onClick=[this,upward]
+        {
+            finishCompressionControlGestures();
+            beginUndoTransaction(upward ? "Up Classic / Super" : "Down Classic / Super");
+            const auto* id=upward ? "upAlgorithmMode" : "downAlgorithmMode";
+            const int value=processor.readSoundParameter(id)>=.5f ? 0 : 1;
+            setChoiceParameter(id,value);
+            if(uiProperties!=nullptr)
+            {
+                uiProperties->reload();uiProperties->setValue(upward ? "lastUpAlgorithmMode" : "lastDownAlgorithmMode",value);
+                uiProperties->saveIfNeeded();
+            }
+            updateAlgorithmUi();
+        };
+    }
     updateAlgorithmUi();
     configureActionButton (themeButton);
     configureActionButton (oversamplingButton);
@@ -477,6 +505,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
         updateSidechainUi();
     };
 
+    initialiseLimiterControls();
     registerKeyboardListener (*this);
     setWantsKeyboardFocus (true);
     theme = uiProperties != nullptr ? qqsc::ui::themeFromPreferences (*uiProperties) : qqsc::ui::Theme::light;
@@ -543,7 +572,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
     for (auto* label : { &inputGainLabel, &ratioLabel, &ratioChannel0Label, &ratioChannel1Label,
                          &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
-                         &mixLabel, &mixChannel0Label, &mixChannel1Label, &outputGainLabel,
+                         &mixLabel, &mixChannel0Label, &mixChannel1Label, &ceilingLabel, &outputGainLabel,
                          &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
                          &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel,
                          &keySourceLabel, &keyGainLabel, &keyHpfLabel, &keyMeterLabel })
@@ -568,7 +597,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
     for (auto* slider : { &inputGainSlider, &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider,
                            &makeupSTSlider, &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider,
-                           &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider, &outputGainSlider,
+                           &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider, &ceilingSlider, &outputGainSlider,
                            &keyGainSlider, &keyHpfSlider })
     {
         slider->setColour (juce::Slider::textBoxTextColourId, qqsc::ui::text());
@@ -597,7 +626,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
     for (auto* button : { &modeButton, &linkButton, &dualRatioLinkButton, &inputOutputLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
-                          &algorithmButton, &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
+                          &limiterButton, &limiterLinkButton, &unityMonitorButton, &truePeakButton, &algorithmButton, &upAlgorithmButton, &downAlgorithmButton, &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
                           &keyExternalButton, &sidechainListenButton })
     {
         button->setColour (juce::TextButton::buttonColourId, qqsc::ui::panel());
@@ -611,6 +640,8 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     monitorFirstButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     monitorSecondButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     algorithmButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
+    upAlgorithmButton.setColour(juce::TextButton::buttonOnColourId,qqsc::ui::warmAccent());
+    downAlgorithmButton.setColour(juce::TextButton::buttonOnColourId,qqsc::ui::warmAccent());
     themeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     sidechainButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     keyInternalButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
@@ -683,7 +714,7 @@ void QQSuperCompressionAudioProcessorEditor::setKeySource (int source)
     source = juce::jlimit (static_cast<int> (qqsc::params::keyInternal),
                            static_cast<int> (qqsc::params::keyExternal), source);
     const auto current = juce::roundToInt (
-        processor.getAPVTS().getRawParameterValue (qqsc::params::keySource)->load());
+        processor.readSoundParameter(qqsc::params::keySource));
 
     if (source != current)
     {
@@ -697,7 +728,7 @@ void QQSuperCompressionAudioProcessorEditor::setKeySource (int source)
 void QQSuperCompressionAudioProcessorEditor::updateSidechainUi()
 {
     const auto source = juce::jlimit (0, 1, juce::roundToInt (
-        processor.getAPVTS().getRawParameterValue (qqsc::params::keySource)->load()));
+        processor.readSoundParameter(qqsc::params::keySource)));
     const bool external = source == qqsc::params::keyExternal;
     const bool available = processor.isExternalSidechainBusAvailable();
     const bool listening = processor.isSidechainListenEnabled();
@@ -771,8 +802,8 @@ void QQSuperCompressionAudioProcessorEditor::configureThresholdSlider (FineKnob&
     slider.setColour (juce::Slider::textBoxTextColourId, qqsc::ui::text());
     slider.setColour (juce::Slider::textBoxBackgroundColourId, qqsc::ui::panel().withAlpha (0.80f));
     slider.setColour (juce::Slider::textBoxOutlineColourId, qqsc::ui::border().withAlpha (0.78f));
-    slider.textFromValueFunction = [this] (double v)
-    { return qqsc::params::boundaryText (static_cast<float> (v), processor.isClassicAlgorithm()); };
+    slider.textFromValueFunction = [this,&slider] (double v)
+    { return qqsc::params::boundaryText (static_cast<float> (v), processor.isClassicBoundary(bool(slider.getProperties()["qqscUpperBoundary"]))); };
     slider.valueFromTextFunction = [] (const juce::String& text)
     {
         return (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("-inf"))
@@ -785,13 +816,15 @@ void QQSuperCompressionAudioProcessorEditor::beginLinkedGesture (LinkedPair pair
                                                                    FineKnob& target, const juce::String& undoName)
 {
     beginUndoTransaction (undoName);
+    if(pair==LinkedPair::makeupLR || pair==LinkedPair::makeupMS)
+        captureLimiterLinkAnchor();
     activeLinkedPair = pair;
     activeLinkSource = &source;
     activeLinkTarget = &target;
     activeLinkSourceStart = source.getValue();
     activeLinkTargetStart = target.getValue();
     const auto targetID = target.getProperties()["qqscParameterID"].toString();
-    const bool linked = pair == LinkedPair::inputOutput ? inputOutputLinkButton.getToggleState() : linkButton.getToggleState();
+    const bool linked = pair == LinkedPair::inputOutput ? (inputOutputLinkButton.getToggleState() && ! processor.isLimiterMode()) : linkButton.getToggleState();
     if (linked && targetID.isNotEmpty())
         if (auto* parameter = processor.getAPVTS().getParameter (targetID))
         {
@@ -923,7 +956,7 @@ void QQSuperCompressionAudioProcessorEditor::setLinkedControlValue (FineKnob& sl
 void QQSuperCompressionAudioProcessorEditor::handleLinkedValueChange (LinkedPair pair, FineKnob& source, FineKnob& target)
 {
     const bool opposite = pair == LinkedPair::inputOutput;
-    const bool linked = opposite ? inputOutputLinkButton.getToggleState() : linkButton.getToggleState();
+    const bool linked = opposite ? (inputOutputLinkButton.getToggleState() && ! processor.isLimiterMode()) : linkButton.getToggleState();
     if (linkedValueUpdateInProgress || ! linked)
         return;
 
@@ -1006,7 +1039,7 @@ double QQSuperCompressionAudioProcessorEditor::handleLinkedTextEntry (LinkedPair
 
     // With LINK off, direct entry should remain an ordinary one-parameter edit.
     const bool opposite = pair == LinkedPair::inputOutput;
-    if (! (opposite ? inputOutputLinkButton.getToggleState() : linkButton.getToggleState()))
+    if (! (opposite ? (inputOutputLinkButton.getToggleState() && ! processor.isLimiterMode()) : linkButton.getToggleState()))
         return requestedSource;
 
     const auto sourceStart = source.getValue();
@@ -1131,7 +1164,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
         outputGainSlider.cancelNativeDragForParameterRebind();
         endLinkedGesture();
         beginUndoTransaction ("Input / Output Gain Link");
-        const bool enabled = processor.getAPVTS().getRawParameterValue (qqsc::params::inputOutputLink)->load() < 0.5f;
+        const bool enabled = processor.readSoundParameter(qqsc::params::inputOutputLink) < 0.5f;
         setChoiceParameter (qqsc::params::inputOutputLink, enabled ? 1 : 0);
         if (uiProperties != nullptr)
         {
@@ -1150,7 +1183,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
     {
         finishCompressionControlGestures();
         beginUndoTransaction ("Up / Down Ratio Link");
-        const bool enabled = processor.getAPVTS().getRawParameterValue (qqsc::params::dualRatioLink)->load() < 0.5f;
+        const bool enabled = processor.readSoundParameter(qqsc::params::dualRatioLink) < 0.5f;
         setChoiceParameter (qqsc::params::dualRatioLink, enabled ? 1 : 0);
         if (uiProperties != nullptr)
         {
@@ -1174,7 +1207,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
             {
                 const auto* id = (upward ? qqsc::params::upEnabledIds : qqsc::params::downEnabledIds)[d];
                 beginUndoTransaction (upward ? "Up processing On/Off" : "Down processing On/Off");
-                const bool enabled = processor.getAPVTS().getRawParameterValue (id)->load() < 0.5f;
+                const bool enabled = processor.readSoundParameter(id) < 0.5f;
                 setChoiceParameter (id, enabled ? 1 : 0);
                 updateCompressionUi();
             };
@@ -1182,16 +1215,27 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
 
     configureActionButton (compressionModeButton);
     compressionModeButton.getProperties().set ("qqscAlwaysLit", true);
-    compressionModeButton.setTooltip ("Single: process between Threshold and Range. Dual: independent upward and downward compression.");
+    compressionModeButton.setTooltip ("Single: process between Threshold and Range. Dual: independent upward and downward compression. In Limiter mode, switching carries the current downward threshold and retains Makeup, Mix and Output, regardless of LINK.");
     contentRoot.addAndMakeVisible (compressionModeButton);
     registerKeyboardListener (compressionModeButton);
     compressionModeButton.onClick = [this]
     {
-        endLinkedGesture();
-        beginUndoTransaction ("Single / Dual Compression");
-        setChoiceParameter ("compressionMode", attachedCompressionMode == 1 ? 0 : 1);
+        if (processor.isLimiterMode())
+        {
+            finishCompressionControlGestures();
+            processor.setCompressionModeFromEditor (
+                processor.readSoundParameter (qqsc::params::compressionMode) >= 0.5f ? 0 : 1);
+        }
+        else
+        {
+            // Normal compression retains its separate Single/Dual memories.
+            endLinkedGesture();
+            beginUndoTransaction ("Single / Dual Compression");
+            setChoiceParameter ("compressionMode", attachedCompressionMode == 1 ? 0 : 1);
+        }
         updateCompressionUi();
         updateModeUi();
+        captureLimiterLinkAnchor();
     };
     linkButton.setTooltip ("Relative Link: Ratio / Threshold / Range / Makeup / Mix");
     const auto lower = lowerBoundaryControls();
@@ -1218,13 +1262,13 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
             };
             slider->boundaryDbToY = [this, i, slider] (float db)
             {
-                return display.getBoundaryYForDomainDb (static_cast<int> (i), db)
+                return display.getBoundaryYForDomainDb (static_cast<int> (i), db,bool(slider->getProperties()["qqscUpperBoundary"]))
                     + static_cast<float> (display.getY() - slider->getY());
             };
             slider->boundaryYToDb = [this, i, slider] (float localY)
             {
                 return display.getBoundaryDbForY (static_cast<int> (i), localY
-                    + static_cast<float> (slider->getY() - display.getY()));
+                    + static_cast<float> (slider->getY() - display.getY()),bool(slider->getProperties()["qqscUpperBoundary"]));
             };
         }
         for (auto* slider : { &upper, downRatioSliders[i].get() })
@@ -1317,6 +1361,9 @@ void QQSuperCompressionAudioProcessorEditor::finishCompressionControlGestures()
     // physical mouseUp, preventing an old drag anchor from changing the new bank.
     inputGainSlider.cancelNativeDragForParameterRebind();
     outputGainSlider.cancelNativeDragForParameterRebind();
+    for(auto* slider : { &makeupSTSlider,&makeupLSlider,&makeupRSlider,&makeupMSlider,&makeupSSlider,
+                         &mixSlider,&mixLSlider,&mixRSlider,&mixMSlider,&mixSSlider,&keyGainSlider,&keyHpfSlider })
+        slider->cancelNativeDragForParameterRebind();
     for (auto* slider : lowerBoundaryControls()) slider->cancelNativeDragForParameterRebind();
     for (auto* slider : mainRatioControls()) slider->cancelNativeDragForParameterRebind();
     for (auto& slider : upperBoundarySliders)
@@ -1324,6 +1371,7 @@ void QQSuperCompressionAudioProcessorEditor::finishCompressionControlGestures()
     for (auto& slider : downRatioSliders)
         if (slider != nullptr) slider->cancelNativeDragForParameterRebind();
     endLinkedGesture();
+    limiterOutputGesture = false;
 }
 
 void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool dual)
@@ -1349,18 +1397,19 @@ void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool d
         ratioAttachments[i]->reset();
         upperBoundaryAttachments[i].reset();
         downRatioAttachments[i].reset();
-        const auto lowerID = dual ? dualLower[i] : singleLower[i];
-        const auto upperID = dual ? dualUpper[i] : singleUpper[i];
+        const auto lowerID = processor.soundParameterID(dual ? dualLower[i] : singleLower[i]);
+        const auto upperID = processor.soundParameterID(dual ? dualUpper[i] : singleUpper[i]);
         lower[i]->getProperties().set ("qqscParameterID", lowerID);
         upperBoundarySliders[i]->getProperties().set ("qqscParameterID", upperID);
-        ratios[i]->getProperties().set ("qqscParameterID", dual ? upRatio[i] : singleRatio[i]);
-        downRatioSliders[i]->getProperties().set ("qqscParameterID", downRatio[i]);
+        ratios[i]->getProperties().set ("qqscParameterID", processor.soundParameterID(dual ? upRatio[i] : singleRatio[i]));
+        downRatioSliders[i]->getProperties().set ("qqscParameterID", processor.soundParameterID(downRatio[i]));
+        ratios[i]->getProperties().remove("limiterRangeKind");
         ratios[i]->getProperties().set ("qqscLightOrigin", dual ? 1.0 : 0.5);
         downRatioSliders[i]->getProperties().set ("qqscLightOrigin", 0.0);
         *lowerAttachments[i] = std::make_unique<Attachment> (state, lowerID, *lower[i]);
         upperBoundaryAttachments[i] = std::make_unique<Attachment> (state, upperID, *upperBoundarySliders[i]);
-        *ratioAttachments[i] = std::make_unique<Attachment> (state, dual ? upRatio[i] : singleRatio[i], *ratios[i]);
-        downRatioAttachments[i] = std::make_unique<Attachment> (state, downRatio[i], *downRatioSliders[i]);
+        *ratioAttachments[i] = std::make_unique<Attachment> (state, processor.soundParameterID(dual ? upRatio[i] : singleRatio[i]), *ratios[i]);
+        downRatioAttachments[i] = std::make_unique<Attachment> (state, processor.soundParameterID(downRatio[i]), *downRatioSliders[i]);
         // Attachments install parameter text converters. Restore the editor's
         // reciprocal syntax and relative-LINK commit handlers after each bank
         // switch, including host automation, Undo and A/B recalls.
@@ -1404,8 +1453,8 @@ void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool d
         upperBoundarySliders[i]->setResetValue (dual ? 0.0 : qqsc::params::rangeOffDb);
         ratios[i]->setResetValue (1.0);
         downRatioSliders[i]->setResetValue (1.0);
-        ratios[i]->setTooltip (dual ? "Upward Ratio: 1:1000 to 1:1" : "Ratio: 1:1000 to 1000:1. Below 1:1 boosts; above 1:1 reduces.");
-        downRatioSliders[i]->setTooltip ("Downward Ratio: 1:1 to 1000:1");
+        ratios[i]->setTooltip (dual ? "Upward Ratio: 1:200 to 1:1" : "Ratio: 1:200 to 200:1. Below 1:1 boosts; above 1:1 reduces.");
+        downRatioSliders[i]->setTooltip ("Downward Ratio: 1:1 to 200:1");
         lower[i]->setTooltip (dual ? "UP gate: lift only above UP and below DOWN. At equality all dynamic gain stops." : "Threshold; lower boundary. Colliding with Range pushes it upward.");
         upperBoundarySliders[i]->setTooltip (dual ? "Downward Threshold; upper boundary. At equality all dynamic gain stops." : "Range: finite values set an upper cutoff. The extra OFF endpoint removes the upper limit; finite 0 dB remains a cutoff.");
     }
@@ -1414,6 +1463,7 @@ void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool d
 void QQSuperCompressionAudioProcessorEditor::beginBoundaryGesture (int domain, bool upper)
 {
     endLinkedGesture();
+    captureLimiterLinkAnchor();
     boundaryGestureActive = true;
     const auto controls = lowerBoundaryControls();
     auto& source = upper ? *upperBoundarySliders[static_cast<size_t> (domain)] : *controls[static_cast<size_t> (domain)];
@@ -1477,6 +1527,8 @@ void QQSuperCompressionAudioProcessorEditor::handleBoundaryChange (int domain, b
     lower[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, false, domain), juce::dontSendNotification);
     upperBoundarySliders[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, true, domain), juce::dontSendNotification);
     refreshBoundaryReadouts();
+    if(boundaryGestureActive && (attachedCompressionMode==1 ? upper : (!upper && processor.effectiveSingleRatio(index)>1.0f)))
+        reconcileLimiterOutput();
 }
 
 void QQSuperCompressionAudioProcessorEditor::refreshBoundaryReadouts()
@@ -1489,7 +1541,7 @@ void QQSuperCompressionAudioProcessorEditor::refreshBoundaryReadouts()
         {
             if (upper && attachedCompressionMode == 0 && ! qqsc::params::isRangeEnabled (static_cast<float> (db)))
                 return juce::String ("OFF");
-            if (! processor.isClassicAlgorithm() && ! qqsc::params::isThresholdEnabled (static_cast<float> (db)))
+            if (! processor.isClassicBoundary(upper) && ! qqsc::params::isThresholdEnabled (static_cast<float> (db)))
                 return juce::String (attachedCompressionMode == 0 && ! upper ? "OFF" : "-inf");
             return juce::String (db, i == 0 ? 2 : 1) + (i == 0 ? " dB" : "");
         };
@@ -1503,11 +1555,11 @@ void QQSuperCompressionAudioProcessorEditor::refreshBoundaryReadouts()
 void QQSuperCompressionAudioProcessorEditor::updateCompressionUi()
 {
     if (upperBoundarySliders[0] == nullptr) return;
-    const bool dual = processor.getAPVTS().getRawParameterValue ("compressionMode")->load() >= 0.5f;
-    const int channelMode = juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load());
+    const bool dual = processor.readSoundParameter("compressionMode") >= 0.5f;
+    const int channelMode = juce::roundToInt (processor.readSoundParameter(qqsc::params::processingMode));
     const bool changed = attachedCompressionMode != static_cast<int> (dual) || channelMode != laidOutProcessingMode;
-    const auto referenceGain = processor.getAPVTS().getRawParameterValue (qqsc::params::inputGainDb)->load();
-    const int referenceKeySource = juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::keySource)->load());
+    const auto referenceGain = processor.readSoundParameter(qqsc::params::inputGainDb);
+    const int referenceKeySource = juce::roundToInt (processor.readSoundParameter(qqsc::params::keySource));
     const bool referenceChanged = referenceGain != boundaryReferenceInputDb || referenceKeySource != boundaryReferenceKeySource;
     boundaryReferenceInputDb = referenceGain;
     boundaryReferenceKeySource = referenceKeySource;
@@ -1520,19 +1572,22 @@ void QQSuperCompressionAudioProcessorEditor::updateCompressionUi()
     compressionModeButton.setButtonText (dual ? "DUAL" : "SINGLE");
     compressionModeButton.setToggleState (dual, juce::dontSendNotification);
     dualRatioLinkButton.setVisible (dual);
-    inputOutputLinkButton.setToggleState (processor.getAPVTS().getRawParameterValue (qqsc::params::inputOutputLink)->load() >= 0.5f,
+    algorithmButton.setVisible(!dual);
+    upAlgorithmButton.setVisible(dual);downAlgorithmButton.setVisible(dual);
+    inputOutputLinkButton.setToggleState (processor.readSoundParameter(qqsc::params::inputOutputLink) >= 0.5f,
                                          juce::dontSendNotification);
-    dualRatioLinkButton.setToggleState (processor.getAPVTS().getRawParameterValue (qqsc::params::dualRatioLink)->load() >= 0.5f,
+    dualRatioLinkButton.setToggleState (processor.readSoundParameter(qqsc::params::dualRatioLink) >= 0.5f,
                                        juce::dontSendNotification);
     const auto lower = lowerBoundaryControls();
     const juce::ScopedValueSetter<bool> guard (boundaryValueUpdateInProgress, true);
     for (size_t i = 0; i < lower.size(); ++i)
     {
-        const auto minimum = processor.isClassicAlgorithm() ? double(qqsc::classicThresholdMinimumDb)
+        const auto minimum = processor.isClassicBoundary(false) ? double(qqsc::classicThresholdMinimumDb)
                                                            : double(qqsc::params::thresholdOffDb);
+        const auto upperMinimum=processor.isClassicBoundary(true) ? double(qqsc::classicThresholdMinimumDb) : double(qqsc::params::thresholdOffDb);
         if (lower[i]->getMinimum() != minimum) lower[i]->setRange (minimum, 0.0, 0.01);
-        if (upperBoundarySliders[i]->getMinimum() != minimum)
-            upperBoundarySliders[i]->setRange (minimum, dual ? 0.0 : double(qqsc::params::rangeOffDb), 0.01);
+        if (upperBoundarySliders[i]->getMinimum() != upperMinimum)
+            upperBoundarySliders[i]->setRange (upperMinimum, dual ? 0.0 : double(qqsc::params::rangeOffDb), 0.01);
         lower[i]->setResetValue (minimum);
         const bool visible = channelMode == qqsc::params::stereoLinked ? i == 0
             : (channelMode == qqsc::params::leftRight ? i == 1 || i == 2 : i == 3 || i == 4);
@@ -1558,7 +1613,7 @@ void QQSuperCompressionAudioProcessorEditor::updateCompressionUi()
         {
             auto& button = upward ? upEnabledButtons[i] : downEnabledButtons[i];
             const auto* id = (upward ? qqsc::params::upEnabledIds : qqsc::params::downEnabledIds)[i];
-            const bool enabled = processor.getAPVTS().getRawParameterValue (id)->load() >= 0.5f;
+            const bool enabled = processor.readSoundParameter(id) >= 0.5f;
             button.setVisible (visible && dual);
             button.setToggleState (enabled, juce::dontSendNotification);
             button.setButtonText (enabled ? "ON" : "OFF");
@@ -1572,6 +1627,7 @@ void QQSuperCompressionAudioProcessorEditor::updateCompressionUi()
         }
     }
     refreshBoundaryReadouts();
+    updateLimiterUi();
     if (changed) resized();
 }
 
@@ -1628,7 +1684,7 @@ bool QQSuperCompressionAudioProcessorEditor::keyPressed (const juce::KeyPress& k
 
 void QQSuperCompressionAudioProcessorEditor::setChoiceParameter (const char* parameterID, int value)
 {
-    if (auto* parameter = processor.getAPVTS().getParameter (parameterID))
+    if (auto* parameter = processor.getAPVTS().getParameter (processor.soundParameterID(parameterID)))
     {
         parameter->beginChangeGesture();
         parameter->setValueNotifyingHost (parameter->convertTo0to1 (static_cast<float> (value)));
@@ -1644,12 +1700,12 @@ void QQSuperCompressionAudioProcessorEditor::commitLookaheadChoice()
 
     const auto value = qqsc::params::lookaheadMsForChoiceIndex (index);
     const auto current = qqsc::params::snapLookaheadMs (
-        processor.getAPVTS().getRawParameterValue (qqsc::params::lookaheadMs)->load());
+        processor.readSoundParameter(qqsc::params::lookaheadMs));
 
     if (std::abs (current - value) > 0.0001f)
     {
         beginUndoTransaction ("Lookahead");
-        if (auto* parameter = processor.getAPVTS().getParameter (qqsc::params::lookaheadMs))
+        if (auto* parameter = processor.getAPVTS().getParameter (processor.soundParameterID(qqsc::params::lookaheadMs)))
         {
             parameter->beginChangeGesture();
             parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
@@ -1676,7 +1732,7 @@ void QQSuperCompressionAudioProcessorEditor::cycleOversampling()
     // 16x -> 1x. 2x/4x were tested and intentionally omitted because aliasing
     // remained severe while the latency cost of 8x/16x was small.
     const auto current = juce::jlimit (0, 2, juce::roundToInt (
-        processor.getAPVTS().getRawParameterValue (qqsc::params::oversampling)->load()));
+        processor.readSoundParameter(qqsc::params::oversampling)));
     const auto next = (current + 1) % 3;
 
     beginUndoTransaction ("0 ms Oversampling");
@@ -1688,11 +1744,11 @@ void QQSuperCompressionAudioProcessorEditor::cycleOversampling()
 void QQSuperCompressionAudioProcessorEditor::updateOversamplingUi()
 {
     const auto currentLookaheadMs = qqsc::params::snapLookaheadMs (
-        processor.getAPVTS().getRawParameterValue (qqsc::params::lookaheadMs)->load());
+        processor.readSoundParameter(qqsc::params::lookaheadMs));
     const bool zeroMs = currentLookaheadMs < 0.0001f;
 
     const auto oversamplingIndex = juce::jlimit (0, 2, juce::roundToInt (
-        processor.getAPVTS().getRawParameterValue (qqsc::params::oversampling)->load()));
+        processor.readSoundParameter(qqsc::params::oversampling)));
     oversamplingButton.setButtonText (qqsc::params::oversamplingNameForChoiceIndex (oversamplingIndex));
 
     // Established transparent-engine rule: Oversampling is only meaningful at
@@ -1705,7 +1761,7 @@ void QQSuperCompressionAudioProcessorEditor::updateOversamplingUi()
 void QQSuperCompressionAudioProcessorEditor::selectMonitor (int selection)
 {
     const auto mode = juce::jlimit (0, 2,
-        juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load()));
+        juce::roundToInt (processor.readSoundParameter(qqsc::params::processingMode)));
 
     if (mode == qqsc::params::leftRight || mode == qqsc::params::midSide)
         processor.setDomainMonitorSelection (mode, selection);
@@ -1716,7 +1772,7 @@ void QQSuperCompressionAudioProcessorEditor::selectMonitor (int selection)
 void QQSuperCompressionAudioProcessorEditor::updateMonitorUi()
 {
     const auto mode = juce::jlimit (0, 2,
-        juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load()));
+        juce::roundToInt (processor.readSoundParameter(qqsc::params::processingMode)));
     const bool lr = mode == qqsc::params::leftRight;
     const bool ms = mode == qqsc::params::midSide;
     const bool visible = lr || ms;
@@ -1740,7 +1796,7 @@ void QQSuperCompressionAudioProcessorEditor::updateMonitorUi()
 
 void QQSuperCompressionAudioProcessorEditor::cycleMode()
 {
-    const auto current = juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load());
+    const auto current = juce::roundToInt (processor.readSoundParameter(qqsc::params::processingMode));
     const auto next = (juce::jlimit (0, 2, current) + 1) % 3;
     beginUndoTransaction ("Processing Mode");
     setChoiceParameter (qqsc::params::processingMode, next);
@@ -1749,9 +1805,16 @@ void QQSuperCompressionAudioProcessorEditor::cycleMode()
 
 void QQSuperCompressionAudioProcessorEditor::updateAlgorithmUi()
 {
-    const bool super = processor.getAPVTS().getRawParameterValue (qqsc::params::algorithmMode)->load() >= 0.5f;
-    algorithmButton.setButtonText (super ? "ALGO: SUPER" : "ALGO: CLASSIC");
+    const bool super = processor.readSoundParameter(qqsc::params::algorithmMode) >= 0.5f;
+    algorithmButton.setButtonText (super ? "SUPER" : "CLASSIC");
     algorithmButton.setToggleState (super, juce::dontSendNotification);
+    for(bool upward:{true,false})
+    {
+        auto& button=upward ? upAlgorithmButton : downAlgorithmButton;
+        const bool branchSuper=processor.readSoundParameter(upward ? "upAlgorithmMode" : "downAlgorithmMode")>=.5f;
+        button.setButtonText(branchSuper ? "SUPER" : "CLASSIC");
+        button.setToggleState(branchSuper,juce::dontSendNotification);
+    }
     updateCompressionUi();
 }
 
@@ -1763,7 +1826,7 @@ void QQSuperCompressionAudioProcessorEditor::timerCallback()
     bool latencyChoiceChangedOutsideUiGesture = false;
 
     const auto lookaheadIndex = qqsc::params::lookaheadChoiceIndexForMs (
-        processor.getAPVTS().getRawParameterValue (qqsc::params::lookaheadMs)->load());
+        processor.readSoundParameter(qqsc::params::lookaheadMs));
     if (lookaheadCombo.getSelectedItemIndex() != lookaheadIndex)
     {
         lookaheadCombo.setSelectedItemIndex (lookaheadIndex, juce::dontSendNotification);
@@ -1771,7 +1834,7 @@ void QQSuperCompressionAudioProcessorEditor::timerCallback()
     }
 
     const auto oversamplingIndex = juce::jlimit (0, 2, juce::roundToInt (
-        processor.getAPVTS().getRawParameterValue (qqsc::params::oversampling)->load()));
+        processor.readSoundParameter(qqsc::params::oversampling)));
     const auto currentButtonText = qqsc::params::oversamplingNameForChoiceIndex (oversamplingIndex);
     if (oversamplingButton.getButtonText() != currentButtonText)
         latencyChoiceChangedOutsideUiGesture = true;
@@ -1790,7 +1853,7 @@ void QQSuperCompressionAudioProcessorEditor::updateModeUi()
 {
     updateCompressionUi();
     const auto mode = juce::jlimit (0, 2,
-        juce::roundToInt (processor.getAPVTS().getRawParameterValue (qqsc::params::processingMode)->load()));
+        juce::roundToInt (processor.readSoundParameter(qqsc::params::processingMode)));
 
     modeButton.setButtonText (qqsc::params::modeName (mode));
 
@@ -1984,8 +2047,8 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     right -= 76 + smallGap;
     sidechainButton.setBounds (right - 86, headerButtonY, 86, headerButtonH);
     right -= 86 + smallGap;
-    algorithmButton.setBounds (right - 118, headerButtonY, 118, headerButtonH);
-    right -= 118 + 12;
+    limiterButton.setBounds (right - 118, headerButtonY, 118, headerButtonH);
+    right -= 118 + 6;
 
     // The existing sidechain popup grows
     // leftward from the Side Chain button and adds HPF beside Key Gain.
@@ -2078,6 +2141,8 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     ratioArea.setCentre (296, ratioArea.getCentreY());
     const auto fullRatioArea = ratioArea;
     ratioLabel.setBounds (ratioArea.removeFromTop (18));
+    ratioLabel.setBounds(226,controlsY,53,18);
+    algorithmButton.setBounds(282,controlsY,76,18);
     ratioSlider.setBounds (ratioArea.withSizeKeepingCentre (130, 119));
 
     auto dualRatio = ratioArea;
@@ -2100,12 +2165,15 @@ void QQSuperCompressionAudioProcessorEditor::resized()
         {
             auto upColumn = fullRatioArea.withWidth (fullRatioArea.getWidth() / 2);
             auto downColumn = fullRatioArea.withTrimmedLeft (upColumn.getWidth());
+            const bool compact=laidOutProcessingMode!=qqsc::params::stereoLinked;
+            upAlgorithmButton.setBounds(upColumn.getCentreX()-34,controlsY+(compact ? 0 : 16),68,16);
+            downAlgorithmButton.setBounds(downColumn.getCentreX()-34,controlsY+(compact ? 0 : 16),68,16);
             const auto placeRatio = [this, &ratios] (size_t index, juce::Rectangle<int> up, juce::Rectangle<int> down, bool compact)
             {
                 upRatioNames[index].setBounds (up.removeFromTop (14));
                 downRatioNames[index].setBounds (down.removeFromTop (14));
                 const int knobWidth = compact ? 70 : 68;
-                const int knobHeight = compact ? 62 : 104;
+                const int knobHeight = compact ? 54 : 104;
                 ratios[index]->setTextBoxStyle (juce::Slider::TextBoxBelow, false, 66, compact ? 18 : 23);
                 downRatioSliders[index]->setTextBoxStyle (juce::Slider::TextBoxBelow, false, 66, compact ? 18 : 23);
                 ratios[index]->setBounds (up.withSizeKeepingCentre (knobWidth, knobHeight));
@@ -2119,6 +2187,7 @@ void QQSuperCompressionAudioProcessorEditor::resized()
                 }
             };
             placeRatio (0, upColumn, downColumn, false);
+            upColumn.removeFromTop(20);downColumn.removeFromTop(20);
             auto upFirst = upColumn.removeFromTop (upColumn.getHeight() / 2);
             auto downFirst = downColumn.removeFromTop (downColumn.getHeight() / 2);
             placeRatio (1, upFirst, downFirst, true);
@@ -2132,9 +2201,9 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     auto makeupArea = controls.removeFromLeft (mainW).withWidth (216);
     makeupArea.setCentre (512, makeupArea.getCentreY());
     auto makeupHeader = makeupArea.removeFromTop (20);
-    compressionModeButton.setBounds (380, controlsY, 60, 21);
+    compressionModeButton.setBounds (394, controlsY, 58, 19);
     const bool compactRatioLink = laidOutProcessingMode != qqsc::params::stereoLinked;
-    dualRatioLinkButton.setBounds (compactRatioLink ? 281 : 278, controlsY + (compactRatioLink ? 16 : 24),
+    dualRatioLinkButton.setBounds (compactRatioLink ? 281 : 278, controlsY + (compactRatioLink ? 1 : 16),
                                   compactRatioLink ? 30 : 36, compactRatioLink ? 14 : 17);
     auto matchArea = makeupHeader.removeFromRight (58).reduced (2, 0);
     makeupLabel.setBounds (458, controlsY, 108, 20);
@@ -2197,6 +2266,18 @@ void QQSuperCompressionAudioProcessorEditor::resized()
         }
     }
     outputGainLabel.setCentrePosition (944, outputGainLabel.getBounds().getCentreY());
+    if (processor.isLimiterMode())
+    {
+        outputGainLabel.setBounds(885,controlsY,93,20);
+        unityMonitorButton.setBounds(858,controlsY+1,23,18);
+        limiterLinkButton.setBounds (983,controlsY+2,32,17);
+        outputGainSlider.setBounds(894,controlsY+16,100,108);
+        ceilingPanel.setBounds(884,controlsY+126,120,32);
+        ceilingLabel.setBounds (888,controlsY+127,42,11);
+        truePeakButton.setBounds(966,controlsY+127,33,12);
+        monitorCeilingLabel.setBounds(884,controlsY+159,120,11);
+        ceilingValue.setBounds (890,controlsY+139,108,17);
+    }
 
     auto modeArea = controls;
 
@@ -2238,3 +2319,4 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     auto oversamplingButtonRow = modeArea.removeFromTop (25);
     oversamplingButton.setBounds (choiceX, oversamplingButtonRow.getY() + 1, primaryChoiceW, primaryChoiceH);
 }
+

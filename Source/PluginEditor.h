@@ -21,12 +21,26 @@ public:
 
 private:
     friend struct QQSCVisualCheck;
+    friend struct QQSCLimiterCheck;
+    friend struct QQSCUnityCheck;
+    friend struct QQSCLoudnessCheck;
     qqsc::dark::BottomPanelMaterial darkBottomPanel;
     class FineKnob final : public juce::Slider
     {
     public:
         explicit FineKnob (double defaultValueIn) : defaultValue (defaultValueIn) {}
 
+        // Runs before JUCE/attachments commit a native or typed value. Kept
+        // separate from domain gesture handlers so parameter rebinding preserves it.
+        std::function<void()> onBeforeValueEdit;
+        double getValueFromText(const juce::String& text) override
+        {
+            if(onBeforeValueEdit) onBeforeValueEdit();
+            return juce::Slider::getValueFromText(text);
+        }
+        std::function<void()> onDoubleClick;
+        void mouseDoubleClick (const juce::MouseEvent& e) override
+        { if (onDoubleClick) onDoubleClick(); else juce::Slider::mouseDoubleClick(e); }
         std::function<void()> onGestureStart;
         std::function<void()> onGestureEnd;
         std::function<juce::Rectangle<float>()> boundaryPlotBounds;
@@ -68,6 +82,7 @@ private:
 
         void mouseDown (const juce::MouseEvent& event) override
         {
+            if(onBeforeValueEdit) onBeforeValueEdit();
             dragCancelledUntilMouseUp = false;
             lastMouseDownEvent = std::make_unique<juce::MouseEvent> (event);
             if (onGestureStart)
@@ -270,6 +285,59 @@ private:
     LevelMeters meters;
     SidechainPanelBackground sidechainPanelBackground;
 
+    class CeilingValueLabel : public juce::Label
+    {
+    public:
+        std::function<void()> start, finish, reset;
+        std::function<void(float,bool)> move;
+        void mouseDown (const juce::MouseEvent& e) override
+        {
+            if (isBeingEdited()) return;
+            if (e.mods.isAltDown()) { if(reset) reset(); return; }
+            lastY=e.position.y; dragging=true; if(start) start();
+        }
+        void mouseDrag (const juce::MouseEvent& e) override
+        { if (!dragging || isBeingEdited()) return; auto delta=lastY-e.position.y; lastY=e.position.y; if(move) move(delta,e.mods.isShiftDown()); }
+        void mouseUp (const juce::MouseEvent&) override
+        { if(dragging && finish) finish(); dragging=false; }
+        void mouseDoubleClick (const juce::MouseEvent& e) override
+        { if(dragging && finish) finish(); dragging=false; if(!e.mods.isAltDown()) showEditor(); }
+    private:
+        float lastY=0; bool dragging=false;
+    };
+    juce::TextButton limiterButton { "LIMITER" }, limiterLinkButton { "LINK" };
+    juce::TextButton unityMonitorButton;
+    juce::TextButton truePeakButton { "TP" };
+    class CeilingPanel final : public juce::Component
+    {
+        void paint(juce::Graphics& g) override
+        {
+            const auto r=getLocalBounds().toFloat().reduced(.5f);
+            g.setColour(qqsc::ui::panelAlt());g.fillRoundedRectangle(r,4.0f);
+            g.setColour(qqsc::ui::border());g.drawRoundedRectangle(r,4.0f,1.0f);
+        }
+    } ceilingPanel;
+    FineKnob ceilingSlider { 0.0 };
+    juce::Label ceilingLabel;
+    juce::Label monitorCeilingLabel;
+    CeilingValueLabel ceilingValue;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> ceilingAttachment;
+    bool limiterControlsReady=false, limiterUpdating=false, limiterOutputGesture=false;
+    int attachedLimiter=-1;
+    std::array<float,5> limiterStartThresholds {};
+    float limiterStartOutput=0;
+    float limiterLinkReference=0, limiterLinkOutput=0;
+    bool limiterLinkAnchorValid=false;
+    void captureLimiterLinkAnchor();
+    double ceilingDragValue=0.0;
+    std::function<double(const juce::String&)> limiterOutputText;
+    void initialiseLimiterControls();
+    void updateLimiterUi();
+    void reconcileLimiterOutput();
+    void beginLimiterOutputGesture();
+    double applyLimiterOutputChange (double requested);
+    void refreshCeilingValue();
+    void setLimiterParameter (const char*,float);
     juce::Label title;
     juce::Label versionLabel;
     juce::Label inputGainLabel;
@@ -344,6 +412,7 @@ private:
     juce::TextButton bToAButton;
     juce::TextButton themeButton { "LIGHT" };
     juce::TextButton algorithmButton { "ALGO: CLASSIC" };
+    juce::TextButton upAlgorithmButton { "CLASSIC" }, downAlgorithmButton { "CLASSIC" };
     void updateAlgorithmUi();
     juce::TextButton sidechainButton { "SC: INT" };
     juce::TextButton keyInternalButton { "INT" };

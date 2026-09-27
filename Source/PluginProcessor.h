@@ -1,5 +1,6 @@
 #pragma once
 #include "ABTransfer.h"
+#include "OutputCeiling.h"
 
 #include <JuceHeader.h>
 #include <array>
@@ -10,6 +11,7 @@
 #include "StaticCompressionEngine.h"
 #include "MeterState.h"
 #include "BS1770LoudnessMatch.h"
+#include "IntegratedLoudnessMeter.h"
 
 class QQSuperCompressionAudioProcessor final : public juce::AudioProcessor,
                                                 private juce::AudioProcessorValueTreeState::Listener,
@@ -49,6 +51,7 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() noexcept { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const noexcept { return apvts; }
     qqsc::MeterState& getMeterState() noexcept { return meterState; }
+    void resetTruePeakHold() noexcept;
     juce::UndoManager& getUndoManager() noexcept { return undoManager; }
 
     // UI/state changes can tell the host about the combined Lookahead +
@@ -67,7 +70,33 @@ public:
     void initialiseDualRatioLinkPreference (bool enabled);
     void initialiseInputOutputLinkPreference (bool enabled);
     void initialiseAlgorithmPreference (int algorithm);
-    bool isClassicAlgorithm() const noexcept { return classicAlgorithmForText.load (std::memory_order_relaxed); }
+    void initialiseDualAlgorithmPreferences (int up, int down);
+    bool isLimiterMode() const noexcept { return apvts.getRawParameterValue (qqsc::params::limiterMode)->load() >= 0.5f; }
+    // Selection is saved with the sound; the output guard only acts in Limiter.
+    bool isTruePeakSelected() const noexcept { return apvts.getRawParameterValue (qqsc::params::truePeakLimiting)->load() >= 0.5f; }
+    bool isUnityMonitorEnabled() const noexcept { return unityMonitor.load(std::memory_order_relaxed); }
+    bool isUnityMonitorActive() const noexcept { return isLimiterMode() && isUnityMonitorEnabled(); }
+    void setUnityMonitorEnabled(bool enabled);
+    float getUnityMonitorCeilingDb() const noexcept;
+    bool isLimiterLinked() const noexcept { return isLimiterMode() && apvts.getRawParameterValue (qqsc::params::limiterLink)->load() >= 0.5f; }
+    const char* soundParameterID (const char*) const noexcept;
+    float readSoundParameter (const char*) const noexcept;
+    void enterLimiterMode();
+    void leaveLimiterMode();
+    // Message-thread UI entry: publish coupled boundary changes and record
+    // the mode switch as one undo transaction before controls are rebound.
+    void setCompressionModeFromEditor (int mode);
+    float getBoundaryForBankDb (int bank, bool upper, int domain) const noexcept;
+    float getActiveOutputGainDb() const noexcept;
+    // Mixed reference is reserved for calibration/MATCH; control linking uses wet only.
+    float getLimiterReferencePeakDb (float downThresholdShift = 0.0f, bool includeMix = true) const noexcept;
+    float getLimiterLinkReferencePeakDb(float shift = 0.0f) const noexcept
+    { return getLimiterReferencePeakDb(shift, false); }
+    float effectiveSingleRatio (size_t domain) const noexcept;
+    bool isClassicAlgorithm() const noexcept { return readSoundParameter(qqsc::params::algorithmMode) < 0.5f; }
+    bool isClassicBoundary(bool upper) const noexcept
+    { return readSoundParameter(qqsc::params::compressionMode)>=0.5f
+        ? readSoundParameter(upper ? "downAlgorithmMode" : "upAlgorithmMode")<0.5f : isClassicAlgorithm(); }
 
 
     // Headphone-reference audition monitor for the independent LR/MS domains.
@@ -136,15 +165,21 @@ private:
     void parameterChanged (const juce::String&, float) override;
     void timerCallback() override;
     void rebuildBoundaryPairs() noexcept;
+    void continueLimiterCompressionMode (bool destinationIsDual) noexcept;
     void writeCanonicalBoundariesTo (juce::ValueTree&) const;
 
     // Packed float pairs allow one atomic transition for both boundaries, with
     // no allocations, locks or recursive host calls on an automation callback.
-    std::array<std::atomic<uint64_t>, 10> boundaryPairs {};
+    std::array<std::atomic<uint64_t>, 20> boundaryPairs {};
+    // Publish a new Limiter Single/Dual selection only after its destination
+    // boundaries are ready. Host automation never waits for an editor/timer.
+    std::atomic<int> limiterCompressionModeForAudio { 0 };
     std::atomic<bool> restoringDynamicsState { false };
+    std::atomic<bool> limiterBankInitialised { false };
     std::atomic<bool> dualRatioLinkPreferenceInitialised { false };
     std::atomic<bool> inputOutputLinkPreferenceInitialised { false };
     std::atomic<bool> algorithmPreferenceInitialised { false };
+    std::array<std::atomic<bool>,2> dualAlgorithmPreferenceInitialised {};
 
 
     struct KeyHighPassCoefficients
@@ -196,6 +231,12 @@ private:
         float mixM = 100.0f;
         float mixS = 100.0f;
         float outputGainDb = 0.0f;
+        std::array<float,35> limiterSound {};
+        std::array<float,33> limiterSettings {};
+        bool limiterInitialised = false;
+        bool domainLink = true, dualRatioLink = true, inputOutputLink = true;
+        bool limiterMode = false, limiterLink = true, truePeakLimiting = true;
+        float ceilingDb = 0.0f, limiterOutputDb = 0.0f, limiterCalibrationDb = 0.0f;
         float lookaheadMs = 26.0f;
         int oversampling = 1;
         int mode = qqsc::params::stereoLinked;
@@ -203,6 +244,7 @@ private:
         float keyGainDb = 0.0f;
         float keyHpfHz = qqsc::params::keyHpfOffHz;
         int algorithmMode = qqsc::params::classicAlgorithm;
+        int upAlgorithmMode = 0, downAlgorithmMode = 0;
         int compressionMode = qqsc::params::singleCompression;
         std::array<float, 5> range { qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb };
         std::array<float, 5> upThreshold { -120, -120, -120, -120, -120 };
@@ -218,6 +260,7 @@ private:
     float effectiveDualRatio (size_t domain, bool upward) const noexcept;
 
     ParameterSnapshot captureCurrentSnapshot() const noexcept;
+    static ParameterSnapshot activeSnapshot(ParameterSnapshot) noexcept;
     static qqsc::ABTransfer makeABTransfer (const ParameterSnapshot&) noexcept;
     void queueABTransfer (const ParameterSnapshot&, const ParameterSnapshot&);
     void applySnapshot (const ParameterSnapshot&);
@@ -259,6 +302,21 @@ private:
     qqsc::StaticCompressionEngine sideEngine;
 
     qqsc::MeterState meterState;
+    juce::dsp::Oversampling<float> truePeakOversampler { 2, 2, juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple, true, false };
+    juce::AudioBuffer<float> truePeakBuffer;
+    qqsc::OutputCeiling outputCeiling;
+    std::vector<std::array<float,9>> ceilingReferenceDelay;
+    size_t ceilingReferenceIndex=0;
+    float truePeakHold = -120.0f;
+    int64_t truePeakRemaining = 0;
+    std::atomic<bool> truePeakResetRequested { false };
+    void updateTruePeakMeter (int numSamples);
+    std::atomic<bool> unityMonitor { false };
+    juce::SmoothedValue<float> unityMonitorFade, unityOutputSmoother, bypassFade;
+    bool bypassInitialised=false;
+    int unityMatchSettling=0;
+    size_t unityMixLastBlocks=0;
+    float unityMakeupDelta=0;
 
     // 0.1.10: Oversampling is deliberately a Lookahead=0 ms-only option.
     // User-facing choices are 1x/8x/16x; 10 ms and longer always use the 1x
@@ -324,12 +382,14 @@ private:
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> downRatioSmoothers;
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> upEnableFades, downEnableFades;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> algorithmFade; // 0 Classic, 1 Super
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> upAlgorithmFade, downAlgorithmFade;
     juce::AudioBuffer<float> mixControlBuffer; // five Makeup, five Mix, Output, four Dry matrix coefficients
     juce::SpinLock abTransferLock;
     std::atomic<bool> abTransferPending { false };
     qqsc::ABTransfer requestedABFrom, requestedABTo, abFrom, abTo;
     qqsc::ABTransfer::Matrix abFrozen {1,0,0,1}, abLastMatrix {1,0,0,1};
     qqsc::ABTransfer::Matrix abFrozenDry {}, abLastDryMatrix {};
+    float abFrozenUnityOutput=1,abLastUnityOutput=1;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> abFade;
     bool abActive = false, abFromFrozen = false;
     bool requestedABCompatible = true;
@@ -372,7 +432,10 @@ private:
     std::atomic<int> monitorMSSelection { qqsc::params::monitorAll };
     std::atomic<bool> sidechainListen { false };
 
+    qqsc::IntegratedLoudnessMeter outputLoudness;
+    bool lufsWasMeasuring = false;
     qqsc::BS1770LoudnessMatch loudnessMatch;
+    qqsc::BS1770LoudnessMatch unityMixMatch;
     std::atomic<float> matchSTDb { 0.0f };
     std::atomic<float> matchLDb  { 0.0f };
     std::atomic<float> matchRDb  { 0.0f };

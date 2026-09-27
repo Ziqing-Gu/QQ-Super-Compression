@@ -1,0 +1,15 @@
+{
+  "PDF": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.7 English Manual\\QQ Super Compression User Manual English_v1.2.7.pdf",
+  "Pages": 35,
+  "Bookmarks": 35,
+  "Language": "English",
+  "MatchedChinesePages": 35,
+  "Bytes": 7197565,
+  "SHA256": "C2CD1080C7BDD334A5E8B8AFE4F895D661C45055CB6B35D6BDA1A21568F64F3C",
+  "TextBoundsIssues": [],
+  "RequiredContent": "passed",
+  "UntranslatedChinese": false,
+  "VisualReview": "passed",
+  "RenderedPages": "D:\\Codex\\Temp\\QQSCManual127EN",
+  "VisualReviewDetails": "All 35 pages reviewed; plot labels, dense pages, controls and Limiter pages checked. No clipping or overlap."
+}

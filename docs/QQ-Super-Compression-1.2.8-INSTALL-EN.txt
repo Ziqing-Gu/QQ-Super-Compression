@@ -1,0 +1,12 @@
+QQ Super Compression 1.2.8 - Installation and update
+
+Windows: Extract the Windows x64 ZIP and copy the complete QQ Super Compression.vst3 folder to C:\Program Files\Common Files\VST3. Save the session and fully close every DAW/audio host before replacing it. Reopen the host and rescan afterward. Do not copy only the binary inside the bundle.
+
+macOS: Use the Apple Silicon VST3 with an Apple Silicon host and the Intel VST3 with an Intel host; use the Universal 2 AU in Logic. Requires macOS 11 or newer. Install VST3 to /Library/Audio/Plug-Ins/VST3 and AU to /Library/Audio/Plug-Ins/Components, or the matching user Library folders. Mac bundles are ad-hoc signed and not Apple-notarized. Download from the official Release and follow system approval prompts.
+
+Version 1.2.8 fixes Limiter Single / Dual downward-threshold continuity: Single Threshold and Dual DOWN Threshold carry the current value in both directions, while Makeup, Mix and Output Gain remain unchanged. Normal compression retains independent Single / Dual threshold memories.
+
+Save sessions and retain the previous version before updating. After opening an older session, check Limiter, Single / Dual, each channel domain, A/B, Output LINK and automation. The 35-page 1.2.7 manuals remain a reference for established features; README and RELEASE_NOTES_1.2.8.md define the 1.2.8 change.
+
+Non-commercial use only. Complete corresponding source and license: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.8
+Official download: https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.8

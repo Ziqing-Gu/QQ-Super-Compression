@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-09-28T01:31:57.071929+08:00",
+  "status": "Validated and installed; see INSTALLATION_DUAL_ALGORITHMS.json",
+  "source": "D:\\Codex\\Workspaces\\QQSuperCompression-1.2.7-Strict-Output-Link",
+  "build": "D:\\Codex\\Temp\\QQSC-1.2.7-Strict-Output-Link\\QQSuperCompression_artefacts\\Release\\VST3\\QQ Super Compression.vst3",
+  "delivery": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.7 Dual Algorithm Output Fix Candidate\\Win\\QQ Super Compression.vst3",
+  "installedBaselineSha256": "1A473BF91900EC30B43BCBA8242E3FB5D66BCF8A14FDE5E906429C3FEF7B9F0F",
+  "files": [
+    {
+      "path": "Contents\\Resources\\moduleinfo.json",
+      "length": 1115,
+      "sha256": "F1F02EB3F87B9F282AFCD517F2791394C94D285146DEE2F4A51BA8A168300B1F"
+    },
+    {
+      "path": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+      "length": 10614784,
+      "sha256": "B9E073E7283AB4C4288FB646FE516866CFE8EC04E27142F3C12EA9CAA78D5704"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "sourceCheckpoint": "D:\\Codex\\Archives\\QQSuperCompression-1.2.7-Strict-Output-Link-20260928-010750",
+  "delivery": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.7 Strict Output Link Checkpoint\\Win\\QQ Super Compression.vst3",
+  "files": [
+    {
+      "path": "Contents\\Resources\\moduleinfo.json",
+      "sha256": "F1F02EB3F87B9F282AFCD517F2791394C94D285146DEE2F4A51BA8A168300B1F",
+      "bytes": 1115
+    },
+    {
+      "path": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+      "sha256": "EB88D85D88518AF93B9E19D15895E225A10538BF94F9DA300103B968209576D7",
+      "bytes": 10601472
+    }
+  ],
+  "status": "Strict Output whitelist validated; not installed; continuing with Dual algorithm controls"
+}

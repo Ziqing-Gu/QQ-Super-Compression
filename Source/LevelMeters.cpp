@@ -19,6 +19,23 @@ juce::String signedGainText (float reductionDb)
 }
 }
 
+juce::Rectangle<float> LevelMeters::truePeakBounds() const noexcept
+{
+    auto inner=getLocalBounds().toFloat().reduced(6.0f);
+    const auto width=(inner.getWidth()-8.0f)/3.0f;
+    inner.removeFromLeft(width+4.0f);
+    return inner.removeFromLeft(width).removeFromTop(28.0f);
+}
+
+void LevelMeters::mouseDoubleClick (const juce::MouseEvent& event)
+{
+    if (truePeakBounds().contains(event.position))
+    {
+        processor.resetTruePeakHold();
+        repaint();
+    }
+}
+
 void LevelMeters::paint (juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
@@ -42,6 +59,15 @@ void LevelMeters::paint (juce::Graphics& g)
     auto outputArea = inner.removeFromLeft (groupWidth);
     inner.removeFromLeft (gap);
     auto grArea = inner;
+
+    const auto tp=m.truePeakHoldDb.load(std::memory_order_relaxed);
+    auto tpArea=outputArea.removeFromTop(28.0f);
+    inputArea.removeFromTop(28.0f);grArea.removeFromTop(28.0f);
+    g.setColour(tp>0 ? juce::Colours::orangered : qqsc::ui::outputAccent());
+    g.setFont(juce::Font(juce::FontOptions(8.5f,juce::Font::bold)));
+    g.drawFittedText("TP L/R",tpArea.removeFromTop(12).toNearestInt(),juce::Justification::centred,1);
+    g.setFont(juce::Font(juce::FontOptions(8.5f)));
+    g.drawFittedText((tp<=-119.9f ? juce::String("-inf") : juce::String(tp,2))+" dBTP",tpArea.toNearestInt(),juce::Justification::centred,1);
 
     drawDualMeter (g, inputArea, "INPUT", ch0, ch1,
                    m.inputDb0.load (std::memory_order_relaxed),

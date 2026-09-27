@@ -8,6 +8,43 @@
 
 namespace qqsc::params
 {
+    inline constexpr auto limiterMode = "limiterMode";
+    inline constexpr auto limiterLink = "limiterLink";
+    inline constexpr auto ceilingDb = "ceilingDb";
+    inline constexpr auto truePeakLimiting = "truePeakLimiting";
+    inline constexpr auto limiterCalibrationDb = "limiterCalibrationDb";
+    inline constexpr auto limiterOutputDb = "limiterOutputDb";
+    inline float limiterRatio (float ratio, bool limiter, bool dualDown = false) noexcept
+    {
+        if (limiter && (dualDown || ratio > 1.0f))
+            return juce::jlimit (limiterMinimumDownRatio, maximumDownRatio, ratio);
+        return juce::jlimit (dualDown ? 1.0f : limiter ? limiterMinimumUpRatio : minimumUpRatio,
+                            limiter ? 1.0f : normalMaximumDownRatio, ratio);
+    }
+    inline float upwardRatio (float ratio, bool limiter) noexcept
+    {
+        return juce::jlimit (limiter ? limiterMinimumUpRatio : minimumUpRatio, 1.0f, ratio);
+    }
+    template <typename T = double>
+    inline juce::NormalisableRange<T> limiterSingleRange()
+    {
+        // Unity and 200:1 need distinct normalised positions. A tiny detent
+        // keeps the downward endpoint round-trippable through host automation.
+        return { T(limiterMinimumUpRatio), T(maximumDownRatio),
+            [] (T lo, T hi, T n) {
+                return n <= T(0.5) ? lo * std::pow (T(1)/lo, T(2)*n)
+                    : T(limiterMinimumDownRatio) * std::pow (hi/T(limiterMinimumDownRatio),
+                        juce::jmax(T(0), (n-T(0.5001))/T(0.4999)));
+            },
+            [] (T lo, T hi, T v) {
+                return v <= T(1) ? T(0.5)*std::log(juce::jmax(lo,v)/lo)/std::log(T(1)/lo)
+                    : T(0.5001)+T(0.4999)*std::log(juce::jmax(T(limiterMinimumDownRatio),v)/T(limiterMinimumDownRatio))/std::log(hi/T(limiterMinimumDownRatio));
+            },
+            [] (T lo, T hi, T v) {
+                v=juce::jlimit(lo,hi,v);
+                return v>T(1) && v<T(limiterMinimumDownRatio) ? T(limiterMinimumDownRatio) : v;
+            } };
+    }
     inline constexpr auto algorithmMode = "algorithmMode"; // Appended host parameter in v1.2.4
     enum AlgorithmMode { classicAlgorithm = 0, superAlgorithm = 1 };
 
@@ -98,7 +135,28 @@ namespace qqsc::params
     inline constexpr std::array<const char*, 5> upRatioIds { upRatio, upRatioL, upRatioR, upRatioM, upRatioS };
     inline constexpr std::array<const char*, 5> downRatioIds { downRatio, downRatioL, downRatioR, downRatioM, downRatioS };
 
-    inline juce::NormalisableRange<float> dynamicsRatioRange (float minimum = qqsc::minimumUpRatio, float maximum = qqsc::maximumDownRatio)
+    inline constexpr std::array<const char*,35> normalSoundIds { "ratio", "ratioL", "ratioR", "ratioM", "ratioS", "upRatio", "upRatioL", "upRatioR", "upRatioM", "upRatioS", "downRatio", "downRatioL", "downRatioR", "downRatioM", "downRatioS", "thresholdDb", "thresholdLDb", "thresholdRDb", "thresholdMDb", "thresholdSDb", "rangeDb", "rangeLDb", "rangeRDb", "rangeMDb", "rangeSDb", "upThresholdDb", "upThresholdLDb", "upThresholdRDb", "upThresholdMDb", "upThresholdSDb", "downThresholdDb", "downThresholdLDb", "downThresholdRDb", "downThresholdMDb", "downThresholdSDb" };
+    inline constexpr std::array<const char*,35> limiterSoundIds { "limiterRatio", "limiterRatioL", "limiterRatioR", "limiterRatioM", "limiterRatioS", "limiterUpRatio", "limiterUpRatioL", "limiterUpRatioR", "limiterUpRatioM", "limiterUpRatioS", "limiterDownRatio", "limiterDownRatioL", "limiterDownRatioR", "limiterDownRatioM", "limiterDownRatioS", "limiterThresholdDb", "limiterThresholdLDb", "limiterThresholdRDb", "limiterThresholdMDb", "limiterThresholdSDb", "limiterRangeDb", "limiterRangeLDb", "limiterRangeRDb", "limiterRangeMDb", "limiterRangeSDb", "limiterUpThresholdDb", "limiterUpThresholdLDb", "limiterUpThresholdRDb", "limiterUpThresholdMDb", "limiterUpThresholdSDb", "limiterDownThresholdDb", "limiterDownThresholdLDb", "limiterDownThresholdRDb", "limiterDownThresholdMDb", "limiterDownThresholdSDb" };
+    inline constexpr std::array<const char*,5> limiterRatioIds { "limiterRatio", "limiterRatioL", "limiterRatioR", "limiterRatioM", "limiterRatioS" };
+    inline constexpr std::array<const char*,5> limiterUpRatioIds { "limiterUpRatio", "limiterUpRatioL", "limiterUpRatioR", "limiterUpRatioM", "limiterUpRatioS" };
+    inline constexpr std::array<const char*,5> limiterDownRatioIds { "limiterDownRatio", "limiterDownRatioL", "limiterDownRatioR", "limiterDownRatioM", "limiterDownRatioS" };
+    inline constexpr std::array<const char*,5> limiterThresholdIds { "limiterThresholdDb", "limiterThresholdLDb", "limiterThresholdRDb", "limiterThresholdMDb", "limiterThresholdSDb" };
+    inline constexpr std::array<const char*,5> limiterRangeIds { "limiterRangeDb", "limiterRangeLDb", "limiterRangeRDb", "limiterRangeMDb", "limiterRangeSDb" };
+    inline constexpr std::array<const char*,5> limiterUpThresholdIds { "limiterUpThresholdDb", "limiterUpThresholdLDb", "limiterUpThresholdRDb", "limiterUpThresholdMDb", "limiterUpThresholdSDb" };
+    inline constexpr std::array<const char*,5> limiterDownThresholdIds { "limiterDownThresholdDb", "limiterDownThresholdLDb", "limiterDownThresholdRDb", "limiterDownThresholdMDb", "limiterDownThresholdSDb" };
+    // These were shared before the independent-mode revision. Appended IDs
+    // preserve every existing host parameter ID/index. Each mode owns its timing.
+    inline constexpr std::array<const char*,33> normalModeIds { "inputGainDb", "makeupGainDb", "makeupGainLDb", "makeupGainRDb", "makeupGainMDb", "makeupGainSDb", "mix", "mixL", "mixR", "mixM", "mixS", "algorithmMode", "compressionMode", "processingMode", "domainLink", "dualRatioLink", "upEnabled", "upEnabledL", "upEnabledR", "upEnabledM", "upEnabledS", "downEnabled", "downEnabledL", "downEnabledR", "downEnabledM", "downEnabledS", "keySource", "keyGainDb", "keyHpfHz", "oversampling", "lookaheadMs", "upAlgorithmMode", "downAlgorithmMode" };
+    inline constexpr std::array<const char*,33> limiterModeIds { "limiterInputGainDb", "limiterMakeupGainDb", "limiterMakeupGainLDb", "limiterMakeupGainRDb", "limiterMakeupGainMDb", "limiterMakeupGainSDb", "limiterMix", "limiterMixL", "limiterMixR", "limiterMixM", "limiterMixS", "limiterAlgorithmMode", "limiterCompressionMode", "limiterProcessingMode", "limiterDomainLink", "limiterDualRatioLink", "limiterUpEnabled", "limiterUpEnabledL", "limiterUpEnabledR", "limiterUpEnabledM", "limiterUpEnabledS", "limiterDownEnabled", "limiterDownEnabledL", "limiterDownEnabledR", "limiterDownEnabledM", "limiterDownEnabledS", "limiterKeySource", "limiterKeyGainDb", "limiterKeyHpfHz", "limiterOversampling", "limiterLookaheadMs", "limiterUpAlgorithmMode", "limiterDownAlgorithmMode" };
+    inline const std::array<const char*,5>& boundaryBankIds (int bank, bool upper) noexcept
+    {
+        if (bank==0) return upper ? rangeIds : thresholdIds;
+        if (bank==1) return upper ? downThresholdIds : upThresholdIds;
+        if (bank==2) return upper ? limiterRangeIds : limiterThresholdIds;
+        return upper ? limiterDownThresholdIds : limiterUpThresholdIds;
+    }
+
+    inline juce::NormalisableRange<float> dynamicsRatioRange (float minimum = qqsc::minimumUpRatio, float maximum = qqsc::normalMaximumDownRatio)
     {
         // Keep Single's unity position at the exact midpoint with finite,
         // logarithmic upward and downward ranges on their respective halves.

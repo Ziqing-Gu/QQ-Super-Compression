@@ -19,7 +19,7 @@ float dbToDetectorLevel (float db) noexcept
 float readParameter (QQSuperCompressionAudioProcessor& processor, const char* parameterID,
                      float fallback = 0.0f) noexcept
 {
-    if (auto* value = processor.getAPVTS().getRawParameterValue (parameterID))
+    if (auto* value = processor.getAPVTS().getRawParameterValue (processor.soundParameterID(parameterID)))
         return value->load();
 
     return fallback;
@@ -303,11 +303,13 @@ void DynamicDisplay::timerCallback()
     const auto capturedInputGainDb = readParameter (processor, qqsc::params::inputGainDb);
     const auto capturedKeyGainDb = readParameter (processor, qqsc::params::keyGainDb);
 
-    if (mode != lastMode || keySource != lastKeySource
+    const int limiter = processor.isLimiterMode() ? 1 : 0;
+    if (mode != lastMode || keySource != lastKeySource || limiter != lastLimiter
         || position.generation != lastCaptureGeneration)
     {
         clearHistories();
         lastMode = mode;
+        lastLimiter = limiter;
         lastKeySource = keySource;
         lastCaptureGeneration = position.generation;
     }
@@ -319,6 +321,9 @@ void DynamicDisplay::timerCallback()
     {
         HistoryPoint point0;
         point0.inputDb = m.displayInputDb0.load (std::memory_order_relaxed);
+        point0.measuredOutputDb = m.outputDb0.load (std::memory_order_relaxed);
+        if (mode == qqsc::params::stereoLinked)
+            point0.measuredOutputDb = juce::jmax(point0.measuredOutputDb,m.outputDb1.load(std::memory_order_relaxed));
         point0.detectorDb = m.displayDetectorDb0.load (std::memory_order_relaxed);
         point0.capturedInputGainDb = capturedInputGainDb;
         point0.capturedKeyGainDb = capturedKeyGainDb;
@@ -330,6 +335,7 @@ void DynamicDisplay::timerCallback()
         {
             HistoryPoint point1;
             point1.inputDb = m.displayInputDb1.load (std::memory_order_relaxed);
+            point1.measuredOutputDb = m.outputDb1.load (std::memory_order_relaxed);
             point1.detectorDb = m.displayDetectorDb1.load (std::memory_order_relaxed);
             point1.capturedInputGainDb = capturedInputGainDb;
             point1.capturedKeyGainDb = capturedKeyGainDb;
@@ -396,9 +402,9 @@ juce::Rectangle<float> DynamicDisplay::getBoundaryPlotForDomain (int parameterDo
     return plotBoundsForPanel (domainPanelBounds (panelIndex, mode));
 }
 
-float DynamicDisplay::getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb) const noexcept
+float DynamicDisplay::getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb, bool upper) const noexcept
 {
-    if (processor.isClassicAlgorithm()) detectorDb = juce::jmax (qqsc::classicThresholdMinimumDb, detectorDb);
+    if (processor.isClassicBoundary(upper)) detectorDb = juce::jmax (qqsc::classicThresholdMinimumDb, detectorDb);
     const auto plot = getBoundaryPlotForDomain (parameterDomainIndex);
     // OFF is an unbounded Range, not a finite +1 dB threshold.
     if (! qqsc::params::isRangeEnabled (detectorDb))
@@ -411,7 +417,7 @@ float DynamicDisplay::getBoundaryYForDomainDb (int parameterDomainIndex, float d
                               : qqsc::params::effectiveDisplayThresholdDb (detectorDb, inputGainDb), plot);
 }
 
-float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY) const noexcept
+float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY, bool upper) const noexcept
 {
     const auto plot = getBoundaryPlotForDomain (parameterDomainIndex);
     if (plot.getHeight() <= 0.0f)
@@ -425,7 +431,7 @@ float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY)
                                         : displayDb + readParameter (processor, qqsc::params::inputGainDb);
     // A drag maps finite values only. The fader explicitly chooses the OFF
     // endpoint, keeping it distinct from a finite 0 dB upper boundary.
-    return juce::jlimit (processor.isClassicAlgorithm() ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb, 0.0f, detectorDb);
+    return juce::jlimit (processor.isClassicBoundary(upper) ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb, 0.0f, detectorDb);
 }
 
 void DynamicDisplay::updatePath (juce::Path& path,
@@ -600,14 +606,14 @@ float DynamicDisplay::thresholdDbForDomain (int domainIndex, int mode) const noe
 {
     const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
     const auto db = processor.getBoundaryForDomainDb (dual, false, processorDomain (domainIndex, mode));
-    return processor.isClassicAlgorithm() ? juce::jmax (qqsc::classicThresholdMinimumDb, db) : db;
+    return processor.isClassicBoundary(false) ? juce::jmax (qqsc::classicThresholdMinimumDb, db) : db;
 }
 
 float DynamicDisplay::upperBoundaryDbForDomain (int domainIndex, int mode) const noexcept
 {
     const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
     const auto db = processor.getBoundaryForDomainDb (dual, true, processorDomain (domainIndex, mode));
-    return processor.isClassicAlgorithm() ? juce::jmax (qqsc::classicThresholdMinimumDb, db) : db;
+    return processor.isClassicBoundary(true) ? juce::jmax (qqsc::classicThresholdMinimumDb, db) : db;
 }
 
 float DynamicDisplay::makeupDbForDomain (int domainIndex, int mode) const noexcept
@@ -645,7 +651,7 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
     const auto wetMix = mixForDomain (domainIndex, mode);
     const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode), -180.0f);
     const auto outputGain = juce::Decibels::decibelsToGain (
-        readParameter (processor, qqsc::params::outputGainDb));
+        processor.getActiveOutputGainDb());
 
     for (const auto& point : histories[static_cast<size_t> (domainIndex)].points)
     {
@@ -687,7 +693,11 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         const auto index = projected.size++;
         projected.input[index] = point.inputDb;
         projected.gainReductionBoundary[index] = point.inputDb - effectiveGr;
-        projected.output[index] = projectedOutputDb;
+        // Limiter is time-dependent output protection. A static transfer curve
+        // cannot reconstruct its true output; show captured final samples rather
+        // than inventing a ceiling by visually clamping the projected curve.
+        projected.output[index] = processor.isLimiterMode() && !bypassed
+            ? point.measuredOutputDb : projectedOutputDb;
         projected.externalKey[index] = detectorDb;
         projected.effectiveGainReduction[index] = effectiveGr;
     }
@@ -962,19 +972,19 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     const auto lowerDb = thresholdDbForDomain (domainIndex, mode);
     const auto upperDb = upperBoundaryDbForDomain (domainIndex, mode);
     const auto parameterDomainIndex = processorDomain (domainIndex, mode);
-    const auto boundaryY = [&] (float db)
+    const auto boundaryY = [&] (float db,bool upper)
     {
-        return getBoundaryYForDomainDb (parameterDomainIndex, db);
+        return getBoundaryYForDomainDb (parameterDomainIndex, db,upper);
     };
-    const auto tagY = [&] (float db)
+    const auto tagY = [&] (float db,bool upper)
     {
-        return juce::jlimit (plot.getY(), plot.getBottom() - 16.0f, boundaryY (db) - 8.0f);
+        return juce::jlimit (plot.getY(), plot.getBottom() - 16.0f, boundaryY (db,upper) - 8.0f);
     };
-    const bool tagsOverlap = std::abs (tagY (lowerDb) - tagY (upperDb)) < 18.0f;
+    const bool tagsOverlap = std::abs (tagY (lowerDb,false) - tagY (upperDb,true)) < 18.0f;
     const auto drawBoundary = [&] (float db, bool upper)
     {
         const bool rangeOff = ! dual && upper && ! qqsc::params::isRangeEnabled (db);
-        const auto y = boundaryY (db);
+        const auto y = boundaryY (db,upper);
         const auto colour = dual ? (upper ? qqsc::ui::grAccent() : gainIncreaseColour())
                                   : (upper ? qqsc::ui::grAccent() : qqsc::ui::warmAccent());
         if (! rangeOff)
@@ -986,11 +996,11 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
 
         const juce::String name = dual ? (upper ? "DOWN " : "UP ") : (upper ? "RANGE " : "THR ");
         const auto value = rangeOff ? juce::String ("OFF")
-                                    : (processor.isClassicAlgorithm() || qqsc::params::isThresholdEnabled (db) ? juce::String (db, 1) : juce::String ("-inf"));
+                                    : (processor.isClassicBoundary(upper) || qqsc::params::isThresholdEnabled (db) ? juce::String (db, 1) : juce::String ("-inf"));
         constexpr float tagWidth = 88.0f;
         const auto offset = upper && tagsOverlap ? tagWidth + 3.0f : 0.0f;
         auto tag = juce::Rectangle<float> (plot.getRight() - tagWidth - 2.0f - offset,
-                                            tagY (db), tagWidth, 16.0f);
+                                            tagY (db,upper), tagWidth, 16.0f);
         g.setColour (qqsc::ui::panel().withAlpha (0.90f));
         g.fillRoundedRectangle (tag, 4.0f);
         g.setColour (colour);
@@ -1049,6 +1059,51 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     drawBoundary (upperDb, true);
 }
 
+juce::Rectangle<float> DynamicDisplay::getLoudnessReadoutBounds() const noexcept
+{
+    if (!processor.isLimiterMode()) return {};
+    const auto mode = displayProcessingMode(processor);
+    const bool split = mode != qqsc::params::stereoLinked;
+    const auto plot = plotBoundsForPanel(domainPanelBounds(split ? 1 : 0, mode));
+    const auto width = juce::jmin(380.0f, plot.getWidth() * .48f);
+    const auto height = juce::jmin(split ? 103.0f : 150.0f, plot.getHeight() * .68f);
+    return {plot.getX() + plot.getWidth() * .13f,
+            plot.getY() + plot.getHeight() * (split ? .27f : .49f), width, height};
+}
+
+void DynamicDisplay::drawLoudnessReadout(juce::Graphics& g)
+{
+    const auto box = getLoudnessReadoutBounds();
+    if (box.isEmpty()) return;
+    const auto& meters = processor.getMeterState();
+    const auto lufs = meters.outputIntegratedLufs.load(std::memory_order_relaxed);
+    const auto seconds = meters.outputLoudnessSeconds.load(std::memory_order_relaxed);
+    const bool running = meters.outputLoudnessMeasuring.load(std::memory_order_relaxed);
+    const bool valid = lufs > -100.0f && std::isfinite(lufs);
+    g.setColour(qqsc::ui::panel().withAlpha(.94f));
+    g.fillRoundedRectangle(box, 9.0f);
+    g.setColour(qqsc::ui::border().withAlpha(.80f));
+    g.drawRoundedRectangle(box.reduced(.5f), 9.0f, 1.0f);
+    auto content = box.reduced(18.0f, 12.0f);
+    auto heading = content.removeFromTop(15.0f);
+    g.setColour(qqsc::ui::textMuted());
+    g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
+    g.drawText("OUTPUT  /  LUFS-I", heading, juce::Justification::centredLeft);
+    auto footer = content.removeFromBottom(14.0f);
+    g.setFont(9.0f);
+    g.setColour(qqsc::ui::textMuted());
+    g.drawText(running ? "MEASURING" : seconds > 0 ? "HOLD" : "READY", footer, juce::Justification::centredLeft);
+    const int elapsed = int(seconds);
+    const auto duration = juce::String(elapsed / 60) + ":" + juce::String(elapsed % 60).paddedLeft('0', 2);
+    g.drawText(duration, footer, juce::Justification::centredRight);
+    g.setColour(qqsc::ui::outputAccent());
+    g.setFont(juce::Font(juce::FontOptions(juce::jmin(46.0f, content.getHeight() * .86f), juce::Font::bold)));
+    g.drawText(valid ? juce::String(lufs, 1) : "--.-", content.withTrimmedRight(62.0f), juce::Justification::centredLeft);
+    g.setColour(qqsc::ui::textMuted());
+    g.setFont(12.0f);
+    g.drawText("LUFS", content.removeFromRight(62.0f), juce::Justification::centredRight);
+}
+
 void DynamicDisplay::paint (juce::Graphics& g)
 {
     const auto bounds = getLocalBounds().toFloat();
@@ -1089,6 +1144,8 @@ void DynamicDisplay::paint (juce::Graphics& g)
         drawDomainPanel (g, domainPanelBounds (0, mode), 0, "M", mode);
         drawDomainPanel (g, domainPanelBounds (1, mode), 1, "S", mode);
     }
+
+    if (processor.isLimiterMode()) drawLoudnessReadout(g);
 
     const bool externalKey = juce::roundToInt (
         readParameter (processor, qqsc::params::keySource)) == qqsc::params::keyExternal;

@@ -19,6 +19,8 @@ void configure(juce::AudioPluginInstance& p,int algorithm,int dual,int mode,floa
     auto tree=juce::ValueTree::fromXml(*xml);
     const auto put=[&](const juce::String& id,float value){auto c=tree.getChildWithProperty("id",id);require(c.isValid(),"Parameter "+id);c.setProperty("value",value,nullptr);};
     if(tree.getChildWithProperty("id","algorithmMode").isValid())put("algorithmMode",float(algorithm));
+    for(const auto* id:{"upAlgorithmMode","downAlgorithmMode"})
+        if(tree.getChildWithProperty("id",id).isValid())put(id,float(algorithm));
     for(auto suffix:{"","L","R","M","S"})
     {
         const juce::String s(suffix);

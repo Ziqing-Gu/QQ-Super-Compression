@@ -1,0 +1,16 @@
+QQ Super Compression 1.2.7 - Installation and update
+
+Win/: Extract the Windows x64 ZIP. Copy the complete QQ Super Compression.vst3 folder to C:\Program Files\Common Files\VST3. Save your session and close every DAW/audio host before replacing it, then reopen and rescan. Do not copy only the binary inside the bundle.
+
+Mac/: Choose Apple Silicon or Intel VST3 to match the host process architecture; use Universal 2 AU in Logic. Requires macOS 11 or newer. Copy the complete VST3 bundle to /Library/Audio/Plug-Ins/VST3 or the AU to /Library/Audio/Plug-Ins/Components, or their user Library equivalents. Close the host before copying, then rescan. Mac bundles are ad-hoc signed and not Apple-notarized; download from the official Release and follow system approval prompts.
+
+1.2.7 adds Limiter, final Ceiling, switchable TP protection enabled by default, headphone 1:1 monitoring and its MATCH workflow. Limiter downward Ratio spans 20:1 to 1000:1. Ceiling spans -24 to 0 dB, defaults to 0 and resets with Alt-click. TP holds for about 20 seconds and resets on double-click. Headphones preserve the complete limited result and cancel visible Output Gain at the end; MON shows the converted listening limit.
+
+To compare at similar loudness: enable Limiter and headphones, disable SC LISTEN, and select ALL in channel MONITOR. Play a representative passage to establish measurements, click MATCH, then use plugin Bypass to compare the original. Finish by switching headphones off and rechecking normal output and TP. Headphones remain independent of A/B; Limiter / TP / Ceiling are recalled with A/B.
+
+The initial Lookahead remains 26 ms. Final peak protection adds about 7-8.5 ms of fixed buffering (about 8.17 ms at 48 kHz), retained with Limiter / TP off for host compensation. The formal plugin identity is unchanged. Old states without new parameters load with Limiter off. Older Preview / QQ dB Compression instances still need manual replacement.
+
+Both 35-page PDF manuals match this version. They cover Classic / Super, upward, Dual, LINK, MATCH and Lookahead; Limiter starts on page 25. Save sessions before updating and retain an older package if rollback is needed.
+
+Non-commercial use only. Complete corresponding source and license: https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.7
+Official download: https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.7

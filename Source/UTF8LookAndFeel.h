@@ -320,6 +320,18 @@ public:
         if (! enabled)
             textColour = textColour.withAlpha (0.36f);
         g.setColour (textColour);
+        if(bool(button.getProperties().getWithDefault("qqscHeadphones",false)))
+        {
+            const auto b=button.getLocalBounds().toFloat();
+            const float cx=b.getCentreX(),cy=b.getCentreY(),radius=5.0f;
+            juce::Path band;
+            band.addCentredArc(cx,cy+1.0f,radius,radius,0,-juce::MathConstants<float>::halfPi,
+                              juce::MathConstants<float>::halfPi,true);
+            g.strokePath(band,juce::PathStrokeType(1.4f));
+            g.fillRoundedRectangle(cx-radius-1,cy,3,5,1);
+            g.fillRoundedRectangle(cx+radius-2,cy,3,5,1);
+            return;
+        }
         g.setFont (getTextButtonFont (button, button.getHeight()));
         g.drawFittedText (button.getButtonText(), button.getLocalBounds().reduced (5, 1), juce::Justification::centred, 1);
     }

@@ -17,17 +17,19 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    juce::Rectangle<float> getLoudnessReadoutBounds() const noexcept;
     void beginKeyHpfGesture() noexcept;
     void endKeyHpfGesture();
 
     // Shared geometry for boundary lines and the adjacent fader thumbs.
     // Domain indices: 0 ST, 1 L, 2 R, 3 M, 4 S. Coordinates are Display-local.
     juce::Rectangle<float> getBoundaryPlotForDomain (int parameterDomainIndex) const noexcept;
-    float getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb) const noexcept;
-    float getBoundaryDbForY (int parameterDomainIndex, float localY) const noexcept;
+    float getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb, bool upper=false) const noexcept;
+    float getBoundaryDbForY (int parameterDomainIndex, float localY, bool upper=false) const noexcept;
 
 private:
     friend struct QQSCVisualCheck;
+    void drawLoudnessReadout(juce::Graphics&);
     class HpfReplayWorker;
 
     // Sixty display samples per second keeps scrolling and parameter
@@ -39,6 +41,7 @@ private:
     struct HistoryPoint
     {
         float inputDb = -120.0f;
+        float measuredOutputDb = -120.0f;
         float detectorDb = -120.0f;
         float capturedInputGainDb = 0.0f;
         float capturedKeyGainDb = 0.0f;
@@ -133,6 +136,7 @@ private:
     std::unique_ptr<HpfReplayWorker> hpfReplayWorker;
     std::shared_ptr<std::atomic<uint64_t>> replayRequestGeneration;
     int lastMode = -1;
+    int lastLimiter = -1;
     int lastKeySource = -1;
     uint64_t lastCaptureGeneration = 0;
     float lastObservedHpfHz = qqsc::params::keyHpfOffHz;

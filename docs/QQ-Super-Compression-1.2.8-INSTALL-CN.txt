@@ -1,0 +1,12 @@
+QQ Super Compression 1.2.8 - 安装与更新
+
+Windows：解压 Windows x64 ZIP，将完整的 QQ Super Compression.vst3 文件夹复制到 C:\Program Files\Common Files\VST3。覆盖前保存工程并完全退出所有 DAW / 音频宿主，复制后重新打开宿主并扫描插件。不要只复制 bundle 内部的单个二进制文件。
+
+macOS：Apple Silicon 宿主使用 Apple Silicon VST3，Intel 宿主使用 Intel VST3；Logic 使用 Universal 2 AU。最低 macOS 11。VST3 放入 /Library/Audio/Plug-Ins/VST3，AU 放入 /Library/Audio/Plug-Ins/Components，也可以使用对应的用户 Library 目录。Mac 包为临时签名、未经 Apple 公证，请从官方 Release 下载并按系统提示批准。
+
+1.2.8 修复 Limiter 下 Single / Dual 切换的向下阈值连续性：Single Threshold 与 Dual DOWN Threshold 双向接续当前值；Makeup、Mix、Output Gain 不变。正常压缩仍保留两套独立阈值记忆。
+
+升级前请保存工程并保留旧版本。打开旧工程后，重点检查 Limiter、Single / Dual、各声道域、A/B、Output LINK 和自动化。1.2.7 的 35 页手册仍可作为既有功能参考；1.2.8 的变化以 README 和 RELEASE_NOTES_1.2.8.md 为准。
+
+禁止商业使用。完整对应源码及许可证：https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.2.8
+官方下载：https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.8

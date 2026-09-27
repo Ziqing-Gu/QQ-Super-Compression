@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.2.6 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.2.8 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -27,6 +27,33 @@ else()
 endif()
 
 option(QQSC_BUILD_DYNAMICS_CHECK "Build actual processor dynamics regression checks" OFF)
+if(QQSC_BUILD_DYNAMICS_CHECK)
+    juce_add_console_app(QQSCLoudnessCheck PRODUCT_NAME QQSCLoudnessCheck)
+    target_sources(QQSCLoudnessCheck PRIVATE tests/loudness_check.cpp)
+    target_include_directories(QQSCLoudnessCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_link_libraries(QQSCLoudnessCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCLoudnessCheck PRIVATE /utf-8)
+    endif()
+    juce_add_console_app(QQSCUnityCheck PRODUCT_NAME "QQSCUnityCheck")
+    target_sources(QQSCUnityCheck PRIVATE tests/unity_check.cpp)
+    target_include_directories(QQSCUnityCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_link_libraries(QQSCUnityCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCUnityCheck PRIVATE /utf-8)
+    endif()
+    juce_add_console_app(QQSCCeilingCompare PRODUCT_NAME "QQSC Ceiling Compare")
+    target_sources(QQSCCeilingCompare PRIVATE tests/ceiling_compare.cpp)
+    target_include_directories(QQSCCeilingCompare PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_link_libraries(QQSCCeilingCompare PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    juce_add_console_app(QQSCCeilingCheck PRODUCT_NAME "QQSC Ceiling Check")
+    target_sources(QQSCCeilingCheck PRIVATE tests/ceiling_check.cpp)
+    target_include_directories(QQSCCeilingCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_link_libraries(QQSCCeilingCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCCeilingCheck PRIVATE /utf-8)
+    endif()
+endif()
 if(QQSC_BUILD_DYNAMICS_CHECK)
     juce_add_console_app(QQSCStablePromotionCheck PRODUCT_NAME "QQSC Stable Promotion Check")
     target_sources(QQSCStablePromotionCheck PRIVATE tests/stable_promotion_check.cpp)
@@ -94,6 +121,8 @@ target_sources(QQSuperCompression PRIVATE
     Source/StaticCompressionEngine.h
     Source/MeterState.h
     Source/BS1770LoudnessMatch.h
+    Source/KWeightingFilter.h
+    Source/IntegratedLoudnessMeter.h
     Source/UTF8LookAndFeel.h
     Source/WarmMaterial.h
     Source/WarmKnobAsset.h
@@ -102,6 +131,9 @@ target_sources(QQSuperCompression PRIVATE
     Source/RefinedDarkKnob.h
     Source/DarkPanelMaterial.h
     Source/PluginProcessor.h
+    Source/LimiterMode.cpp
+    Source/LimiterModeContinuity.h
+    Source/LimiterEditor.cpp
     Source/PluginProcessor.cpp
     Source/DynamicDisplay.h
     Source/DynamicDisplay.cpp
@@ -145,3 +177,25 @@ if(QQSC_BUILD_VISUAL_CHECK)
         target_compile_options(QQSCVisualCheck PRIVATE /utf-8)
     endif()
 endif()
+
+if(QQSC_BUILD_DYNAMICS_CHECK)
+    juce_add_console_app(QQSCLimiterCheck PRODUCT_NAME QQSCLimiterCheck)
+    target_sources(QQSCLimiterCheck PRIVATE tests/limiter_check.cpp)
+    target_include_directories(QQSCLimiterCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_link_libraries(QQSCLimiterCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCLimiterCheck PRIVATE /utf-8)
+    endif()
+endif()
+
+if(QQSC_BUILD_DYNAMICS_CHECK)
+    juce_add_console_app(QQSCLimiterVSTCheck PRODUCT_NAME QQSCLimiterVSTCheck)
+    target_sources(QQSCLimiterVSTCheck PRIVATE tests/ratio_mix_vst_check.cpp)
+    target_include_directories(QQSCLimiterVSTCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_compile_definitions(QQSCLimiterVSTCheck PRIVATE JUCE_PLUGINHOST_VST3=1)
+    target_link_libraries(QQSCLimiterVSTCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCLimiterVSTCheck PRIVATE /utf-8)
+    endif()
+endif()
+
