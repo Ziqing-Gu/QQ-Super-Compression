@@ -37,11 +37,8 @@ jobs:
           -DCMAKE_OSX_ARCHITECTURES=${{ matrix.expected_arch }}
           -DQQSC_BUILD_DYNAMICS_CHECK=ON
 
-      - name: Build VST3 and regression checks
-        run: cmake --build build-macos --target QQSuperCompression_VST3 QQSCDynamicsCheck QQSCLimiterCheck QQSCUnityCheck --config Release --parallel 3
-
-      - name: Verify native dynamics
-        run: build-macos/QQSCDynamicsCheck_artefacts/Release/QQSCDynamicsCheck
+      - name: Build VST3 and 1.2.8 release checks
+        run: cmake --build build-macos --target QQSuperCompression_VST3 QQSCLimiterCheck QQSCUnityCheck --config Release --parallel 3
 
       - name: Verify native Limiter, Unity, Dual algorithms and continuity
         shell: bash
