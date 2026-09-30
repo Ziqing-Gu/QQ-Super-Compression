@@ -123,6 +123,7 @@ struct QQSuperCompressionAudioProcessor {
  MockAPVTS apvts;
  juce::UndoManager undoManager;
  std::array<std::atomic<uint64_t>,20> boundaryPairs{};
+ std::atomic<uint64_t> displayProjectionRevision{1};
  std::atomic<int> limiterCompressionModeForAudio{0};
  std::atomic<bool> restoringDynamicsState{false}, limiterBankInitialised{false}, matchReady{false};
  std::atomic<bool> resetMatchOnNextPlaybackBlock{false},algorithmPreferenceInitialised{false};

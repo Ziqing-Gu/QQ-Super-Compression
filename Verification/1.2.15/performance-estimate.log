@@ -1,0 +1,10 @@
+Display telemetry gain-to-dB conversion call-count estimate
+
+Old 1.2.14 runtime path: approximately sampleRate conversions/sec/instance.
+New 1.2.15 runtime path: approximately sampleRate/blockSize conversions/sec/instance.
+
+48 kHz / 256 samples: 48000 -> 187.5 conversions/sec (256x fewer).
+48 kHz / 64 samples: 48000 -> 750 conversions/sec (64x fewer).
+96 kHz / 256 samples: 96000 -> 375 conversions/sec (256x fewer).
+
+This is not a whole-plugin CPU benchmark. Existing 8x TP limiting and 16x reconstruction analysis dominate TP cost and are unchanged.

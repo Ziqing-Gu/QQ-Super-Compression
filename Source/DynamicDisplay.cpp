@@ -2,6 +2,8 @@
 #include "Parameters.h"
 #include "UTF8LookAndFeel.h"
 #include <algorithm>
+#include <cmath>
+#include <cstring>
 #include <optional>
 
 namespace
@@ -212,6 +214,17 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
       replayRequestGeneration (std::make_shared<std::atomic<uint64_t>> (0))
 {
     setOpaque (true);
+
+    // The 4097-point detector grid never changes. Precompute the dB->linear
+    // conversion once so parameter drags do not spend message-thread time
+    // rebuilding the same exponential mapping every 60 Hz frame.
+    for (int i = 0; i < dynamicsLutSize; ++i)
+    {
+        const auto t = static_cast<float> (i) / static_cast<float> (dynamicsLutSize - 1);
+        const auto db = juce::jmap (t, silenceDb, maxDb);
+        detectorLevelLut[static_cast<size_t> (i)] = dbToDetectorLevel (db);
+    }
+
     for (auto& cache : renderCaches)
     {
         cache.inputPath.preallocateSpace (historyLength * 3);
@@ -226,6 +239,8 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
     processor.setDisplayKeyHistoryCaptureEnabled (true);
     lastObservedHpfHz = readParameter (processor, qqsc::params::keyHpfHz,
                                        qqsc::params::keyHpfOffHz);
+    lastObservedLookaheadMs = qqsc::params::snapLookaheadMs (
+        readParameter (processor, qqsc::params::lookaheadMs));
     hpfReplayWorker->startThread (juce::Thread::Priority::low);
     startTimerHz (displayRefreshHz);
 }
@@ -246,8 +261,15 @@ DynamicDisplay::~DynamicDisplay()
 
 void DynamicDisplay::resized()
 {
+    geometryDirty = true;
+    if (! isShowing())
+        return;
+
     const auto mode = displayProcessingMode (processor);
     refreshRenderCaches (mode);
+    renderedHistoryRevision = historyRevision;
+    renderedProjectionRevision = processor.getDisplayProjectionRevision();
+    geometryDirty = false;
 }
 
 void DynamicDisplay::beginKeyHpfGesture() noexcept
@@ -268,6 +290,7 @@ void DynamicDisplay::endKeyHpfGesture()
 void DynamicDisplay::clearHistories()
 {
     replayRequestGeneration->fetch_add (1, std::memory_order_relaxed);
+    processor.getMeterState().displayTruePeakExcessDb.store (0.0f, std::memory_order_relaxed);
     for (auto& h : histories)
         h.points.clear();
 
@@ -285,6 +308,8 @@ void DynamicDisplay::clearHistories()
         cache.valid = false;
     }
 
+    ++historyRevision;
+    lastCapturedHistoryCounter = 0;
     hpfReplayRetryPending = false;
     hpfReplayBusy = false;
     hpfRetryTimerTicks = 0;
@@ -293,18 +318,43 @@ void DynamicDisplay::clearHistories()
 
 void DynamicDisplay::timerCallback()
 {
+    if (processor.isEcoMode() && ! isShowing())
+    {
+        replayRequestGeneration->fetch_add(1, std::memory_order_relaxed);
+        hpfReplayBusy = false;
+        hpfRefreshPending = true;
+        return;
+    }
     auto& m = processor.getMeterState();
     const auto mode = displayProcessingMode (processor);
     const auto position = processor.getDisplayKeyHistoryPosition();
+    const auto projectionRevision = processor.getDisplayProjectionRevision();
+
+    // Horizontal motion follows the audio sample counter rather than the number
+    // of message-thread Timer callbacks. Mouse drags and busy hosts can delay a
+    // JUCE Timer; anchoring x to audio time prevents the Display from visibly
+    // entering slow motion when that happens.
+    renderReferenceCounter = position.counter;
+    // The key-history counter advances at the ring's analysis rate
+    // (min(host rate, 48 kHz)), not necessarily at the host sample rate.
+    // Use that exact counter rate so 88.2/96/192 kHz sessions keep the same
+    // real-time horizontal speed as 44.1/48 kHz sessions.
+    if (position.sampleRate > 1.0)
+        renderReferenceSampleRate = position.sampleRate;
+
     const auto keySource = juce::jlimit (
         static_cast<int> (qqsc::params::keyInternal),
         static_cast<int> (qqsc::params::keyExternal),
         juce::roundToInt (readParameter (processor, qqsc::params::keySource)));
     const auto capturedInputGainDb = readParameter (processor, qqsc::params::inputGainDb);
     const auto capturedKeyGainDb = readParameter (processor, qqsc::params::keyGainDb);
+    const auto capturedTruePeakExcessDb = juce::jmax (0.0f,
+        m.displayTruePeakExcessDb.exchange (0.0f, std::memory_order_acq_rel));
 
     const int limiter = processor.isLimiterMode() ? 1 : 0;
-    if (mode != lastMode || keySource != lastKeySource || limiter != lastLimiter
+    // Limiter ON/OFF is a projection choice, not a new history source. Keep
+    // the evidence so switching Limiter also reshapes the already-visible past.
+    if (mode != lastMode || keySource != lastKeySource
         || position.generation != lastCaptureGeneration)
     {
         clearHistories();
@@ -312,19 +362,20 @@ void DynamicDisplay::timerCallback()
         lastLimiter = limiter;
         lastKeySource = keySource;
         lastCaptureGeneration = position.generation;
+        lastCapturedHistoryCounter = position.counter;
     }
 
     // Host audio may be stopped when the user switches ST/LR/MS. Geometry
     // follows the current parameter immediately; never relabel old-domain
     // meter data as a new-domain history while waiting for the audio callback.
-    if (mode == m.processingMode.load (std::memory_order_relaxed))
+    const bool hasNewAudioEvidence = position.counter != lastCapturedHistoryCounter;
+    if (mode == m.processingMode.load (std::memory_order_relaxed)
+        && (hasNewAudioEvidence || histories[0].points.empty()))
     {
         HistoryPoint point0;
         point0.inputDb = m.displayInputDb0.load (std::memory_order_relaxed);
-        point0.measuredOutputDb = m.outputDb0.load (std::memory_order_relaxed);
-        if (mode == qqsc::params::stereoLinked)
-            point0.measuredOutputDb = juce::jmax(point0.measuredOutputDb,m.outputDb1.load(std::memory_order_relaxed));
         point0.detectorDb = m.displayDetectorDb0.load (std::memory_order_relaxed);
+        point0.truePeakExcessDb = capturedTruePeakExcessDb;
         point0.capturedInputGainDb = capturedInputGainDb;
         point0.capturedKeyGainDb = capturedKeyGainDb;
         point0.captureGeneration = position.generation;
@@ -335,18 +386,31 @@ void DynamicDisplay::timerCallback()
         {
             HistoryPoint point1;
             point1.inputDb = m.displayInputDb1.load (std::memory_order_relaxed);
-            point1.measuredOutputDb = m.outputDb1.load (std::memory_order_relaxed);
             point1.detectorDb = m.displayDetectorDb1.load (std::memory_order_relaxed);
+            point1.truePeakExcessDb = capturedTruePeakExcessDb;
             point1.capturedInputGainDb = capturedInputGainDb;
             point1.capturedKeyGainDb = capturedKeyGainDb;
             point1.captureGeneration = position.generation;
             point1.captureCounter = position.counter;
             pushHistory (histories[1], point1);
         }
+        lastCapturedHistoryCounter = position.counter;
+        trimHistoryToVisibleWindow (histories[0], position.counter);
+        if (mode != qqsc::params::stereoLinked)
+            trimHistoryToVisibleWindow (histories[1], position.counter);
+        ++historyRevision;
     }
 
     const auto currentHpfHz = readParameter (processor, qqsc::params::keyHpfHz,
                                              qqsc::params::keyHpfOffHz);
+    const auto currentLookaheadMs = qqsc::params::snapLookaheadMs (
+        readParameter (processor, qqsc::params::lookaheadMs));
+    if (std::abs (currentLookaheadMs - lastObservedLookaheadMs) > 0.01f)
+    {
+        lastObservedLookaheadMs = currentLookaheadMs;
+        hpfStableTimerTicks = 0;
+        hpfRefreshPending = true;
+    }
     if (std::abs (currentHpfHz - lastObservedHpfHz) > 0.01f)
     {
         lastObservedHpfHz = currentHpfHz;
@@ -374,8 +438,22 @@ void DynamicDisplay::timerCallback()
         }
     }
 
-    refreshRenderCaches (mode);
-    repaint();
+    // Keep collecting evidence while an editor/component is hidden, but do not
+    // spend message-thread time re-projecting paths that cannot be seen. When
+    // it becomes visible again the revision mismatch rebuilds everything once.
+    if (! isShowing())
+        return;
+
+    const bool projectionDirty = projectionRevision != renderedProjectionRevision;
+    const bool historyDirty = historyRevision != renderedHistoryRevision;
+    if (projectionDirty || historyDirty || geometryDirty)
+    {
+        refreshRenderCaches (mode);
+        renderedProjectionRevision = projectionRevision;
+        renderedHistoryRevision = historyRevision;
+        geometryDirty = false;
+        repaint();
+    }
 }
 
 void DynamicDisplay::pushHistory (HistorySet& history, HistoryPoint point)
@@ -391,6 +469,41 @@ void DynamicDisplay::pushHistory (HistorySet& history, HistoryPoint point)
 float DynamicDisplay::dbToY (float db, juce::Rectangle<float> plot) const noexcept
 {
     return juce::jmap (juce::jlimit (minDb, maxDb, db), maxDb, minDb, plot.getY(), plot.getBottom());
+}
+
+float DynamicDisplay::historyXForCounter (uint64_t captureCounter,
+                                          juce::Rectangle<float> plot) const noexcept
+{
+    if (renderReferenceCounter == 0 || renderReferenceSampleRate <= 1.0)
+        return plot.getRight();
+
+    const auto ageSamples = renderReferenceCounter > captureCounter
+        ? renderReferenceCounter - captureCounter : uint64_t { 0 };
+    const auto ageSeconds = static_cast<double> (ageSamples) / renderReferenceSampleRate;
+    const auto ageNormalised = juce::jlimit (
+        0.0, 1.0, ageSeconds / static_cast<double> (historyWindowSeconds));
+    return plot.getRight() - plot.getWidth() * static_cast<float> (ageNormalised);
+}
+
+void DynamicDisplay::trimHistoryToVisibleWindow (HistorySet& history,
+                                                 uint64_t referenceCounter) const
+{
+    if (referenceCounter == 0 || renderReferenceSampleRate <= 1.0)
+        return;
+
+    const auto maxAgeSamples = static_cast<uint64_t> (
+        std::llround (renderReferenceSampleRate * static_cast<double> (historyWindowSeconds)));
+
+    while (! history.points.empty())
+    {
+        const auto counter = history.points.front().captureCounter;
+        if (referenceCounter <= counter || referenceCounter - counter <= maxAgeSamples)
+            break;
+        history.points.pop_front();
+    }
+
+    while (static_cast<int> (history.points.size()) > historyLength)
+        history.points.pop_front();
 }
 
 juce::Rectangle<float> DynamicDisplay::getBoundaryPlotForDomain (int parameterDomainIndex) const noexcept
@@ -436,19 +549,16 @@ float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY,
 
 void DynamicDisplay::updatePath (juce::Path& path,
                                  const std::array<float, historyLength>& values,
+                                 const std::array<uint64_t, historyLength>& captureCounters,
                                  size_t valueCount, juce::Rectangle<float> plot) const
 {
     path.clear();
     if (valueCount == 0)
         return;
 
-    const auto denom = static_cast<float> (juce::jmax (1, historyLength - 1));
-    const auto startOffset = historyLength - static_cast<int> (valueCount);
-
     for (size_t i = 0; i < valueCount; ++i)
     {
-        const auto xIndex = static_cast<float> (startOffset + static_cast<int> (i));
-        const auto x = plot.getX() + plot.getWidth() * xIndex / denom;
+        const auto x = historyXForCounter (captureCounters[i], plot);
         const auto y = dbToY (values[i], plot);
 
         if (i == 0)
@@ -467,12 +577,10 @@ void DynamicDisplay::updateGainChangePaths (
     if (projected.size == 0)
         return;
 
-    const auto denom = static_cast<float> (historyLength - 1);
-    const auto startOffset = historyLength - static_cast<int> (projected.size);
     auto pointAt = [&] (size_t i)
     {
         return juce::Point<float> (
-            plot.getX() + plot.getWidth() * static_cast<float> (startOffset + static_cast<int> (i)) / denom,
+            historyXForCounter (projected.captureCounter[i], plot),
             dbToY (projected.gainReductionBoundary[i], plot));
     };
 
@@ -505,16 +613,15 @@ void DynamicDisplay::updateGainReductionShadePath (
     juce::Path& reductionPath, juce::Path& increasePath,
     const std::array<float, historyLength>& upper,
     const std::array<float, historyLength>& lower,
-    const std::array<float, historyLength>& gainReduction, size_t valueCount,
-    juce::Rectangle<float> plot) const
+    const std::array<float, historyLength>& gainReduction,
+    const std::array<uint64_t, historyLength>& captureCounters,
+    size_t valueCount, juce::Rectangle<float> plot) const
 {
     reductionPath.clear();
     increasePath.clear();
     if (valueCount == 0)
         return;
 
-    const auto denom = static_cast<float> (juce::jmax (1, historyLength - 1));
-    const auto startOffset = historyLength - static_cast<int> (valueCount);
     const auto stride = std::max<size_t> (
         1, (valueCount + static_cast<size_t> (gainReductionShadeSegments) - 1)
                / static_cast<size_t> (gainReductionShadeSegments));
@@ -526,8 +633,7 @@ void DynamicDisplay::updateGainReductionShadePath (
         if (std::abs (lowerY - upperY) < 0.35f)
             continue;
 
-        const auto xIndex = static_cast<float> (startOffset + static_cast<int> (i));
-        const auto x = plot.getX() + plot.getWidth() * xIndex / denom;
+        const auto x = historyXForCounter (captureCounters[i], plot);
         auto& path = gainReduction[i] < 0.0f ? increasePath : reductionPath;
         path.startNewSubPath (x, upperY);
         path.lineTo (x, lowerY);
@@ -559,6 +665,81 @@ juce::Rectangle<float> DynamicDisplay::plotBoundsForPanel (juce::Rectangle<float
     return plot;
 }
 
+uint64_t DynamicDisplay::dynamicsLutSignatureForDomain (int domainIndex, int mode) const noexcept
+{
+    uint64_t hash = 1469598103934665603ull;
+    const auto mixWord = [&] (uint64_t word)
+    {
+        hash ^= word;
+        hash *= 1099511628211ull;
+    };
+    const auto mixFloat = [&] (float value)
+    {
+        uint32_t bits = 0;
+        static_assert (sizeof (bits) == sizeof (value));
+        std::memcpy (&bits, &value, sizeof (bits));
+        mixWord (bits);
+    };
+
+    const auto domain = processorDomain (domainIndex, mode);
+    const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
+    mixWord (static_cast<uint64_t> (processor.isLimiterMode()));
+    mixWord (static_cast<uint64_t> (dual));
+    mixWord (static_cast<uint64_t> (juce::roundToInt (readParameter (processor, qqsc::params::keySource))));
+    mixFloat (processor.getBoundaryForDomainDb (dual, false, domain));
+    mixFloat (processor.getBoundaryForDomainDb (dual, true, domain));
+
+    if (dual)
+    {
+        mixFloat (readParameter (processor, qqsc::params::upEnabledIds[static_cast<size_t> (domain)]));
+        mixFloat (readParameter (processor, qqsc::params::downEnabledIds[static_cast<size_t> (domain)]));
+        mixFloat (readParameter (processor, qqsc::params::upRatioIds[static_cast<size_t> (domain)]));
+        mixFloat (readParameter (processor, qqsc::params::downRatioIds[static_cast<size_t> (domain)]));
+        mixFloat (readParameter (processor, "upAlgorithmMode"));
+        mixFloat (readParameter (processor, "downAlgorithmMode"));
+    }
+    else
+    {
+        mixFloat (readParameter (processor, qqsc::params::ratioIds[static_cast<size_t> (domain)]));
+        mixFloat (readParameter (processor, qqsc::params::algorithmMode));
+    }
+    return hash;
+}
+
+void DynamicDisplay::rebuildDynamicsLut (RenderCache& cache, int domainIndex, int mode,
+                                             uint64_t signature)
+{
+    const auto domain = processorDomain (domainIndex, mode);
+
+    // Snapshot all dynamics parameters once, then fill the complete dense LUT.
+    // v1.2.21 called getDynamicsGainForDomain() 4097 times; during a drag that
+    // repeated APVTS/bank/algorithm reads thousands of times every display frame.
+    // The processor bulk helper uses the identical StaticCompressionEngine law
+    // but reads the current parameter state once per LUT rebuild.
+    processor.fillDynamicsGainForDomain (
+        detectorLevelLut.data(), cache.dynamicsGainLut.data(),
+        static_cast<size_t> (dynamicsLutSize), domain);
+
+    cache.dynamicsLutSignature = signature;
+    cache.dynamicsLutValid = true;
+}
+
+float DynamicDisplay::dynamicsGainFromLut (const RenderCache& cache, float detectorDb) const noexcept
+{
+    if (! cache.dynamicsLutValid)
+        return 1.0f;
+
+    const auto clamped = juce::jlimit (silenceDb, maxDb, detectorDb);
+    const auto position = (clamped - silenceDb) / (maxDb - silenceDb)
+                        * static_cast<float> (dynamicsLutSize - 1);
+    const auto lo = juce::jlimit (0, dynamicsLutSize - 1, static_cast<int> (std::floor (position)));
+    const auto hi = juce::jmin (dynamicsLutSize - 1, lo + 1);
+    const auto fraction = position - static_cast<float> (lo);
+    return juce::jmap (fraction,
+                       cache.dynamicsGainLut[static_cast<size_t> (lo)],
+                       cache.dynamicsGainLut[static_cast<size_t> (hi)]);
+}
+
 void DynamicDisplay::refreshRenderCaches (int mode)
 {
     const auto keySource = juce::roundToInt (readParameter (processor, qqsc::params::keySource));
@@ -584,17 +765,25 @@ void DynamicDisplay::refreshRenderCaches (int mode)
             continue;
         }
 
-        projectHistory (domain, mode, externalKey, bypassed, cache.projected);
+        const auto dynamicsSignature = dynamicsLutSignatureForDomain (domain, mode);
+        if (! cache.dynamicsLutValid || cache.dynamicsLutSignature != dynamicsSignature)
+            rebuildDynamicsLut (cache, domain, mode, dynamicsSignature);
+
+        projectHistory (domain, mode, externalKey, bypassed, cache, cache.projected);
         const auto plot = plotBoundsForPanel (domainPanelBounds (domain, mode));
-        updatePath (cache.inputPath, cache.projected.input, cache.projected.size, plot);
+        updatePath (cache.inputPath, cache.projected.input,
+                    cache.projected.captureCounter, cache.projected.size, plot);
         updateGainChangePaths (cache.gainReductionPath, cache.gainIncreasePath,
                                cache.projected, plot);
-        updatePath (cache.outputPath, cache.projected.output, cache.projected.size, plot);
-        updatePath (cache.externalKeyPath, cache.projected.externalKey, cache.projected.size, plot);
+        updatePath (cache.outputPath, cache.projected.output,
+                    cache.projected.captureCounter, cache.projected.size, plot);
+        updatePath (cache.externalKeyPath, cache.projected.externalKey,
+                    cache.projected.captureCounter, cache.projected.size, plot);
         updateGainReductionShadePath (cache.gainReductionShadePath, cache.gainIncreaseShadePath,
                                       cache.projected.input,
                                       cache.projected.gainReductionBoundary,
                                       cache.projected.effectiveGainReduction,
+                                      cache.projected.captureCounter,
                                       cache.projected.size, plot);
         cache.currentGainReductionDb = cache.projected.size == 0
             ? 0.0f : cache.projected.effectiveGainReduction[cache.projected.size - 1];
@@ -641,26 +830,40 @@ float DynamicDisplay::mixForDomain (int domainIndex, int mode) const noexcept
 }
 
 void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey,
-                                     bool bypassed, ProjectedHistory& projected) const
+                                     bool bypassed, const RenderCache& cache,
+                                     ProjectedHistory& projected) const
 {
     projected.size = 0;
     const auto inputGainDb = readParameter (processor, qqsc::params::inputGainDb);
     const auto keyGainDb = readParameter (processor, qqsc::params::keyGainDb);
     const auto inputGain = juce::Decibels::decibelsToGain (inputGainDb);
-    const auto domain = processorDomain (domainIndex, mode);
     const auto wetMix = mixForDomain (domainIndex, mode);
     const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode), -180.0f);
-    const auto outputGain = juce::Decibels::decibelsToGain (
-        processor.getActiveOutputGainDb());
+    const auto activeOutputGainDb = processor.getActiveOutputGainDb();
+    const auto outputGain = juce::Decibels::decibelsToGain (activeOutputGainDb);
+    const bool limiter = processor.isLimiterMode();
+    const bool truePeak = limiter && processor.isTruePeakSelected();
+    const auto ceilingDb = readParameter (processor, qqsc::params::ceilingDb);
+    const auto tpRecovery = processor.getTpRecoveryMode();
+
+    // Limiter Ceiling is a post-dynamics stage. History stores only level/shape
+    // evidence; the CURRENT Hard/TP choice is replayed on every projection.
+    // TP recovery is time-dependent; Hard Clip is instantaneous.
+    // This deliberately preserves QQ Super Compression's defining Display rule:
+    // changing a current control reshapes the already-visible history.
+    const float recoverySeconds = tpRecovery == qqsc::params::tpTight ? .015f
+        : tpRecovery == qqsc::params::tpSmooth ? .140f : .050f;
+    const float recoveryStep = 1.0f / (1.0f + float (displayRefreshHz) * recoverySeconds);
+    float retrospectiveTpGain = 1.0f;
 
     for (const auto& point : histories[static_cast<size_t> (domainIndex)].points)
     {
         auto detectorDb = point.hasReplayedDetector ? point.replayedDetectorDb
                                                      : point.detectorDb;
 
-        // A replayed point is stored before detector gain, so current Input
-        // (INT) or Key Gain (EXT) can move the complete history immediately.
-        // Live fallback points remain post-gain and use the capture-time delta.
+        // Replayed evidence is pre-gain. Live fallback points are post-gain and
+        // are moved by the delta from their capture setting. No rendered GR is
+        // stored, so Input/Key controls remain retrospective as well.
         if (point.hasReplayedDetector)
             detectorDb += externalKey ? keyGainDb : inputGainDb;
         else if (externalKey)
@@ -670,21 +873,75 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
 
         detectorDb = juce::jlimit (silenceDb, maxDb, detectorDb);
 
-        const auto compressedGain = processor.getDynamicsGainForDomain (
-            dbToDetectorLevel (detectorDb), domain);
-        const auto effectiveGr = bypassed ? 0.0f
-                                          : qqsc::StaticCompressionEngine::effectiveGainReductionDb (
-                                                compressedGain, wetMix);
+        // The current transfer law is cached as a dense detector-level LUT.
+        // Stable playback therefore reprojects 8 seconds of history with only
+        // interpolation; expensive Classic/Super pow/rational evaluation is
+        // rebuilt once when a parameter revision changes.
+        const auto compressedGain = dynamicsGainFromLut (cache, detectorDb);
+        const auto dynamicsMixGrDb = bypassed ? 0.0f
+            : qqsc::StaticCompressionEngine::effectiveGainReductionDb (compressedGain, wetMix);
 
-        auto projectedOutputDb = point.inputDb;
+        // IMPORTANT DISPLAY CONTRACT
+        // --------------------------
+        // The blue trace is a calculated transfer/history view, not a measured
+        // post-compressor waveform. For INT, the detector peak is the level to
+        // which the current static Classic/Super transfer law actually applies.
+        // Convert it back to the pre-Input-Gain Display reference. This keeps the
+        // curve monotonic, makes finite-Ratio TP-OFF output stay on/above the
+        // displayed DOWN threshold, and prevents impossible spikes caused by
+        // pairing an unrelated carrier-block peak with a lookahead detector peak.
+        // EXT is intentionally different: key and carrier are unrelated, so the
+        // captured carrier remains the display reference while the external key
+        // supplies only gain control.
+        const auto transferInputDb = externalKey ? point.inputDb
+                                                 : detectorDb - inputGainDb;
+        const auto cutMixDb = bypassed ? transferInputDb
+                                       : transferInputDb - dynamicsMixGrDb;
+
+        // Re-project the current audible path from the SAME transfer evidence.
+        // Makeup is inside the Wet leg; Input/Output are fixed gains. These do
+        // not belong to base Dynamics GR, but they DO affect how hard the later
+        // TP stage is driven, so changing them can retrospectively change the TP
+        // contribution to the blue trace when TP is enabled.
+        auto projectedPreCeilingDb = transferInputDb;
         if (! bypassed)
         {
-            // Makeup affects only the Wet leg, exactly as in processBlock.
-            // It changes Output, but it is intentionally not part of GR.
-            const auto mixedGain = (1.0f - wetMix) + compressedGain * makeupGain * wetMix;
-            const auto totalGain = inputGain * juce::jmax (0.0f, mixedGain) * outputGain;
-            projectedOutputDb += juce::Decibels::gainToDecibels (
+            const auto mixedGainWithMakeup = (1.0f - wetMix)
+                                           + compressedGain * makeupGain * wetMix;
+            const auto totalGain = inputGain
+                                 * juce::jmax (0.0f, mixedGainWithMakeup)
+                                 * outputGain;
+            projectedPreCeilingDb += juce::Decibels::gainToDecibels (
                 juce::jmax (totalGain, 1.0e-9f), -180.0f);
+        }
+
+        // Re-evaluate the current Limiter Ceiling choice from level-independent
+        // 8x inter-sample evidence. TP OFF is now an 8x Hard Clipper, so it uses
+        // the same reconstructed peak evidence but has no recovery envelope.
+        // TP ON retains the established time-dependent protection/recovery. The
+        // right-side GAIN +/- meter remains the authority for real-time DSP GR.
+        float projectedCeilingGrDb = 0.0f;
+        float projectedPostCeilingDb = projectedPreCeilingDb;
+        if (limiter && ! bypassed)
+        {
+            const auto projectedPeakDb = projectedPreCeilingDb
+                + juce::jmax (0.0f, point.truePeakExcessDb);
+            const auto overshootDb = projectedPeakDb - ceilingDb;
+            if (overshootDb > 0.0f)
+                projectedCeilingGrDb = overshootDb + (truePeak ? 0.01f : 0.0f);
+
+            if (truePeak)
+            {
+                const auto targetGain = juce::Decibels::decibelsToGain (-projectedCeilingGrDb);
+                if (targetGain <= retrospectiveTpGain)
+                    retrospectiveTpGain = targetGain;
+                else
+                    retrospectiveTpGain += recoveryStep * (targetGain - retrospectiveTpGain);
+
+                projectedCeilingGrDb = -juce::Decibels::gainToDecibels (
+                    juce::jmax (retrospectiveTpGain, 1.0e-9f), -180.0f);
+            }
+            projectedPostCeilingDb -= projectedCeilingGrDb;
         }
 
         if (projected.size >= static_cast<size_t> (historyLength))
@@ -692,14 +949,21 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
 
         const auto index = projected.size++;
         projected.input[index] = point.inputDb;
-        projected.gainReductionBoundary[index] = point.inputDb - effectiveGr;
-        // Limiter is time-dependent output protection. A static transfer curve
-        // cannot reconstruct its true output; show captured final samples rather
-        // than inventing a ceiling by visually clamping the projected curve.
-        projected.output[index] = processor.isLimiterMode() && !bypassed
-            ? point.measuredOutputDb : projectedOutputDb;
+
+        // Blue = current QQ compression transfer + current Mix + CURRENT Limiter
+        // Ceiling attenuation. TP OFF therefore shows the 8x Hard Clipper's
+        // instantaneous clip depth; TP ON shows the replayed TP envelope.
+        const auto ceilingGrForBlue = (limiter && ! bypassed) ? projectedCeilingGrDb : 0.0f;
+        projected.gainReductionBoundary[index] = cutMixDb - ceilingGrForBlue;
+        projected.effectiveGainReduction[index] = dynamicsMixGrDb + ceilingGrForBlue;
+
+        // Orange remains the current projected final output, including Makeup,
+        // Output Gain and the active Hard-Clip/True-Peak Ceiling stage.
+        projected.output[index] = limiter && ! bypassed
+            ? projectedPostCeilingDb
+            : (bypassed ? point.inputDb : projectedPreCeilingDb);
         projected.externalKey[index] = detectorDb;
-        projected.effectiveGainReduction[index] = effectiveGr;
+        projected.captureCounter[index] = point.captureCounter;
     }
 }
 
@@ -731,6 +995,11 @@ void DynamicDisplay::handleHpfReplayFailure (uint64_t requestGeneration,
 
 bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
 {
+    if (processor.isEcoMode() && ! isShowing())
+    {
+        hpfRefreshPending = true;
+        return false;
+    }
     if (! retrying)
         hpfRetryAttempts = 0;
 
@@ -781,6 +1050,7 @@ bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
 bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult& result,
                                      juce::Thread& worker) const
 {
+    if (! processor.shouldRunUiAnalysis()) return false;
     QQSuperCompressionAudioProcessor::DisplayKeyHistorySnapshot snapshot;
     if (request.markers.empty()
         || ! processor.copyDisplayKeyHistory (request.captureGeneration,
@@ -822,7 +1092,8 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
     {
         if ((i & 4095u) == 0u
             && (worker.threadShouldExit()
-                || replayRequestGeneration->load (std::memory_order_relaxed) != request.requestGeneration))
+                || ! processor.shouldRunUiAnalysis()
+                 || replayRequestGeneration->load (std::memory_order_relaxed) != request.requestGeneration))
             return false;
 
         auto left = snapshot.left[i];
@@ -911,8 +1182,14 @@ void DynamicDisplay::applyHpfReplay (ReplayResult result)
     hpfReplayBusy = false;
     hpfRetryAttempts = 0;
     hpfRetryTimerTicks = 0;
-    refreshRenderCaches (lastMode);
-    repaint();
+    ++historyRevision;
+    if (isShowing())
+    {
+        refreshRenderCaches (lastMode);
+        renderedHistoryRevision = historyRevision;
+        renderedProjectionRevision = processor.getDisplayProjectionRevision();
+        repaint();
+    }
 }
 
 void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> panel, int domainIndex,

@@ -1,0 +1,11 @@
+{
+  "version": "1.2.14",
+  "baseline": "1.2.13 TP Display Gain Reduction",
+  "status": "source candidate; not Windows-built here",
+  "changes": [
+    "GAIN +/- meter includes OutputCeiling attenuation",
+    "GR Hold includes same combined value",
+    "Dynamic Display behavior retained",
+    "audio DSP unchanged"
+  ]
+}

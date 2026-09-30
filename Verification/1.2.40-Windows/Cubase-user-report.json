@@ -1,0 +1,32 @@
+{
+  "version": "1.2.40",
+  "source": "user copied report from Cubase",
+  "configuration": {
+    "block": 1024,
+    "core": 16,
+    "ceiling": 16,
+    "eco": true,
+    "key": "INT",
+    "external_bus_channels": 0
+  },
+  "closed": {
+    "us_per_block": 7749.3,
+    "blocks": 67
+  },
+  "open": {
+    "us_per_block": 8114.3,
+    "blocks": 8957
+  },
+  "both_windows": {
+    "exact_zero_percent": 0,
+    "sleep_percent": 0,
+    "playing_percent": 0,
+    "unknown_transport_percent": 0,
+    "idle_gate": "nonzero input",
+    "main_block_peak_min": 1e-10,
+    "main_block_peak_max": 1e-10,
+    "main_peak_dbfs": -200,
+    "nonfinite_samples": 0
+  },
+  "interpretation": "Persistent nonzero main input prevents exact-zero sleep. Stable block peaks do not identify waveform or origin. User requires continuous noise to be preserved and processed; do not use zero-only acceptance."
+}

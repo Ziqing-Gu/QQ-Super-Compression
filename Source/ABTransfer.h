@@ -23,29 +23,33 @@ struct ABTransfer
             && upAlgorithm==b.upAlgorithm && downAlgorithm==b.downAlgorithm;
     }
     using Matrix = std::array<float,4>; // L<-L, L<-R, R<-L, R<-R
-    static Matrix matrix (const std::array<float,5>& g, int mode) noexcept
+    static Matrix matrix (const std::array<float,5>& g, int mode, bool stereo = true) noexcept
     {
+        if (mode == 1 && ! stereo) return { g[3],0,0,0 };
         if (mode == 1) return { .5f*(g[3]+g[4]), .5f*(g[3]-g[4]), .5f*(g[3]-g[4]), .5f*(g[3]+g[4]) };
         if (mode == 2) return { g[1],0,0,g[2] };
         return { g[0],0,0,g[0] };
     }
-    Matrix dryMatrix() const noexcept
+    Matrix dryMatrix(bool stereo = true) const noexcept
     {
         std::array<float,5> g;
         for (size_t d=0;d<5;++d) g[d]=(1-mix[d])*output;
-        return matrix(g,mode);
+        return matrix(g,mode,stereo);
     }
-    Matrix evaluate (const std::array<float,5>& levels, bool externalKey) const noexcept
+    Matrix evaluate (const std::array<float,5>& levels, bool externalKey, bool stereo = true) const noexcept
     {
-        std::array<float,5> g;
-        for(size_t d=0;d<5;++d)
+        std::array<float,5> g {};
+        // Each bank's matrix consumes only its own ST, LR or MS domains.
+        const size_t first = mode == 1 ? 3u : mode == 2 ? 1u : 0u;
+        const size_t end = first + (mode == 0 || (mode == 1 && !stereo) ? 1u : 2u);
+        for(size_t d=first;d<end;++d)
         {
             const float core = externalKey && levels[d]<=1e-9f ? 1.f : dual
                 ? StaticCompressionEngine::dualGainForLevel(levels[d],upRatio[d],downRatio[d],lower[d],upper[d],upAlgorithm,downAlgorithm)
                 : StaticCompressionEngine::singleGainForLevel(levels[d],ratio[d],lower[d],upper[d],algorithm);
             g[d]=core*makeup[d]*mix[d]*output;
         }
-        return matrix(g,mode);
+        return matrix(g,mode,stereo);
     }
 };
 }

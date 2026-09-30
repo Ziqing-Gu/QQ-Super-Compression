@@ -1,0 +1,18 @@
+UNCHANGED Source/Parameters.h 3D56413316EE650FF69831D0ABD0370448B9970962DC9014BA1A0A30DA1B0F30
+UNCHANGED Source/StaticCompressionEngine.h 51B36D3AA7BE1113AA4E90AC6C0C534163A9B7A3A9EDC2DFE24D455CAD3FA6BA
+UNCHANGED Source/ABTransfer.h B3975F95D779F5EEE7D44D5E757659C16B2297B1E8EC18F50C16FF5CA19B4484
+UNCHANGED Source/LimiterModeContinuity.h 2CBDA51BF80DFC444BC982B61BDD32AFE8079357A12E49FFD26B83DAAC03CE66
+UNCHANGED Source/BS1770LoudnessMatch.h 83180E164DD62D97366E680C45359520C48947AC5CC5C096B3EB353091CB4306
+UNCHANGED Source/IntegratedLoudnessMeter.h 09EFAD60E18C9C5BB4FF0E3D990A061301C945FCB29ACF336E6633866ACFC3E7
+UNCHANGED Source/KWeightingFilter.h EA1E4C922EA38B6E185E90BEB14F3EC5CD8FD60B03555617BF31A85F6ECA2825
+UNCHANGED LICENSE B8FC4FD9301572B4159FFC347072DE8811D32AB4B6650455B280CA68E5D5318A
+UNCHANGED FUNCTION void QQSuperCompressionAudioProcessor::processBlock (
+UNCHANGED FUNCTION void QQSuperCompressionAudioProcessor::processBlockInternal (
+UNCHANGED FUNCTION void QQSuperCompressionAudioProcessor::parameterChanged (
+UNCHANGED FUNCTION void QQSuperCompressionAudioProcessor::continueLimiterCompressionMode (
+UNCHANGED FUNCTION void QQSuperCompressionAudioProcessor::rebuildBoundaryPairs()
+UNCHANGED FUNCTION QQSuperCompressionAudioProcessor::ParameterSnapshot QQSuperCompressionAudioProcessor::captureCurrentSnapshot()
+UNCHANGED FUNCTION qqsc::ABTransfer QQSuperCompressionAudioProcessor::makeABTransfer (
+UNCHANGED FUNCTION void QQSuperCompressionAudioProcessor::setCompressionModeFromEditor (
+PASS: version/schema/defaults/range/link declarations, unchanged parameter-ID definitions, plugin identity, DSP core and 1.2.8 continuity functions; C++ delimiters balanced.
+LIMITATION: static/extracted-source checks do not establish full JUCE compilation, binary identity or audio null equivalence.

@@ -1,0 +1,5 @@
+PASS: TP Recovery parameter/UI/state hooks are present and AUTO keeps the 1.2.17 timing formulas.
+PASS: TIGHT/AUTO/SMOOTH release constants are ordered for loudness -> adaptive -> smooth behaviour.
+PASS: 100000 display-envelope release cases preserve TIGHT > AUTO > SMOOTH recovery speed.
+PASS: Ceiling target/residual safety equations are independent of TP Recovery mode.
+LIMITATION: BUILD_WINDOWS revision1218 + QQSCCeilingCheck remains the real JUCE/audio acceptance gate.

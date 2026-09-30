@@ -52,6 +52,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
       display (p),
       meters (p)
 {
+    processor.setEditorOpen(true);
     processor.initialiseDualRatioLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("dualRatioLink", true));
     processor.initialiseInputOutputLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("inputOutputLink", true));
     processor.initialiseAlgorithmPreference (uiProperties != nullptr ? uiProperties->getIntValue ("lastAlgorithmMode", 0) : 0);
@@ -118,8 +119,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureLabel (thresholdChannel1Label, "R");
     configureLabel (modeLabel, "MODE");
     configureLabel (monitorLabel, "MONITOR");
-    configureLabel (lookaheadLabel, "LOOKAHEAD (ms)");
-    configureLabel (oversamplingLabel, "OVERSAMPLING");
+    configureLabel (lookaheadLabel, "LOOKAHEAD");
+    configureLabel (oversamplingLabel, "OS");
+    configureLabel (ceilingOversamplingLabel, "CEILING OS");
     configureLabel (keySourceLabel, "SOURCE");
     configureLabel (keyGainLabel, "KEY GAIN");
     configureLabel (keyHpfLabel, "HPF");
@@ -140,11 +142,12 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     monitorLabel.setColour (juce::Label::textColourId, qqsc::ui::cyanAccent().darker (0.42f));
     lookaheadLabel.setColour (juce::Label::textColourId, qqsc::ui::cyanAccent().darker (0.42f));
     oversamplingLabel.setColour (juce::Label::textColourId, qqsc::ui::cyanAccent().darker (0.42f));
+    ceilingOversamplingLabel.setColour (juce::Label::textColourId, qqsc::ui::cyanAccent().darker (0.42f));
 
     for (auto* label : { &inputGainLabel, &ratioLabel, &ratioChannel0Label, &ratioChannel1Label,
                           &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
                           &mixLabel, &mixChannel0Label, &mixChannel1Label, &ceilingLabel, &outputGainLabel, &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
-                          &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel })
+                          &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel, &ceilingOversamplingLabel })
         contentRoot.addAndMakeVisible (*label);
 
     for (auto* label : { &keySourceLabel, &keyGainLabel, &keyHpfLabel, &keyMeterLabel })
@@ -295,6 +298,12 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     updateAlgorithmUi();
     configureActionButton (themeButton);
     configureActionButton (oversamplingButton);
+    configureActionButton (ceilingOversamplingButton);
+    configureActionButton (performanceModeButton);
+    contentRoot.addAndMakeVisible (ceilingOversamplingButton);
+    contentRoot.addAndMakeVisible (performanceModeButton);
+    registerKeyboardListener (ceilingOversamplingButton);
+    registerKeyboardListener (performanceModeButton);
     configureActionButton (sidechainButton);
     configureActionButton (keyInternalButton);
     configureActionButton (keyExternalButton);
@@ -307,6 +316,11 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     modeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     oversamplingButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
     oversamplingButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    ceilingOversamplingButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
+    ceilingOversamplingButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    performanceModeButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
+    performanceModeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    performanceModeButton.setTooltip ("Left-click: switch FULL/ECO for this instance. ECO mutes and suspends while the host is stopped; FULL preserves live monitoring. Recording/offline rendering stay active. Right-click: open Performance / Idle diagnostics and copy the report.");
     for (size_t d = 0; d < 5; ++d)
     {
         configureActionButton (upEnabledButtons[d]);
@@ -351,7 +365,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     aButton.setClickingTogglesState (false);
     bButton.setClickingTogglesState (false);
 
-    for (auto* button : { &modeButton, &linkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
+    for (auto* button : std::initializer_list<juce::TextButton*> { &modeButton, &linkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton, &oversamplingButton })
     {
         contentRoot.addAndMakeVisible (*button);
@@ -400,6 +414,14 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     inputGainSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::inputOutput, inputGainSlider, outputGainSlider, "Input / Output Gain"); };
     ratioSlider.onGestureStart = [this] { beginUndoTransaction ("Ratio ST"); };
     makeupSTSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup ST"); };
+    // This converter survives bank rebinding. Do not keep JUCE's initial
+    // Normal-parameter capture, which would also clip Limiter typing to 30 dB.
+    makeupSTSlider.valueFromTextFunction = [this] (const juce::String& text)
+    {
+        const auto value = text.getDoubleValue();
+        return std::isfinite(value) ? juce::jlimit(makeupSTSlider.getMinimum(), makeupSTSlider.getMaximum(), value)
+                                   : makeupSTSlider.getValue();
+    };
     mixSlider.onGestureStart = [this] { beginUndoTransaction ("Mix ST"); };
     outputGainSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::inputOutput, outputGainSlider, inputGainSlider, "Output / Input Gain"); };
     inputGainSlider.onGestureEnd = outputGainSlider.onGestureEnd = [this] { endLinkedGesture(); };
@@ -490,6 +512,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     monitorFirstButton.onClick = [this] { selectMonitor (qqsc::params::monitorFirst); };
     monitorSecondButton.onClick = [this] { selectMonitor (qqsc::params::monitorSecond); };
     oversamplingButton.onClick = [this] { cycleOversampling(); };
+    ceilingOversamplingButton.onClick = [this] { cycleCeilingOversampling(); };
+    performanceModeButton.onClick = [this] { togglePerformanceMode(); };
+    performanceModeButton.onDiagnostics = [this] { showPerformanceDiagnostics(); };
     matchButton.onClick = [this] { processor.applyMatchForCurrentMode(); };
     aButton.onClick = [this] { processor.selectABSlot (0); };
     bButton.onClick = [this] { processor.selectABSlot (1); };
@@ -514,12 +539,15 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
     updateModeUi();
     updateOversamplingUi();
+    updateCeilingOversamplingUi();
+    updatePerformanceModeUi();
     updateSidechainUi();
     startTimerHz (15);
 }
 
 QQSuperCompressionAudioProcessorEditor::~QQSuperCompressionAudioProcessorEditor()
 {
+    processor.setEditorOpen(false);
     finishCompressionControlGestures();
     stopTimer();
     processor.setSidechainListenEnabled (false);
@@ -574,7 +602,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
                          &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
                          &mixLabel, &mixChannel0Label, &mixChannel1Label, &ceilingLabel, &outputGainLabel,
                          &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
-                         &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel,
+                         &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel, &ceilingOversamplingLabel,
                          &keySourceLabel, &keyGainLabel, &keyHpfLabel, &keyMeterLabel })
     {
         label->setColour (juce::Label::textColourId, neutral.withAlpha (0.92f));
@@ -591,6 +619,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     monitorLabel.setColour (juce::Label::textColourId, technical);
     lookaheadLabel.setColour (juce::Label::textColourId, technical);
     oversamplingLabel.setColour (juce::Label::textColourId, technical);
+    ceilingOversamplingLabel.setColour (juce::Label::textColourId, technical);
     if (darkTheme)
         for (auto* label : { &ratioLabel, &makeupLabel, &mixLabel, &modeLabel })
             label->setColour (juce::Label::textColourId, qqsc::ui::text().withAlpha (0.90f));
@@ -624,9 +653,9 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     lookaheadCombo.setColour (juce::ComboBox::textColourId, qqsc::ui::text());
     lookaheadCombo.setColour (juce::ComboBox::arrowColourId, technical);
 
-    for (auto* button : { &modeButton, &linkButton, &dualRatioLinkButton, &inputOutputLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
+    for (auto* button : std::initializer_list<juce::TextButton*> { &modeButton, &linkButton, &dualRatioLinkButton, &inputOutputLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
-                          &limiterButton, &limiterLinkButton, &unityMonitorButton, &truePeakButton, &algorithmButton, &upAlgorithmButton, &downAlgorithmButton, &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
+                          &limiterButton, &limiterLinkButton, &unityMonitorButton, &truePeakButton, &tpRecoveryButton, &algorithmButton, &upAlgorithmButton, &downAlgorithmButton, &themeButton, &oversamplingButton, &ceilingOversamplingButton, &performanceModeButton, &sidechainButton, &keyInternalButton,
                           &keyExternalButton, &sidechainListenButton })
     {
         button->setColour (juce::TextButton::buttonColourId, qqsc::ui::panel());
@@ -636,6 +665,8 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     }
 
     oversamplingButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    ceilingOversamplingButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
+    performanceModeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     monitorAllButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     monitorFirstButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     monitorSecondButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
@@ -689,6 +720,7 @@ void QQSuperCompressionAudioProcessorEditor::toggleTheme()
           : (theme == qqsc::ui::Theme::dark ? qqsc::ui::Theme::classic : qqsc::ui::Theme::light);
     if (uiProperties != nullptr)
     {
+        uiProperties->reload();
         uiProperties->setValue ("uiTheme", qqsc::ui::themeKey (theme));
         // Retain a useful preference if the user rolls back to a two-skin build.
         uiProperties->setValue ("classicTheme", theme != qqsc::ui::Theme::light);
@@ -816,8 +848,6 @@ void QQSuperCompressionAudioProcessorEditor::beginLinkedGesture (LinkedPair pair
                                                                    FineKnob& target, const juce::String& undoName)
 {
     beginUndoTransaction (undoName);
-    if(pair==LinkedPair::makeupLR || pair==LinkedPair::makeupMS)
-        captureLimiterLinkAnchor();
     activeLinkedPair = pair;
     activeLinkSource = &source;
     activeLinkTarget = &target;
@@ -835,6 +865,7 @@ void QQSuperCompressionAudioProcessorEditor::beginLinkedGesture (LinkedPair pair
 
 void QQSuperCompressionAudioProcessorEditor::endLinkedGesture()
 {
+    limiterReferenceGestureSource = nullptr;
     dualRatioGestureActive = false;
     for (auto* parameter : companionGestureParameters)
         parameter->endChangeGesture();
@@ -1235,7 +1266,6 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
         }
         updateCompressionUi();
         updateModeUi();
-        captureLimiterLinkAnchor();
     };
     linkButton.setTooltip ("Relative Link: Ratio / Threshold / Range / Makeup / Mix");
     const auto lower = lowerBoundaryControls();
@@ -1453,8 +1483,10 @@ void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool d
         upperBoundarySliders[i]->setResetValue (dual ? 0.0 : qqsc::params::rangeOffDb);
         ratios[i]->setResetValue (1.0);
         downRatioSliders[i]->setResetValue (1.0);
-        ratios[i]->setTooltip (dual ? "Upward Ratio: 1:200 to 1:1" : "Ratio: 1:200 to 200:1. Below 1:1 boosts; above 1:1 reduces.");
-        downRatioSliders[i]->setTooltip ("Downward Ratio: 1:1 to 200:1");
+        ratios[i]->setTooltip (dual ? (processor.isLimiterMode() ? "Upward Ratio: 1:8 to 1:1" : "Upward Ratio: 1:200 to 1:1")
+                                     : (processor.isLimiterMode() ? "Up 1:8 to 1:1; Down 1:1 to 1000:1. Unity is the centre detent."
+                                                                  : "Ratio: 1:200 to 200:1. Below 1:1 boosts; above 1:1 reduces."));
+        downRatioSliders[i]->setTooltip (processor.isLimiterMode() ? "Downward Ratio: 1:1 to 1000:1" : "Downward Ratio: 1:1 to 200:1");
         lower[i]->setTooltip (dual ? "UP gate: lift only above UP and below DOWN. At equality all dynamic gain stops." : "Threshold; lower boundary. Colliding with Range pushes it upward.");
         upperBoundarySliders[i]->setTooltip (dual ? "Downward Threshold; upper boundary. At equality all dynamic gain stops." : "Range: finite values set an upper cutoff. The extra OFF endpoint removes the upper limit; finite 0 dB remains a cutoff.");
     }
@@ -1463,10 +1495,19 @@ void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool d
 void QQSuperCompressionAudioProcessorEditor::beginBoundaryGesture (int domain, bool upper)
 {
     endLinkedGesture();
-    captureLimiterLinkAnchor();
     boundaryGestureActive = true;
     const auto controls = lowerBoundaryControls();
     auto& source = upper ? *upperBoundarySliders[static_cast<size_t> (domain)] : *controls[static_cast<size_t> (domain)];
+    const auto d=static_cast<size_t>(domain);
+    const auto singleRatio=processor.effectiveSingleRatio(d);
+    const auto dualUpRatio=qqsc::params::upwardRatio(processor.readSoundParameter(qqsc::params::upRatioIds[d]),processor.isLimiterMode());
+    const auto dualDownRatio=qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[d]),processor.isLimiterMode(),true);
+    const bool limiterThresholdSource=processor.isLimiterMode() && (attachedCompressionMode==1
+        ? (upper ? (processor.readSoundParameter(qqsc::params::downEnabledIds[d])>=0.5f && dualDownRatio>1.0f+1.0e-6f)
+                 : (processor.readSoundParameter(qqsc::params::upEnabledIds[d])>=0.5f && dualUpRatio<1.0f-1.0e-6f))
+        : (!upper && std::abs(singleRatio-1.0f)>1.0e-6f));
+    if (limiterThresholdSource) captureLimiterLinkAnchor(source);
+    else limiterLinkAnchorValid=false;
     const auto targetIndex = domain == 0 ? 0 : (domain % 2 == 1 ? domain + 1 : domain - 1);
     if (domain == 0)
         beginUndoTransaction (upper ? "Upper Boundary" : "Lower Boundary");
@@ -1500,6 +1541,25 @@ void QQSuperCompressionAudioProcessorEditor::handleBoundaryChange (int domain, b
     if (boundaryValueUpdateInProgress) return;
     const auto lower = lowerBoundaryControls();
     const auto index = static_cast<size_t> (domain);
+    auto& editedSource = upper ? *upperBoundarySliders[index] : *lower[index];
+    const auto singleRatio=processor.effectiveSingleRatio(index);
+    const auto dualUpRatio=qqsc::params::upwardRatio(processor.readSoundParameter(qqsc::params::upRatioIds[index]),processor.isLimiterMode());
+    const auto dualDownRatio=qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[index]),processor.isLimiterMode(),true);
+    const bool limiterThresholdSource=processor.isLimiterMode() && (attachedCompressionMode==1
+        ? (upper ? (processor.readSoundParameter(qqsc::params::downEnabledIds[index])>=0.5f && dualDownRatio>1.0f+1.0e-6f)
+                 : (processor.readSoundParameter(qqsc::params::upEnabledIds[index])>=0.5f && dualUpRatio<1.0f-1.0e-6f))
+        : (!upper && std::abs(singleRatio-1.0f)>1.0e-6f));
+    if(boundaryGestureActive && limiterThresholdSource && processor.isLimiterLinked() && limiterLinkAnchorValid)
+    {
+        // Output range also limits the shared threshold delta. Clamp the source
+        // before the LR/MS relative-link callback so every driven domain sees
+        // the same final 1:1 movement.
+        const auto requestedDelta=editedSource.getValue()-double(limiterLinkReference);
+        const auto minDelta=double(limiterLinkOutput)-120.0;
+        const auto maxDelta=double(limiterLinkOutput)+120.0;
+        const auto appliedDelta=juce::jlimit(minDelta,maxDelta,requestedDelta);
+        editedSource.setValue(double(limiterLinkReference)+appliedDelta,juce::dontSendNotification);
+    }
     if (domain != 0)
     {
         const auto targetIndex = static_cast<size_t> (domain % 2 == 1 ? domain + 1 : domain - 1);
@@ -1527,8 +1587,8 @@ void QQSuperCompressionAudioProcessorEditor::handleBoundaryChange (int domain, b
     lower[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, false, domain), juce::dontSendNotification);
     upperBoundarySliders[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, true, domain), juce::dontSendNotification);
     refreshBoundaryReadouts();
-    if(boundaryGestureActive && (attachedCompressionMode==1 ? upper : (!upper && processor.effectiveSingleRatio(index)>1.0f)))
-        reconcileLimiterOutput();
+    if(boundaryGestureActive && !linkedValueUpdateInProgress && limiterThresholdSource)
+        reconcileLimiterOutput(editedSource);
 }
 
 void QQSuperCompressionAudioProcessorEditor::refreshBoundaryReadouts()
@@ -1721,6 +1781,7 @@ void QQSuperCompressionAudioProcessorEditor::commitLookaheadChoice()
     // Lookahead value when the host reloads the instance.
     if (uiProperties != nullptr)
     {
+        uiProperties->reload();
         uiProperties->setValue ("lastLookaheadMs", value);
         uiProperties->saveIfNeeded();
     }
@@ -1728,12 +1789,12 @@ void QQSuperCompressionAudioProcessorEditor::commitLookaheadChoice()
 
 void QQSuperCompressionAudioProcessorEditor::cycleOversampling()
 {
-    // This button is visible only at 0 ms. It deliberately cycles 1x -> 8x ->
-    // 16x -> 1x. 2x/4x were tested and intentionally omitted because aliasing
-    // remained severe while the latency cost of 8x/16x was small.
-    const auto current = juce::jlimit (0, 2, juce::roundToInt (
+    // Visible only at 0 ms: cycle 1x -> 4x -> 8x -> 16x -> 1x.
+    // 4x is the lower-cost intermediate option; the core and Ceiling retain
+    // independent choices, including separate Normal and Limiter core banks.
+    const auto current = juce::jlimit (0, 3, juce::roundToInt (
         processor.readSoundParameter(qqsc::params::oversampling)));
-    const auto next = (current + 1) % 3;
+    const auto next = (current + 1) % 4;
 
     beginUndoTransaction ("0 ms Oversampling");
     setChoiceParameter (qqsc::params::oversampling, next);
@@ -1747,7 +1808,7 @@ void QQSuperCompressionAudioProcessorEditor::updateOversamplingUi()
         processor.readSoundParameter(qqsc::params::lookaheadMs));
     const bool zeroMs = currentLookaheadMs < 0.0001f;
 
-    const auto oversamplingIndex = juce::jlimit (0, 2, juce::roundToInt (
+    const auto oversamplingIndex = juce::jlimit (0, 3, juce::roundToInt (
         processor.readSoundParameter(qqsc::params::oversampling)));
     oversamplingButton.setButtonText (qqsc::params::oversamplingNameForChoiceIndex (oversamplingIndex));
 
@@ -1756,6 +1817,86 @@ void QQSuperCompressionAudioProcessorEditor::updateOversamplingUi()
     // preserving the user's remembered 0 ms choice.
     oversamplingLabel.setVisible (zeroMs);
     oversamplingButton.setVisible (zeroMs);
+}
+
+void QQSuperCompressionAudioProcessorEditor::cycleCeilingOversampling()
+{
+    // TP requires reconstructed inter-sample information. While TP is active
+    // the user-facing selector cycles 4x -> 8x -> 16x. With TP off
+    // the complete native/4x/8x/16x Hard-Clip quality set is available.
+    const bool tp=processor.isTruePeakSelected();
+    const int current=processor.getEffectiveCeilingOversamplingChoice();
+    const int next=tp ? (current==3 ? 1 : current+1) : ((current+1)%4);
+
+    beginUndoTransaction ("Ceiling Oversampling");
+    setChoiceParameter (qqsc::params::ceilingOversampling,next);
+    processor.notifyHostProcessingLatency();
+    updateCeilingOversamplingUi();
+}
+
+void QQSuperCompressionAudioProcessorEditor::updateCeilingOversamplingUi()
+{
+    const bool limiter=processor.isLimiterMode();
+    const bool tp=processor.isTruePeakSelected();
+    const int effective=processor.getEffectiveCeilingOversamplingChoice();
+
+    ceilingOversamplingButton.setButtonText (qqsc::params::ceilingOversamplingChoices()[effective]);
+    ceilingOversamplingLabel.setVisible(limiter);
+    ceilingOversamplingButton.setVisible(limiter);
+    ceilingOversamplingButton.setEnabled(limiter);
+    ceilingOversamplingButton.setTooltip(tp
+        ? "Ceiling Oversampling: True Peak requires reconstruction, so TP cycles 4x / 8x / 16x. Changing quality may change PDC."
+        : "Ceiling Oversampling: 1x = native Hard Clip; 4x / 8x / 16x = oversampled Hard Clip. Changing quality may change PDC.");
+}
+
+void QQSuperCompressionAudioProcessorEditor::togglePerformanceMode()
+{
+    const bool eco=!processor.isEcoMode();
+    processor.setEcoMode(eco);
+    // This default is read only at construction. Existing instances and project
+    // restores never follow it or overwrite it; only an explicit UI choice saves.
+    if(uiProperties!=nullptr)
+    {
+        uiProperties->reload();
+        uiProperties->setValue("lastPerformanceEco",eco);
+        uiProperties->saveIfNeeded();
+    }
+    updatePerformanceModeUi();
+}
+
+void QQSuperCompressionAudioProcessorEditor::updatePerformanceModeUi()
+{
+    const bool eco=processor.isEcoMode();
+    performanceModeButton.setButtonText(eco ? "ECO" : "FULL");
+    performanceModeButton.setToggleState(eco,juce::dontSendNotification);
+    // Keep the tooltip stable: changing it each GUI tick restarts JUCE's
+    // hover delay. Live data belongs in the explicitly opened snapshot panel.
+}
+
+void QQSuperCompressionAudioProcessorEditor::showPerformanceDiagnostics()
+{
+    tooltipWindow.hideTip();
+    if(performanceDiagnosticsPanel==nullptr)
+    {
+        performanceDiagnosticsPanel=std::make_unique<qqsc::PerformanceDiagnosticsPanel>();
+        performanceDiagnosticsPanel->readSnapshot=[this]
+        {
+            const auto data=processor.getPerformanceDiagnostics();
+            return juce::String("QQ Super Compression ")+JucePlugin_VersionString
+                + "\nRead-only snapshot. Refresh updates this report; Copy report copies all text."
+                + "\nClosed-editor measurements are retained. CPU time is not an ASIO-Guard percentage.\n"
+                + (data.isEmpty() ? "\nNo audio callbacks recorded yet." : data)
+                + "\n\nIdle check: ECO should show ECO transport stop when the host stops."
+                  "\nLast idle gate = why the last block stayed awake, or sleeping."
+                  "\nplaying = transport state received from the host; exact zero = selected inputs are exactly zero."
+                  "\nECO mutes stopped transport even with input noise. FULL preserves live processing. Recording/offline rendering stay active.\nStopped raw peaks are measured before input/key gain; playback samples are excluded.";
+        };
+        contentRoot.addChildComponent(*performanceDiagnosticsPanel);
+    }
+    performanceDiagnosticsPanel->setBounds(100,140,1000,490);
+    performanceDiagnosticsPanel->refreshSnapshot();
+    performanceDiagnosticsPanel->setVisible(true);
+    performanceDiagnosticsPanel->toFront(false);
 }
 
 void QQSuperCompressionAudioProcessorEditor::selectMonitor (int selection)
@@ -1820,6 +1961,11 @@ void QQSuperCompressionAudioProcessorEditor::updateAlgorithmUi()
 
 void QQSuperCompressionAudioProcessorEditor::timerCallback()
 {
+    // Some hosts keep an editor object alive after its window is hidden. ECO
+    // follows the actual per-instance UI visibility, not merely editor object
+    // lifetime, so hidden-but-retained editors still suspend analysis.
+    processor.setEditorOpen (isShowing());
+
     updateAlgorithmUi();
     updateModeUi();
 
@@ -1833,13 +1979,18 @@ void QQSuperCompressionAudioProcessorEditor::timerCallback()
         latencyChoiceChangedOutsideUiGesture = true;
     }
 
-    const auto oversamplingIndex = juce::jlimit (0, 2, juce::roundToInt (
+    const auto oversamplingIndex = juce::jlimit (0, 3, juce::roundToInt (
         processor.readSoundParameter(qqsc::params::oversampling)));
     const auto currentButtonText = qqsc::params::oversamplingNameForChoiceIndex (oversamplingIndex);
     if (oversamplingButton.getButtonText() != currentButtonText)
         latencyChoiceChangedOutsideUiGesture = true;
 
+    const auto ceilingOsText = qqsc::params::oversamplingNameForChoiceIndex (processor.getEffectiveCeilingOversamplingChoice());
+    if (ceilingOversamplingButton.getButtonText() != ceilingOsText)
+        latencyChoiceChangedOutsideUiGesture = true;
     updateOversamplingUi();
+    updateCeilingOversamplingUi();
+    updatePerformanceModeUi();
     updateSidechainUi();
 
     // Direct UI control changes notify immediately. This additional path covers
@@ -2047,6 +2198,8 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     right -= 76 + smallGap;
     sidechainButton.setBounds (right - 86, headerButtonY, 86, headerButtonH);
     right -= 86 + smallGap;
+    performanceModeButton.setBounds (right - 62, headerButtonY, 62, headerButtonH);
+    right -= 62 + smallGap;
     limiterButton.setBounds (right - 118, headerButtonY, 118, headerButtonH);
     right -= 118 + 6;
 
@@ -2273,7 +2426,8 @@ void QQSuperCompressionAudioProcessorEditor::resized()
         limiterLinkButton.setBounds (983,controlsY+2,32,17);
         outputGainSlider.setBounds(894,controlsY+16,100,108);
         ceilingPanel.setBounds(884,controlsY+126,120,32);
-        ceilingLabel.setBounds (888,controlsY+127,42,11);
+        ceilingLabel.setBounds (888,controlsY+127,36,11);
+        tpRecoveryButton.setBounds(925,controlsY+127,39,12);
         truePeakButton.setBounds(966,controlsY+127,33,12);
         monitorCeilingLabel.setBounds(884,controlsY+159,120,11);
         ceilingValue.setBounds (890,controlsY+139,108,17);
@@ -2300,6 +2454,20 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     linkButton.setBounds (choiceX + primaryChoiceW + linkChoiceGap,
                           modeButtonRow.getY() + 1, linkChoiceW, primaryChoiceH);
 
+    // 1.2.34: Lookahead and its special 0 ms OS share one compact row directly
+    // under MODE. This frees the previous OS row for Limiter Ceiling quality.
+    constexpr int compactOsW = 38;
+    constexpr int compactGap = 4;
+    constexpr int compactLookaheadW = primaryChoiceW - compactOsW - compactGap;
+    auto lookaheadLabelArea = modeArea.removeFromTop (12);
+    lookaheadLabel.setBounds (choiceX, lookaheadLabelArea.getY(), compactLookaheadW, lookaheadLabelArea.getHeight());
+    oversamplingLabel.setBounds (choiceX + compactLookaheadW + compactGap, lookaheadLabelArea.getY(),
+                                 compactOsW, lookaheadLabelArea.getHeight());
+    auto lookaheadComboRow = modeArea.removeFromTop (25);
+    lookaheadCombo.setBounds (choiceX, lookaheadComboRow.getY() + 1, compactLookaheadW, primaryChoiceH);
+    oversamplingButton.setBounds (choiceX + compactLookaheadW + compactGap, lookaheadComboRow.getY() + 1,
+                                  compactOsW, primaryChoiceH);
+
     auto monitorLabelArea = modeArea.removeFromTop (12);
     monitorLabel.setBounds (choiceX, monitorLabelArea.getY(), primaryChoiceW, monitorLabelArea.getHeight());
     auto monitorButtonRow = modeArea.removeFromTop (25);
@@ -2309,14 +2477,9 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     monitorFirstButton.setBounds (choiceX + monitorButtonW + monitorButtonGap, monitorButtonRow.getY() + 1, monitorButtonW, primaryChoiceH);
     monitorSecondButton.setBounds (choiceX + (monitorButtonW + monitorButtonGap) * 2, monitorButtonRow.getY() + 1, monitorButtonW, primaryChoiceH);
 
-    auto lookaheadLabelArea = modeArea.removeFromTop (12);
-    lookaheadLabel.setBounds (choiceX, lookaheadLabelArea.getY(), primaryChoiceW, lookaheadLabelArea.getHeight());
-    auto lookaheadComboRow = modeArea.removeFromTop (25);
-    lookaheadCombo.setBounds (choiceX, lookaheadComboRow.getY() + 1, primaryChoiceW, primaryChoiceH);
-
-    auto oversamplingLabelArea = modeArea.removeFromTop (12);
-    oversamplingLabel.setBounds (choiceX, oversamplingLabelArea.getY(), primaryChoiceW, oversamplingLabelArea.getHeight());
-    auto oversamplingButtonRow = modeArea.removeFromTop (25);
-    oversamplingButton.setBounds (choiceX, oversamplingButtonRow.getY() + 1, primaryChoiceW, primaryChoiceH);
+    auto ceilingOsLabelArea = modeArea.removeFromTop (12);
+    ceilingOversamplingLabel.setBounds (choiceX, ceilingOsLabelArea.getY(), primaryChoiceW, ceilingOsLabelArea.getHeight());
+    auto ceilingOsButtonRow = modeArea.removeFromTop (25);
+    ceilingOversamplingButton.setBounds (choiceX, ceilingOsButtonRow.getY() + 1, primaryChoiceW, primaryChoiceH);
 }
 

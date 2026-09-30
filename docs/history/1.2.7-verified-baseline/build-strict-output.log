@@ -1,0 +1,284 @@
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+-- The C compiler identification is MSVC 19.44.35227.0
+-- The CXX compiler identification is MSVC 19.44.35227.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Configuring done (35.5s)
+-- Generating done (0.6s)
+-- Build files have been written to: D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  1>Checking Build System
+  Building VST3 manifest helper for QQSuperCompression
+  Generating QQSuperCompression_artefacts/JuceLibraryCode/QQSuperCompression_resources.rc
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+  QQSuperCompression_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_rc_lib.dir\Release\QQSuperCompression_rc_lib.lib
+  -- The CXX compiler identification is MSVC 19.44.35227.0
+  -- Detecting CXX compiler ABI info
+  -- Detecting CXX compiler ABI info - done
+  -- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+  -- Detecting CXX compile features
+  -- Detecting CXX compile features - done
+  -- Configuring done (1.8s)
+  -- Generating done (0.0s)
+  -- Build files have been written to: D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link/vst3_helpers/QQSuperCompression
+  閫傜敤浜?.NET Framework MSBuild 鐗堟湰 17.14.40+3e7442088
+  
+    1>Checking Build System
+    Building Custom Rule D:/Codex/Temp/JUCE-8.0.15-src/JUCE-8.0.15/extras/Build/CMake/juce_vst3_helper/CMakeLists.txt
+    juce_VST3ManifestHelper.cpp
+    vst3_helper.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\vst3_helpers\QQSuperCompression\vst3_helper.exe
+    Building Custom Rule D:/Codex/Temp/JUCE-8.0.15-src/JUCE-8.0.15/extras/Build/CMake/juce_vst3_helper/CMakeLists.txt
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  Generating juce_binarydata_QQSCWarmKnobAssets/JuceLibraryCode/BinaryData1.cpp, juce_binarydata_QQSCWarmKnobAssets/JuceLibraryCode/BinaryData2.cpp, juce_binarydata_QQSCWarmKnobAssets/JuceLibraryCode/QQSCWarmKnobData.h
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  BinaryData1.cpp
+  BinaryData2.cpp
+  正在生成代码...
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  Generating QQSuperCompression_artefacts/JuceLibraryCode/JuceHeader.h
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  LimiterMode.cpp
+  LimiterEditor.cpp
+  PluginProcessor.cpp
+  DynamicDisplay.cpp
+  LevelMeters.cpp
+  PluginEditor.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_audio_utils.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244: “初始化”: 从“_Ty”转换到“_Ty2”，可能丢失数据 [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         with [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty=int [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         and [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty2=float [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+  (编译源文件“../../Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/Source/PluginProcessor.cpp”)
+      C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\Source\PluginProcessor.cpp(2635,84):
+          查看对正在编译的函数 模板 实例化“std::pair<const char *,float>::pair<const char*const &,int,0>(_Other1,_Other2 &&) noexcept”的引用
+          with
+          [
+              _Other1=const char *const &,
+              _Other2=int
+          ]
+              D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\Source\PluginProcessor.cpp(2635,82):
+              请参阅 "QQSuperCompressionAudioProcessor::setStateInformation" 中对 "std::pair<const char *,float>::pair" 的第一个引用
+  
+  juce_graphics_Sheenbidi.c
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  juce_audio_plugin_client_AAX.cpp
+  juce_audio_plugin_client_AAX_utils.cpp
+  juce_audio_plugin_client_ARA.cpp
+  juce_audio_plugin_client_LV2.cpp
+  juce_audio_plugin_client_Standalone.cpp
+  juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_VST3.cpp
+    正在创建库 D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.lib 和对象 D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.exp
+  正在生成代码
+  已完成代码的生成
+  QQSuperCompression_VST3.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3\Contents\x86_64-win\QQ Super Compression.vst3
+  removing moduleinfo.json
+  creating D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3/Contents/Resources/moduleinfo.json
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  Generating QQSCLimiterCheck_artefacts/JuceLibraryCode/QQSCLimiterCheck_resources.rc
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCLimiterCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck_rc_lib.dir\Release\QQSCLimiterCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  limiter_check.cpp
+  juce_audio_utils.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244: “初始化”: 从“_Ty”转换到“_Ty2”，可能丢失数据 [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         with [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty=int [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         and [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty2=float [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+  (编译源文件“../../Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/tests/limiter_check.cpp”)
+      C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\tests\ratio_mix_checks.inc(45,17):
+          查看对正在编译的函数 模板 实例化“std::pair<const char *,float>::pair<const _Ty&,int,0>(_Other1,_Other2 &&) noexcept”的引用
+          with
+          [
+              _Ty=const char *,
+              _Other1=const char *const &,
+              _Other2=int
+          ]
+              D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\tests\ratio_mix_checks.inc(44,69):
+              请参阅 "QQSCLimiterCheck::ratioMixChecks" 中对 "std::pair<const char *,float>::pair" 的第一个引用
+  
+  juce_graphics_Sheenbidi.c
+  正在生成代码
+  已完成代码的生成
+  QQSCLimiterCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck_artefacts\Release\QQSCLimiterCheck.exe
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  Generating QQSCUnityCheck_artefacts/JuceLibraryCode/QQSCUnityCheck_resources.rc
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCUnityCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCUnityCheck_rc_lib.dir\Release\QQSCUnityCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  unity_check.cpp
+  juce_audio_utils.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+  juce_graphics_Sheenbidi.c
+  正在生成代码
+  已完成代码的生成
+  QQSCUnityCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCUnityCheck_artefacts\Release\QQSCUnityCheck.exe
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  Generating QQSCLoudnessCheck_artefacts/JuceLibraryCode/QQSCLoudnessCheck_resources.rc
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCLoudnessCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLoudnessCheck_rc_lib.dir\Release\QQSCLoudnessCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  loudness_check.cpp
+  juce_audio_utils.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+  juce_graphics_Sheenbidi.c
+  正在生成代码
+  已完成代码的生成
+  QQSCLoudnessCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLoudnessCheck_artefacts\Release\QQSCLoudnessCheck.exe
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  Generating QQSCLimiterVSTCheck_artefacts/JuceLibraryCode/QQSCLimiterVSTCheck_resources.rc
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCLimiterVSTCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterVSTCheck_rc_lib.dir\Release\QQSCLimiterVSTCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  ratio_mix_vst_check.cpp
+  juce_audio_utils.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+  juce_graphics_Sheenbidi.c
+  正在生成代码
+  已完成代码的生成
+  QQSCLimiterVSTCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterVSTCheck_artefacts\Release\QQSCLimiterVSTCheck.exe

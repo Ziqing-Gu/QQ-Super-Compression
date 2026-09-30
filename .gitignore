@@ -23,8 +23,3 @@ Desktop.ini
 
 # Local user settings
 QQSuperCompression.settings
-
-__pycache__/
-*.pyc
-*.log
-documentation-only.settings

@@ -1,0 +1,7 @@
+Compiling actual extracted source functions: /mnt/data/qqsc1214opt/QQSC-1.2.14-TP-Display-Meter-GR
+PASS: 864 isolated processor scenarios; two APVTS callback orders, both links, ST/LR/MS, algorithms, both switch directions, shared gains and normal-bank isolation.
+PASS: 100 Normal Single/Dual toggles retain independent boundaries.
+PASS: restore and Undo replay suppression (test doubles, not JUCE state/Undo integration).
+PASS: headless worker-thread mode callback publishes canonical threshold without timer/host recursion.
+PASS: 252021 standalone policy transfers; entire 0.01 dB grid, collision ordering, Range OFF, no threshold drift.
+LIMITATION: no real JUCE, Windows VST3, normalization, audio rendering or real Undo/APVTS serialization was executed by this harness.

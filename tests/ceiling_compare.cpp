@@ -10,7 +10,7 @@ constexpr double fs=48000.,tau=6.2831853071795864769;
 struct Audio { std::vector<float> y; int delay=0; };
 template<class Guard> Audio render(bool tp,const std::function<float(double)>& signal,double seconds=4)
 {
-    Guard g;g.prepare(fs,true,tp,-1);Audio a;a.delay=g.latencySamples();
+    Guard g;g.prepare(fs,true,tp,-1.0f);Audio a;a.delay=g.latencySamples();
     a.y.resize(size_t(fs*seconds));
     for(size_t i=0;i<a.y.size();++i)a.y[i]=g.process(signal(double(i)/fs),signal(double(i)/fs))[0];
     return a;

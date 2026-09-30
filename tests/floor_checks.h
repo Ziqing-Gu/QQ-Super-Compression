@@ -4,7 +4,7 @@ void floorAndLinkChecks()
 {
     using E=qqsc::StaticCompressionEngine;
     const double floor=std::pow(10.,-90./20);
-    for(float r:{.001f,.125f,1.f,8.f,11.9f,1000.f})
+    for(float r:{qqsc::minimumUpRatio,.125f,1.f,8.f,11.9f,qqsc::maximumDownRatio})
         for(float db:{-126.f,-100.f,-80.f,-20.f,0.f})
     {
         const float p=std::pow(10.f,db/20);
@@ -15,7 +15,7 @@ void floorAndLinkChecks()
         const auto next=E::singleGainForLevel(p,r,std::pow(10.f,-89.99f/20),std::numeric_limits<float>::infinity());
         check(std::abs(20*std::log10(actual/next))<.0102f,"Classic final .01dB step is discontinuous");
     }
-    for(int domain:{0,1,2,3})for(float r:{.001f,.125f,1.f,8.f,1000.f})
+    for(int domain:{0,1,2,3})for(float r:{qqsc::minimumUpRatio,.125f,1.f,8.f,qqsc::normalMaximumDownRatio})
     {
         const float amp=.1f;
         QQSuperCompressionAudioProcessor p;setupDb(p,0,domain==0?0:domain==1?2:1,-120,1,r);

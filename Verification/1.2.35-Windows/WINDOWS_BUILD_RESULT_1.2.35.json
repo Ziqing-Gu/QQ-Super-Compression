@@ -1,0 +1,10 @@
+﻿{
+    "version":  "1.2.35",
+    "status":  "built locally; not installed by this script",
+    "source":  "D:\\Codex\\Workspaces\\QQSC-1.2.34-Review-Fixes",
+    "juce":  "D:\\Codex\\Temp\\JUCE-8.0.15-src\\JUCE-8.0.15",
+    "binary":  "D:\\Codex\\Temp\\QQSC1234-Review-Fixes\\QQSuperCompression_artefacts\\Release\\VST3\\QQ Super Compression.vst3\\Contents\\x86_64-win\\QQ Super Compression.vst3",
+    "tests":  "not run (-SkipTests)",
+    "timestamp":  "2026-09-30T22:09:12.4491620+08:00",
+    "sha256":  "015897A5705922553DCA9455C876DDFD6DD735F9B3DD147DB2D07D68A814729A"
+}

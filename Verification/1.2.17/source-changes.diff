@@ -1,0 +1,378 @@
+diff --git a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/DynamicDisplay.cpp b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/DynamicDisplay.cpp
+index 203ca14..3fc21db 100644
+--- a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/DynamicDisplay.cpp
++++ b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/DynamicDisplay.cpp
+@@ -268,6 +268,7 @@ void DynamicDisplay::endKeyHpfGesture()
+ void DynamicDisplay::clearHistories()
+ {
+     replayRequestGeneration->fetch_add (1, std::memory_order_relaxed);
++    processor.getMeterState().displayTruePeakExcessDb.store (0.0f, std::memory_order_relaxed);
+     for (auto& h : histories)
+         h.points.clear();
+ 
+@@ -302,6 +303,8 @@ void DynamicDisplay::timerCallback()
+         juce::roundToInt (readParameter (processor, qqsc::params::keySource)));
+     const auto capturedInputGainDb = readParameter (processor, qqsc::params::inputGainDb);
+     const auto capturedKeyGainDb = readParameter (processor, qqsc::params::keyGainDb);
++    const auto capturedTruePeakExcessDb = juce::jmax (0.0f,
++        m.displayTruePeakExcessDb.exchange (0.0f, std::memory_order_acq_rel));
+ 
+     const int limiter = processor.isLimiterMode() ? 1 : 0;
+     if (mode != lastMode || keySource != lastKeySource || limiter != lastLimiter
+@@ -321,11 +324,8 @@ void DynamicDisplay::timerCallback()
+     {
+         HistoryPoint point0;
+         point0.inputDb = m.displayInputDb0.load (std::memory_order_relaxed);
+-        point0.measuredOutputDb = m.outputDb0.load (std::memory_order_relaxed);
+-        if (mode == qqsc::params::stereoLinked)
+-            point0.measuredOutputDb = juce::jmax(point0.measuredOutputDb,m.outputDb1.load(std::memory_order_relaxed));
+         point0.detectorDb = m.displayDetectorDb0.load (std::memory_order_relaxed);
+-        point0.ceilingGainReductionDb = m.displayCeilingGainReductionDb.load (std::memory_order_relaxed);
++        point0.truePeakExcessDb = capturedTruePeakExcessDb;
+         point0.capturedInputGainDb = capturedInputGainDb;
+         point0.capturedKeyGainDb = capturedKeyGainDb;
+         point0.captureGeneration = position.generation;
+@@ -336,9 +336,8 @@ void DynamicDisplay::timerCallback()
+         {
+             HistoryPoint point1;
+             point1.inputDb = m.displayInputDb1.load (std::memory_order_relaxed);
+-            point1.measuredOutputDb = m.outputDb1.load (std::memory_order_relaxed);
+             point1.detectorDb = m.displayDetectorDb1.load (std::memory_order_relaxed);
+-            point1.ceilingGainReductionDb = m.displayCeilingGainReductionDb.load (std::memory_order_relaxed);
++            point1.truePeakExcessDb = capturedTruePeakExcessDb;
+             point1.capturedInputGainDb = capturedInputGainDb;
+             point1.capturedKeyGainDb = capturedKeyGainDb;
+             point1.captureGeneration = position.generation;
+@@ -652,17 +651,21 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
+     const auto domain = processorDomain (domainIndex, mode);
+     const auto wetMix = mixForDomain (domainIndex, mode);
+     const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode), -180.0f);
+-    const auto outputGain = juce::Decibels::decibelsToGain (
+-        processor.getActiveOutputGainDb());
++    const auto activeOutputGainDb = processor.getActiveOutputGainDb();
++    const auto outputGain = juce::Decibels::decibelsToGain (activeOutputGainDb);
++    const bool limiter = processor.isLimiterMode();
++    const bool truePeak = limiter && processor.isTruePeakSelected();
++    const auto ceilingDb = readParameter (processor, qqsc::params::ceilingDb);
+ 
+     for (const auto& point : histories[static_cast<size_t> (domainIndex)].points)
+     {
+         auto detectorDb = point.hasReplayedDetector ? point.replayedDetectorDb
+                                                      : point.detectorDb;
+ 
+-        // A replayed point is stored before detector gain, so current Input
+-        // (INT) or Key Gain (EXT) can move the complete history immediately.
+-        // Live fallback points remain post-gain and use the capture-time delta.
++        // History stores evidence, never a rendered result. Replayed detector
++        // samples are pre-gain; fallback live points use the capture-time delta.
++        // Therefore current Input/Key controls immediately reshape the ENTIRE
++        // visible history, which is the defining Dynamic Display behaviour.
+         if (point.hasReplayedDetector)
+             detectorDb += externalKey ? keyGainDb : inputGainDb;
+         else if (externalKey)
+@@ -677,38 +680,65 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
+         const auto effectiveGr = bypassed ? 0.0f
+                                           : qqsc::StaticCompressionEngine::effectiveGainReductionDb (
+                                                 compressedGain, wetMix);
+-        // Compression is statically reprojected from detector history; the
+-        // OutputCeiling is time-dependent, so preserve the attenuation that was
+-        // actually applied at capture time. Because the ceiling is stereo-linked
+-        // the same extra GR belongs to ST, L/R and M/S display domains.
+-        const auto ceilingGr = bypassed || ! processor.isLimiterMode()
+-            ? 0.0f : juce::jmax (0.0f, point.ceilingGainReductionDb);
+-        const auto displayedGainChange = effectiveGr + ceilingGr;
+-
+-        auto projectedOutputDb = point.inputDb;
++
++        auto projectedPreCeilingDb = point.inputDb;
+         if (! bypassed)
+         {
+             // Makeup affects only the Wet leg, exactly as in processBlock.
+-            // It changes Output, but it is intentionally not part of GR.
+             const auto mixedGain = (1.0f - wetMix) + compressedGain * makeupGain * wetMix;
+             const auto totalGain = inputGain * juce::jmax (0.0f, mixedGain) * outputGain;
+-            projectedOutputDb += juce::Decibels::gainToDecibels (
++            projectedPreCeilingDb += juce::Decibels::gainToDecibels (
+                 juce::jmax (totalGain, 1.0e-9f), -180.0f);
+         }
+ 
++        // OutputCeiling is intentionally NOT captured as a historical result.
++        // Instead the point retains only a level-independent inter-sample shape
++        // descriptor. Re-evaluate the current Ceiling/TP setting against the
++        // CURRENT static projection every paint pass. This keeps TP, Output,
++        // Input, Ratio, Mix, Makeup, algorithm and boundaries retrospective.
++        float projectedCeilingGrDb = 0.0f;
++        float projectedPostCeilingDb = projectedPreCeilingDb;
++        if (limiter && ! bypassed)
++        {
++            const auto projectedPeakDb = projectedPreCeilingDb
++                + (truePeak ? juce::jmax (0.0f, point.truePeakExcessDb) : 0.0f);
++            const auto overshootDb = projectedPeakDb - ceilingDb;
++            if (overshootDb > 0.0f)
++            {
++                // The audible TP residual stage lands only 0.01 dB below the
++                // user's Ceiling when correction is actually required. Mirror
++                // that tiny reserve in the retrospective visual projection.
++                projectedCeilingGrDb = overshootDb + (truePeak ? 0.01f : 0.0f);
++                projectedPostCeilingDb -= projectedCeilingGrDb;
++            }
++        }
++
+         if (projected.size >= static_cast<size_t> (historyLength))
+             break;
+ 
+         const auto index = projected.size++;
+         projected.input[index] = point.inputDb;
+-        projected.gainReductionBoundary[index] = point.inputDb - displayedGainChange;
+-        // Limiter is time-dependent output protection. A static transfer curve
+-        // cannot reconstruct its true output; show captured final samples and
+-        // captured ceiling attenuation rather than visually clamping the curve.
+-        projected.output[index] = processor.isLimiterMode() && !bypassed
+-            ? point.measuredOutputDb : projectedOutputDb;
++
++        if (limiter && ! bypassed)
++        {
++            // Limiter blue = current post-Dynamics/Mix/Makeup/TP projection
++            // before the final fixed Output/Ceiling level shift. Orange is the
++            // same projected contour with that fixed shift applied. They are
++            // therefore point-for-point identical in shape while all current
++            // controls continue to re-project old history.
++            const auto blueDb = projectedPostCeilingDb - activeOutputGainDb;
++            const auto displayedGainChange = point.inputDb - blueDb;
++            projected.gainReductionBoundary[index] = blueDb;
++            projected.output[index] = projectedPostCeilingDb;
++            projected.effectiveGainReduction[index] = displayedGainChange;
++        }
++        else
++        {
++            projected.gainReductionBoundary[index] = point.inputDb - effectiveGr;
++            projected.output[index] = bypassed ? point.inputDb : projectedPreCeilingDb;
++            projected.effectiveGainReduction[index] = effectiveGr;
++        }
+         projected.externalKey[index] = detectorDb;
+-        projected.effectiveGainReduction[index] = displayedGainChange;
+     }
+ }
+ 
+diff --git a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/DynamicDisplay.h b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/DynamicDisplay.h
+index 0c13b82..5fbff8c 100644
+--- a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/DynamicDisplay.h
++++ b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/DynamicDisplay.h
+@@ -41,9 +41,8 @@ private:
+     struct HistoryPoint
+     {
+         float inputDb = -120.0f;
+-        float measuredOutputDb = -120.0f;
+         float detectorDb = -120.0f;
+-        float ceilingGainReductionDb = 0.0f;
++        float truePeakExcessDb = 0.0f;
+         float capturedInputGainDb = 0.0f;
+         float capturedKeyGainDb = 0.0f;
+         float replayedDetectorDb = -120.0f;
+diff --git a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/MeterState.h b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/MeterState.h
+index aa165ba..44de3e6 100644
+--- a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/MeterState.h
++++ b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/MeterState.h
+@@ -44,6 +44,13 @@ struct MeterState
+     // the dedicated GAIN +/- meter above receives the same attenuation directly.
+     std::atomic<float> displayCeilingGainReductionDb { 0.0f };
+ 
++    // Maximum pre-Ceiling inter-sample excess observed since DynamicDisplay's
++    // last 60 Hz capture. Unlike displayCeilingGainReductionDb this is a shape
++    // descriptor, not a captured processing result. DynamicDisplay consumes it
++    // and re-applies the CURRENT TP/Ceiling/processing parameters to the whole
++    // visible history, preserving the product's retrospective projection model.
++    std::atomic<float> displayTruePeakExcessDb { 0.0f };
++
+     // Recent Gain Reduction peak hold. The processor captures every audio block
+     // so short peaks cannot be missed by the slower GUI timer. A new larger absolute GR
+     // restarts the 2 s hold; when the hold expires it refreshes to the current
+diff --git a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/OutputCeiling.h b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/OutputCeiling.h
+index d75796a..270be1a 100644
+--- a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/OutputCeiling.h
++++ b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/OutputCeiling.h
+@@ -23,6 +23,7 @@ public:
+         gains.assign(size_t(look+1),1.0);
+         head=tail=audioIndex=gainIndex=0;index=0;sum=double(look+1);released=1;
+         displayGain=1.0;
++        inputPeakForTelemetry=0.0;
+         remainingHold=0;
+         repeatedRemaining=quietSamples=0;trough=crest=1;rising=false;
+         for(auto& p:periods)p={};
+@@ -32,6 +33,7 @@ public:
+     }
+     bool useConservativeTiming() const noexcept { return repeatedRemaining>0; }
+     float gainForDisplay() const noexcept { return static_cast<float> (displayGain); }
++    float inputPeakForDisplay() const noexcept { return static_cast<float> (inputPeakForTelemetry); }
+     std::array<float,2> process(float l,float r,float ceiling,float detectedPeak=0,bool repeatedHint=false,float triggerCeiling=-1.0f) noexcept
+     {
+         const std::array<float,2> input {l,r};
+@@ -60,6 +62,7 @@ public:
+             if(energy[ch]>=largestEnergy*.0001)
+                 halfPeriod=juce::jmax(halfPeriod,periods[ch].estimate);
+         const double peak=juce::jmax(double(detectedPeak),juce::jmax(std::abs(double(l)),std::abs(double(r))));
++        inputPeakForTelemetry=peak;
+         const double trigger=triggerCeiling>0.0f ? double(triggerCeiling) : double(ceiling);
+         const double target=peak>trigger ? double(ceiling)/peak : 1.0;
+         while(head!=tail && nodes[head].index<index-window) head=(head+1)%nodes.size();
+@@ -132,7 +135,7 @@ private:
+     int look=1,window=1;int64_t index=0;
+     int slowWindow=1;
+     size_t slowHead=0,slowTail=0;
+-    double sum=0,released=1,displayGain=1,sampleRate=48000,energyCoefficient=0,periodCoefficient=0;
++    double sum=0,released=1,displayGain=1,inputPeakForTelemetry=0,sampleRate=48000,energyCoefficient=0,periodCoefficient=0;
+     int remainingHold=0;
+     int repeatedRemaining=0,quietSamples=0;
+     double trough=1,crest=1;
+@@ -164,8 +167,18 @@ public:
+         truePeakBlend.reset(rate,.010);truePeakBlend.setCurrentAndTargetValue(tp ? 1.f : 0.f);
+         ceiling.reset(rate,.010);ceiling.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(ceilingDb));
+         displayGainLinear=1.0f;
++        inputSamplePeakLinear=0.0f;
++        inputTruePeakLinear=0.0f;
+     }
+     int latencySamples() const noexcept { return latency; }
++    // Display-only shape telemetry. These are measured before OutputCeiling
++    // attenuation and are exposed in the linear domain so the audio thread can
++    // aggregate them without per-sample logarithms. The ratio between the 8x
++    // reconstructed peak and the native sample peak is a level-independent
++    // descriptor that lets DynamicDisplay retrospectively project TP impact
++    // after the user changes current parameters. It never drives the audible DSP.
++    float inputSamplePeakForDisplayLinear() const noexcept { return inputSamplePeakLinear; }
++    float inputTruePeakForDisplayLinear() const noexcept { return inputTruePeakLinear; }
+     // Runtime telemetry stays in the linear domain so the audio thread does not
+     // perform a logarithm for every host sample. Callers that need block/display
+     // dB can convert the accumulated minimum gain once per block.
+@@ -184,6 +197,8 @@ public:
+     {
+         const float c=ceiling.getNextValue();
+         auto peak=native.process(l,r,c);
++        inputSamplePeakLinear=native.inputPeakForDisplay();
++        inputTruePeakLinear=inputSamplePeakLinear;
+         const float nativeDisplayGain=native.gainForDisplay();
+         peakAlignment[peakIndex]=peak;peakIndex=(peakIndex+1)%peakAlignment.size();
+         peak=peakAlignment[peakIndex];
+@@ -198,6 +213,7 @@ public:
+         for(size_t i=0;i<up.getNumSamples();++i)
+         {
+             const auto limited=truePeak.process(up.getSample(0,int(i)),up.getSample(1,int(i)),tpCeiling);
++            inputTruePeakLinear=juce::jmax(inputTruePeakLinear,truePeak.inputPeakForDisplay());
+             truePeakDisplayGain=juce::jmin(truePeakDisplayGain,truePeak.gainForDisplay());
+             up.setSample(0,int(i),limited[0]);up.setSample(1,int(i),limited[1]);
+         }
+@@ -253,5 +269,7 @@ private:
+     int look=1,filterLatency=0,analysisDelay=0,latency=0;
+     juce::SmoothedValue<float> active,truePeakBlend,ceiling;
+     float displayGainLinear=1.0f;
++    float inputSamplePeakLinear=0.0f;
++    float inputTruePeakLinear=0.0f;
+ };
+ }
+diff --git a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/PluginProcessor.cpp b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/PluginProcessor.cpp
+index 71f52d7..6049692 100644
+--- a/mnt/data/qqsc1217_work/QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1/Source/PluginProcessor.cpp
++++ b/mnt/data/QQSC-1.2.17-Retrospective-TP-Display/Source/PluginProcessor.cpp
+@@ -19,6 +19,15 @@ float maxAbs (float a, float b) noexcept
+     return juce::jmax (std::abs (a), std::abs (b));
+ }
+ 
++void atomicMaxFloat (std::atomic<float>& target, float value) noexcept
++{
++    auto current = target.load (std::memory_order_relaxed);
++    while (value > current
++           && ! target.compare_exchange_weak (current, value,
++                                              std::memory_order_release,
++                                              std::memory_order_relaxed)) {}
++}
++
+ thread_local const QQSuperCompressionAudioProcessor* boundaryWriteSource = nullptr;
+ 
+ constexpr auto abPrefix = "qqscAB_";
+@@ -26,7 +35,7 @@ constexpr auto stateSchemaProperty = "qqscStateSchemaVersion";
+ constexpr auto monitorLRProperty = "qqscMonitorLRSelection";
+ constexpr auto monitorMSProperty = "qqscMonitorMSSelection";
+ constexpr int oversamplingSchemaVersion = 2; // v0.1.10: 0 ms-only 1x/8x/16x Oversampling schema
+-constexpr int currentStateSchemaVersion = 23; // Independent first entry; normal Makeup +/-30 dB
++constexpr int currentStateSchemaVersion = 24; // Normal I/O +/-24 dB; retrospective TP Display
+ constexpr float centeredChannelMonitorGain = 0.70710678118654752440f; // 1/sqrt(2), -3.0103 dB
+ 
+ juce::Identifier abProperty (const juce::String& suffix)
+@@ -439,6 +448,8 @@ QQSuperCompressionAudioProcessor::createDisplayKeyHistoryStorage()
+ void QQSuperCompressionAudioProcessor::setDisplayKeyHistoryCaptureEnabled (bool enabled)
+ {
+     const auto wasEnabled = displayKeyHistoryCaptureEnabled.exchange (enabled, std::memory_order_acq_rel);
++    if (enabled)
++        meterState.displayTruePeakExcessDb.store (0.0f, std::memory_order_relaxed);
+ 
+     if (enabled)
+     {
+@@ -591,7 +602,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
+ 
+     layout.add (std::make_unique<juce::AudioParameterFloat> (
+         juce::ParameterID { qqsc::params::outputGainDb, 1 }, "Output Gain",
+-        juce::NormalisableRange<float> { -120.0f, 120.0f, 0.01f }, 0.0f,
++        juce::NormalisableRange<float> { -24.0f, 24.0f, 0.01f }, 0.0f,
+         juce::AudioParameterFloatAttributes().withLabel ("dB")));
+ 
+     // v0.9.7 Threshold Rebuild: append only one new sound parameter after the
+@@ -1758,6 +1769,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
+     float meterOutputPeak[2] { 0.0f, 0.0f };
+     float displayInputPeak[2]  { 0.0f, 0.0f };
+     float displayCeilingGainLinear = 1.0f;
++    float displayPreCeilingSamplePeakLinear = 0.0f;
++    float displayPreCeilingTruePeakLinear = 0.0f;
+ 
+     for (int i = 0; i < numSamples; ++i)
+     {
+@@ -1871,6 +1884,10 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
+         const auto finalOutput=outputCeiling.process(activeOutL,stereoBus ? activeOutR : 0.0f);
+         displayCeilingGainLinear=juce::jmin(displayCeilingGainLinear,
+                                              outputCeiling.gainForDisplayLinear());
++        displayPreCeilingSamplePeakLinear=juce::jmax(displayPreCeilingSamplePeakLinear,
++            outputCeiling.inputSamplePeakForDisplayLinear());
++        displayPreCeilingTruePeakLinear=juce::jmax(displayPreCeilingTruePeakLinear,
++            outputCeiling.inputTruePeakForDisplayLinear());
+         ceilingReferenceDelay[ceilingReferenceIndex]={displayDryL,displayDryR,delayedKeyL,delayedKeyR,
+             mixControlBuffer.getSample(15,i),mixDryL,mixDryR,mixedL-mixDryL,mixedR-mixDryR};
+         ceilingReferenceIndex=(ceilingReferenceIndex+1)%ceilingReferenceDelay.size();
+@@ -2026,6 +2043,14 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
+     const auto displayCeilingGainReductionDb = (forceBypass || displayCeilingGainLinear >= 1.0f)
+         ? 0.0f
+         : -juce::Decibels::gainToDecibels (juce::jmax (displayCeilingGainLinear, 1.0e-9f), -180.0f);
++    float displayTruePeakExcessDb = 0.0f;
++    if (displayPreCeilingSamplePeakLinear > 1.0e-9f
++        && displayPreCeilingTruePeakLinear > displayPreCeilingSamplePeakLinear)
++        displayTruePeakExcessDb = juce::jmax (0.0f, juce::Decibels::gainToDecibels (
++            displayPreCeilingTruePeakLinear / displayPreCeilingSamplePeakLinear, -180.0f));
++    // Accumulate until the 60 Hz display consumes it, so a short inter-sample
++    // peak between GUI ticks is still represented in the historical point.
++    atomicMaxFloat (meterState.displayTruePeakExcessDb, displayTruePeakExcessDb);
+     // GAIN +/- and Dynamic Display share the same final-processing semantics:
+     // compressor/Mix signed gain change plus the actual stereo-linked OutputCeiling
+     // attenuation. TP/Sample-Peak switching is already represented by the
+@@ -2566,6 +2591,8 @@ void QQSuperCompressionAudioProcessor::readABStateFrom (const juce::ValueTree& s
+             // Clamp only the Normal bank, after any legacy Limiter migration.
+             for (auto* makeup : { &s.makeupST, &s.makeupL, &s.makeupR, &s.makeupM, &s.makeupS })
+                 *makeup = juce::jlimit(-qqsc::normalMaximumMakeupDb, qqsc::normalMaximumMakeupDb, *makeup);
++            s.inputGainDb = juce::jlimit(-24.0f, 24.0f, s.inputGainDb);
++            s.outputGainDb = juce::jlimit(-24.0f, 24.0f, s.outputGainDb);
+         };
+ 
+         read ("A_", newA);
+@@ -2831,10 +2858,16 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
+             // Preserve physical dB inside the new Normal range. Limiter nodes
+             // keep their +/-120 dB values. This cannot remap DAW-owned automation.
+             for (auto node : state)
++            {
+                 for (size_t i = 1; i <= 5; ++i)
+                     if (node.getProperty("id").toString() == qqsc::params::normalModeIds[i])
+                         node.setProperty("value", juce::jlimit(-qqsc::normalMaximumMakeupDb,
+                             qqsc::normalMaximumMakeupDb, float(node.getProperty("value"))), nullptr);
++                const auto id = node.getProperty("id").toString();
++                if (id == qqsc::params::inputGainDb || id == qqsc::params::outputGainDb)
++                    node.setProperty("value", juce::jlimit(-24.0f, 24.0f,
++                        float(node.getProperty("value"))), nullptr);
++            }
+             apvts.replaceState (state);
+             if (! stateHasAlgorithm)
+             {

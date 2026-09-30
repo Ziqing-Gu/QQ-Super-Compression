@@ -1,0 +1,269 @@
+{
+  "version": "1.2.37",
+  "channel": "Candidate",
+  "status": "user_Cubase_acceptance_failed_no_reported_silence_improvement",
+  "recorded_at": "2026-10-01T02:34:42.991425+08:00",
+  "product_source": "D:\\Codex\\Workspaces\\QQSC-1.2.34-Review-Fixes",
+  "output_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.37-Windows-Candidate\\QQ Super Compression.vst3",
+  "bundle": [
+    {
+      "path": "Contents/Resources/moduleinfo.json",
+      "bytes": 1118,
+      "sha256": "5E09AD6C40369467F38D77E8BE9CDFAE6B8025A691F6E1F7B4F0C615ED0AC2B0"
+    },
+    {
+      "path": "Contents/x86_64-win/QQ Super Compression.vst3",
+      "bytes": 10676736,
+      "sha256": "4D50E724FF61D917ECF3B2B559601F723C78ACCEFF40ADC6CCDE8F8D8EB98C2D"
+    }
+  ],
+  "checks": {
+    "full_review": "pass",
+    "silence_audio_wake_max_absolute_delta": 1.49012e-08,
+    "legacy_silence_wake_max_absolute_delta": 0,
+    "variable_blocks_audio_max_absolute_delta": 0,
+    "actual_VST3_cases": 30,
+    "actual_VST3_silent_output_peak": 0,
+    "source_audit": "pass",
+    "mono_stereo_rates": [
+      44100,
+      48000,
+      96000
+    ]
+  },
+  "benchmark": {
+    "sample_rate": 48000,
+    "block_size": 256,
+    "editor": "closed",
+    "scope": "Local processor timing, not Cubase ASIO-Guard percentages; legacy_partial_sleep_reference executes the old host-rate loops with settled core/Ceiling. Separate real VST3 logs compare installed 1.2.36 and candidate 1.2.37.",
+    "results": [
+      {
+        "configuration": "Normal1x",
+        "instances": 1,
+        "eco": false,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 104.774,
+        "one_core_time_budget_percent": 1.96451
+      },
+      {
+        "configuration": "Normal1x",
+        "instances": 1,
+        "eco": false,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 5.56992,
+        "one_core_time_budget_percent": 0.104436
+      },
+      {
+        "configuration": "Normal1x",
+        "instances": 1,
+        "eco": true,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 70.2074,
+        "one_core_time_budget_percent": 1.31639
+      },
+      {
+        "configuration": "Normal1x",
+        "instances": 1,
+        "eco": true,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 4.77695,
+        "one_core_time_budget_percent": 0.0895679
+      },
+      {
+        "configuration": "Normal1x",
+        "instances": 10,
+        "eco": false,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 1081.67,
+        "one_core_time_budget_percent": 20.2813
+      },
+      {
+        "configuration": "Normal1x",
+        "instances": 10,
+        "eco": false,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 55.2238,
+        "one_core_time_budget_percent": 1.03545
+      },
+      {
+        "configuration": "Normal1x",
+        "instances": 10,
+        "eco": true,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 712.311,
+        "one_core_time_budget_percent": 13.3558
+      },
+      {
+        "configuration": "Normal1x",
+        "instances": 10,
+        "eco": true,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 53.5604,
+        "one_core_time_budget_percent": 1.00426
+      },
+      {
+        "configuration": "Normal26",
+        "instances": 1,
+        "eco": false,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 106.556,
+        "one_core_time_budget_percent": 1.99792
+      },
+      {
+        "configuration": "Normal26",
+        "instances": 1,
+        "eco": false,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 6.90078,
+        "one_core_time_budget_percent": 0.12939
+      },
+      {
+        "configuration": "Normal26",
+        "instances": 1,
+        "eco": true,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 74.535,
+        "one_core_time_budget_percent": 1.39753
+      },
+      {
+        "configuration": "Normal26",
+        "instances": 1,
+        "eco": true,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 5.09199,
+        "one_core_time_budget_percent": 0.0954749
+      },
+      {
+        "configuration": "Normal26",
+        "instances": 10,
+        "eco": false,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 1077.08,
+        "one_core_time_budget_percent": 20.1952
+      },
+      {
+        "configuration": "Normal26",
+        "instances": 10,
+        "eco": false,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 54.7066,
+        "one_core_time_budget_percent": 1.02575
+      },
+      {
+        "configuration": "Normal26",
+        "instances": 10,
+        "eco": true,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 701.267,
+        "one_core_time_budget_percent": 13.1488
+      },
+      {
+        "configuration": "Normal26",
+        "instances": 10,
+        "eco": true,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 50.6459,
+        "one_core_time_budget_percent": 0.949611
+      },
+      {
+        "configuration": "Limiter16x",
+        "instances": 1,
+        "eco": false,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 137.132,
+        "one_core_time_budget_percent": 2.57123
+      },
+      {
+        "configuration": "Limiter16x",
+        "instances": 1,
+        "eco": false,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 8.3832,
+        "one_core_time_budget_percent": 0.157185
+      },
+      {
+        "configuration": "Limiter16x",
+        "instances": 1,
+        "eco": true,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 95.7217,
+        "one_core_time_budget_percent": 1.79478
+      },
+      {
+        "configuration": "Limiter16x",
+        "instances": 1,
+        "eco": true,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 6.62754,
+        "one_core_time_budget_percent": 0.124266
+      },
+      {
+        "configuration": "Limiter16x",
+        "instances": 10,
+        "eco": false,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 1399.91,
+        "one_core_time_budget_percent": 26.2483
+      },
+      {
+        "configuration": "Limiter16x",
+        "instances": 10,
+        "eco": false,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 81.7578,
+        "one_core_time_budget_percent": 1.53296
+      },
+      {
+        "configuration": "Limiter16x",
+        "instances": 10,
+        "eco": true,
+        "legacy_partial_sleep_reference": true,
+        "microseconds_per_chain_block": 970.486,
+        "one_core_time_budget_percent": 18.1966
+      },
+      {
+        "configuration": "Limiter16x",
+        "instances": 10,
+        "eco": true,
+        "legacy_partial_sleep_reference": false,
+        "microseconds_per_chain_block": 73.5094,
+        "one_core_time_budget_percent": 1.3783
+      }
+    ]
+  },
+  "logs": [
+    {
+      "file": "actual-vst-1237.log",
+      "bytes": 1994,
+      "sha256": "3F32CE6E5108903C09E63E373279A90578781EFA66FCE92EDABEA98E016DCBA9"
+    },
+    {
+      "file": "actual-vst-silence.log",
+      "bytes": 1994,
+      "sha256": "B097990F10DC1D5E09104EED849AF6F1785C0515A68FBC0DC37BF46E07DC3D28"
+    },
+    {
+      "file": "build.log",
+      "bytes": 8085,
+      "sha256": "4F6D1CD74453A2746C1D1124E7113204E57257B8B7F44CCBF6F167FA3F533D9E"
+    },
+    {
+      "file": "idle-1237.log",
+      "bytes": 1621,
+      "sha256": "287B6791B55D484D02BC1932E180E6EB86311BFFA3EA558F2BFB9E8CF63236A7"
+    },
+    {
+      "file": "review-1237.log",
+      "bytes": 3109,
+      "sha256": "A6DCF1B990DBB3D8CE8DFC5C2932767229D1E070EE63999B3D732286F51FD33B"
+    },
+    {
+      "file": "source-audit-1237.log",
+      "bytes": 403,
+      "sha256": "284ED2490930CE4799FD070A68E8E3D599EAF49C285A5189530273039BBC86B0"
+    }
+  ],
+  "installation": "installed_after_DAW_closed_hash_verified",
+  "release": "Plan B not executed; Plan C/D cancelled; not Stable",
+  "user_feedback": "User reports 1.2.37 did not improve stopped-silence ASIO-Guard. ECO has an effect, but oversampling cost remains high, including playback. Standalone checks below remain historical measurements, not host acceptance."
+}

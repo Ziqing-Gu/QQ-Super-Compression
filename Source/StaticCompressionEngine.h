@@ -69,11 +69,25 @@ public:
     // queue, allocation, or scan on the audio thread.
     float processSample (float sample, float ratio, float thresholdLinear, int64_t currentSampleIndex) noexcept
     {
-        const auto magnitude = juce::jlimit (0.0f, 1.0f, std::abs (sample));
-        ratio = juce::jmax (1.0f, ratio);
-
         if (queueValues.empty())
             return 1.0f;
+        processLevelSample (sample, currentSampleIndex);
+        currentGain = gainForLevel (currentLevel, juce::jmax (1.0f, ratio), thresholdLinear);
+        currentGainReductionDb = -juce::Decibels::gainToDecibels (juce::jmax (currentGain, 1.0e-9f), -180.0f);
+        return currentGain;
+    }
+
+    // Processor gain curves are evaluated separately. Do not calculate a
+    // discarded unity gain/GR for every oversampled detector sample.
+    float processLevelSample (float sample, int64_t currentSampleIndex) noexcept
+    {
+        const auto magnitude = juce::jlimit (0.0f, 1.0f, std::abs (sample));
+        if (queueValues.empty())
+            return currentLevel;
+        // A zero-length window is exactly this sample. Changing lookahead
+        // resets the queues; the processor replays its retained key history.
+        if (lookaheadSamples == 0)
+            return currentLevel = magnitude;
 
         while (queueCount > 0 && backValue() <= magnitude)
             popBack();
@@ -87,14 +101,13 @@ public:
         const auto futurePeak = queueCount > 0 ? frontValue() : magnitude;
         peakHistory[peakHistoryWrite] = futurePeak;
         const auto delay = static_cast<size_t> (lookaheadSamples);
-        const auto pastIndex = (peakHistoryWrite + peakHistory.size() - delay) % peakHistory.size();
+        const auto pastIndex = peakHistoryWrite >= delay ? peakHistoryWrite - delay
+                                                        : peakHistoryWrite + peakHistory.size() - delay;
         const auto pastPeak = peakHistoryCount >= delay ? peakHistory[pastIndex] : 0.0f;
         currentLevel = juce::jmin (futurePeak, pastPeak);
-        peakHistoryWrite = (peakHistoryWrite + 1) % peakHistory.size();
+        if (++peakHistoryWrite == peakHistory.size()) peakHistoryWrite = 0;
         peakHistoryCount = juce::jmin (peakHistoryCount + 1, peakHistory.size());
-        currentGain = gainForLevel (currentLevel, ratio, thresholdLinear);
-        currentGainReductionDb = -juce::Decibels::gainToDecibels (juce::jmax (currentGain, 1.0e-9f), -180.0f);
-        return currentGain;
+        return currentLevel;
     }
 
     static float gainForLevel (float level, float ratio, float thresholdLinear,
@@ -256,7 +269,9 @@ public:
 private:
     size_t physicalIndex (size_t logicalOffset) const noexcept
     {
-        return (queueHead + logicalOffset) % queueValues.size();
+        // logicalOffset is strictly smaller than the allocated ring.
+        const auto index = queueHead + logicalOffset;
+        return index < queueValues.size() ? index : index - queueValues.size();
     }
 
     float frontValue() const noexcept { return queueValues[queueHead]; }
@@ -271,7 +286,7 @@ private:
     {
         if (queueCount == 0)
             return;
-        queueHead = (queueHead + 1) % queueValues.size();
+        if (++queueHead == queueValues.size()) queueHead = 0;
         --queueCount;
     }
 

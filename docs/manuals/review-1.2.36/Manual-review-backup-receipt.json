@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "kind": "Bilingual 1.2.36 manuals; documentation snapshot only",
+  "backup": "D:\\备份文件\\Vibe Coding\\QQ Super Compression\\说明书\\QQSC-1.2.36-Bilingual-Manuals-20261001-012115",
+  "payload_files": 64,
+  "payload_bytes": 27407686,
+  "all_hashes_match": true,
+  "Chinese_pdf_sha256": "5A1C4F14E4D85DE3CD3F3BA4D7EB278B46D8C4051350BADBE3BCAF42B359EED8",
+  "English_pdf_sha256": "1A21B5392CE70F3630592E2BF944742E47A41BFA4C23FB5052B15207E895771B",
+  "English_created": true
+}

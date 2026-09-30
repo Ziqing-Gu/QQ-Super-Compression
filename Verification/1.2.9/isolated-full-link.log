@@ -1,0 +1,6 @@
+Compiling actual source functions: /mnt/data/qqsc_work/QQSuperCompression-1.2.9-Independent-Banks-Full-Link
+PASS: 4 actual first-entry/revisit bank cases (including preset hidden values).
+PASS: 4896 extracted editor edits: Single/Dual, ST/LR/MS, Classic/Super, 3 Link flags, full mixed-reference invariants.
+PASS: 1200 reference/oracle cases including +/-120 dB Makeup, Mix endpoints and 4 thresholds.
+PASS: typed Dual coupling, reciprocal/group bounds, 36 mixed inverse edits, 200 Mix round trips, passive/state/Undo suppression, equal gates, finite Range, Output clamp, balanced mock gestures.
+LIMITATION: adapters are mocks; no JUCE GUI/APVTS serialization, real Undo, audio or Windows binary was tested.

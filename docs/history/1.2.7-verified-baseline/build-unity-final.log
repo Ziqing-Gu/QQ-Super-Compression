@@ -1,0 +1,24 @@
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Configuring done (1.9s)
+-- Generating done (1.1s)
+-- Build files have been written to: D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  1>Checking Build System
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCUnityCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCUnityCheck_rc_lib.dir\Release\QQSCUnityCheck_rc_lib.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  unity_check.cpp
+  正在生成代码
+  已完成代码的生成
+  QQSCUnityCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCUnityCheck_artefacts\Release\QQSCUnityCheck.exe

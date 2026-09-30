@@ -1,0 +1,724 @@
+{
+  "status": "selected_windows_checks_passed_installed_host_verification_pending",
+  "version": "1.2.35",
+  "baseline": "D:\\Codex\\Workspaces\\QQSC-1.2.34-Performance-Architecture-Candidate",
+  "changed_files": [
+    "BUILD_WINDOWS.ps1",
+    "CMakeLists.txt",
+    "README.md",
+    "RELEASE_NOTES_1.2.35.md",
+    "REVIEW_FIXES_HANDOFF.txt",
+    "Source\\ABTransfer.h",
+    "Source\\BS1770LoudnessMatch.h",
+    "Source\\DynamicDisplay.cpp",
+    "Source\\ExactEnergyIndex.h",
+    "Source\\OutputCeiling.h",
+    "Source\\PluginEditor.cpp",
+    "Source\\PluginEditor.h",
+    "Source\\PluginProcessor.cpp",
+    "Source\\PluginProcessor.h",
+    "tests\\ab_match_checks.h",
+    "tests\\algorithm_checks.h",
+    "tests\\bs1770_match_selftest.cpp",
+    "tests\\db_dynamics_test.cpp",
+    "tests\\floor_checks.h",
+    "tests\\match_index_check.cpp",
+    "tests\\review_fixes_check.cpp",
+    "tests\\revision1234_performance_architecture_checks.inc",
+    "tests\\revision1234_performance_architecture_source_audit.py",
+    "tests\\unity_check.cpp",
+    "tests\\updown_processor_test.cpp"
+  ],
+  "runtime_evidence": [
+    {
+      "check": "review-silence",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\review-silence.log",
+      "sha256": "C1CD98BE77177B4658BE10AA05A6137086BB66C8C4E61D4BC2FBE70AB72107EA"
+    },
+    {
+      "check": "limiter-1234",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\limiter-1234.log",
+      "sha256": "4C70BDC2A6C9C43BE22107E8DFF995C4A933B5F4FA9E96151AA7A468316752FF"
+    },
+    {
+      "check": "limiter-1228",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\limiter-1228.log",
+      "sha256": "0B3F0CE576E1B1433AB9DE2D450F8F77F72FD758CE9065DB16E3A358FF92BF3E"
+    },
+    {
+      "check": "unity",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\unity.log",
+      "sha256": "AF58DDB08A05041F5572F66BC59E5240AA231DBF495CB5EDCDB70D2A77FE6384"
+    },
+    {
+      "check": "profile-paired",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\profile-paired.log",
+      "sha256": "3A0A4E70FFAC473BDF05A5E49C83A31196E478B7C4417F6FEE8FDEE2B2C86BD4"
+    },
+    {
+      "check": "source-audit",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\source-audit.log",
+      "sha256": "9042EC0D22D7479B5482820DC9F60239A83E2275254825CB282967E86E959B7E"
+    },
+    {
+      "check": "vst3-validator",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\vst3-validator.log",
+      "sha256": "666E1FC604A34B49905A25B673BCD91B9BA154BCEBB81263D9BC5F2846E91576"
+    },
+    {
+      "check": "installed-vst3-validator",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\installed-vst3-validator.log",
+      "sha256": "666E1FC604A34B49905A25B673BCD91B9BA154BCEBB81263D9BC5F2846E91576"
+    }
+  ],
+  "validation_report": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\validation-report.json",
+  "installation": {
+    "version": "1.2.35",
+    "installed": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+    "output": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.35-Instance-Eco-Silence\\QQ Super Compression.vst3",
+    "rollback": "D:\\Codex\\Archives\\QQSC-1.2.34-before-1.2.35-20260930-212800\\QQ Super Compression.vst3",
+    "files": [
+      {
+        "path": "Contents\\Resources\\moduleinfo.json",
+        "sha256": "0FF8D44AD6409FAC5DD0BF898FD9BAEB2D0EDCA7DF647A7457B78F692B83AC0E",
+        "bytes": 1118
+      },
+      {
+        "path": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+        "sha256": "015897A5705922553DCA9455C876DDFD6DD735F9B3DD147DB2D07D68A814729A",
+        "bytes": 10672640
+      }
+    ],
+    "hosts_closed": true
+  },
+  "files": [
+    {
+      "path": "CMakeLists.txt",
+      "bytes": 10271,
+      "sha256": "AC1204A2680F55E5FF39BDAF58456C5E486900BBDEDE4676E990C28529868D09"
+    },
+    {
+      "path": "REVIEW_FIXES_HANDOFF.txt",
+      "bytes": 5301,
+      "sha256": "4A78B2C3A471DB6344AFCE1309BD022FD22D9A0834C9123B75B84162903861D3"
+    },
+    {
+      "path": "Source\\ABTransfer.h",
+      "bytes": 2279,
+      "sha256": "DEFE4B0A1806FE7AADCEEE9511DB431931BCB50242388E30506074C208EAD2B8"
+    },
+    {
+      "path": "Source\\BS1770LoudnessMatch.h",
+      "bytes": 14368,
+      "sha256": "AEA420F4634C93A6C2E5D52F4BDCDA29C7E1EFCEF74E41EDEFD0A886A12291F7"
+    },
+    {
+      "path": "Source\\DarkMaterial.h",
+      "bytes": 10130,
+      "sha256": "01A9199659164F9A475A3481DD96721FBB4F7B4819C7EAFDFD256EE53ED8E5C7"
+    },
+    {
+      "path": "Source\\DarkPanelMaterial.h",
+      "bytes": 3173,
+      "sha256": "970CEFEDF1D23472AB7B6248EAF927C7BAC0B0E3C80B7E4A18D2A0DCD280CF4F"
+    },
+    {
+      "path": "Source\\DynamicDisplay.cpp",
+      "bytes": 61822,
+      "sha256": "69EB3A93AFDFEA100B92A5BDE6A89B0C6CDFBF0B5940A11BC7DBEDEEE823214D"
+    },
+    {
+      "path": "Source\\DynamicDisplay.h",
+      "bytes": 7879,
+      "sha256": "79F2225BCDB6CA708948BEE60372489D4BE660FDADCCC35524683FF98A46F7E7"
+    },
+    {
+      "path": "Source\\DynamicsLimits.h",
+      "bytes": 881,
+      "sha256": "C1ED720345C41444871B383DAA09ED4EAF49DDFFB9D3393713CA8E2F6089FF2E"
+    },
+    {
+      "path": "Source\\ExactEnergyIndex.h",
+      "bytes": 4209,
+      "sha256": "952032CC55C388EF6C949E0BF3879A63B520D092F548E78EACD978024FBA4014"
+    },
+    {
+      "path": "Source\\IntegratedLoudnessMeter.h",
+      "bytes": 4327,
+      "sha256": "09EFAD60E18C9C5BB4FF0E3D990A061301C945FCB29ACF336E6633866ACFC3E7"
+    },
+    {
+      "path": "Source\\KnobLight.h",
+      "bytes": 443,
+      "sha256": "5E77F1AAB99B5130B81286319434B9672D3A70E8372E89B85511BA405DDBC748"
+    },
+    {
+      "path": "Source\\KWeightingFilter.h",
+      "bytes": 3072,
+      "sha256": "EA1E4C922EA38B6E185E90BEB14F3EC5CD8FD60B03555617BF31A85F6ECA2825"
+    },
+    {
+      "path": "Source\\LevelMeters.cpp",
+      "bytes": 13061,
+      "sha256": "6BA7E3BBFAF6EB36FB0EF3C230F382BF17F003ECA6A150DEC84F84117CA759B4"
+    },
+    {
+      "path": "Source\\LevelMeters.h",
+      "bytes": 1611,
+      "sha256": "9AC7E9F287D160343B6349E2F8DFC4E81B069B118E7BA3B1349839407BE3531E"
+    },
+    {
+      "path": "Source\\LightKnobScale.h",
+      "bytes": 1264,
+      "sha256": "813C0F01EDE8F6DDB93D461F715E17C4BB10BA36D6AACBE6A33EB4E37AEB087D"
+    },
+    {
+      "path": "Source\\LimiterEditor.cpp",
+      "bytes": 27629,
+      "sha256": "6E5EE814318ABAD4E699D86F92261F80538AD7F75106355A44D2A390D3589E69"
+    },
+    {
+      "path": "Source\\LimiterMode.cpp",
+      "bytes": 9828,
+      "sha256": "EC650DE9A0FA462D9C0DCE7958D8B73368493595A92312D609AB1B4F155FB2A4"
+    },
+    {
+      "path": "Source\\LimiterModeContinuity.h",
+      "bytes": 1147,
+      "sha256": "2CBDA51BF80DFC444BC982B61BDD32AFE8079357A12E49FFD26B83DAAC03CE66"
+    },
+    {
+      "path": "Source\\MeterState.h",
+      "bytes": 3462,
+      "sha256": "FAA8F812B9E4446A759222DBEC2A777A8DB6D4500E8F42584411157D807E8DE6"
+    },
+    {
+      "path": "Source\\OutputCeiling.h",
+      "bytes": 25582,
+      "sha256": "3D056BEAC343F5D153AFE9AA41BE2A9856EA71258777F158882E37716F2537AC"
+    },
+    {
+      "path": "Source\\Parameters.h",
+      "bytes": 24273,
+      "sha256": "4478371677B28143A49653E008768D127A20FE8ED7B46ABB6BB3B3702EAB25E8"
+    },
+    {
+      "path": "Source\\PluginEditor.cpp",
+      "bytes": 139984,
+      "sha256": "73EF5BEC02A5421DE9E08659BF7A4230A294D6D697B6C3FCD90ACF57FC99F7CC"
+    },
+    {
+      "path": "Source\\PluginEditor.h",
+      "bytes": 26661,
+      "sha256": "B4795C71C347E6DB3FEA5A9FF302C425A369840D48D5A0EC305D983FA04532BC"
+    },
+    {
+      "path": "Source\\PluginProcessor.cpp",
+      "bytes": 191585,
+      "sha256": "6000E8A9D2A13FB892EBBB5C39F4B8ADC0EAAC811D70BBA306F0C6424F24CD9F"
+    },
+    {
+      "path": "Source\\PluginProcessor.h",
+      "bytes": 26793,
+      "sha256": "E1980489C5665867FC5A0CC992E87C8247BF5E7DF4187B3B13EB8BA119DBA761"
+    },
+    {
+      "path": "Source\\RefinedDarkKnob.h",
+      "bytes": 13899,
+      "sha256": "8124D7CC94D5DE2459F2FDEB3A04E5D7152C42337639EEA69241257A5118C574"
+    },
+    {
+      "path": "Source\\StaticCompressionEngine.h",
+      "bytes": 13702,
+      "sha256": "51B36D3AA7BE1113AA4E90AC6C0C534163A9B7A3A9EDC2DFE24D455CAD3FA6BA"
+    },
+    {
+      "path": "Source\\UTF8LookAndFeel.h",
+      "bytes": 21154,
+      "sha256": "935982CF81B6D8F3A29BF87C9AD394F68C47A4C20658187B34F82A001736E98A"
+    },
+    {
+      "path": "Source\\WarmKnobAsset.h",
+      "bytes": 12631,
+      "sha256": "75BED09C5D7AA49BE759C67A15A72A3E11F0585A959496D1CC64BE3FEB9BACE0"
+    },
+    {
+      "path": "Source\\WarmMaterial.h",
+      "bytes": 3806,
+      "sha256": "940C14435C861307F87E9E29E198DAEA39C8DC86ADAC2AC125CE01461C925FF7"
+    },
+    {
+      "path": "tests\\ab_match_checks.h",
+      "bytes": 8662,
+      "sha256": "2AF5B8F438088EA9A5E9F76A5FBA7CA4096DC898BEC47A2163BEFBD5FD453E04"
+    },
+    {
+      "path": "tests\\algorithm_checks.h",
+      "bytes": 8417,
+      "sha256": "8C9A10CC95C998F2C9BE573CDE758E9225FD2B75770B071B7621AAAA571605F5"
+    },
+    {
+      "path": "tests\\algorithm_visual_checks.h",
+      "bytes": 2804,
+      "sha256": "A9368DA55FA72925283EB875D70F452039ABB4F498910098FB37AD833F558503"
+    },
+    {
+      "path": "tests\\algorithm_vst_check.cpp",
+      "bytes": 7641,
+      "sha256": "3805117E2B5FDC4D8FA8CCCA240D0EB524F70BB4721DDA46C0E4004918EE9697"
+    },
+    {
+      "path": "tests\\analyse_preview_modulation.py",
+      "bytes": 3315,
+      "sha256": "A06FAEE2A48D308D69F33D62465369AB41310FC9B1597305E18BE926DE3320F8"
+    },
+    {
+      "path": "tests\\append_manual_update.py",
+      "bytes": 3031,
+      "sha256": "65E908646A665A12B1B644332B463E62978890EBA3DBB2B97C5E65FF30CD90AB"
+    },
+    {
+      "path": "tests\\archive\\analytic_sample_mapping_selftest_1.0.0_rejected.py",
+      "bytes": 4737,
+      "sha256": "EF670FCA9D6CEFAC5BB20CA82125DBE683F2A49CE5F75C9CCFE8E1E045D99CCD"
+    },
+    {
+      "path": "tests\\branch_revision4_checks.h",
+      "bytes": 12824,
+      "sha256": "8043754F808C8BD296E349A0222DD94FED0EC81C57D596B200F4505A0742D193"
+    },
+    {
+      "path": "tests\\branch_revision4_visual_checks.h",
+      "bytes": 4818,
+      "sha256": "45D0DD2CCDFC622E863C5CDD3ECF5430117314F30BA745F5AB7AB9A3F9976958"
+    },
+    {
+      "path": "tests\\bs1770_match_selftest.cpp",
+      "bytes": 2627,
+      "sha256": "C828C5DC8F4A52C5EB361EFF8B1A3DCFBBDB9D3E4EA220C64DB26071E17A33F4"
+    },
+    {
+      "path": "tests\\ceiling_check.cpp",
+      "bytes": 9497,
+      "sha256": "DB81BE14C2F4A11311F11C38A0403306EE6BD1DC50BD7EE2E618DCB71D5E6D50"
+    },
+    {
+      "path": "tests\\ceiling_compare.cpp",
+      "bytes": 4222,
+      "sha256": "E764FAA806C775975A35AC7B9AAAE1DA9F39717CEFF922A1C04A527D1808B0DA"
+    },
+    {
+      "path": "tests\\dark_skin_contract_selftest.py",
+      "bytes": 3721,
+      "sha256": "45B2AB568FAE748460F945838060D2FC046C68D66C8AF2A6C660A6D5E7B056CA"
+    },
+    {
+      "path": "tests\\db_dynamics_test.cpp",
+      "bytes": 7507,
+      "sha256": "057B02A53C2CF44562BBE7147322ECD82CFE4B6277A725433B9C14F9701C1041"
+    },
+    {
+      "path": "tests\\db_visual_checks.h",
+      "bytes": 2912,
+      "sha256": "1DE3E91AE70E0B6E779071120ADE67CE588114B1A23047F94C730892BB60C3E7"
+    },
+    {
+      "path": "tests\\deliver_1_2_0_rev2.ps1",
+      "bytes": 4394,
+      "sha256": "55E8EDD2CE349BCECB0D468E3031E73E197CFB7D67C5A0F0337F94B5EF20385E"
+    },
+    {
+      "path": "tests\\deliver_1_2_0_rev3.ps1",
+      "bytes": 4913,
+      "sha256": "249853BA1C43C537C1D24CB039BCCAEDE9FAC7817F3A09221F9D2605503C042B"
+    },
+    {
+      "path": "tests\\deliver_1_2_0.ps1",
+      "bytes": 4271,
+      "sha256": "EB8877D155FF464E65CB3C05CC2E38268F77A2C97E7C49CB75CE60CAD9F11613"
+    },
+    {
+      "path": "tests\\deliver_plan_a.ps1",
+      "bytes": 3838,
+      "sha256": "E3BFB74F98AFF24C6E425072D6E1F2766F5DDD16E0435EFBE0DF5C10215C0A24"
+    },
+    {
+      "path": "tests\\display_render_performance_selftest.py",
+      "bytes": 2091,
+      "sha256": "28458D246D72FA0C9D014E7CD105B4C44BB0BFDDB33C63EA00A02A67E137D57D"
+    },
+    {
+      "path": "tests\\display_scale_selftest.py",
+      "bytes": 450,
+      "sha256": "D8016AAA7399DC87B8E12F7802E7FCE611EFB2DE6FEB5DAF734390467D9E213A"
+    },
+    {
+      "path": "tests\\domain_link_selftest.py",
+      "bytes": 2438,
+      "sha256": "5E2C091769EC1320ADDF4BD572DFE27165CE1F94E647EC38F2DD6DD1EA12BC61"
+    },
+    {
+      "path": "tests\\dual_algorithm_checks.inc",
+      "bytes": 12227,
+      "sha256": "537C15384E17ECC4E8E3A03BAE419070EB300DFE434169F024F24EE173424919"
+    },
+    {
+      "path": "tests\\dynamic_projection_selftest.py",
+      "bytes": 3389,
+      "sha256": "100925B018FAF2016147ADB3271A258321B29B81ED11BFB85D641D161DB10886"
+    },
+    {
+      "path": "tests\\external_key_selftest.py",
+      "bytes": 3355,
+      "sha256": "374B68B551083CB99B333A4184D2BBB23520949035C7BDA19143A0196BA7C052"
+    },
+    {
+      "path": "tests\\floor_checks.h",
+      "bytes": 3413,
+      "sha256": "910557E2ED5A7E418AC51AC1CD9AF303860E7CE11EBCC7363173B4D5A090BD70"
+    },
+    {
+      "path": "tests\\floor_visual_checks.h",
+      "bytes": 9167,
+      "sha256": "A9F1766AC4E6BBACD1E8180E78F23FB4F8622BCE7AFBB18A83DEB33D582E9610"
+    },
+    {
+      "path": "tests\\independent_banks_full_link_checks.inc",
+      "bytes": 14166,
+      "sha256": "F068E073E88E3ACCDBC46E62A5DD517FEB701289B96748B2BB917651855E8F1A"
+    },
+    {
+      "path": "tests\\independent_banks_full_link_isolated_test.py",
+      "bytes": 31345,
+      "sha256": "A3B18FFD30390090F31F0E9734B69DE66735F695F96E28EC52D7AC08F81B2745"
+    },
+    {
+      "path": "tests\\independent_mix_selftest.py",
+      "bytes": 1875,
+      "sha256": "62282CD016130DB93A5B549EBC51A1FA246A8851A4361AA1150F1983488B8B69"
+    },
+    {
+      "path": "tests\\input_output_link_checks.h",
+      "bytes": 5686,
+      "sha256": "5F5CB79356C1DBF5EDFAF91ECC89A69271D3B4A6DF52A9A78ECFC016D40AE251"
+    },
+    {
+      "path": "tests\\landscape_contract_selftest.py",
+      "bytes": 1664,
+      "sha256": "938E0DEF8EBE5B787A8EE22290D6645EA8FC0E4BC096CE9209012F59E25BEED2"
+    },
+    {
+      "path": "tests\\limiter_check.cpp",
+      "bytes": 24496,
+      "sha256": "69BE7A53967A28449F0136DC042BEB4E54984FD9AC3E0498C39BF16A8DF8A9C2"
+    },
+    {
+      "path": "tests\\limiter_mode_continuity_checks.inc",
+      "bytes": 10147,
+      "sha256": "22FBF4A90531F59E8F2A91794CA4CAAC5EB17916E8DCEFE5A5066D7B96966723"
+    },
+    {
+      "path": "tests\\limiter_mode_continuity_isolated_test.py",
+      "bytes": 17384,
+      "sha256": "BAC7D466A9184823F9646B444FCFC26E6307DD33D0E58D67BEDFECAC19391B18"
+    },
+    {
+      "path": "tests\\limiter_vst_check.cpp",
+      "bytes": 9398,
+      "sha256": "9CAD19E464C52A5E7C52DB314D1653E0DBE12A59D0F49DDB19A8A5ED5C5C4FEC"
+    },
+    {
+      "path": "tests\\link_ui_source_selftest.py",
+      "bytes": 1275,
+      "sha256": "6D2125714C6D79B4863203B4649456B21466DDB3250CA8B13CB3112AA3ACDB82"
+    },
+    {
+      "path": "tests\\loudness_check.cpp",
+      "bytes": 8614,
+      "sha256": "1E72B9BD517AFA3C59CE7BCC6FE64C8E5AFE4A464B4268AE8E05CF2A9FAEA001"
+    },
+    {
+      "path": "tests\\match_index_check.cpp",
+      "bytes": 5392,
+      "sha256": "913C3E1EF3AA0AD3786CC374DD16FFBF7ACCE2ED863D5B2BD47A9102C9849A2F"
+    },
+    {
+      "path": "tests\\mode_memory_checks.inc",
+      "bytes": 10317,
+      "sha256": "0BB27A2993F9F7851159A14063AE7831BF3341AED8C560C331F9D2996B7EB487"
+    },
+    {
+      "path": "tests\\monitor_audition_selftest.py",
+      "bytes": 3337,
+      "sha256": "70A58E0138C45D36F799919959EA4802F7B11C64D472BDE654463DB73BDC743A"
+    },
+    {
+      "path": "tests\\output_link_checks.inc",
+      "bytes": 11136,
+      "sha256": "2E8D2B0F76E1DA108811D8A18E2E317923808DDE6DD47177EFCD5F121DBC615F"
+    },
+    {
+      "path": "tests\\peak_guard_processor_checks.h",
+      "bytes": 4744,
+      "sha256": "F3D3DD9719548D0B886D306924B56C5854C04AD5F0AB4C698099B1A978750D9A"
+    },
+    {
+      "path": "tests\\plot_ceiling_comparison.py",
+      "bytes": 1661,
+      "sha256": "795E08EFDD5A908456D1E92A444EB52E6EDABEE6673D3B44F851F044E643DEEA"
+    },
+    {
+      "path": "tests\\preview_detector_checks.h",
+      "bytes": 2106,
+      "sha256": "CE8F7B406221D51279C9822E3EB49AF286B389F25A545A511768A00BA5486BE8"
+    },
+    {
+      "path": "tests\\preview_vst_check.cpp",
+      "bytes": 11350,
+      "sha256": "676731F34FC3DAD3A033668602402F1F250FFD6F4FB9156E99D11285458646AA"
+    },
+    {
+      "path": "tests\\PreviousOutputCeiling.h",
+      "bytes": 6591,
+      "sha256": "25FA1DD8A4D9B3FFAD9726BD6EE1B0E90B39AD721E93B0367054153F63E3D67E"
+    },
+    {
+      "path": "tests\\ratio_mix_checks.inc",
+      "bytes": 12471,
+      "sha256": "B690B881E025A3D2419E865F37DD3E3BEEA3975ABDFD42E39D460560410B4C47"
+    },
+    {
+      "path": "tests\\ratio_mix_vst_check.cpp",
+      "bytes": 7362,
+      "sha256": "C619052DA5341B97EA3B46DFCEBFB368365DBDC0CADF2AE0DEBABD8BF6B9251D"
+    },
+    {
+      "path": "tests\\ratio_revision3_checks.h",
+      "bytes": 11293,
+      "sha256": "C6B4664617F398AEE08D3061D61959586D58ED628ADCDFE76D6DBBC05281CEDC"
+    },
+    {
+      "path": "tests\\retrospective_tp_display_checks.inc",
+      "bytes": 10681,
+      "sha256": "0485291898C256DE69E6E9E41CD682660896FA3ADB127276B559890F55125A82"
+    },
+    {
+      "path": "tests\\review_fixes_check.cpp",
+      "bytes": 25519,
+      "sha256": "E838906EA61A96A77AE623615283AE43F8F8B2C852159BD73B165A988467096B"
+    },
+    {
+      "path": "tests\\revision1217_source_audit.py",
+      "bytes": 2060,
+      "sha256": "4F4AC9D7E3A24622E8873021C7F60B52D6C2EAFE182A2D10ECD96066C8B769F6"
+    },
+    {
+      "path": "tests\\revision1220_source_audit.py",
+      "bytes": 2976,
+      "sha256": "0F161C11DCE06C52A82A6E151EBAE6E9A7AE0DA70A80437D32DF3CBA1A6F1895"
+    },
+    {
+      "path": "tests\\revision1221_display_cache_audit.py",
+      "bytes": 4012,
+      "sha256": "D9B7FB746AA847024A3738B8DA1247CDF4F0AAA01E6185E9FF0D5A45AFD1239D"
+    },
+    {
+      "path": "tests\\revision1222_limiter_dual_up_ratio_audit.py",
+      "bytes": 1428,
+      "sha256": "3A211B6CB1C0B57F156CAA82156E0814CC227BA26D9CBA5ADEFE347EB903C958"
+    },
+    {
+      "path": "tests\\revision1223_limiter_up_ratio_audit.py",
+      "bytes": 1931,
+      "sha256": "703C96F90A7DB5DB9A0155BAFB3BECFD937267BF2E8F4294E02BBD3FD64D9F60"
+    },
+    {
+      "path": "tests\\revision1224_limiter_alt_reset_audit.py",
+      "bytes": 1118,
+      "sha256": "9B3CB4DBE5E3180AFC91855B8DBF453F252B9A2182041D96C979C72ADD007813"
+    },
+    {
+      "path": "tests\\revision1225_limiter_unity_link_audit.py",
+      "bytes": 2223,
+      "sha256": "DA861BEDEA467DE3C90CED821D3CB6E0B764D423FA30DAFD26E45755D25CB967"
+    },
+    {
+      "path": "tests\\revision1225_limiter_unity_link_checks.inc",
+      "bytes": 7707,
+      "sha256": "F9120AEA13114AC3EF9CA2F98EEC9A7C3072A63553DFDB9F85DA9E1582BEC4B2"
+    },
+    {
+      "path": "tests\\revision1226_shift_drag_continuity_checks.inc",
+      "bytes": 6824,
+      "sha256": "2A409F9B55CFE9F3E0E5F49D095B4555F526ACCCAFC29FBAD1133B6421191A5E"
+    },
+    {
+      "path": "tests\\revision1226_shift_drag_source_audit.py",
+      "bytes": 671,
+      "sha256": "7A50066E0AEFA62EEBD30E93493B60CD9608E76B066406C5963A43112BA8D722"
+    },
+    {
+      "path": "tests\\revision1227_display_drag_performance_audit.py",
+      "bytes": 3179,
+      "sha256": "37492F74B344378B41112598CD6DBA864FE119B471DD2FFA74701D132E36E662"
+    },
+    {
+      "path": "tests\\revision1227_display_drag_performance_checks.inc",
+      "bytes": 7594,
+      "sha256": "DD7290ACBF8E7A9868398E8FA0DC43B1F386C15833139463FD6D4312253F7C5A"
+    },
+    {
+      "path": "tests\\revision1228_ceiling_mode_checks.inc",
+      "bytes": 4416,
+      "sha256": "C28CA5A9612A00305F14228D95E00A88E68654B8225D40FEDB507232C99ED184"
+    },
+    {
+      "path": "tests\\revision1228_ceiling_mode_source_audit.py",
+      "bytes": 2073,
+      "sha256": "A1D4EAB81316797795DAA2C1010BE3787D837DBA961C03D684C009F1A749AEB0"
+    },
+    {
+      "path": "tests\\revision1234_performance_architecture_checks.inc",
+      "bytes": 5057,
+      "sha256": "C1BAA36C908EBA6B1CAEC4E0E3FB0E5B6D0E0841B872AD13D544F7D2F020E24F"
+    },
+    {
+      "path": "tests\\revision1234_performance_architecture_source_audit.py",
+      "bytes": 2108,
+      "sha256": "E31B9D10E39BEFA0DD769D5F0395D53FA9EA65DED92D425DC4C7517A4292A83F"
+    },
+    {
+      "path": "tests\\revision129_source_audit.py",
+      "bytes": 4077,
+      "sha256": "C6762BCD9547A25E9E4FCD6237624AA15B13A16F5D7814BD46258C62054198AD"
+    },
+    {
+      "path": "tests\\sidechain_display_history_selftest.py",
+      "bytes": 4446,
+      "sha256": "71BF005CC28938C535738CA74B8AB6105E253A59C8CAED513E93E9AB3E19714A"
+    },
+    {
+      "path": "tests\\sidechain_hpf_selftest.py",
+      "bytes": 3376,
+      "sha256": "F004B6DEE354C331F1C869714A777859FD4981687D4F0E161637C4867236A250"
+    },
+    {
+      "path": "tests\\stable_promotion_check.cpp",
+      "bytes": 5104,
+      "sha256": "638D19068612DFFD926279308397EBE2D263521BED1053BACBD05CEB6E9B98D5"
+    },
+    {
+      "path": "tests\\strict_one_to_one_link_checks.inc",
+      "bytes": 6582,
+      "sha256": "2C12B1D585F75195915A7B6CB204D1C8CCF300E56BC6A434DE1EDC61837ECFA9"
+    },
+    {
+      "path": "tests\\strict_one_to_one_link_isolated_test.py",
+      "bytes": 3265,
+      "sha256": "D49E101B57A153F6A0E5AC4D5AC9707A8FFF4830E581B17332838F345A8B384E"
+    },
+    {
+      "path": "tests\\strict_output_link_checks.inc",
+      "bytes": 7862,
+      "sha256": "0C2D336DB1522CDD82893548DA26E44AE8B02C26C3808C5B8A3E5F4DAC63E4DD"
+    },
+    {
+      "path": "tests\\theme_render_parity.py",
+      "bytes": 4701,
+      "sha256": "CFD11FD961E652DE448C183DBB68E8600A0D65176CC5CF13F3208957DC65A324"
+    },
+    {
+      "path": "tests\\threshold_rebuild_selftest.py",
+      "bytes": 1204,
+      "sha256": "A35F29BDF0F19B030BDF175E51ED6DFA555075406C54A6CAB653A26F697106E2"
+    },
+    {
+      "path": "tests\\tp_display_gr_performance_audit.py",
+      "bytes": 1883,
+      "sha256": "B3B698AF7DC42C1DBDAA5D72EF80BA449D99DAFA2ED5AE0B4F3FCC9D56100D16"
+    },
+    {
+      "path": "tests\\tp_display_gr_source_audit.py",
+      "bytes": 2443,
+      "sha256": "55A95976E7E795D9369E9286735BA4A579B6CD51F68865E81C4EACD80E5268D8"
+    },
+    {
+      "path": "tests\\tp_recovery_checks.inc",
+      "bytes": 3824,
+      "sha256": "8417DEC7BE17103C93692E9404383121EC77022BCED7328CF1EAEAAEBA041035"
+    },
+    {
+      "path": "tests\\tp_recovery_source_audit.py",
+      "bytes": 2738,
+      "sha256": "64BD3B4310FB49DFE5C664766877A581F5BB86177675D504B7D260FF609E0293"
+    },
+    {
+      "path": "tests\\transparent_core_selftest.py",
+      "bytes": 2761,
+      "sha256": "F5D795DFBF31D54688D16461A8A399B74066D3E73345DE03872BDD8265482BCA"
+    },
+    {
+      "path": "tests\\true_peak_ceiling_target_source_audit.py",
+      "bytes": 1328,
+      "sha256": "414D8B5D5D6DCD9738AF96D50FE1D6E7B72E3CC60078CC3EACD66D6410A49924"
+    },
+    {
+      "path": "tests\\unity_check.cpp",
+      "bytes": 16349,
+      "sha256": "1325138D37828F790B1824B67E527347BECC3324214881CEB24055FA3D9F6F62"
+    },
+    {
+      "path": "tests\\up1000_checks.h",
+      "bytes": 6889,
+      "sha256": "4C1653536A578AA1BFF21152B0E9FD7D0BCED3218F2C882572A2CE743DA1155D"
+    },
+    {
+      "path": "tests\\up1000_visual_checks.h",
+      "bytes": 5924,
+      "sha256": "0BDDDA8FC0F2F2A824124078A8F4EAC853CC950D42B333F083CC7483A65A7AE9"
+    },
+    {
+      "path": "tests\\updown_processor_test.cpp",
+      "bytes": 30893,
+      "sha256": "8269265495603AA85A180FC89DBC8D5A10A0CB7CE68B5F70EE7AD68AA1065D25"
+    },
+    {
+      "path": "tests\\visual_check.cpp",
+      "bytes": 51250,
+      "sha256": "C1A1A75BBA413A079BE1553804CD0ECEC5D67181199A2958EE1B3653533F032F"
+    },
+    {
+      "path": "tests\\warm_skin_contract_selftest.py",
+      "bytes": 3365,
+      "sha256": "C99C62659C50D40BC9641E1695B404A06017CCBE51D8BEDE181E8830B7C718B1"
+    },
+    {
+      "path": "tests\\write_rev3_docs.py",
+      "bytes": 13479,
+      "sha256": "7413D5D65607D05DC9C804B15744DEAD970DDB0752D64E2B3A423FF9421A93B7"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3911,
+      "sha256": "9FD72C82FF1B91D3BE4BB843EB9EE9FF0E39C12CCAA4D7E0ED43E817C967B2F9"
+    },
+    {
+      "path": "BUILD_WINDOWS.ps1",
+      "bytes": 7288,
+      "sha256": "757FC0119C1C83BE465D7051C56A1141B0330C68F04F58A1528465B42D315E63"
+    },
+    {
+      "path": "RELEASE_NOTES_1.2.35.md",
+      "bytes": 2042,
+      "sha256": "3149A3B79D104C3B0456C34C91CFAD87F56555341D338D97C38B1BF321CDBD52"
+    }
+  ]
+}

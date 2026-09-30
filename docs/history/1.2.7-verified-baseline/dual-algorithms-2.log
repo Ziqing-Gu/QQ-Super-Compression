@@ -1,0 +1,19 @@
+PASS: 144 Mix-change-then-link scenarios, Classic/Super, Single/Dual, ST/LR/MS, monitor on/off, Mix 100/66.9/50/1/0 and asymmetric; drag/text, both directions, Makeup/Ratio/algorithm, LINK re-enable, A/B and project reopen; worst Mix-dependent difference=0 dB. Classic analytic delta and undo/redo passed.
+PASS: strict Output whitelist, 24 Classic/Super + ST/LR/MS + LINK on/off + Ratio Link on/off cases; 3120 unrelated control edits left both Output banks/calibration exactly unchanged; unity Output remains usable.
+PASS: all 69 active values in each of four banks, repeated mode toggles, outer A/B switch, both copy directions, saved reload and headless host mode automation.
+PASS: real editor Input/Makeup/Mix, algorithm, Single/Dual, channel mode and Lookahead route to correct bank; repeated controls and undo/redo.
+PASS: initial mode setup undo/redo and reseeding after an undone first entry.
+PASS: legacy shared-setting migration, separate inactive A/B defaults and saved Limiter bank retention.
+CHECK: Limiter UI entry/restore.
+PASS: 6 entry cases, positive/negative/zero output, Classic/Super; full restore and save/reload; I/O Link disabled including typed edits; only DOWN links both directions; Link OFF.
+CHECK: Ceiling Alt-click reset.
+CHECK: TP double-click.
+PASS: Ceiling default 0, typed edit, drag, Alt-click reset/undo/redo; TP double-click resets without audio; 3 themes and OFF layout.
+PASS: A/B stores both complete parameter banks, Ceiling and pre-Limiter restoration.
+PASS: all 30 Ratio parameter ranges, 50,005 Single-Limiter automation positions, unity/200 endpoints and legacy-state clamps.
+PASS: 120 Mix drag/text/automation cases leave Output and Threshold unchanged; both algorithms, Single/Dual, ST/LR/MS, monitor on/off; relative Ratio LINK endpoints.
+PASS: Dual algorithm 10 ms crossfades/reversal at 44.1/48/96 kHz; max DC adjacent step=0.000140354.
+MIGRATE slot=0 limiter=0 single=0 up=0 down=0 expected=0
+MIGRATE slot=0 limiter=1 single=1 up=1 down=1 expected=1
+MIGRATE slot=1 limiter=0 single=1 up=0 down=0 expected=1
+FAIL: Legacy A/B/mode bank did not inherit its own algorithm

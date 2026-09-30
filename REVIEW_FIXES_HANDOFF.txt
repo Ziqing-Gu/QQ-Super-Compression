@@ -1,0 +1,44 @@
+QQ Super Compression 1.2.35 — 实例 FULL/ECO 与停播静音负载修复
+日期：2026-09-30
+状态：Windows Release 编译成功，本轮选定回归和 VST3 加载校验通过，已覆盖系统 VST3；等待用户在 Cubase 实测。
+
+当前路径
+源码：D:\Codex\Workspaces\QQSC-1.2.34-Review-Fixes（目录名沿用，源码版本已为 1.2.35）
+交付副本：D:\Codex\Outputs\QQ Super Compression\1.2.35-Instance-Eco-Silence\QQ Super Compression.vst3
+安装位置：C:\Program Files\Common Files\VST3\QQ Super Compression.vst3
+验证报告：D:\Codex\Temp\QQSC1235-Instance-Eco-Checks\validation-report.json
+本轮安装前回退：D:\Codex\Archives\QQSC-1.2.34-before-1.2.35-20260930-212800\QQ Super Compression.vst3
+本轮修改前源码：D:\Codex\Archives\QQSC-1.2.34-source-before-instance-eco-20260930-210151
+二进制 SHA-256：015897A5705922553DCA9455C876DDFD6DD735F9B3DD147DB2D07D68A814729A
+构建、交付副本和系统安装的全部 2 个文件逐项哈希一致，安装前确认宿主关闭及文件无占用，安装后加载校验通过。
+
+本轮行为
+1. FULL/ECO 改为每个处理器实例持有的原子状态，工程状态属性 qqscPerformanceEco，schema 27。十个实例可以一个 FULL、九个 ECO；默认 FULL；旧状态缺字段时回到 FULL；A/B 不改变当前实例的性能选择。
+2. 界面与 DynamicDisplay 读取所属实例。旧全局 performanceEco 配置键不再影响当前插件，也不写回该键。Theme/Lookahead 的原有设置刷新保护保留。
+3. 停止播放后的真正零输入可休眠过采样核心和 Ceiling。必须有有效的“停止”宿主状态、全部输入（包括侧链）逐样本为零、选中 HPF 尾音低于 -400 dBFS 后再经过至少约一秒排空期、A/B 无过渡、TP 增益恢复误差不超过 1e-10。
+4. 不重置休眠时的 DSP 状态。非零输入（含极低电平）、侧链、播放恢复、参数修改或缺失宿主状态时恢复处理。正在播放的空白段仍正常处理。FULL 的显示历史、保持表头及主采样率控制仍继续；停止不会清空原有 MATCH 历史。延迟补偿不改变。
+5. 强限幅后的 Smooth 需要更久恢复；本轮测试约 4.1 秒进入休眠，Tight 约 1 秒，Auto 约 1.7 秒。常规无信号状态约 1 秒。上游仍输出噪声或实时输入时不把它当成零信号。
+
+本轮验证
+QQSCReviewCheck：七组停播/尾音/恢复播放对照，44.1/48/96 kHz，mono/stereo，ST/LR/MS，1/17/63/256/1024/4096 样本交替块，共享/独立 OS，三种 TP 恢复，极小输入、外侧链、参数唤醒、缺失 transport、FULL MATCH 和 PDC。与同参数、同停止状态但持续运算的参考比较，最大输出差 0。
+十实例测试：独立 FULL/ECO、开关编辑器、音频/PDC、实时表头和 MATCH、工程往返、旧状态迁移、A/B 独立性均通过。
+原 review 回归全部通过；QQSCLimiterCheck revision1234/revision1228、QQSCUnityCheck 均通过。Unity 的最大 MATCH 剩余差 0.0931361 LU。源码审计、构建和已安装 VST3 的加载校验通过。
+本轮未重复运行未改动的独立 MATCH 索引等全部 1.2.34 检查；这些历史记录保留在 D:\Codex\Temp\QQSC1234-Review-Checks。
+
+性能对照（48 kHz / 256 样本，主机 wall-clock DSP 耗时，非 Cubase ASIO-Guard 百分比）
+Limiter 0 ms Core16/Ceiling16，FULL：3069.64 → 164.007 微秒/块，约下降 94.7%。
+同配置 ECO：2860.92 → 122.325 微秒/块，约下降 95.7%。
+Limiter 26 ms/Ceiling8，FULL：742.871 → 151.169 微秒/块，约下降 79.7%。
+Core8/Ceiling16，FULL：2786.11 → 147.81 微秒/块，约下降 94.7%。
+采用同一可执行文件，基准路径仅在测试中阻止静音休眠，以保留同样的停止状态和控制工作。所有 40 组原始数据在 profile-paired.log；墙钟时间有系统调度波动，不能外推为 DAW 表头同比下降。
+
+保留的前轮修复
+mono MS、A/B Ceiling OS、缓冲容量、AU 参数追加顺序、MATCH 消费线程和精确索引、Normal 隐藏设置过渡、共享 Ceiling 遥测、ECO 唤醒保持状态，以及 100% Wet 的 Unity MATCH 发布修复均保留。旧完整交接和证据已随本轮修改前源码快照保留。
+
+验证入口
+CMake：QQSC_BUILD_DYNAMICS_CHECK=ON，JUCE_PATH=D:/Codex/Temp/JUCE-8.0.15-src/JUCE-8.0.15，QQSC_FETCH_JUCE=OFF。
+编译目录：D:\Codex\Temp\QQSC1234-Review-Fixes（复用，内容已为 1.2.35）。
+本轮脚本/日志：D:\Codex\Temp\QQSC1235-Instance-Eco-Checks。
+QQSCReviewCheck.exe <D盘测试目录> 跑功能回归；追加 --silence-profile 跑性能前后对照。
+下一步：用户在同一 Cubase 工程比较停止前后 ASIO-Guard，检查播放恢复和多个实例 FULL/ECO；本轮 Windows 修复未执行 GitHub、macOS/AU 编译或正式发布。随后已按用户要求启动 Plan B；正式快照以备份目录中的 PLAN_B_VERIFICATION.md 为准。
+Plan B 前置整理：README 与 RELEASE_NOTES_1.2.35.md 已同步实例 FULL/ECO 和静音休眠；BUILD_WINDOWS.ps1 已适配 1.2.35、加入当前 Review/Unity 检查、保留其它源码树的构建目录，并通过现有构建的 -SkipTests 入口验证。音频源码及构建/安装二进制哈希未改变。当前日志已固化到 Verification\1.2.35-Windows。

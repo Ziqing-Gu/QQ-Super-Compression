@@ -1,0 +1,288 @@
+diff -ru /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/BUILD_WINDOWS.ps1 /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/BUILD_WINDOWS.ps1
+--- /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/BUILD_WINDOWS.ps1	2026-09-28 06:51:40.000000000 +0000
++++ /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/BUILD_WINDOWS.ps1	2026-09-28 07:20:08.407403979 +0000
+@@ -16,8 +16,8 @@
+ try {
+     if ([Environment]::OSVersion.Platform -ne 'Win32NT') { throw 'This script requires Windows.' }
+     $projectText = Get-Content -LiteralPath (Join-Path $source 'CMakeLists.txt') -Raw
+-    if ($projectText -notmatch 'project\(QQSuperCompression VERSION 1\.2\.11\s') {
+-        throw 'This build helper is for the 1.2.11 source candidate only.'
++    if ($projectText -notmatch 'project\(QQSuperCompression VERSION 1\.2\.12\s') {
++        throw 'This build helper is for the 1.2.12 source candidate only.'
+     }
+     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+     if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio 2022 C++ Build Tools (and Windows SDK) are required.' }
+@@ -45,7 +45,7 @@
+         throw 'JUCE source is not bundled. Supply the JUCE 8.0.15 checkout used for 1.2.8 Stable: BUILD_WINDOWS.ps1 -JucePath "D:\path\to\JUCE-8.0.15"'
+     }
+     $JucePath = (Resolve-Path -LiteralPath $JucePath).Path
+-    if ([string]::IsNullOrWhiteSpace($BuildDirectory)) { $BuildDirectory = 'D:\Codex\Temp\QQSC1211-Build' }
++    if ([string]::IsNullOrWhiteSpace($BuildDirectory)) { $BuildDirectory = 'D:\Codex\Temp\QQSC1212-Build' }
+     $BuildDirectory = [IO.Path]::GetFullPath($BuildDirectory)
+     Write-Host "Source: $source"
+     Write-Host "JUCE:   $JucePath"
+@@ -53,7 +53,7 @@
+     Write-Host 'No plugin will be installed or published by this script.'
+     Invoke-Checked -Program $cmake -Arguments @('-S', $source, '-B', $BuildDirectory, '-G', 'Visual Studio 17 2022', '-A', 'x64', "-DJUCE_PATH=$JucePath", '-DQQSC_FETCH_JUCE=OFF', '-DQQSC_BUILD_DYNAMICS_CHECK=ON')
+     $targets = @('QQSuperCompression_VST3')
+-    if (-not $SkipTests) { $targets += 'QQSCLimiterCheck' }
++    if (-not $SkipTests) { $targets += @('QQSCLimiterCheck','QQSCCeilingCheck') }
+     $buildArgs = @('--build', $BuildDirectory, '--config', 'Release', '--target') + $targets + @('--parallel', '4')
+     Invoke-Checked -Program $cmake -Arguments $buildArgs
+     $testStatus = 'not run (-SkipTests)'
+@@ -63,17 +63,19 @@
+             $testOutput = Join-Path $BuildDirectory ("verification\" + $profile)
+             Invoke-Checked -Program $testExe -Arguments @($testOutput, $profile)
+         }
+-        $testStatus = 'QQSCLimiterCheck revision1211, continuity and dual passed'
++        $ceilingExe = Join-Path $BuildDirectory 'QQSCCeilingCheck_artefacts\Release\QQSCCeilingCheck.exe'
++        Invoke-Checked -Program $ceilingExe -Arguments @()
++        $testStatus = 'QQSCLimiterCheck revision1211, continuity and dual plus QQSCCeilingCheck passed'
+     }
+     $bundle = Join-Path $BuildDirectory 'QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3'
+     $dll = Join-Path $bundle 'Contents\x86_64-win\QQ Super Compression.vst3'
+     if (-not (Test-Path -LiteralPath $dll)) { throw 'Build returned without the expected Windows VST3 binary.' }
+     $record = [ordered]@{
+-        version = '1.2.11'; status = 'built locally; not installed by this script'
++        version = '1.2.12'; status = 'built locally; not installed by this script'
+         source = $source; juce = $JucePath; binary = $dll; tests = $testStatus
+         timestamp = (Get-Date).ToString('o'); sha256 = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
+     }
+-    $record | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $BuildDirectory 'WINDOWS_BUILD_RESULT_1.2.11.json') -Encoding UTF8
++    $record | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $BuildDirectory 'WINDOWS_BUILD_RESULT_1.2.12.json') -Encoding UTF8
+     Write-Host "Build ready: $bundle"
+     Write-Host "Tests: $testStatus"
+     Write-Host 'Close Cubase and other plugin hosts before manually replacing an installed VST3. Keep the verified 1.2.9 binary/source backup for rollback.'
+diff -ru /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/CMakeLists.txt /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/CMakeLists.txt
+--- /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/CMakeLists.txt	2026-09-28 06:51:40.000000000 +0000
++++ /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/CMakeLists.txt	2026-09-28 07:20:08.407337299 +0000
+@@ -1,6 +1,6 @@
+ cmake_minimum_required(VERSION 3.22)
+ 
+-project(QQSuperCompression VERSION 1.2.11 LANGUAGES C CXX)
++project(QQSuperCompression VERSION 1.2.12 LANGUAGES C CXX)
+ 
+ set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+diff -ru /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/README.md /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/README.md
+--- /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/README.md	2026-09-28 06:51:40.000000000 +0000
++++ /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/README.md	2026-09-28 07:21:14.328248018 +0000
+@@ -1,63 +1,72 @@
+-# QQ Super Compression 1.2.11 — Independent Banks / Full Reference Link
++# QQ Super Compression 1.2.12 — True-Peak Ceiling Target Candidate
+ 
+-**源码候选 / Source candidate。基线：用户确认的 1.2.8 Stable（用户已完成 Plan B）。**
++**源码候选 / Source candidate。开发基线：1.2.11 Strict 1:1 Link 源码。**
+ 
+-本包未生成 Windows VST3，尚未通过完整 JUCE / Cubase 验证；没有安装、发布、同步仓库或执行新的 Plan B。1.2.8 原始源码与成品不变。
++本包没有在本环境生成 Windows VST3，也没有安装、发布、同步仓库或执行 Plan B。1.2.11 与用户此前备份的 1.2.9 均不会被覆盖。
+ 
+-## 本次行为
++## 当前行为
+ 
+-普通压缩与 Limiter 从首次使用起独立。新实例第一次进入 Limiter，不再复制普通模式的参数：Makeup 为 0 dB、Mix 为 100%、Output 为 0 dB，Single Threshold 与 Dual DOWN Threshold 的初始值均为 0 dB。之后切换模式恢复各自保存的设置，不会每次归零。旧工程已配置的 Limiter 设置继续保留。
++### Limiter LINK
++保留 1.2.11 的严格 1:1 dB 规则：只有 **DOWN Threshold、Makeup、Output Gain** 参与 Link。
+ 
+-普通模式的五个 Makeup 参数（ST/L/R/M/S）均为 **−30～+30 dB**；Limiter 保留 **−120～+120 dB**。参数范围、滑块范围、数值输入和读数一起处理。
++- DOWN Threshold −1 dB → Output +1 dB；反向同理。
++- Makeup +1 dB → Output −1 dB；反向同理。
++- 直接调整 Output 时，继续只反向推动当前 DOWN Threshold。
++- Ratio、Mix、Classic/Super、UP Ratio、UP Gate、Input、声道/模式/分支切换都不会因为 Limiter Link 改变 Output。
+ 
+-Limiter LINK 开启时，DOWN Threshold、Ratio、Makeup、Mix 使用同一个完整参考计算：实际压缩曲线 → 湿声 Makeup → 线性干湿混合。只补偿改变量，保留已有手动 Output 偏移：
++Normal/Limiter 参数库独立；Normal Makeup 为 ±30 dB，Limiter Makeup 为 ±120 dB。Limiter Single/Dual 继续接续当前向下阈值，并保持 Makeup/Mix/Output 不因切换而跳变。
+ 
+-```text
+-新 Output = 旧 Output + 编辑前参考增益(dB) − 编辑后参考增益(dB)
+-```
+-
+-Dual 会先完成上下 Ratio 与声道配对的整组更新，再补偿 Output。单独调 UP Ratio、没有改变参考点时，补偿为 0；Ratio Link 带动 DOWN 时按最终结果计算。Mix 0% 时，湿声参数改变通常不需补偿；此时手动调 Output 仍可正常使用，不伪造阈值联动。
++### Ceiling / True Peak
++**TP OFF：** 保持原 Sample-Peak Ceiling 路径不变。Ceiling 作为最终 Sample Peak 输出目标/Trim 使用。
+ 
+-Link 关闭不自动补偿。Input、算法、声道模式、分支开关、Single/Dual 切换不因本次改动加入补偿。当前联动作用于显式界面编辑；自动化应记录并回放源参数及 Output/其他联动参数的轨道，单独写一个宿主参数不会在后台生成额外补偿。
++**TP ON：** Ceiling 现在直接代表最终 True Peak 上限。
+ 
+-**1.2.8 稳定规则保留：**普通模式分别记忆 Single/Dual 阈值；Limiter 在 Single/Dual 间接续当前向下阈值，Makeup、Mix、Output 不因模式切换改变，无论 Link 开关如何。ST/L/R/M/S 各自设置继续独立。
++- 8x 主 True-Peak Guard 直接以用户 Ceiling 为目标，不再固定预留 −0.02 dB。
++- Downsample 后使用独立 **16x reconstruction analysis** 检查最终 True Peak。
++- 只有检测结果真正高于用户 Ceiling 时，Residual Guard 才开始修正。
++- 需要修正时，目标落在 **Ceiling − 0.01 dB**，这只是数值/插值容差，不再固定预留 −0.10 dB。
++- 如果节目本身没有碰到 Ceiling，不会自动增益或 Normalize。
+ 
+-## 升级注意
+-
+-已有工程中的普通 Makeup 在 ±30 dB 内保持原来的物理 dB；超出范围的值收窄到边界。Limiter 原值不收窄。**普通 Makeup 的宿主参数范围改变后，旧工程中以 0～1 归一化保存的 DAW 自动化曲线可能被重新映射，插件不能替 DAW 改写这些外部曲线。**请先在工程副本中核对已有 Makeup 自动化，保留 1.2.8 回滚版本。
+-
+-这项补偿保持固定 0 dB 检测参考点，不保证实际音乐 LUFS、所有音量位置或最终 True Peak 不变。LR 采用较大的参考通道，MS 沿用保守和；Output 达到 ±120 dB 边界、参数量化时存在相应限制。
++因此，Ceiling = 0 dBTP 且输入足够高时，设计目标是让最终 True Peak 尽可能接近 0.00 dBTP，同时不超过 0 dBTP。
+ 
+ ## Windows 构建
+ 
+-使用原 1.2.8 的 JUCE **8.0.15** 与 Visual Studio 2022 C++ Build Tools。JUCE SDK 未打包。
++使用 JUCE **8.0.15** 与 Visual Studio 2022 C++ Build Tools。直接运行：
++
++```text
++BUILD_WINDOWS.cmd
++```
+ 
+-直接运行 `BUILD_WINDOWS.cmd`，或指定现有 JUCE 源码：
++默认构建目录：
+ 
+-```powershell
+-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\BUILD_WINDOWS.ps1 -JucePath "D:\path\to\JUCE-8.0.15"
++```text
++D:\Codex\Temp\QQSC1212-Build
+ ```
+ 
+-构建目录默认 `build-1.2.11-windows`。默认编译 VST3、QQSCLimiterCheck，执行 `revision129`、`continuity`、`dual` 三个本机回归组。只有用户本机实际成功执行后，才会生成 `WINDOWS_BUILD_RESULT_1.2.11.json`。脚本不自动安装插件，也不会执行 Plan B 或 GitHub 操作。
++默认构建 VST3、`QQSCLimiterCheck` 和 `QQSCCeilingCheck`；运行 1.2.11 的 strict-link / continuity / dual 回归，并额外运行独立 16x True-Peak Ceiling 检查。脚本不会自动安装插件，也不会执行 Plan B 或 GitHub 操作。
+ 
+-成功后的预期成品位置：
++成功后的预期 VST3：
+ 
+ ```text
+-build-1.2.11-windows\QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3
++D:\Codex\Temp\QQSC1212-Build\QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3
+ ```
+ 
+-替换已安装插件前关闭所有宿主，先保留 1.2.8 Stable 作为回滚版本。
++替换已安装插件前关闭 Cubase 和其他宿主，并保留现有可用版本作为回滚。
+ 
+-## 验证记录
++## 验证
+ 
+-实际完成的隔离测试、负向对照及未完成项见 `VERIFICATION_1.2.11.md`；原始日志在 `Verification/1.2.11/`。完整 JUCE 测试代码已加入，但本次未执行。旧的“首次复制 / Ratio、Mix 不联动”测试保留为历史资料，不作为本版验收规则。
++本环境已执行：
+ 
+-Historical PDFs and 1.2.7/1.2.8 delivery records are retained as history, not revised 1.2.11 manuals or proof of a new binary. See `docs/CURRENT_DOCUMENT_STATUS.md`.
++- `tests/true_peak_ceiling_target_source_audit.py`
++- `tests/strict_one_to_one_link_isolated_test.py`
++- `tests/limiter_mode_continuity_isolated_test.py --sanitize`
+ 
+-## English summary
++这些验证不等同于 Windows JUCE/VST3 实际音频运行。Windows 端的关键验收是 `QQSCCeilingCheck`：它用独立 16x meter 检查 Ceiling 不超限，并检查 Ceiling = 0 的持续过载输出是否落在 **−0.05～+0.005 dBTP** 区间。
++
++详见 `VERIFICATION_1.2.12.md` 和 `Verification/1.2.12/`。
+ 
+-1.2.11 is a source candidate based on the user-confirmed 1.2.8 Stable. Limiter entry now selects its own bank, including the first visit; configured saved banks are retained. Normal Makeup is ±30 dB, Limiter remains ±120 dB across all five domains, with bank-aware typing and display. Limiter LINK now includes Ratio and Mix in the complete fixed-level curve/Makeup/dry-wet reference. Coupled Dual/domain edits are reconciled after the entire group; existing Output offsets are preserved. UP-only edits may correctly produce zero compensation. Host automation replay and state/Undo restoration do not create fresh compensation. Single/Dual continuity from 1.2.8 is retained. This is not signal-dependent loudness matching. Output range/quantization limits still apply.
++## English summary
+ 
+-Saved physical Normal Makeup values outside ±30 dB are clamped, including A/B snapshots. Existing DAW-owned normalized automation may map differently after the range change. Verify a project copy before replacing the 1.2.8 plugin. No new Windows/macOS binary, installation, Plan B or publication is claimed.
++1.2.12 keeps the 1.2.11 strict 1:1 Limiter Link unchanged. TP OFF remains the existing sample-peak path. TP ON now treats the displayed Ceiling as the final true-peak upper target: the 8x main guard targets Ceiling directly, a separate 16x reconstruction analysis checks the downsampled result, and residual attenuation is triggered only by an actual overshoot. When needed, the residual target is Ceiling −0.01 dB. There is no fixed −0.10 dB reserve and no automatic normalization below Ceiling.
+ 
+-License unchanged: Qing Audio Non-Commercial Source-Share License 1.0. See `LICENSE`.
++License unchanged. See `LICENSE`.
+Only in /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target: RELEASE_NOTES_1.2.12.md
+diff -ru /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/Source/OutputCeiling.h /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/Source/OutputCeiling.h
+--- /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/Source/OutputCeiling.h	2026-09-28 05:52:00.000000000 +0000
++++ /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/Source/OutputCeiling.h	2026-09-28 07:20:08.407225150 +0000
+@@ -30,7 +30,7 @@
+         periodCoefficient=1.0-std::exp(-1.0/(rate*.030));
+     }
+     bool useConservativeTiming() const noexcept { return repeatedRemaining>0; }
+-    std::array<float,2> process(float l,float r,float ceiling,float detectedPeak=0,bool repeatedHint=false) noexcept
++    std::array<float,2> process(float l,float r,float ceiling,float detectedPeak=0,bool repeatedHint=false,float triggerCeiling=-1.0f) noexcept
+     {
+         const std::array<float,2> input {l,r};
+         double halfPeriod=.0005;
+@@ -58,7 +58,8 @@
+             if(energy[ch]>=largestEnergy*.0001)
+                 halfPeriod=juce::jmax(halfPeriod,periods[ch].estimate);
+         const double peak=juce::jmax(double(detectedPeak),juce::jmax(std::abs(double(l)),std::abs(double(r))));
+-        const double target=peak>ceiling ? double(ceiling)/peak : 1.0;
++        const double trigger=triggerCeiling>0.0f ? double(triggerCeiling) : double(ceiling);
++        const double target=peak>trigger ? double(ceiling)/peak : 1.0;
+         while(head!=tail && nodes[head].index<index-window) head=(head+1)%nodes.size();
+         while(head!=tail)
+         {
+@@ -148,7 +149,7 @@
+         auto measured=analysis.processSamplesUp(juce::dsp::AudioBlock<float>(impulse));
+         int maximum=0;for(int i=1;i<int(measured.getNumSamples());++i)
+             if(std::abs(measured.getSample(0,i))>std::abs(measured.getSample(0,maximum)))maximum=i;
+-        analysisDelay=juce::roundToInt(double(maximum)/8.0);analysis.reset();
++        analysisDelay=juce::roundToInt(double(maximum)/16.0);analysis.reset();
+         latency=2*look+filterLatency+analysisDelay;
+         native.prepare(rate,look);truePeak.prepare(rate*8,look*8);
+         post.prepare(rate,look);
+@@ -177,9 +178,9 @@
+         buffer.setSample(0,0,l);buffer.setSample(1,0,r);
+         auto block=juce::dsp::AudioBlock<float>(buffer);
+         auto up=oversampling.processSamplesUp(block);
+-        // Small reconstruction allowance; final validation uses a separate
+-        // 16x meter, not this processing interpolator or the GUI's 4x meter.
+-        const float tpCeiling=c*juce::Decibels::decibelsToGain(-0.02f);
++        // The main 8x guard targets the user's Ceiling directly. Any
++        // reconstruction overshoot is measured later and corrected precisely.
++        const float tpCeiling=c;
+         for(size_t i=0;i<up.getNumSamples();++i)
+         {
+             const auto limited=truePeak.process(up.getSample(0,int(i)),up.getSample(1,int(i)),tpCeiling);
+@@ -193,9 +194,14 @@
+         analysisAlignment[analysisIndex]={buffer.getSample(0,0),buffer.getSample(1,0)};
+         analysisIndex=(analysisIndex+1)%analysisAlignment.size();
+         const auto aligned=analysisAlignment[analysisIndex];
+-        // The residual TP correction also follows the main guard's modulation
+-        // decision: its tiny gain excursions alone may not trip the detector.
+-        const auto corrected=post.process(aligned[0],aligned[1],c*juce::Decibels::decibelsToGain(-0.10f),detected,truePeak.useConservativeTiming());
++        // Validate the reconstructed result at 16x. Do not reserve a fixed
++        // headroom window: only a measured overshoot above the user's Ceiling
++        // triggers correction. When correction is needed, land 0.01 dB below
++        // Ceiling to cover numerical/interpolation tolerance without wasting
++        // audible headroom. The modulation timing follows the main guard.
++        constexpr float residualSafetyDb=-0.01f;
++        const float residualTarget=c*juce::Decibels::decibelsToGain(residualSafetyDb);
++        const auto corrected=post.process(aligned[0],aligned[1],residualTarget,detected,truePeak.useConservativeTiming(),c);
+         const auto t=truePeakBlend.getNextValue(),a=active.getNextValue();
+         // OFF is an exact delayed copy, independent of hidden TP/Ceiling values.
+         if (a == 0.0f) return dry[dryIndex];
+@@ -208,7 +214,7 @@
+     }
+ private:
+     juce::dsp::Oversampling<float> oversampling {2,3,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,true};
+-    juce::dsp::Oversampling<float> analysis {2,3,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,false};
++    juce::dsp::Oversampling<float> analysis {2,4,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,false};
+     juce::AudioBuffer<float> buffer;
+     SmoothPeakCap native,truePeak,post;
+     std::vector<std::array<float,2>> peakAlignment,dry,analysisAlignment;
+Only in /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target: VERIFICATION_1.2.12.md
+Only in /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/Verification: 1.2.12
+diff -ru /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/tests/ceiling_check.cpp /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/tests/ceiling_check.cpp
+--- /mnt/data/qqsc1212_work/QQSC-1.2.11-Strict-1to1-Link/tests/ceiling_check.cpp	2026-09-28 05:52:01.000000000 +0000
++++ /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/tests/ceiling_check.cpp	2026-09-28 07:20:08.407452633 +0000
+@@ -46,6 +46,33 @@
+         std::cout<<"RESULT "<<cases<<" cases; worst sample="<<worstSP<<" TP16="<<worstTP<<" dBFS/dBTP at -1 ceiling; failures="<<failures<<".\n";
+         if(failures)throw std::runtime_error("Ceiling exceeded");
+         std::cout<<"PASS: independent peak and true-peak bounds.\n";
++
++        // Ceiling is the target upper bound, not a request for fixed hidden
++        // headroom. Under sustained overload, TP mode should use the available
++        // headroom closely while remaining below the 0 dBTP ceiling.
++        for(double rate:{44100.,48000.,96000.})
++        {
++            qqsc::OutputCeiling limiter;limiter.prepare(rate,true,true,0.f);
++            const int count=int(rate*1.5);
++            juce::AudioBuffer<float> audio(2,count);
++            for(int i=0;i<count;++i)
++            {
++                const double t=i/rate;
++                const float x=float(4.0*std::sin(juce::MathConstants<double>::twoPi*997.0*t+0.37));
++                const auto y=limiter.process(x,x);
++                audio.setSample(0,i,y[0]);audio.setSample(1,i,y[1]);
++            }
++            juce::dsp::Oversampling<float> meter(2,4,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,false);
++            meter.initProcessing(size_t(count));
++            const auto up=meter.processSamplesUp(juce::dsp::AudioBlock<float>(audio));
++            double tpPeak=0;
++            for(int ch=0;ch<2;++ch)for(int i=0;i<int(up.getNumSamples());++i)
++                tpPeak=std::max(tpPeak,std::abs(double(up.getSample(ch,i))));
++            const double tpDb=20*std::log10(std::max(tpPeak,1.e-30));
++            std::cout<<"TIGHT rate="<<rate<<" ceiling=0 TP16="<<tpDb<<" dBTP\n";
++            if(tpDb>.005 || tpDb<-.05)throw std::runtime_error("TP Ceiling does not approach 0 dBTP tightly");
++        }
++        std::cout<<"PASS: TP Ceiling=0 approaches 0 dBTP without the former fixed -0.10 dB reserve.\n";
+     }
+     catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<'\n';return 1;}
+ }
+Only in /mnt/data/qqsc1212_work/QQSC-1.2.12-TruePeak-Ceiling-Target/tests: true_peak_ceiling_target_source_audit.py

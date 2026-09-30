@@ -1,0 +1,7 @@
+PASS: headphone placement/three themes/ST-LR-MS, TP default and toggle, converted ceiling, project persistence and A/B independence.
+MATCH unity reference algo=0 linked=0 error=0.00820849 ready=1
+MATCH unity reference algo=0 linked=1 error=0.00820849 ready=1
+MATCH unity reference algo=1 linked=0 error=0.00820849 ready=1
+MATCH unity reference algo=1 linked=1 error=0.00820849 ready=1
+PASS: MATCH preserves manual Output offset after Ratio -> 1:1, Classic/Super and LINK on/off; only the measured Makeup correction contributes.
+PASS: Unity monitor checks complete.

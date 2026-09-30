@@ -1,0 +1,32 @@
+Changed Source files:
+  DynamicDisplay.cpp
+  DynamicDisplay.h
+  MeterState.h
+  OutputCeiling.h
+  PluginProcessor.cpp
+Unchanged Source files:
+  ABTransfer.h
+  BS1770LoudnessMatch.h
+  DarkMaterial.h
+  DarkPanelMaterial.h
+  DynamicsLimits.h
+  IntegratedLoudnessMeter.h
+  KWeightingFilter.h
+  KnobLight.h
+  LevelMeters.cpp
+  LevelMeters.h
+  LightKnobScale.h
+  LimiterEditor.cpp
+  LimiterMode.cpp
+  LimiterModeContinuity.h
+  Parameters.h
+  PluginEditor.cpp
+  PluginEditor.h
+  PluginProcessor.h
+  RefinedDarkKnob.h
+  StaticCompressionEngine.h
+  UTF8LookAndFeel.h
+  WarmKnobAsset.h
+  WarmMaterial.h
+Expected changed set: ['DynamicDisplay.cpp', 'DynamicDisplay.h', 'MeterState.h', 'OutputCeiling.h', 'PluginProcessor.cpp']
+PASS

@@ -1,0 +1,33 @@
+FAST_IDLE limiter=0 look=0 core=0 ceiling=0 fast_blocks=3037 max_delta=0
+FAST_IDLE limiter=0 look=26 core=0 ceiling=0 fast_blocks=3037 max_delta=0
+FAST_IDLE limiter=0 look=0 core=2 ceiling=0 fast_blocks=3037 max_delta=0
+FAST_IDLE limiter=1 look=0 core=0 ceiling=3 fast_blocks=2435 max_delta=0
+FAST_IDLE limiter=1 look=26 core=0 ceiling=2 fast_blocks=2425 max_delta=1.49012e-08
+FAST_IDLE limiter=1 look=0 core=2 ceiling=3 fast_blocks=2435 max_delta=1.49012e-08
+FAST_IDLE limiter=1 look=0 core=2 ceiling=2 fast_blocks=2440 max_delta=1.49012e-08
+PASS full idle: Normal native/OS, Limiter shared/separate Ceiling, fixed stopped clock, FULL history/holds, unused/selected SC, tiny input, edits, bypass, Unity, playback and offline wake.
+IDLE_PROFILE config,instances,eco,legacy_partial,us_per_chain,one_core_percent
+Normal1x,1,0,1,104.774,1.96451
+Normal1x,1,0,0,5.56992,0.104436
+Normal1x,1,1,1,70.2074,1.31639
+Normal1x,1,1,0,4.77695,0.0895679
+Normal1x,10,0,1,1081.67,20.2813
+Normal1x,10,0,0,55.2238,1.03545
+Normal1x,10,1,1,712.311,13.3558
+Normal1x,10,1,0,53.5604,1.00426
+Normal26,1,0,1,106.556,1.99792
+Normal26,1,0,0,6.90078,0.12939
+Normal26,1,1,1,74.535,1.39753
+Normal26,1,1,0,5.09199,0.0954749
+Normal26,10,0,1,1077.08,20.1952
+Normal26,10,0,0,54.7066,1.02575
+Normal26,10,1,1,701.267,13.1488
+Normal26,10,1,0,50.6459,0.949611
+Limiter16x,1,0,1,137.132,2.57123
+Limiter16x,1,0,0,8.3832,0.157185
+Limiter16x,1,1,1,95.7217,1.79478
+Limiter16x,1,1,0,6.62754,0.124266
+Limiter16x,10,0,1,1399.91,26.2483
+Limiter16x,10,0,0,81.7578,1.53296
+Limiter16x,10,1,1,970.486,18.1966
+Limiter16x,10,1,0,73.5094,1.3783

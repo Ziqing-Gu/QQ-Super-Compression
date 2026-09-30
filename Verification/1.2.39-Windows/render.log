@@ -1,0 +1,14 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.33
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSCReviewCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSCReviewCheck_rc_lib.dir\Release\QQSCReviewCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  review_fixes_check.cpp
+  正在生成代码
+  已完成代码的生成
+  QQSCReviewCheck.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSCReviewCheck_artefacts\Release\QQSCReviewCheck.exe

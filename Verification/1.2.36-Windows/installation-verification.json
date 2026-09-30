@@ -1,0 +1,10 @@
+{
+  "version": "1.2.36",
+  "status": "installed_hash_verified_host_test_pending",
+  "installed": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+  "source_output": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.36-Windows\\QQ Super Compression.vst3",
+  "installed_sha256": "4502CC98F5A70E90A1F46334E109E0B3A56AE18F1745DCE6C2D8E15A848D08C6",
+  "old_version_backup": "D:\\Codex\\Archives\\QQSC-1.2.35-installed-before-1.2.36-20261001-002108\\QQ Super Compression.vst3",
+  "old_binary_sha256": "015897A5705922553DCA9455C876DDFD6DD735F9B3DD147DB2D07D68A814729A",
+  "host_check": "no matching host processes or observed loaded plugin module immediately before installation"
+}

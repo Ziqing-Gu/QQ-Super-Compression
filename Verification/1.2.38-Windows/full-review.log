@@ -1,0 +1,50 @@
+ECO_PARITY core=0 ceiling=0 limiter=0 look=0 max_delta=0
+ECO_PARITY core=3 ceiling=0 limiter=0 look=0 max_delta=0
+ECO_PARITY core=1 ceiling=0 limiter=0 look=0 max_delta=0
+ECO_PARITY core=2 ceiling=0 limiter=0 look=0 max_delta=0
+ECO_PARITY core=2 ceiling=2 limiter=1 look=0 max_delta=0
+ECO_PARITY core=3 ceiling=3 limiter=1 look=0 max_delta=0
+ECO_PARITY core=1 ceiling=2 limiter=1 look=0 max_delta=0
+ECO_PARITY core=2 ceiling=3 limiter=1 look=0 max_delta=0
+ECO_PARITY core=0 ceiling=2 limiter=1 look=26 max_delta=0
+ECO_PARITY core=0 ceiling=0 limiter=0 look=52 max_delta=0
+PASS detector reference; ECO mono/stereo, internal/external SC, dual/single, algorithm smoothing, 140 mode transitions, UI, A/B, offline, PDC; max_delta=0
+PASS 1.2.36 old state + both A/B banks, new 4-choice roundtrip, missing defaults, old discrete automation points
+PASS 1.2.36 all 16 Core/Ceiling combinations, variable blocks, shared 4x, fixed-quality Hard/TP PDC
+PASS 1.2.36 actual Core/Hard/TP button cycles and 4x label
+OS1236 PROFILE limiter=0 factor=4 us_per_block=521.956
+OS1236 PROFILE limiter=0 factor=8 us_per_block=864.52
+OS1236 PROFILE limiter=0 factor=16 us_per_block=1762.36
+OS1236 PROFILE limiter=1 factor=4 us_per_block=1087.58
+OS1236 PROFILE limiter=1 factor=8 us_per_block=1402.65
+OS1236 PROFILE limiter=1 factor=16 us_per_block=2504.47
+SILENCE rate=48000 core=2 ceiling=2 recovery=0 first_sleep_s=0.9965 max_delta=0
+SILENCE rate=48000 core=2 ceiling=2 recovery=2 first_sleep_s=4.06571 max_delta=0
+SILENCE rate=48000 core=1 ceiling=2 recovery=1 first_sleep_s=1.67827 max_delta=0
+SILENCE rate=44100 core=0 ceiling=1 recovery=2 first_sleep_s=4.10671 max_delta=0
+SILENCE rate=96000 core=2 ceiling=1 recovery=1 first_sleep_s=1.70531 max_delta=0
+SILENCE rate=48000 core=2 ceiling=0 recovery=1 first_sleep_s=0.9965 max_delta=0
+SILENCE rate=48000 core=0 ceiling=0 recovery=1 first_sleep_s=0.9965 max_delta=0
+SILENCE rate=48000 core=0 ceiling=3 recovery=0 first_sleep_s=0.9965 max_delta=0
+SILENCE rate=44100 core=2 ceiling=3 recovery=2 first_sleep_s=4.07728 max_delta=0
+SILENCE rate=48000 core=3 ceiling=3 recovery=1 first_sleep_s=1.67827 max_delta=0
+SILENCE rate=96000 core=3 ceiling=0 recovery=1 first_sleep_s=0.980521 max_delta=0
+PASS stopped silence: drain/recovery, wake audio, tiny input, sidechain, automation, transport, FULL history, mono/stereo, variable blocks and PDC; max delta=0
+FAST_IDLE limiter=0 look=0 core=0 ceiling=0 fast_blocks=3037 max_delta=0
+FAST_IDLE limiter=0 look=26 core=0 ceiling=0 fast_blocks=3037 max_delta=0
+FAST_IDLE limiter=0 look=0 core=2 ceiling=0 fast_blocks=3037 max_delta=0
+FAST_IDLE limiter=1 look=0 core=0 ceiling=3 fast_blocks=2435 max_delta=0
+FAST_IDLE limiter=1 look=26 core=0 ceiling=2 fast_blocks=2425 max_delta=1.49012e-08
+FAST_IDLE limiter=1 look=0 core=2 ceiling=3 fast_blocks=2435 max_delta=1.49012e-08
+FAST_IDLE limiter=1 look=0 core=2 ceiling=2 fast_blocks=2440 max_delta=1.49012e-08
+PASS full idle: Normal native/OS, Limiter shared/separate Ceiling, fixed stopped clock, FULL history/holds, unused/selected SC, tiny input, edits, bypass, Unity, playback and offline wake.
+PASS ten-instance FULL/ECO isolation, live meters/MATCH, project and legacy state, A/B independence, editor controls/reopen, exact audio/PDC parity
+PASS hidden retained display blocks and cancels replay
+PASS A/B recall, hidden Normal settings, append-only AU ordering
+PASS shared pre-Ceiling sample-grid/phase peak telemetry
+MONO MS OS=8 filtered-reference gain=1.99986 expected=1.99986 ideal-sine gain=1.99807
+MONO MS OS=16 filtered-reference gain=1.99986 expected=1.99986 ideal-sine gain=1.99041
+PASS actual mono MS 8x/16x gain
+PASS block partition/rate/shared+fallback/ECO audio, max delta=0
+PASS stale editor settings reload (isolated settings file)
+PASS all review regression checks

@@ -1,0 +1,2 @@
+PERFORMANCE-ARCHITECTURE normal26=1248 ceiling8=393 ceiling16=395 shared8=393 shared16=395 ecoDelta=0
+PASS: 1.2.34 Ceiling OS 1x/8x/16x, TP promotion/fixed-PDC and matched 0 ms Core/Ceiling sharing are coherent.

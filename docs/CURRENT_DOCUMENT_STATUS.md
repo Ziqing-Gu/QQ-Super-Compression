@@ -1,16 +1,12 @@
-# 1.2.8 document status
+# 当前文档状态 / Current document status: 1.2.41 Stable
 
-The 1.2.7 bilingual manuals and earlier build documentation below are preserved history. They describe the established Limiter feature set but do not include the 1.2.8 Single / Dual threshold-continuity fix. Use the root README, RELEASE_NOTES_1.2.8.md, VERIFICATION_1.2.8.md and BUILD_WINDOWS.ps1 for the current change. Windows Plan A build, automated validation and installation are recorded in PLAN_A_WINDOWS_1.2.8.json. DAW listening remains user validation.
+用户已确认 1.2.41 中英文说明书，两本均为 41 页。第 40-41 页说明 ECO 按宿主停播状态停止处理、FULL 保留实时监听、录音/离线渲染保持处理，以及无插件主输出启停 Crossfade。中文版统一采用“阈值”翻译 Threshold。
 
----
+The user approved both 1.2.41 manuals (41 pages each). Pages 40-41 describe ECO transport-stop suspension, FULL live monitoring, active recording/offline rendering, and the absence of a new main-output Stop/Start crossfade.
 
-# Documentation status for the 2026-09-28 Plan B checkpoint
+- Chinese: manuals/QQ-Super-Compression-1.2.41-User-Manual-Chinese.pdf
+- English: manuals/QQ-Super-Compression-1.2.41-User-Manual-English.pdf
+- Reproducible builders and capture assets: manuals/source-1.2.41/
+- Installation guides: QQ-Super-Compression-1.2.41-INSTALL-CN.txt and QQ-Super-Compression-1.2.41-INSTALL-EN.txt
 
-The complete `docs/` tree was preserved from:
-`D:\Codex\Workspaces\QQSuperCompression-1.2.7-PlanCD\docs`.
-
-It includes the previously completed 35-page Chinese and English 1.2.7 manuals, source scripts, translations, screenshots, retained 1.2.6 reference documents and earlier history. Existing PDFs and source documents were copied unchanged. Historical statements such as "Stable" or "release" inside those documents describe their earlier checkpoint.
-
-The manuals have not been revised for the subsequent Ratio limits, independently remembered Normal/Limiter banks, LUFS-I meter, strict Limiter Output linkage, independent Up/Down algorithms, new button positions or 1.2.8 continuity fix. They must not be described as manuals fully matching 1.2.8. Current implementation and verification are described in the root README and VERIFICATION_1.2.8.md.
-
-This Plan B task preserves the document work; it does not generate or release revised manuals.
+The 1.2.36 manuals and builders are retained as historical files. The 1.2.36 Stable promotion was withdrawn. Current Windows validation is in ../Verification/1.2.41-Windows; no Cubase 1.2.41 listening or ASIO-Guard measurement is claimed by that automated report.

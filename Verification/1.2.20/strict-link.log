@@ -1,0 +1,4 @@
+PASS: source whitelist is Makeup + DOWN Threshold only; Ratio/Mix/algorithm excluded.
+PASS: 100000 source->Output and 100000 Output->Threshold randomized strict 1:1 clamp cases.
+PASS: explicit -6 dB Threshold => +6 dB Output, +5 dB Makeup => -5 dB Output, +5 dB Output => -5 dB Threshold.
+LIMITATION: this is a source/relationship isolation test; BUILD_WINDOWS revision1211 is the real JUCE editor/APVTS integration test.

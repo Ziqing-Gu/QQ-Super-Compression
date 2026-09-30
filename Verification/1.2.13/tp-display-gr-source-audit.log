@@ -1,0 +1,4 @@
+PASS: TP/Sample-Peak OutputCeiling attenuation is exported to Dynamic Display only.
+PASS: 100000 signed compressor + positive ceiling-GR composition cases.
+PASS: audible OutputCeiling equations and 0.01 dB residual target remain present.
+LIMITATION: source/math audit only; Windows QQSCCeilingCheck + Cubase visual playback are required.

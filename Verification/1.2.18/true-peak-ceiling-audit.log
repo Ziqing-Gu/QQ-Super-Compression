@@ -1,0 +1,4 @@
+PASS: TP main guard targets user Ceiling; fixed -0.02/-0.10 reserves removed.
+PASS: final reconstruction analysis is 16x and residual correction triggers only above Ceiling.
+PASS: 100000 residual overshoot cases land exactly 0.01 dB below Ceiling; non-overshoots are untouched.
+LIMITATION: source/math audit only; BUILD_WINDOWS QQSCCeilingCheck is the actual JUCE/DSP acceptance gate.

@@ -72,6 +72,7 @@ AudioResult render (QQSuperCompressionAudioProcessor& p, float amplitude, int bl
             result.right.push_back (audio.getSample (1, i));
         }
     }
+    p.refreshMatchResults(); // Simulate the message-thread analysis timer after offline rendering.
     result.latency = p.getLatencySamples();
     result.meter = p.getMeterState().gainReductionDb0.load();
     p.releaseResources();

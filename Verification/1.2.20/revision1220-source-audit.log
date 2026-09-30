@@ -1,0 +1,4 @@
+PASS: StaticCompressionEngine is byte-identical to the 1.2.18 input baseline.
+PASS: 100000 Classic/Super finite-threshold + Mix projections stay on/above the TP-OFF visual threshold.
+PASS: blue is current Dynamics/Mix plus current TP only; captured Output and blue/orange-identity projection are absent.
+PASS: Limiter toggle preserves evidence and Lookahead changes request retrospective detector replay.

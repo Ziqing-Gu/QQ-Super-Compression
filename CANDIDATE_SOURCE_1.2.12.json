@@ -1,0 +1,18 @@
+{
+  "version": "1.2.12",
+  "base": "1.2.11 strict 1:1 Link source",
+  "status": "Build Fix 1 source candidate; prior Windows run built the 1.2.12 VST3 but QQSCLimiterCheck failed to compile due to a test-only parameter-ID typo; full Windows tests must be rerun; not installed; Plan B not executed",
+  "core_change": "TP ON Ceiling is final true-peak target: 8x main guard at Ceiling, 16x reconstruction detector, residual correction only on overshoot, landing tolerance -0.01 dB",
+  "preserved": "TP OFF and 1.2.11 strict 1:1 Link behavior",
+  "source_manifest_sha256": "7A0702C46E32A0B3570EF1BE34DDA04E6CB6B64F9F7E87013CC238D8C3DECCF5",
+  "key_files": {
+    "Source/OutputCeiling.h": "8B32924B197B6E5A0ED80530DA85A09F66E9EB07F25DC169E79A27F31F8BF26B",
+    "CMakeLists.txt": "99B159FE3436211717F986DC660BFF6FAF58976C3A1942E6EEBA00724F6673FB",
+    "BUILD_WINDOWS.ps1": "6C051EEC05BF5E8D5C9D9DC2A4B7A67A329534D8859F9CB1A53E5C999B7F2E86",
+    "tests/ceiling_check.cpp": "E2F0F6E7413BE05E31FBEAB176DAD2B40125254C33ADFEA0A7197CA7122044EC",
+    "tests/true_peak_ceiling_target_source_audit.py": "8FE8E149394A1ACF75894F6603EFEAC0CB697B69CD08EDE8546DCD8FC691306A",
+    "VERIFICATION_1.2.12.md": "6D3FC92C1FFE22B2764E9C208EEA40649306691E61D97320684A692BE0595314",
+    "tests/strict_one_to_one_link_checks.inc": "92D1C66917A9D955A638AE4D405B25C07D188D1120D363E8D858A61732B8A75C"
+  },
+  "build_fix_1": "tests/strict_one_to_one_link_checks.inc now uses qqsc::params::limiterModeIds[21 + d] for Limiter DOWN Enable; no Source/ product file changed"
+}

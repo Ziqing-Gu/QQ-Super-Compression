@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.2.8 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.2.41 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -120,6 +120,7 @@ target_sources(QQSuperCompression PRIVATE
     Source/ABTransfer.h
     Source/StaticCompressionEngine.h
     Source/MeterState.h
+    Source/ExactEnergyIndex.h
     Source/BS1770LoudnessMatch.h
     Source/KWeightingFilter.h
     Source/IntegratedLoudnessMeter.h
@@ -199,3 +200,31 @@ if(QQSC_BUILD_DYNAMICS_CHECK)
     endif()
 endif()
 
+
+if(QQSC_BUILD_DYNAMICS_CHECK)
+    juce_add_console_app(QQSCReviewCheck PRODUCT_NAME "QQSC Review Check")
+    target_sources(QQSCReviewCheck PRIVATE tests/review_fixes_check.cpp)
+    target_include_directories(QQSCReviewCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_link_libraries(QQSCReviewCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCReviewCheck PRIVATE /utf-8)
+    endif()
+endif()
+
+if(QQSC_BUILD_DYNAMICS_CHECK)
+    find_package(Threads REQUIRED)
+    add_executable(QQSCMatchIndexCheck tests/match_index_check.cpp)
+    target_link_libraries(QQSCMatchIndexCheck PRIVATE Threads::Threads)
+    target_include_directories(QQSCMatchIndexCheck PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
+
+if(QQSC_BUILD_DYNAMICS_CHECK)
+    juce_add_console_app(QQSCSilenceVSTCheck PRODUCT_NAME QQSCSilenceVSTCheck)
+    target_sources(QQSCSilenceVSTCheck PRIVATE tests/silence_vst_check.cpp)
+    target_include_directories(QQSCSilenceVSTCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_compile_definitions(QQSCSilenceVSTCheck PRIVATE JUCE_PLUGINHOST_VST3=1)
+    target_link_libraries(QQSCSilenceVSTCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCSilenceVSTCheck PRIVATE /utf-8)
+    endif()
+endif()

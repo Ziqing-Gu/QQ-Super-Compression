@@ -31,10 +31,25 @@ struct MeterState
     std::atomic<float> displayDetectorDb0 { -120.0f };
     std::atomic<float> displayDetectorDb1 { -120.0f };
 
-    // Product-facing GR includes Mix (Makeup and Output Gain remain excluded).
-    // Signed: positive = downward reduction, negative = upward boost.
+    // Product-facing GAIN +/- meter: compressor GR after Mix plus the actual
+    // stereo-linked OutputCeiling attenuation. Makeup and Output Gain remain
+    // excluded. Signed: positive = net reduction, negative = net boost.
+    // Therefore TP/Sample-Peak limiting is visible here as well as in Display.
     std::atomic<float> gainReductionDb0 { 0.0f };
     std::atomic<float> gainReductionDb1 { 0.0f };
+
+    // Dynamic Display capture: extra time-dependent attenuation applied by the
+    // final stereo-linked OutputCeiling. Display keeps this as a separate history
+    // component because its compressor curve is reprojected from detector history;
+    // the dedicated GAIN +/- meter above receives the same attenuation directly.
+    std::atomic<float> displayCeilingGainReductionDb { 0.0f };
+
+    // Maximum pre-Ceiling inter-sample excess observed since DynamicDisplay's
+    // last 60 Hz capture. Unlike displayCeilingGainReductionDb this is a shape
+    // descriptor, not a captured processing result. DynamicDisplay consumes it
+    // and re-applies the CURRENT TP/Ceiling/processing parameters to the whole
+    // visible history, preserving the product's retrospective projection model.
+    std::atomic<float> displayTruePeakExcessDb { 0.0f };
 
     // Recent Gain Reduction peak hold. The processor captures every audio block
     // so short peaks cannot be missed by the slower GUI timer. A new larger absolute GR

@@ -1,0 +1,532 @@
+--- /mnt/data/qqsc_work/QQSuperCompression-1.2.9-Independent-Banks-Full-Link/CMakeLists.txt	2026-09-28 05:52:00.782971353 +0000
++++ /mnt/data/qqsc_work/QQSC-1.2.11-Strict-1to1-Link/CMakeLists.txt	2026-09-28 06:51:40.628796487 +0000
+@@ -1,6 +1,6 @@
+ cmake_minimum_required(VERSION 3.22)
+ 
+-project(QQSuperCompression VERSION 1.2.9 LANGUAGES C CXX)
++project(QQSuperCompression VERSION 1.2.11 LANGUAGES C CXX)
+ 
+ set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+--- /mnt/data/qqsc_work/QQSuperCompression-1.2.9-Independent-Banks-Full-Link/BUILD_WINDOWS.ps1	2026-09-28 05:52:00.782868588 +0000
++++ /mnt/data/qqsc_work/QQSC-1.2.11-Strict-1to1-Link/BUILD_WINDOWS.ps1	2026-09-28 06:51:40.631173298 +0000
+@@ -1,85 +1,85 @@
+-[CmdletBinding()]
+-param(
+-    [string]$JucePath = '',
+-    [string]$BuildDirectory = '',
+-    [switch]$SkipTests
+-)
+-$ErrorActionPreference = 'Stop'
+-$source = $PSScriptRoot
+-
+-function Invoke-Checked {
+-    param([string]$Program, [string[]]$Arguments)
+-    & $Program @Arguments
+-    if ($LASTEXITCODE -ne 0) { throw "$Program failed with exit code $LASTEXITCODE" }
+-}
+-
+-try {
+-    if ([Environment]::OSVersion.Platform -ne 'Win32NT') { throw 'This script requires Windows.' }
+-    $projectText = Get-Content -LiteralPath (Join-Path $source 'CMakeLists.txt') -Raw
+-    if ($projectText -notmatch 'project\(QQSuperCompression VERSION 1\.2\.9\s') {
+-        throw 'This build helper is for the 1.2.9 source candidate only.'
+-    }
+-    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+-    if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio 2022 C++ Build Tools (and Windows SDK) are required.' }
+-    $vs = (& $vswhere -latest -version '[17.0,18.0)' -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
+-    if ([string]::IsNullOrWhiteSpace($vs)) { throw 'Visual Studio 2022 with x64 C++ tools was not found.' }
+-    $cmake = Join-Path $vs 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
+-    if (-not (Test-Path -LiteralPath $cmake)) {
+-        $command = Get-Command cmake.exe -ErrorAction SilentlyContinue
+-        if ($null -eq $command) { throw 'CMake 3.22 or newer is required.' }
+-        $cmake = $command.Source
+-    }
+-    if ([string]::IsNullOrWhiteSpace($JucePath)) {
+-        $candidates = @(
+-            $env:JUCE_PATH,
+-            (Join-Path $source 'Dependencies\JUCE-8.0.15'),
+-            'D:\Codex\Temp\JUCE-8.0.15-src\JUCE-8.0.15'
+-        )
+-        foreach ($candidate in $candidates) {
+-            if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath (Join-Path $candidate 'modules\juce_core\juce_core.h'))) {
+-                $JucePath = $candidate; break
+-            }
+-        }
+-    }
+-    if ([string]::IsNullOrWhiteSpace($JucePath) -or -not (Test-Path -LiteralPath (Join-Path $JucePath 'CMakeLists.txt'))) {
+-        throw 'JUCE source is not bundled. Supply the JUCE 8.0.15 checkout used for 1.2.8 Stable: BUILD_WINDOWS.ps1 -JucePath "D:\path\to\JUCE-8.0.15"'
+-    }
+-    $JucePath = (Resolve-Path -LiteralPath $JucePath).Path
+-    if ([string]::IsNullOrWhiteSpace($BuildDirectory)) { $BuildDirectory = Join-Path $source 'build-1.2.9-windows' }
+-    $BuildDirectory = [IO.Path]::GetFullPath($BuildDirectory)
+-    Write-Host "Source: $source"
+-    Write-Host "JUCE:   $JucePath"
+-    Write-Host "Build:  $BuildDirectory"
+-    Write-Host 'No plugin will be installed or published by this script.'
+-    Invoke-Checked -Program $cmake -Arguments @('-S', $source, '-B', $BuildDirectory, '-G', 'Visual Studio 17 2022', '-A', 'x64', "-DJUCE_PATH=$JucePath", '-DQQSC_FETCH_JUCE=OFF', '-DQQSC_BUILD_DYNAMICS_CHECK=ON')
+-    $targets = @('QQSuperCompression_VST3')
+-    if (-not $SkipTests) { $targets += 'QQSCLimiterCheck' }
+-    $buildArgs = @('--build', $BuildDirectory, '--config', 'Release', '--target') + $targets + @('--parallel', '4')
+-    Invoke-Checked -Program $cmake -Arguments $buildArgs
+-    $testStatus = 'not run (-SkipTests)'
+-    if (-not $SkipTests) {
+-        $testExe = Join-Path $BuildDirectory 'QQSCLimiterCheck_artefacts\Release\QQSCLimiterCheck.exe'
+-        foreach ($profile in @('revision129', 'continuity', 'dual')) {
+-            $testOutput = Join-Path $BuildDirectory ("verification\" + $profile)
+-            Invoke-Checked -Program $testExe -Arguments @($testOutput, $profile)
+-        }
+-        $testStatus = 'QQSCLimiterCheck revision129, continuity and dual passed'
+-    }
+-    $bundle = Join-Path $BuildDirectory 'QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3'
+-    $dll = Join-Path $bundle 'Contents\x86_64-win\QQ Super Compression.vst3'
+-    if (-not (Test-Path -LiteralPath $dll)) { throw 'Build returned without the expected Windows VST3 binary.' }
+-    $record = [ordered]@{
+-        version = '1.2.9'; status = 'built locally; not installed by this script'
+-        source = $source; juce = $JucePath; binary = $dll; tests = $testStatus
+-        timestamp = (Get-Date).ToString('o'); sha256 = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
+-    }
+-    $record | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $BuildDirectory 'WINDOWS_BUILD_RESULT_1.2.9.json') -Encoding UTF8
+-    Write-Host "Build ready: $bundle"
+-    Write-Host "Tests: $testStatus"
+-    Write-Host 'Close Cubase and other plugin hosts before manually replacing an installed VST3. Keep the verified 1.2.8 Stable binary for rollback.'
+-    exit 0
+-}
+-catch {
+-    Write-Error $_ -ErrorAction Continue
+-    exit 1
+-}
++[CmdletBinding()]
++param(
++    [string]$JucePath = '',
++    [string]$BuildDirectory = '',
++    [switch]$SkipTests
++)
++$ErrorActionPreference = 'Stop'
++$source = $PSScriptRoot
++
++function Invoke-Checked {
++    param([string]$Program, [string[]]$Arguments)
++    & $Program @Arguments
++    if ($LASTEXITCODE -ne 0) { throw "$Program failed with exit code $LASTEXITCODE" }
++}
++
++try {
++    if ([Environment]::OSVersion.Platform -ne 'Win32NT') { throw 'This script requires Windows.' }
++    $projectText = Get-Content -LiteralPath (Join-Path $source 'CMakeLists.txt') -Raw
++    if ($projectText -notmatch 'project\(QQSuperCompression VERSION 1\.2\.11\s') {
++        throw 'This build helper is for the 1.2.11 source candidate only.'
++    }
++    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
++    if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio 2022 C++ Build Tools (and Windows SDK) are required.' }
++    $vs = (& $vswhere -latest -version '[17.0,18.0)' -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
++    if ([string]::IsNullOrWhiteSpace($vs)) { throw 'Visual Studio 2022 with x64 C++ tools was not found.' }
++    $cmake = Join-Path $vs 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
++    if (-not (Test-Path -LiteralPath $cmake)) {
++        $command = Get-Command cmake.exe -ErrorAction SilentlyContinue
++        if ($null -eq $command) { throw 'CMake 3.22 or newer is required.' }
++        $cmake = $command.Source
++    }
++    if ([string]::IsNullOrWhiteSpace($JucePath)) {
++        $candidates = @(
++            $env:JUCE_PATH,
++            (Join-Path $source 'Dependencies\JUCE-8.0.15'),
++            'D:\Codex\Temp\JUCE-8.0.15-src\JUCE-8.0.15'
++        )
++        foreach ($candidate in $candidates) {
++            if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath (Join-Path $candidate 'modules\juce_core\juce_core.h'))) {
++                $JucePath = $candidate; break
++            }
++        }
++    }
++    if ([string]::IsNullOrWhiteSpace($JucePath) -or -not (Test-Path -LiteralPath (Join-Path $JucePath 'CMakeLists.txt'))) {
++        throw 'JUCE source is not bundled. Supply the JUCE 8.0.15 checkout used for 1.2.8 Stable: BUILD_WINDOWS.ps1 -JucePath "D:\path\to\JUCE-8.0.15"'
++    }
++    $JucePath = (Resolve-Path -LiteralPath $JucePath).Path
++    if ([string]::IsNullOrWhiteSpace($BuildDirectory)) { $BuildDirectory = 'D:\Codex\Temp\QQSC1211-Build' }
++    $BuildDirectory = [IO.Path]::GetFullPath($BuildDirectory)
++    Write-Host "Source: $source"
++    Write-Host "JUCE:   $JucePath"
++    Write-Host "Build:  $BuildDirectory"
++    Write-Host 'No plugin will be installed or published by this script.'
++    Invoke-Checked -Program $cmake -Arguments @('-S', $source, '-B', $BuildDirectory, '-G', 'Visual Studio 17 2022', '-A', 'x64', "-DJUCE_PATH=$JucePath", '-DQQSC_FETCH_JUCE=OFF', '-DQQSC_BUILD_DYNAMICS_CHECK=ON')
++    $targets = @('QQSuperCompression_VST3')
++    if (-not $SkipTests) { $targets += 'QQSCLimiterCheck' }
++    $buildArgs = @('--build', $BuildDirectory, '--config', 'Release', '--target') + $targets + @('--parallel', '4')
++    Invoke-Checked -Program $cmake -Arguments $buildArgs
++    $testStatus = 'not run (-SkipTests)'
++    if (-not $SkipTests) {
++        $testExe = Join-Path $BuildDirectory 'QQSCLimiterCheck_artefacts\Release\QQSCLimiterCheck.exe'
++        foreach ($profile in @('revision1211', 'continuity', 'dual')) {
++            $testOutput = Join-Path $BuildDirectory ("verification\" + $profile)
++            Invoke-Checked -Program $testExe -Arguments @($testOutput, $profile)
++        }
++        $testStatus = 'QQSCLimiterCheck revision1211, continuity and dual passed'
++    }
++    $bundle = Join-Path $BuildDirectory 'QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3'
++    $dll = Join-Path $bundle 'Contents\x86_64-win\QQ Super Compression.vst3'
++    if (-not (Test-Path -LiteralPath $dll)) { throw 'Build returned without the expected Windows VST3 binary.' }
++    $record = [ordered]@{
++        version = '1.2.11'; status = 'built locally; not installed by this script'
++        source = $source; juce = $JucePath; binary = $dll; tests = $testStatus
++        timestamp = (Get-Date).ToString('o'); sha256 = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
++    }
++    $record | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $BuildDirectory 'WINDOWS_BUILD_RESULT_1.2.11.json') -Encoding UTF8
++    Write-Host "Build ready: $bundle"
++    Write-Host "Tests: $testStatus"
++    Write-Host 'Close Cubase and other plugin hosts before manually replacing an installed VST3. Keep the verified 1.2.9 binary/source backup for rollback.'
++    exit 0
++}
++catch {
++    Write-Error $_ -ErrorAction Continue
++    exit 1
++}
+--- /mnt/data/qqsc_work/QQSuperCompression-1.2.9-Independent-Banks-Full-Link/Source/PluginEditor.h	2026-09-28 05:52:00.785098137 +0000
++++ /mnt/data/qqsc_work/QQSC-1.2.11-Strict-1to1-Link/Source/PluginEditor.h	2026-09-28 06:51:40.628995297 +0000
+@@ -359,17 +359,18 @@
+     int attachedLimiter=-1;
+     std::array<float,5> limiterStartThresholds {};
+     float limiterStartOutput=0;
++    // For the Limiter 1:1 link these are the edited source dB anchor and Output anchor.
+     float limiterLinkReference=0, limiterLinkOutput=0;
+     bool limiterLinkAnchorValid=false;
+-    void linkLimiterReferenceControl(FineKnob& slider);
++    void linkLimiterReferenceControl(FineKnob& slider); // Makeup only: strict opposite dB delta to Output
+     FineKnob* limiterReferenceGestureSource = nullptr;
+     bool limiterReferenceEditInProgress = false;
+-    void captureLimiterLinkAnchor();
++    void captureLimiterLinkAnchor(FineKnob& source);
+     double ceilingDragValue=0.0;
+     std::function<double(const juce::String&)> limiterOutputText;
+     void initialiseLimiterControls();
+     void updateLimiterUi();
+-    void reconcileLimiterOutput();
++    void reconcileLimiterOutput(FineKnob& source);
+     void beginLimiterOutputGesture();
+     double applyLimiterOutputChange (double requested);
+     void refreshCeilingValue();
+--- /mnt/data/qqsc_work/QQSuperCompression-1.2.9-Independent-Banks-Full-Link/Source/LimiterEditor.cpp	2026-09-28 05:52:00.784365643 +0000
++++ /mnt/data/qqsc_work/QQSC-1.2.11-Strict-1to1-Link/Source/LimiterEditor.cpp	2026-09-28 06:51:40.629466346 +0000
+@@ -35,13 +35,13 @@
+     unityMonitorButton.setTitle("1:1 Monitor");
+     unityMonitorButton.getProperties().set("qqscSmallLink",true);
+     unityMonitorButton.getProperties().set("qqscHeadphones",true);
+-    unityMonitorButton.setTooltip("1:1 Monitor: cancel Output Gain after the complete limiter and Ceiling. Threshold/Ratio/Makeup/Mix links remain active. Use MATCH, then Bypass for a loudness comparison. Saved with this project, independent of A/B.");
++    unityMonitorButton.setTooltip("1:1 Monitor: cancel Output Gain after the complete limiter and Ceiling. DOWN Threshold / Makeup 1:1 links remain active. Use MATCH, then Bypass for a loudness comparison. Saved with this project, independent of A/B.");
+     unityMonitorButton.onClick=[this]
+     {
+         processor.setUnityMonitorEnabled(!processor.isUnityMonitorEnabled());
+         updateLimiterUi();
+     };
+-    limiterLinkButton.setTooltip ("Link DOWN Threshold, Ratio, Makeup and Mix to Output using the complete fixed-level reference. UP Ratio may require zero compensation. Input, UP gate, algorithm, mode and branch switches do not adjust Output. GUI edits record companion lanes; replay/automate all recorded lanes. Not LUFS matching.");
++    limiterLinkButton.setTooltip ("Strict 1:1 dB Link: DOWN Threshold and Makeup move Output Gain by the same dB amount in the opposite direction; editing Output moves the active DOWN Threshold oppositely 1:1. Ratio, Mix, Input, algorithms, UP gate, mode and branch switches never adjust Output.");
+     limiterButton.onClick = [this]
+     {
+         finishCompressionControlGestures(); beginUndoTransaction ("Limiter Mode");
+@@ -55,7 +55,7 @@
+         finishCompressionControlGestures(); beginUndoTransaction ("Limiter Output Link");
+         setChoiceParameter (qqsc::params::limiterLink,processor.isLimiterLinked() ? 0 : 1);
+         // Enabling LINK preserves the current pair, including saved/manual offsets.
+-        updateLimiterUi(); captureLimiterLinkAnchor();
++        updateLimiterUi();
+     };
+     contentRoot.addAndMakeVisible(ceilingPanel);
+     ceilingPanel.toBack();
+@@ -149,13 +149,11 @@
+     // original Normal parameter would display Limiter values above 30 as 30.
+     for (auto* slider : { &makeupSTSlider,&makeupLSlider,&makeupRSlider,&makeupMSlider,&makeupSSlider })
+         slider->textFromValueFunction = [] (double value) { return juce::String(value, 2); };
+-    // Whitelist only explicit edits. Mode/algorithm/branch switches, host
+-    // playback and state/Undo restoration do not create fresh compensation.
+-    for (auto* slider : { &makeupSTSlider,&makeupLSlider,&makeupRSlider,&makeupMSlider,&makeupSSlider,
+-                          &mixSlider,&mixLSlider,&mixRSlider,&mixMSlider,&mixSSlider })
++    // Limiter LINK is deliberately simple: only Makeup and the active DOWN
++    // Threshold are paired with Output in exact opposite dB deltas. Ratio, Mix,
++    // algorithms, UP gate, mode and branch controls are never Output sources.
++    for (auto* slider : { &makeupSTSlider,&makeupLSlider,&makeupRSlider,&makeupMSlider,&makeupSSlider })
+         linkLimiterReferenceControl(*slider);
+-    for (auto* slider : mainRatioControls()) linkLimiterReferenceControl(*slider);
+-    for (auto& slider : downRatioSliders) linkLimiterReferenceControl(*slider);
+     // MATCH owns its mixed-signal correction inside the processor. Do not
+     // follow it with an unrelated control-reference reconciliation.
+     limiterControlsReady=true;
+@@ -267,16 +265,16 @@
+     const auto originalStart = slider.onGestureStart;
+     const auto originalEnd = slider.onGestureEnd;
+     const auto originalChange = slider.onValueChange;
+-    slider.onBeforeValueEdit = [this, originalBefore]
++    slider.onBeforeValueEdit = [this, &slider, originalBefore]
+     {
+         if (originalBefore) originalBefore();
+         if (!limiterUpdating && limiterControlsReady && !limiterReferenceEditInProgress)
+-            captureLimiterLinkAnchor();
++            captureLimiterLinkAnchor(slider);
+     };
+     slider.onGestureStart = [this, &slider, originalStart]
+     {
+         if (originalStart) originalStart();
+-        captureLimiterLinkAnchor();
++        captureLimiterLinkAnchor(slider);
+         limiterReferenceGestureSource = &slider;
+         if (limiterLinkAnchorValid)
+         {
+@@ -296,8 +294,6 @@
+     };
+     slider.onValueChange = [this, &slider, originalChange]
+     {
+-        // Linked members and float-normalisation callbacks must not each drive
+-        // Output. The outer edit publishes the entire group before one reconcile.
+         if (limiterReferenceEditInProgress || linkedValueUpdateInProgress || dualRatioValueUpdateInProgress)
+             return;
+         if (limiterUpdating || !limiterControlsReady || processor.isRestoringSoundState()
+@@ -305,42 +301,51 @@
+             return;
+         const bool explicitEdit = slider.hasActiveNativeGesture() || activeLinkSource == &slider
+             || limiterReferenceGestureSource == &slider;
+-        if (!explicitEdit || !processor.isLimiterLinked())
++        if (!explicitEdit || !processor.isLimiterLinked() || !limiterLinkAnchorValid)
+         {
+             if (originalChange) originalChange();
+             return;
+         }
++
+         const juce::ScopedValueSetter<bool> editGuard(limiterReferenceEditInProgress, true);
++        // Keep the source and Output inside their parameter ranges while
++        // preserving the exact opposite dB delta. Clamp the shared delta, not
++        // just one member of the pair.
++        const auto requestedDelta = slider.getValue() - double(limiterLinkReference);
++        const auto minDelta = juce::jmax(slider.getMinimum() - double(limiterLinkReference),
++                                         double(limiterLinkOutput) - 120.0);
++        const auto maxDelta = juce::jmin(slider.getMaximum() - double(limiterLinkReference),
++                                         double(limiterLinkOutput) + 120.0);
++        const auto appliedDelta = juce::jlimit(minDelta, maxDelta, requestedDelta);
++        const auto sourceValue = double(limiterLinkReference) + appliedDelta;
++        if (std::abs(slider.getValue() - sourceValue) > 1.0e-9)
++            setLinkedControlValue(slider, sourceValue);
++
++        // Preserve the existing LR/MS relative-link callback. It now sees the
++        // already-clamped source value, so partner range limits may reduce the
++        // final shared delta before Output is reconciled.
+         if (originalChange) originalChange();
+-        // JUCE attachment callbacks may be nested during logarithmic clamping.
+-        // Ensure the final (possibly group-clamped) source reaches the parameter
+-        // before measuring; never use the raw uncommitted requested value.
+-        const auto id = slider.getProperties()["qqscParameterID"].toString();
+-        if (auto* parameter = processor.getAPVTS().getParameter(id))
+-        {
+-            const auto normalised = parameter->convertTo0to1(static_cast<float>(slider.getValue()));
+-            if (parameter->getValue() != normalised)
+-                parameter->setValueNotifyingHost(normalised);
+-        }
+-        reconcileLimiterOutput();
++        reconcileLimiterOutput(slider);
+     };
+ }
+ 
+-void QQSuperCompressionAudioProcessorEditor::captureLimiterLinkAnchor()
++void QQSuperCompressionAudioProcessorEditor::captureLimiterLinkAnchor(FineKnob& source)
+ {
+     limiterLinkAnchorValid=processor.isLimiterLinked() && !limiterUpdating
+         && !processor.isRestoringSoundState() && !processor.getUndoManager().isPerformingUndoRedo();
++    limiterReferenceGestureSource=&source;
+     if(!limiterLinkAnchorValid) return;
+-    limiterLinkReference=processor.getLimiterLinkReferencePeakDb();
++    limiterLinkReference=float(source.getValue());
+     limiterLinkOutput=processor.readSoundParameter(qqsc::params::outputGainDb);
+ }
+ 
+-void QQSuperCompressionAudioProcessorEditor::reconcileLimiterOutput()
++void QQSuperCompressionAudioProcessorEditor::reconcileLimiterOutput(FineKnob& source)
+ {
+     if(limiterUpdating || !processor.isLimiterLinked() || !limiterLinkAnchorValid
+         || processor.isRestoringSoundState() || processor.getUndoManager().isPerformingUndoRedo()) return;
+     const juce::ScopedValueSetter<bool> guard(limiterUpdating,true);
+-    const auto next=limiterLinkOutput+limiterLinkReference-processor.getLimiterLinkReferencePeakDb();
++    const auto delta=source.getValue()-double(limiterLinkReference);
++    const auto next=juce::jlimit(-120.0,120.0,double(limiterLinkOutput)-delta);
+     auto* p=processor.getAPVTS().getParameter(qqsc::params::limiterOutputDb);
+     const auto gestureOpen=std::find(companionGestureParameters.begin(),companionGestureParameters.end(),p)!=companionGestureParameters.end();
+     if(!gestureOpen) p->beginChangeGesture();
+@@ -350,12 +355,13 @@
+ 
+ void QQSuperCompressionAudioProcessorEditor::beginLimiterOutputGesture()
+ {
+-    endLinkedGesture(); beginUndoTransaction("Output / Down Threshold");
++    endLinkedGesture(); beginUndoTransaction("Output / Down Threshold 1:1");
+     limiterOutputGesture=true; limiterStartOutput=float(outputGainSlider.getValue());
+     const auto mode=juce::roundToInt(processor.readSoundParameter(qqsc::params::processingMode));
+     const bool dual=attachedCompressionMode==1;
+     for(size_t d=0; d<5; ++d)
+     {
++        limiterStartThresholds[d]=processor.getBoundaryForDomainDb(dual,dual,int(d));
+         const bool active=mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
+         if(!active || (!dual && processor.effectiveSingleRatio(d)<=1.0f)
+             || (dual && processor.readSoundParameter(qqsc::params::downEnabledIds[d])<0.5f)) continue;
+@@ -366,39 +372,34 @@
+ 
+ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double requested)
+ {
+-    const auto before=processor.getLimiterLinkReferencePeakDb();
+     const auto requestedDelta=float(requested-limiterStartOutput);
+     if(std::abs(requestedDelta)<1.e-5f) return limiterStartOutput;
+-    const auto target=before-requestedDelta;
+-    float lo=-120,hi=120;
+-    if(std::abs(processor.getLimiterLinkReferencePeakDb(hi)-processor.getLimiterLinkReferencePeakDb(lo))<1.e-6f)
+-    {
+-        // Mix 0%, a unity/upward Ratio, disabled Down or finite Range may
+-        // leave no downward threshold response. Output remains a usable gain
+-        // control; do not freeze it or move thresholds to fabricate a link.
+-        limiterStartOutput=float(juce::jlimit(-120.0,120.0,requested));
+-        return limiterStartOutput;
+-    }
+-    for(int iteration=0; iteration<40; ++iteration)
+-    {
+-        const auto mid=(lo+hi)*0.5f;
+-        if(processor.getLimiterLinkReferencePeakDb(mid)<target) lo=mid; else hi=mid;
+-    }
+-    const auto delta=(lo+hi)*0.5f;
++
++    // Output and active DOWN Threshold(s) move by the same absolute dB amount
++    // in opposite directions. Combine all active parameter limits into one
++    // shared delta so the 1:1 relation is never silently broken by clipping.
++    float minDelta=-120.0f-limiterStartOutput;
++    float maxDelta= 120.0f-limiterStartOutput;
+     const auto mode=juce::roundToInt(processor.readSoundParameter(qqsc::params::processingMode));
+     const bool dual=attachedCompressionMode==1;
+     const auto floor=processor.isClassicBoundary(dual) ? -90.0f : -120.0f;
++    std::array<bool,5> activeDomain {};
+     for(int d=0; d<5; ++d)
+     {
+         const bool active=mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
+         if(!active || (!dual && processor.effectiveSingleRatio(size_t(d))<=1.0f)
+             || (dual && processor.readSoundParameter(qqsc::params::downEnabledIds[size_t(d)])<0.5f)) continue;
+-        const auto current=processor.getBoundaryForDomainDb(dual,dual,d);
++        activeDomain[size_t(d)]=true;
+         const auto minimum=dual ? juce::jmax(floor,juce::jmin(0.0f,processor.getBoundaryForDomainDb(true,false,d)+0.01f)) : floor;
+         const auto maximum=dual ? 0.0f : juce::jmin(0.0f,processor.getBoundaryForDomainDb(false,true,d));
+-        processor.setBoundaryForDomainDb(dual,dual,d,juce::jlimit(minimum,maximum,current+delta));
++        const auto start=limiterStartThresholds[size_t(d)];
++        // threshold_new = threshold_start - delta
++        minDelta=juce::jmax(minDelta,start-maximum);
++        maxDelta=juce::jmin(maxDelta,start-minimum);
+     }
+-    const auto result=limiterStartOutput+before-processor.getLimiterLinkReferencePeakDb();
+-    limiterStartOutput=result;
+-    return result;
++    const auto appliedDelta=juce::jlimit(minDelta,maxDelta,requestedDelta);
++    for(int d=0; d<5; ++d)
++        if(activeDomain[size_t(d)])
++            processor.setBoundaryForDomainDb(dual,dual,d,limiterStartThresholds[size_t(d)]-appliedDelta);
++    return double(limiterStartOutput+appliedDelta);
+ }
+--- /mnt/data/qqsc_work/QQSuperCompression-1.2.9-Independent-Banks-Full-Link/Source/PluginEditor.cpp	2026-09-28 05:52:00.784819767 +0000
++++ /mnt/data/qqsc_work/QQSC-1.2.11-Strict-1to1-Link/Source/PluginEditor.cpp	2026-09-28 06:51:40.630439893 +0000
+@@ -824,7 +824,6 @@
+                                                                    FineKnob& target, const juce::String& undoName)
+ {
+     beginUndoTransaction (undoName);
+-    captureLimiterLinkAnchor();
+     activeLinkedPair = pair;
+     activeLinkSource = &source;
+     activeLinkTarget = &target;
+@@ -857,7 +856,6 @@
+ {
+     endLinkedGesture();
+     beginUndoTransaction ("Dual Ratio Link");
+-    captureLimiterLinkAnchor();
+     dualRatioGestureActive = true;
+     dualRatioGestureDomain = domain;
+     dualRatioGestureUpward = upward;
+@@ -1244,7 +1242,6 @@
+         }
+         updateCompressionUi();
+         updateModeUi();
+-        captureLimiterLinkAnchor();
+     };
+     linkButton.setTooltip ("Relative Link: Ratio / Threshold / Range / Makeup / Mix");
+     const auto lower = lowerBoundaryControls();
+@@ -1472,10 +1469,13 @@
+ void QQSuperCompressionAudioProcessorEditor::beginBoundaryGesture (int domain, bool upper)
+ {
+     endLinkedGesture();
+-    captureLimiterLinkAnchor();
+     boundaryGestureActive = true;
+     const auto controls = lowerBoundaryControls();
+     auto& source = upper ? *upperBoundarySliders[static_cast<size_t> (domain)] : *controls[static_cast<size_t> (domain)];
++    const bool downThresholdSource = attachedCompressionMode == 1 ? upper
++        : (! upper && processor.effectiveSingleRatio(static_cast<size_t>(domain)) > 1.0f);
++    if (downThresholdSource) captureLimiterLinkAnchor(source);
++    else limiterLinkAnchorValid=false;
+     const auto targetIndex = domain == 0 ? 0 : (domain % 2 == 1 ? domain + 1 : domain - 1);
+     if (domain == 0)
+         beginUndoTransaction (upper ? "Upper Boundary" : "Lower Boundary");
+@@ -1509,6 +1509,20 @@
+     if (boundaryValueUpdateInProgress) return;
+     const auto lower = lowerBoundaryControls();
+     const auto index = static_cast<size_t> (domain);
++    auto& editedSource = upper ? *upperBoundarySliders[index] : *lower[index];
++    const bool downThresholdSource = attachedCompressionMode == 1 ? upper
++        : (! upper && processor.effectiveSingleRatio(index) > 1.0f);
++    if(boundaryGestureActive && downThresholdSource && processor.isLimiterLinked() && limiterLinkAnchorValid)
++    {
++        // Output range also limits the shared threshold delta. Clamp the source
++        // before the LR/MS relative-link callback so every driven domain sees
++        // the same final 1:1 movement.
++        const auto requestedDelta=editedSource.getValue()-double(limiterLinkReference);
++        const auto minDelta=double(limiterLinkOutput)-120.0;
++        const auto maxDelta=double(limiterLinkOutput)+120.0;
++        const auto appliedDelta=juce::jlimit(minDelta,maxDelta,requestedDelta);
++        editedSource.setValue(double(limiterLinkReference)+appliedDelta,juce::dontSendNotification);
++    }
+     if (domain != 0)
+     {
+         const auto targetIndex = static_cast<size_t> (domain % 2 == 1 ? domain + 1 : domain - 1);
+@@ -1536,8 +1550,8 @@
+     lower[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, false, domain), juce::dontSendNotification);
+     upperBoundarySliders[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, true, domain), juce::dontSendNotification);
+     refreshBoundaryReadouts();
+-    if(boundaryGestureActive && !linkedValueUpdateInProgress && (attachedCompressionMode==1 ? upper : (!upper && processor.effectiveSingleRatio(index)>1.0f)))
+-        reconcileLimiterOutput();
++    if(boundaryGestureActive && !linkedValueUpdateInProgress && downThresholdSource)
++        reconcileLimiterOutput(editedSource);
+ }
+ 
+ void QQSuperCompressionAudioProcessorEditor::refreshBoundaryReadouts()
+--- /mnt/data/qqsc_work/QQSuperCompression-1.2.9-Independent-Banks-Full-Link/Source/PluginProcessor.h	2026-09-28 05:52:00.785637589 +0000
++++ /mnt/data/qqsc_work/QQSC-1.2.11-Strict-1to1-Link/Source/PluginProcessor.h	2026-09-28 06:51:40.630831062 +0000
+@@ -88,7 +88,7 @@
+     void setCompressionModeFromEditor (int mode);
+     float getBoundaryForBankDb (int bank, bool upper, int domain) const noexcept;
+     float getActiveOutputGainDb() const noexcept;
+-    // All linked edits use the same full wet-Makeup plus dry/wet reference.
++    // Fixed-level reference retained for MATCH/calibration helpers; Limiter UI LINK is strict 1:1 dB.
+     float getLimiterReferencePeakDb (float downThresholdShift = 0.0f, bool includeMix = true) const noexcept;
+     float getLimiterLinkReferencePeakDb(float shift = 0.0f) const noexcept
+     { return getLimiterReferencePeakDb(shift, true); }
+--- /mnt/data/qqsc_work/QQSuperCompression-1.2.9-Independent-Banks-Full-Link/tests/limiter_check.cpp	2026-09-28 05:52:01.191703074 +0000
++++ /mnt/data/qqsc_work/QQSC-1.2.11-Strict-1to1-Link/tests/limiter_check.cpp	2026-09-28 06:51:40.631082341 +0000
+@@ -12,6 +12,7 @@
+ #include "mode_memory_checks.inc"
+ #include "limiter_mode_continuity_checks.inc"
+ #include "independent_banks_full_link_checks.inc"
++#include "strict_one_to_one_link_checks.inc"
+     static juce::MouseEvent mouse(juce::Component& c,juce::Point<float> position,bool alt=false)
+     {
+         const auto now=juce::Time::getCurrentTime();
+@@ -230,10 +231,12 @@
+         { QQSCLimiterCheck::limiterModeContinuityChecks(root);return 0; }
+         if(argc==3 && juce::String(argv[2])=="revision129")
+         { QQSCLimiterCheck::independentBanksFullLinkChecks(root);return 0; }
+-        // The retained outputLink/strictOutputLink/run/ratioMix entry checks
+-        // describe the historical 1.2.7-1.2.8 cloning/no-Ratio/no-Mix contract.
+-        // They are not current acceptance tests; see Verification/1.2.9.
+-        QQSCLimiterCheck::independentBanksFullLinkChecks(root);
++        if(argc==3 && juce::String(argv[2])=="revision1211")
++        { QQSCLimiterCheck::strictOneToOneLinkChecks(root);return 0; }
++        // 1.2.11 intentionally supersedes the 1.2.9 full-reference Ratio/Mix
++        // link contract. Keep historical checks in source, but do not run them
++        // on the default acceptance path.
++        QQSCLimiterCheck::strictOneToOneLinkChecks(root);
+         QQSCLimiterCheck::limiterModeContinuityChecks(root);
+         QQSCLimiterCheck::dualAlgorithmChecks(root);
+         std::cout<<"PASS: Limiter candidate checks complete.\n";return 0;

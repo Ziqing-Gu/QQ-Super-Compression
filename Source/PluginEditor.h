@@ -6,6 +6,7 @@
 #include "LevelMeters.h"
 #include "UTF8LookAndFeel.h"
 #include "DarkPanelMaterial.h"
+#include "PerformanceDiagnosticsPanel.h"
 
 class QQSuperCompressionAudioProcessorEditor final : public juce::AudioProcessorEditor,
                                                       private juce::Timer,
@@ -20,6 +21,7 @@ public:
     void resized() override;
 
 private:
+    friend struct QQSCReviewCheck;
     friend struct QQSCVisualCheck;
     friend struct QQSCLimiterCheck;
     friend struct QQSCUnityCheck;
@@ -40,7 +42,13 @@ private:
         }
         std::function<void()> onDoubleClick;
         void mouseDoubleClick (const juce::MouseEvent& e) override
-        { if (onDoubleClick) onDoubleClick(); else juce::Slider::mouseDoubleClick(e); }
+        {
+            const bool ownGesture = !nativeGestureActive;
+            if (ownGesture && onBeforeValueEdit) onBeforeValueEdit();
+            if (ownGesture && onGestureStart) onGestureStart();
+            if (onDoubleClick) onDoubleClick(); else juce::Slider::mouseDoubleClick(e);
+            if (ownGesture && onGestureEnd) onGestureEnd();
+        }
         std::function<void()> onGestureStart;
         std::function<void()> onGestureEnd;
         std::function<juce::Rectangle<float>()> boundaryPlotBounds;
@@ -80,6 +88,33 @@ private:
             juce::Slider::stoppedDragging();
         }
 
+        bool keyPressed (const juce::KeyPress& key) override
+        {
+            const auto code = key.getKeyCode();
+            const bool nudge = code == juce::KeyPress::leftKey || code == juce::KeyPress::rightKey
+                || code == juce::KeyPress::upKey || code == juce::KeyPress::downKey
+                || code == juce::KeyPress::homeKey || code == juce::KeyPress::endKey;
+            if (!nudge || nativeGestureActive || !isEnabled()) return juce::Slider::keyPressed(key);
+            if (onBeforeValueEdit) onBeforeValueEdit();
+            if (onGestureStart) onGestureStart();
+            const bool handled = juce::Slider::keyPressed(key);
+            if (onGestureEnd) onGestureEnd();
+            return handled;
+        }
+
+        void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
+        {
+            if (nativeGestureActive || !isEnabled() || !isScrollWheelEnabled())
+            {
+                juce::Slider::mouseWheelMove(event, wheel);
+                return;
+            }
+            if (onBeforeValueEdit) onBeforeValueEdit();
+            if (onGestureStart) onGestureStart();
+            juce::Slider::mouseWheelMove(event, wheel);
+            if (onGestureEnd) onGestureEnd();
+        }
+
         void mouseDown (const juce::MouseEvent& event) override
         {
             if(onBeforeValueEdit) onBeforeValueEdit();
@@ -90,6 +125,7 @@ private:
 
             resetClickHandled = event.mods.isAltDown() && event.mods.isLeftButtonDown();
             linearLastDragY = event.position.y;
+            rotaryLastDragPosition = event.position;
             updateSensitivity (event.mods);
 
             // Always let Slider begin its normal drag gesture first. This keeps
@@ -135,6 +171,44 @@ private:
                 return;
             }
 
+            // Rotary controls use an incremental drag path too. JUCE's native
+            // rotary drag keeps the original mouse-down/value anchor; changing
+            // mouseDragSensitivity mid-gesture therefore reinterprets the whole
+            // accumulated drag and can make the value jump backwards when Shift
+            // is pressed (or forwards when it is released). Rebase implicitly on
+            // every mouse event instead: only movement after the modifier change
+            // uses the new sensitivity. This keeps the current value perfectly
+            // continuous while preserving horizontal/right and vertical/up drag.
+            const auto style = getSliderStyle();
+            if (style == juce::Slider::RotaryHorizontalVerticalDrag
+                || style == juce::Slider::RotaryHorizontalDrag
+                || style == juce::Slider::RotaryVerticalDrag)
+            {
+                const auto dx = static_cast<double> (event.position.x - rotaryLastDragPosition.x);
+                const auto dy = static_cast<double> (event.position.y - rotaryLastDragPosition.y);
+                rotaryLastDragPosition = event.position;
+
+                double deltaPixels = 0.0;
+                if (style == juce::Slider::RotaryHorizontalVerticalDrag)
+                    deltaPixels = dx - dy; // right/up increase, left/down decrease
+                else if (style == juce::Slider::RotaryHorizontalDrag)
+                    deltaPixels = dx;
+                else
+                    deltaPixels = -dy;
+
+                if (deltaPixels != 0.0)
+                {
+                    const auto sensitivity = static_cast<double> (event.mods.isShiftDown()
+                        ? fineSensitivity : normalSensitivity);
+                    const auto currentProportion = valueToProportionOfLength (getValue());
+                    const auto requestedProportion = juce::jlimit (0.0, 1.0,
+                        currentProportion + deltaPixels / sensitivity);
+                    setValue (proportionOfLengthToValue (requestedProportion),
+                              juce::sendNotificationSync);
+                }
+                return;
+            }
+
             updateSensitivity (event.mods);
             juce::Slider::mouseDrag (event);
         }
@@ -173,6 +247,7 @@ private:
         bool dragCancelledUntilMouseUp = false;
         std::unique_ptr<juce::MouseEvent> lastMouseDownEvent;
         float linearLastDragY = 0.0f;
+        juce::Point<float> rotaryLastDragPosition;
         static constexpr int normalSensitivity = 180;
         static constexpr int fineSensitivity = 1200;
     };
@@ -246,6 +321,11 @@ private:
     void commitLookaheadChoice();
     void cycleOversampling();
     void updateOversamplingUi();
+    void cycleCeilingOversampling();
+    void updateCeilingOversamplingUi();
+    void togglePerformanceMode();
+    void updatePerformanceModeUi();
+    void showPerformanceDiagnostics();
     void setChoiceParameter (const char* parameterID, int value);
     void registerKeyboardListener (juce::Component&);
 
@@ -308,6 +388,7 @@ private:
     juce::TextButton limiterButton { "LIMITER" }, limiterLinkButton { "LINK" };
     juce::TextButton unityMonitorButton;
     juce::TextButton truePeakButton { "TP" };
+    juce::TextButton tpRecoveryButton { "AUTO" };
     class CeilingPanel final : public juce::Component
     {
         void paint(juce::Graphics& g) override
@@ -324,16 +405,20 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> ceilingAttachment;
     bool limiterControlsReady=false, limiterUpdating=false, limiterOutputGesture=false;
     int attachedLimiter=-1;
-    std::array<float,5> limiterStartThresholds {};
+    std::array<float,5> limiterStartLowerThresholds {}, limiterStartUpperThresholds {};
     float limiterStartOutput=0;
+    // For the Limiter 1:1 link these are the edited source dB anchor and Output anchor.
     float limiterLinkReference=0, limiterLinkOutput=0;
     bool limiterLinkAnchorValid=false;
-    void captureLimiterLinkAnchor();
+    void linkLimiterReferenceControl(FineKnob& slider); // Makeup: strict opposite dB delta to Output
+    FineKnob* limiterReferenceGestureSource = nullptr;
+    bool limiterReferenceEditInProgress = false;
+    void captureLimiterLinkAnchor(FineKnob& source);
     double ceilingDragValue=0.0;
     std::function<double(const juce::String&)> limiterOutputText;
     void initialiseLimiterControls();
     void updateLimiterUi();
-    void reconcileLimiterOutput();
+    void reconcileLimiterOutput(FineKnob& source);
     void beginLimiterOutputGesture();
     double applyLimiterOutputChange (double requested);
     void refreshCeilingValue();
@@ -363,6 +448,11 @@ private:
     juce::ComboBox lookaheadCombo;
     juce::Label oversamplingLabel;
     juce::TextButton oversamplingButton { "8x" };
+    juce::Label ceilingOversamplingLabel;
+    juce::TextButton ceilingOversamplingButton { "8x" };
+    qqsc::PerformanceModeButton performanceModeButton;
+    std::unique_ptr<qqsc::PerformanceDiagnosticsPanel> performanceDiagnosticsPanel;
+    juce::TooltipWindow tooltipWindow { this, 600 };
     juce::Label keySourceLabel;
     juce::Label keyGainLabel;
     juce::Label keyHpfLabel;

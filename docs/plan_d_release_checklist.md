@@ -1,10 +1,10 @@
-# 1.2.8 release checklist
+# 1.2.7 release checklist
 
-1. Preserve the accepted Windows VST3 main binary SHA-256 `9A5E39848AB2691AFF7F70AAF3781D6FDBE7004B90D62C3CF57B9A0327F8B7E3`. Production `Source/`, `Assets/` and binary build inputs must match the Plan A source. Document test-only portability changes separately.
-2. Retain the 1.2.7 Chinese and English 35-page manuals unchanged and label both as historical feature references. They do not document the 1.2.8 Single / Dual threshold-continuity fix; the 1.2.8 README, release notes and install guides are authoritative for that change.
-3. Plan B was confirmed complete and is frozen. Do not access, refresh, replace or audit its backup directories during Plan C or D. Use the active Plan A workspace and accepted output records for source identity.
-4. Fetch and check remote `main` before a normal push. Preserve Git history, verify remote commit content, and build the Mac artifacts from that exact commit.
-5. On Apple Silicon and Intel, run native Limiter, Ceiling, headphone, MATCH, Unity, Dual-algorithm and Single / Dual continuity checks. Validate the Universal 2 AU, ZIP integrity, version, architecture, minimum macOS and signature state.
-6. Plan C ends with a verified desktop package and public source synchronization. Preserve existing tag `v1.2.8`; record exact build commits separately. Only after Plan D is explicitly authorized, publish eight Release assets: two clearly named 1.2.7 reference PDF manuals, two 1.2.8 install TXT guides, Windows x64 VST3 ZIP, Apple Silicon VST3 ZIP, Intel VST3 ZIP and Universal 2 AU ZIP. Then verify remote sizes, digests, stable download URLs and Latest status and update README download links.
-7. Put exactly those eight user-facing files in the final package: the four documents at root, one ZIP in `Win/` and three ZIPs in `Mac/`. Keep manifests, proof, logs and checksums outside the handoff package.
-8. Preserve `LICENSE`, the prominent README non-commercial notice, `LICENSE_POLICY_CHANGE.md`, author text and third-party notices.
+1. Preserve accepted Windows binary SHA-256 292F588A9E91FF8EC5BBD609BDFB3E9CD6165DDA1D2B22C2C28427AE2B2DAAC6. Production Source/ and Assets/ must match the accepted Stable source exactly.
+2. Include matching 35-page Chinese and English manuals, their sources/screenshots, bilingual release notes and install guides. Retain author preface, license and third-party notices.
+3. Freeze and hash a new full Plan B snapshot under D:/备份文件/Vibe Coding/QQ Super Compression/源代码, including exact JUCE 8.0.15 and intended GitHub source.
+4. Fetch and check remote main before a normal push. Preserve history. Verify remote commit content, then build three Mac jobs from that exact commit.
+5. Verify native Limiter/Ceiling/headphone/MATCH tests on both architectures, AU validation, ZIP integrity, versions, architecture, minimum OS and signature state.
+6. Tag the verified source v1.2.7 and publish eight Release assets: two 35-page PDF manuals, two install TXT guides, Windows x64 ZIP, Apple Silicon VST3 ZIP, Intel VST3 ZIP, Universal 2 AU ZIP. Verify asset hashes and Latest status.
+7. Put exactly those eight files in the desktop delivery folder: four documents at root, one ZIP in Win/, three ZIPs in Mac/. Deliver real files, not shortcuts; keep proof and logs in D:/Codex/Outputs outside this folder.
+8. Refresh Plan B if release-bound source/docs change. Keep previous snapshots immutable.

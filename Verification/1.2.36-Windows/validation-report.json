@@ -1,0 +1,141 @@
+{
+  "version": "1.2.36",
+  "status": "windows_checks_passed_installed_hash_verified_Cubase_verification_pending",
+  "product_source": "D:\\Codex\\Workspaces\\QQSC-1.2.34-Review-Fixes",
+  "output_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.36-Windows\\QQ Super Compression.vst3",
+  "bundle": [
+    {
+      "path": "Contents\\Resources\\moduleinfo.json",
+      "bytes": 1118,
+      "sha256": "A5E63832970A14A1405083AAE9543B92818049C66F2361041A9A5E9DECF976A7"
+    },
+    {
+      "path": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+      "bytes": 10675712,
+      "sha256": "4502CC98F5A70E90A1F46334E109E0B3A56AE18F1745DCE6C2D8E15A848D08C6"
+    }
+  ],
+  "verification_logs": [
+    {
+      "file": "review.log",
+      "exit_code": 0,
+      "sha256": "70CB9E4A4467FAD7D20ADD7CB00700B81D8A3BF57F547D3D52EDC5CC8DFB464D"
+    },
+    {
+      "file": "ceiling.log",
+      "exit_code": 0,
+      "sha256": "444CF625B595D826B69EA51F2685A60F97BECD25D41A16A55644BF3B5FA9C348"
+    },
+    {
+      "file": "revision1234.log",
+      "exit_code": 0,
+      "sha256": "4C70BDC2A6C9C43BE22107E8DFF995C4A933B5F4FA9E96151AA7A468316752FF"
+    },
+    {
+      "file": "revision1228.log",
+      "exit_code": 0,
+      "sha256": "0B3F0CE576E1B1433AB9DE2D450F8F77F72FD758CE9065DB16E3A358FF92BF3E"
+    },
+    {
+      "file": "continuity.log",
+      "exit_code": 0,
+      "sha256": "98DBEB630B34CB7CD668018FBFC4745B57541AC45C9C03840D5B746AFEA7EA3E"
+    },
+    {
+      "file": "dual.log",
+      "exit_code": 0,
+      "sha256": "563FFA1E3125CB8C4CFEF1E272F0576F37B0964E8D25C55744702F72AD70AF0B"
+    },
+    {
+      "file": "unity.log",
+      "exit_code": 0,
+      "sha256": "AF58DDB08A05041F5572F66BC59E5240AA231DBF495CB5EDCDB70D2A77FE6384"
+    },
+    {
+      "file": "source-audit.log",
+      "exit_code": 0,
+      "sha256": "7A6AC77D7B91363AAAFDCDD52512A757137BE164B022B6EA4D446761B8C242C5"
+    }
+  ],
+  "source_changes_from_1_2_35_Plan_B": [
+    {
+      "path": "BUILD_WINDOWS.ps1",
+      "sha256": "ACBA39560972866C010594E0D2DCD78FF4FC7A72BBCE71B6314B0E04B413BAE9"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "01210FA15CD827FDE5733AE402EAE2AA50C63501ABCF42FF1338723CCE2EC3EC"
+    },
+    {
+      "path": "README.md",
+      "sha256": "9639D276205FB32A24A6F6A6F8CCCAA94ADE16ADAB7E3AA4CD958D2CB9CC5DF7"
+    },
+    {
+      "path": "Source\\LimiterEditor.cpp",
+      "sha256": "1E4E28263B15523B66B8D4ADB32840355EFDABBC33AD6C39A62106FFD2739AD2"
+    },
+    {
+      "path": "Source\\OutputCeiling.h",
+      "sha256": "4A752DB0BF4F2B9CA4DEA8AE424BD0263EC8BA29CA47094BDD368F34A472BF2D"
+    },
+    {
+      "path": "Source\\Parameters.h",
+      "sha256": "9709ABE879FB899E972441C2F8CBF001C2D4A4F245479CE5A97CC76592E1D740"
+    },
+    {
+      "path": "Source\\PluginEditor.cpp",
+      "sha256": "9C66887AC45558C9B30086F648CA5F04C3F59B1A58B55DA29FF91FB824B8521B"
+    },
+    {
+      "path": "Source\\PluginProcessor.cpp",
+      "sha256": "33AA4FFEC9BE9BB95157AE32A1DD1272EEE4EFB3AFB8C25EC53F43AA051A1830"
+    },
+    {
+      "path": "Source\\PluginProcessor.h",
+      "sha256": "92C9D03837D01788DDB7B7D04CD180A4E69DF0321D94E900185148CA3064D6AC"
+    },
+    {
+      "path": "tests\\ceiling_check.cpp",
+      "sha256": "402692748930B5C3195A7A0049BC29C8DA9841C940FAF9F6339DE81AE8592B93"
+    },
+    {
+      "path": "tests\\review_fixes_check.cpp",
+      "sha256": "ECDEB97BAA14E7406FAA002D5BAA51C815E704BFC73F906FDD8B739DA9420534"
+    },
+    {
+      "path": "tests\\revision1234_performance_architecture_checks.inc",
+      "sha256": "292E1A96E97BE6A29D112C56EE3EE910283CBF92AA31B8F15600ABF3E17AAE52"
+    },
+    {
+      "path": "tests\\revision1234_performance_architecture_source_audit.py",
+      "sha256": "2011D3CFFF2F7A70C1569926FA00C09139E0C033135D5BF04F57AC822802F3BB"
+    }
+  ],
+  "post_build_source_edits": "Comments only; executable statements unchanged.",
+  "peak_stress_cases": 216,
+  "peak_stress_failures": 0,
+  "stopped_wake_max_delta": 0,
+  "block_partition_max_delta": 0,
+  "host_verification": "Cubase 1.2.36 listening and ASIO-Guard pending",
+  "English_manual_created": false,
+  "installation": {
+    "version": "1.2.36",
+    "status": "installed_hash_verified_host_test_pending",
+    "installed": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+    "source_output": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.36-Windows\\QQ Super Compression.vst3",
+    "installed_sha256": "4502CC98F5A70E90A1F46334E109E0B3A56AE18F1745DCE6C2D8E15A848D08C6",
+    "old_version_backup": "D:\\Codex\\Archives\\QQSC-1.2.35-installed-before-1.2.36-20261001-002108\\QQ Super Compression.vst3",
+    "old_binary_sha256": "015897A5705922553DCA9455C876DDFD6DD735F9B3DD147DB2D07D68A814729A",
+    "host_check": "no matching host processes or observed loaded plugin module immediately before installation"
+  },
+  "new_source_files": [
+    {
+      "path": "tests\\revision1236_oversampling_checks.inc",
+      "sha256": "635833C92D5CBC40DCA814ADAE7C512AFA12BAB744369F0926DD8724A28A7514"
+    },
+    {
+      "path": "RELEASE_NOTES_1.2.36.md",
+      "sha256": "0F4A2F599E83617D9A0CF8D9EAAF724F9F5AD0C8D9A79D2A0EA03194D12AE0B8"
+    }
+  ]
+}

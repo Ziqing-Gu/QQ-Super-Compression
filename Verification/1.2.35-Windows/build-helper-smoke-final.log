@@ -1,0 +1,37 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.33
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+Source: D:\Codex\Workspaces\QQSC-1.2.34-Review-Fixes
+JUCE:   D:\Codex\Temp\JUCE-8.0.15-src\JUCE-8.0.15
+Build:  D:\Codex\Temp\QQSC1234-Review-Fixes
+No plugin will be installed or published by this script.
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Configuring done (1.6s)
+-- Generating done (1.0s)
+-- Build files have been written to: D:/Codex/Temp/QQSC1234-Review-Fixes
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSuperCompression_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_rc_lib.dir\Release\QQSuperCompression_rc_lib.lib
+  Building VST3 manifest helper for QQSuperCompression
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+  -- Configuring done (0.0s)
+  -- Generating done (0.1s)
+  -- Build files have been written to: D:/Codex/Temp/QQSC1234-Review-Fixes/vst3_helpers/QQSuperCompression
+  閫傜敤浜?.NET Framework MSBuild 鐗堟湰 17.14.40+3e7442088
+  
+    vst3_helper.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\vst3_helpers\QQSuperCompression\vst3_helper.exe
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  QQSuperCompression_VST3.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3\Contents\x86_64-win\QQ Super Compression.vst3
+  removing moduleinfo.json
+  creating D:/Codex/Temp/QQSC1234-Review-Fixes/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3/Contents/Resources/moduleinfo.json
+Build ready: D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3
+Tests: not run (-SkipTests)
+Close Cubase and other plugin hosts before manually replacing an installed VST3. Keep the previously verified source and binary as rollback.

@@ -9,7 +9,24 @@
             for(int up:{0,1})for(int down:{0,1})
             {
                 QQSuperCompressionAudioProcessor p;baseline(p);
-                if(limiter)p.enterLimiterMode();
+                if(limiter)
+                {
+                    p.enterLimiterMode();
+                    // This regression isolates the compressor's independent Up/Down
+                    // algorithm branches. Keep the new Limiter-only 8x Ceiling in
+                    // the path, but select its stateless Hard Clip endpoint: TP ON
+                    // has an intentional recovery memory, so TP history is covered
+                    // by the dedicated Ceiling tests instead.
+                    set(p,qqsc::params::truePeakLimiting,0.0f);
+                }
+                // baseline() runs before Limiter entry, so its 26 ms lookahead only
+                // writes the Normal bank. The Limiter bank otherwise retains the
+                // user's last-lookahead preference (which may legitimately be 0 ms).
+                // At 0 ms a 400 Hz sine crosses the Up/Down regions every cycle, so
+                // changing the Up law is expected to alter the rendered RMS and this
+                // is not a branch-isolation failure. Pin the ACTIVE bank to the same
+                // 26 ms steady-window condition this regression has always intended.
+                set(p,p.soundParameterID(qqsc::params::lookaheadMs),26.0f);
                 set(p,p.soundParameterID("compressionMode"),1);set(p,p.soundParameterID("processingMode"),float(mode));
                 set(p,p.soundParameterID("upAlgorithmMode"),float(up));set(p,p.soundParameterID("downAlgorithmMode"),float(down));
                 set(p,p.soundParameterID("outputGainDb"),0);set(p,"limiterCalibrationDb",0);set(p,"ceilingDb",0);
@@ -32,8 +49,25 @@
                 upGains[size_t(up*2+down)]=rmsGain(u,.03f,48000);
                 downGains[size_t(up*2+down)]=rmsGain(d,.6f,48000);renders+=2;
             }
-            check(std::abs(upGains[0]-upGains[1])<1.e-5&&std::abs(upGains[2]-upGains[3])<1.e-5,"Down algorithm changed steady Up audio");
-            check(std::abs(downGains[0]-downGains[2])<1.e-5&&std::abs(downGains[1]-downGains[3])<1.e-5,"Up algorithm changed steady Down audio");
+            const auto upLeak0=std::abs(upGains[0]-upGains[1]);
+            const auto upLeak1=std::abs(upGains[2]-upGains[3]);
+            const auto downLeak0=std::abs(downGains[0]-downGains[2]);
+            const auto downLeak1=std::abs(downGains[1]-downGains[3]);
+            std::cout<<"DUAL-INDEPENDENCE limiter="<<limiter<<" mode="<<mode
+                     <<" lookahead=26ms"
+                     <<" up="<<upGains[0]<<","<<upGains[1]<<","<<upGains[2]<<","<<upGains[3]
+                     <<" down="<<downGains[0]<<","<<downGains[1]<<","<<downGains[2]<<","<<downGains[3]
+                     <<" leaks="<<upLeak0<<","<<upLeak1<<","<<downLeak0<<","<<downLeak1<<"\n";
+            // The branch law itself is checked above at 2e-5 directly against
+            // StaticCompressionEngine. Limiter renders use TP OFF here, so final
+            // audio still traverses the new fixed 8x Hard Clip Ceiling pipeline
+            // but contains no stateful TP recovery memory. Unrelated Up/Down laws
+            // must therefore remain as independent as the pre-1.2.28 regression.
+            constexpr double finalAudioBranchIsolationTolerance=1.e-5;
+            check(upLeak0<finalAudioBranchIsolationTolerance&&upLeak1<finalAudioBranchIsolationTolerance,
+                  "Down algorithm changed steady Up audio");
+            check(downLeak0<finalAudioBranchIsolationTolerance&&downLeak1<finalAudioBranchIsolationTolerance,
+                  "Up algorithm changed steady Down audio");
             check(std::abs(upGains[0]-upGains[2])>.05&&std::abs(downGains[0]-downGains[1])>.001,"Dual algorithm controls do not affect their own audio branches");
         }
         double worstStep=0;

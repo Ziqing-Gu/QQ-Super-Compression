@@ -1,6 +1,8 @@
 #pragma once
 #include "DynamicsLimits.h"
 #include "KWeightingFilter.h"
+#include "ExactEnergyIndex.h"
+#include <atomic>
 
 #include <array>
 #include <vector>
@@ -35,12 +37,8 @@ public:
 
         squareHistory.assign (static_cast<size_t> (blockSamples), {});
 
-        // 400 ms blocks with 100 ms hop produce ten completed blocks/second.
-        // Reserve four hours so normal music work never allocates on the audio
-        // thread. If a measurement exceeds this, std::vector remains exact and
-        // can grow rather than silently truncating the LUFS result.
-        blocks.clear();
-        blocks.reserve (4u * 60u * 60u * 10u);
+        // The queue is allocated at construction, never resized by DSP.
+        // Historical allocation and gate queries belong to servicePending().
 
         for (auto& filter : filters)
             filter.prepare (sampleRate);
@@ -59,8 +57,8 @@ public:
         runningSums.fill (0.0);
         historyIndex = 0;
         samplesUntilBlock = blockSamples;
-        blocks.clear();
-        latestMatch = {};
+        generation.fetch_add(1,std::memory_order_acq_rel);
+        queueOverflow.store(false,std::memory_order_release);
     }
 
     // Inputs must be the delayed Dry and the corresponding compressed Wet
@@ -120,32 +118,61 @@ public:
         block.dryS  = mean (drySIndex);
         block.wetS  = mean (wetSIndex);
 
-        blocks.push_back (block);
+        enqueue(block);
         samplesUntilBlock = hopSamples;
-        recomputeMatch();
     }
 
+    // Single consumer: the processor's existing message-thread timer, or an
+    // offline test driver after/alongside audio production. Never call from DSP.
+    // Bounded draining also keeps a paused/busy GUI from doing an unlimited catch-up.
+    void servicePending(size_t budget = 128)
+    {
+        const auto wanted=generation.load(std::memory_order_acquire);
+        if(consumerGeneration!=wanted)
+        {
+            for(auto& index:indices)index.clear();mixedIndex.clear();
+            consumerGeneration=wanted;completedBlocks=0;latestMatch={};
+        }
+        size_t consumed=0;
+        auto read=readPosition.load(std::memory_order_relaxed);
+        while(consumed<budget && read!=writePosition.load(std::memory_order_acquire))
+        {
+            const auto item=queue[read];
+            // A concurrent transport reset must not consume the first block of
+            // the new generation under the old consumer state.
+            if(item.generation>wanted || generation.load(std::memory_order_acquire)!=wanted)break;
+            read=(read+1)%queueCapacity;
+            readPosition.store(read,std::memory_order_release);
+            ++consumed;
+            if(item.generation!=wanted)continue;
+            const auto& b=item.block;
+            const std::array<float,10> energies{b.dryST,b.wetST,b.dryL,b.wetL,b.dryR,b.wetR,b.dryM,b.wetM,b.dryS,b.wetS};
+            for(size_t i=0;i<energies.size();++i)indices[i].add({energies[i]});
+            mixedIndex.add({b.wetL+b.wetR,b.dryST,b.wetST});
+            ++completedBlocks;
+        }
+        if(consumed>0)recomputeMatch();
+    }
     bool hasAnyResult() const noexcept
     {
-        return latestMatch.validST || latestMatch.validL || latestMatch.validR
-            || latestMatch.validM || latestMatch.validS;
+        const auto& result=getLatestMatch();
+        return result.validST || result.validL || result.validR || result.validM || result.validS;
     }
+    const MatchDb& getLatestMatch() const noexcept
+    {
+        return measurementValid() ? latestMatch : emptyMatch;
+    }
+    size_t getBlockCount() const noexcept { return measurementValid() ? completedBlocks : 0; }
+    bool isQueueOverloaded() const noexcept { return queueOverflow.load(std::memory_order_acquire); }
 
-    const MatchDb& getLatestMatch() const noexcept { return latestMatch; }
-    size_t getBlockCount() const noexcept { return blocks.size(); }
-
-    // Optional monitor analyser: Dry holds the dry Mix contribution, Wet ST
-    // the wet contribution, and Wet LR their sum. Account for their correlation
-    // when converting the desired overall level change into a Makeup change.
+    // Dry, Wet and their sum are indexed together under the exact mixed-energy
+    // gate. This preserves correlation without scanning programme history.
     float makeupAdjustmentForMixedGain(float gainDb) const noexcept
     {
-        double sum=0; size_t count=0;
-        for(const auto& b:blocks) if(b.wetL+b.wetR>0) {sum+=b.wetL+b.wetR;++count;}
-        if(count==0)return 0;
-        const double gate=sum/double(count)*.1;
-        double dry=0,wet=0,total=0;
-        for(const auto& b:blocks) if(b.wetL+b.wetR>gate)
-        {dry+=b.dryST;wet+=b.wetST;total+=b.wetL+b.wetR;}
+        if(!measurementValid())return 0;
+        const auto all=mixedIndex.total();if(!all.count)return 0;
+        const auto kept=mixedIndex.above(.1*all.values[0]/double(all.count));
+        const double total=kept.values[0],dry=kept.values[1],wet=kept.values[2];
         if(wet<=1.e-30)return 0;
         const double cross=(total-dry-wet)*.5;
         const double target=total*std::pow(10.,double(gainDb)/10.);
@@ -239,55 +266,45 @@ private:
         return value > -1.0e200 && std::isfinite (value);
     }
 
-    template <typename Member>
-    double integratedFor (Member member) const noexcept
+    bool measurementValid() const noexcept
     {
-        if (blocks.empty())
-            return negativeInfinity();
-
-        constexpr double absoluteGateEnergy = 0.0; // No fixed low-level cutoff for MATCH.
-
-        double absoluteSum = 0.0;
-        uint64_t absoluteCount = 0;
-        for (const auto& block : blocks)
+        return !queueOverflow.load(std::memory_order_acquire)
+            && consumerGeneration==generation.load(std::memory_order_acquire);
+    }
+    void enqueue(const BlockEnergies& block) noexcept
+    {
+        if(queueOverflow.load(std::memory_order_relaxed))return;
+        const auto write=writePosition.load(std::memory_order_relaxed);
+        const auto next=(write+1)%queueCapacity;
+        if(next==readPosition.load(std::memory_order_acquire))
         {
-            const auto energy = static_cast<double> (block.*member);
-            if (energy > absoluteGateEnergy)
-            {
-                absoluteSum += energy;
-                ++absoluteCount;
-            }
+            // Fail closed: never apply MATCH calculated from a silently truncated
+            // measurement. Playback/reset starts a fresh valid measurement.
+            queueOverflow.store(true,std::memory_order_release);return;
         }
-
-        if (absoluteCount == 0)
-            return negativeInfinity();
-
-        const auto absoluteMean = absoluteSum / static_cast<double> (absoluteCount);
-        const auto finalGateEnergy = std::max (absoluteGateEnergy, absoluteMean * 0.1);
-
-        double finalSum = 0.0;
-        uint64_t finalCount = 0;
-        for (const auto& block : blocks)
-        {
-            const auto energy = static_cast<double> (block.*member);
-            if (energy > finalGateEnergy)
-            {
-                finalSum += energy;
-                ++finalCount;
-            }
-        }
-
-        if (finalCount == 0)
-            return negativeInfinity();
-
-        return -0.691 + 10.0 * std::log10 (finalSum / static_cast<double> (finalCount));
+        queue[write]={block,generation.load(std::memory_order_relaxed)};
+        writePosition.store(next,std::memory_order_release);
+    }
+    template <typename Member>
+    double integratedFor(Member member) const noexcept
+    {
+        const std::array<float BlockEnergies::*,10> members{
+            &BlockEnergies::dryST,&BlockEnergies::wetST,&BlockEnergies::dryL,&BlockEnergies::wetL,
+            &BlockEnergies::dryR,&BlockEnergies::wetR,&BlockEnergies::dryM,&BlockEnergies::wetM,
+            &BlockEnergies::dryS,&BlockEnergies::wetS};
+        const auto found=std::find(members.begin(),members.end(),member);
+        if(found==members.end())return negativeInfinity();
+        const auto& index=indices[size_t(found-members.begin())];
+        const auto all=index.total();if(!all.count)return negativeInfinity();
+        const auto kept=index.above(.1*all.values[0]/double(all.count));
+        return kept.count && kept.values[0]>0
+            ? -.691+10.*std::log10(kept.values[0]/double(kept.count)) : negativeInfinity();
     }
 
     void recomputeMatch() noexcept
     {
-        // Recalculated when each 100 ms gating block completes. This keeps the
-        // UI Match button ready even if the host stops audio callbacks exactly
-        // at Stop. No filtering/windowing state is changed here.
+        // Message-thread service continues after the host stops its callbacks.
+        // Query indexed sums rather than rescanning the entire programme.
         const auto dryST = integratedFor (&BlockEnergies::dryST);
         const auto wetST = integratedFor (&BlockEnergies::wetST);
         const auto dryL  = integratedFor (&BlockEnergies::dryL);
@@ -330,7 +347,18 @@ private:
     std::array<KWeightingFilter, streamCount> filters;
     std::vector<std::array<float, streamCount>> squareHistory;
     std::array<double, streamCount> runningSums {};
-    std::vector<BlockEnergies> blocks;
+    struct QueuedBlock { BlockEnergies block; uint64_t generation=0; };
+    // Over thirteen minutes of unserviced programme at ten blocks/second.
+    static constexpr size_t queueCapacity=8192;
+    std::vector<QueuedBlock> queue=std::vector<QueuedBlock>(queueCapacity);
+    std::atomic<size_t> writePosition{0},readPosition{0};
+    std::atomic<uint64_t> generation{1};
+    std::atomic<bool> queueOverflow{false};
+    uint64_t consumerGeneration=0;
+    size_t completedBlocks=0;
+    std::array<ExactEnergyIndex<>,10> indices;
+    ExactEnergyIndex<2> mixedIndex;
+    const MatchDb emptyMatch{};
 
     MatchDb latestMatch;
 };

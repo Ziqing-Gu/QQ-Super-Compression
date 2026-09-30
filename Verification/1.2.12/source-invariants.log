@@ -1,0 +1,7 @@
+Base product Source vs 1.2.12 product Source
+Changed product-source files:
+- OutputCeiling.h
+  base: B36E0DB8987C2B15AD9C297B962DF6E15094D068DDA70FBF2687824615B99343
+  new:  8B32924B197B6E5A0ED80530DA85A09F66E9EB07F25DC169E79A27F31F8BF26B
+Count: 1
+Expected: only Source/OutputCeiling.h changes for the TP Ceiling behavior.

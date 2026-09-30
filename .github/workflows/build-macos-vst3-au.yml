@@ -1,4 +1,4 @@
-name: Build macOS VST3 and AU 1.2.8
+name: Build macOS VST3 and AU 1.2.41
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.vst3_arch == 'arm64' && '[{"name":"Apple Silicon (arm64)","runner":"macos-14","expected_arch":"arm64","artifact_name":"QQ-Super-Compression-1.2.8-macOS-Apple-Silicon-VST3"}]' || inputs.vst3_arch == 'x86_64' && '[{"name":"Intel (x86_64)","runner":"macos-15-intel","expected_arch":"x86_64","artifact_name":"QQ-Super-Compression-1.2.8-macOS-Intel-VST3"}]' || '[{"name":"Apple Silicon (arm64)","runner":"macos-14","expected_arch":"arm64","artifact_name":"QQ-Super-Compression-1.2.8-macOS-Apple-Silicon-VST3"},{"name":"Intel (x86_64)","runner":"macos-15-intel","expected_arch":"x86_64","artifact_name":"QQ-Super-Compression-1.2.8-macOS-Intel-VST3"}]') }}
+        include: ${{ fromJSON(inputs.vst3_arch == 'arm64' && '[{"name":"Apple Silicon (arm64)","runner":"macos-14","expected_arch":"arm64","artifact_name":"QQ-Super-Compression-1.2.41-macOS-Apple-Silicon-VST3"}]' || inputs.vst3_arch == 'x86_64' && '[{"name":"Intel (x86_64)","runner":"macos-15-intel","expected_arch":"x86_64","artifact_name":"QQ-Super-Compression-1.2.41-macOS-Intel-VST3"}]' || '[{"name":"Apple Silicon (arm64)","runner":"macos-14","expected_arch":"arm64","artifact_name":"QQ-Super-Compression-1.2.41-macOS-Apple-Silicon-VST3"},{"name":"Intel (x86_64)","runner":"macos-15-intel","expected_arch":"x86_64","artifact_name":"QQ-Super-Compression-1.2.41-macOS-Intel-VST3"}]') }}
 
     steps:
       - name: Check out source
@@ -39,15 +39,20 @@ jobs:
           -DCMAKE_OSX_ARCHITECTURES=${{ matrix.expected_arch }}
           -DQQSC_BUILD_DYNAMICS_CHECK=ON
 
-      - name: Build VST3 and 1.2.8 release checks
-        run: cmake --build build-macos --target QQSuperCompression_VST3 QQSCLimiterCheck QQSCUnityCheck --config Release --parallel 3
+      - name: Build VST3 and 1.2.41 release checks
+        run: cmake --build build-macos --target QQSuperCompression_VST3 QQSCLimiterCheck QQSCUnityCheck QQSCCeilingCheck QQSCReviewCheck --config Release --parallel 3
 
       - name: Verify native Limiter, Unity, Dual algorithms and continuity
         shell: bash
         run: |
-          check_root="$RUNNER_TEMP/qqsc-1.2.8-checks"
+          check_root="$RUNNER_TEMP/qqsc-1.2.41-checks"
+          build-macos/QQSCCeilingCheck_artefacts/Release/QQSCCeilingCheck
+          build-macos/QQSCReviewCheck_artefacts/Release/QQSCReviewCheck "$check_root/review"
           build-macos/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck "$check_root/limiter"
           build-macos/QQSCUnityCheck_artefacts/Release/QQSCUnityCheck "$check_root/unity"
+          build-macos/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck "$check_root/revision1228" revision1228
+          build-macos/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck "$check_root/revision1234" revision1234
+          python3 tests/revision1234_performance_architecture_source_audit.py
           build-macos/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck "$check_root/dual" dual
           build-macos/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck "$check_root/continuity" continuity
 
@@ -57,7 +62,7 @@ jobs:
           vst3='build-macos/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3'
           codesign --force --deep --sign - "$vst3"
           codesign --verify --deep --strict --verbose=2 "$vst3"
-          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$vst3/Contents/Info.plist")" = "1.2.8"
+          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$vst3/Contents/Info.plist")" = "1.2.41"
           vst3_binary=$(find "$vst3/Contents/MacOS" -type f -print -quit)
           test -n "$vst3_binary"
           lipo -archs "$vst3_binary" | tr ' ' '\n' | grep -Fx '${{ matrix.expected_arch }}'
@@ -96,7 +101,7 @@ jobs:
         shell: bash
         run: |
           au='build-macos-au/QQSuperCompression_artefacts/Release/AU/QQ Super Compression.component'
-          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$au/Contents/Info.plist")" = "1.2.8"
+          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$au/Contents/Info.plist")" = "1.2.41"
           codesign --force --deep --sign - "$au"
           codesign --verify --deep --strict --verbose=2 "$au"
           mkdir -p "$HOME/Library/Audio/Plug-Ins/Components"
@@ -114,12 +119,12 @@ jobs:
           printf '%s\n' "$archs"
           printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx arm64
           printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx x86_64
-          ditto -c -k --keepParent "$au" 'QQ-Super-Compression-1.2.8-macOS-Universal-AU.zip'
+          ditto -c -k --keepParent "$au" 'QQ-Super-Compression-1.2.41-macOS-Universal-AU.zip'
 
       - name: Upload packaged AU
         uses: actions/upload-artifact@v4
         with:
-          name: QQ-Super-Compression-1.2.8-macOS-Universal-AU
-          path: QQ-Super-Compression-1.2.8-macOS-Universal-AU.zip
+          name: QQ-Super-Compression-1.2.41-macOS-Universal-AU
+          path: QQ-Super-Compression-1.2.41-macOS-Universal-AU.zip
           if-no-files-found: error
           retention-days: 7

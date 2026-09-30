@@ -79,6 +79,7 @@ void deepMatchChecks()
             const float dry=amplitude*float(std::sin(2*pi*1000*n/48000.)),wet=dry*.1f;
             m.processSample(dry,dry,wet,wet,wet,wet,dry,dry,wet,wet);
         }
+        m.servicePending();
         check(m.getLatestMatch().validST && std::abs(m.getLatestMatch().st-20)<.003,"MATCH still has an absolute low-level gate");
     }
     // Isolated K-weighting / gate checks: both huge attenuation and boost,
@@ -93,6 +94,7 @@ void deepMatchChecks()
             const float wet=dry*gain;
             m.processSample(dry,dry,wet,wet,wet,wet,dry,dry,wet,wet);
         }
+        m.servicePending();
         const auto r=m.getLatestMatch();
         check(r.validST&&r.validL&&r.validR&&r.validM&&r.validS,"Deep MATCH unavailable");
         for(float result:{r.st,r.l,r.r,r.m,r.s})check(std::abs(result-difference)<.003,"Deep MATCH clipped or mismeasured");
@@ -106,11 +108,12 @@ void deepMatchChecks()
             const float dry=absent==1?tone:0,wet=absent==2?tone:0;
             m.processSample(dry,dry,wet,wet,wet,wet,dry,dry,wet,wet);
         }
+        m.servicePending();
         check(!m.hasAnyResult(),"MATCH invents a gain for silence / absent Wet");
     }
     for(int mode:{0,1,2})for(bool sides:{false,true})
     {
-        QQSuperCompressionAudioProcessor p;setupDb(p,0,mode,-120,1,1000);
+        QQSuperCompressionAudioProcessor p;setupDb(p,0,mode,-120,1,qqsc::normalMaximumDownRatio);
         MatchPlayHead head;p.setPlayHead(&head);p.prepareToPlay(48000,256);
         juce::MidiBuffer midi;
         const auto run=[&](int count)
@@ -125,20 +128,21 @@ void deepMatchChecks()
             }
             return energy;
         };
-        run(144000);check(p.hasMatchData()&&p.applyMatchForCurrentMode(),"Processor MATCH did not apply after deep compression");
+        run(144000);p.refreshMatchResults();check(p.hasMatchData()&&p.applyMatchForCurrentMode(),"Processor MATCH did not apply after deep compression");
         const char* id=mode==0?"makeupGainDb":mode==2?"makeupGainLDb":sides?"makeupGainSDb":"makeupGainMDb";
-        check(std::abs(get(p,id)-69.93f)<.02,"Deep processor MATCH compensation is not 69.93dB");
+        check(std::abs(get(p,id)-qqsc::normalMaximumMakeupDb)<.02,"Deep Normal MATCH must respect the current Makeup range");
         const double energy=run(96000);
         // Count samples actually accumulated in the last half.
         const int measured=96000-48128;
-        check(std::abs(10*std::log10(energy/measured/.005))<.03,"MATCH did not restore actual audible RMS");
+        const double expectedDb=-70*(1.0-1.0/qqsc::normalMaximumDownRatio)+qqsc::normalMaximumMakeupDb;
+        check(std::abs(10*std::log10(energy/measured/.005)-expectedDb)<.03,"Normal MATCH residual disagrees with its Makeup cap");
         juce::MemoryBlock state;p.getStateInformation(state);QQSuperCompressionAudioProcessor restored;
         restored.setStateInformation(state.getData(),int(state.getSize()));
         check(std::abs(get(restored,id)-get(p,id))<.01,"Extended Makeup lost in project state");
         p.setPlayHead(nullptr);
     }
-    QQSuperCompressionAudioProcessor trim;setupDb(trim,0,0,-120,1,1);set(trim,"makeupGainDb",-120);
-    check(std::abs(rmsGain(render(trim,.1f),.1)/1e-6-1)<.001,"Negative deep Makeup is accidentally treated as silence");
-    std::cout<<"PASS: MATCH has no absolute gate (-80/-120/-180/-240dB source); +/-119dB K-weighted differences, silence/absent-Wet rejection, actual Classic69.93dB attenuation compensated in ST/LR/M/S within0.03dB; project state and -120dB Makeup.\n";
+    QQSuperCompressionAudioProcessor trim;setupDb(trim,0,0,-120,1,1);set(trim,"makeupGainDb",-qqsc::normalMaximumMakeupDb);
+    check(std::abs(rmsGain(render(trim,.1f),.1)/std::pow(10.,-qqsc::normalMaximumMakeupDb/20.)-1)<.001,"Negative deep Makeup is accidentally treated as silence");
+    std::cout<<"PASS: MATCH has no absolute gate (-80/-120/-180/-240dB source); +/-119dB K-weighted differences, silence/absent-Wet rejection, actual Normal69.65dB attenuation with capped30dB MATCH and verified39.65dB residual in ST/LR/M/S; project state and -30dB Makeup.\n";
 }
 }

@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <limits>
 #include <vector>
 #include "Parameters.h"
 #include "StaticCompressionEngine.h"
@@ -18,7 +19,7 @@ class QQSuperCompressionAudioProcessor final : public juce::AudioProcessor,
                                                 private juce::Timer
 {
 public:
-    QQSuperCompressionAudioProcessor();
+    explicit QQSuperCompressionAudioProcessor(std::unique_ptr<juce::PropertiesFile> initialPreferencesOverride = {});
     ~QQSuperCompressionAudioProcessor() override;
 
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -51,6 +52,21 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() noexcept { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const noexcept { return apvts; }
     qqsc::MeterState& getMeterState() noexcept { return meterState; }
+    // Instance workflow state, saved with the project and independent of A/B.
+    // FULL keeps background analysis running; ECO sleeps this instance's
+    // UI-only analysis whenever its editor is closed. New instances load the
+    // last explicit user choice (first-run fallback FULL); project state wins.
+    bool isEcoMode() const noexcept { return ecoMode.load (std::memory_order_acquire); }
+    void setEcoMode (bool eco);
+    void setEditorOpen (bool open) noexcept { editorOpen.store (open, std::memory_order_release); }
+    bool isEditorOpen() const noexcept { return editorOpen.load (std::memory_order_acquire); }
+    bool shouldRunUiAnalysis() const noexcept { return ! isEcoMode() || isEditorOpen(); }
+    juce::String getPerformanceDiagnostics() const;
+    // Effective Ceiling OS promotes TP+1x to 8x without rewriting the stored
+    // user choice. UI and latency reporting read the same effective setting.
+    int getEffectiveCeilingOversamplingChoice() const noexcept;
+    uint64_t getDisplayProjectionRevision() const noexcept
+    { return displayProjectionRevision.load (std::memory_order_relaxed); }
     void resetTruePeakHold() noexcept;
     juce::UndoManager& getUndoManager() noexcept { return undoManager; }
 
@@ -64,6 +80,8 @@ public:
     // automation on the audio thread. Domain order: ST, L, R, M, S.
     float getBoundaryForDomainDb (bool dual, bool upper, int domain) const noexcept;
     float getDynamicsGainForDomain (float detectorLevel, int domain) const noexcept;
+    void fillDynamicsGainForDomain (const float* detectorLevels, float* gains,
+                                    size_t count, int domain) const noexcept;
     // UI-only explicit edit, including when JUCE's raw value has not caught up
     // with a pushed companion yet. Caller owns the surrounding host gesture.
     void setBoundaryForDomainDb (bool dual, bool upper, int domain, float value);
@@ -74,6 +92,11 @@ public:
     bool isLimiterMode() const noexcept { return apvts.getRawParameterValue (qqsc::params::limiterMode)->load() >= 0.5f; }
     // Selection is saved with the sound; the output guard only acts in Limiter.
     bool isTruePeakSelected() const noexcept { return apvts.getRawParameterValue (qqsc::params::truePeakLimiting)->load() >= 0.5f; }
+    int getTpRecoveryMode() const noexcept
+    {
+        return juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),
+            juce::roundToInt(apvts.getRawParameterValue(qqsc::params::tpRecoveryMode)->load()));
+    }
     bool isUnityMonitorEnabled() const noexcept { return unityMonitor.load(std::memory_order_relaxed); }
     bool isUnityMonitorActive() const noexcept { return isLimiterMode() && isUnityMonitorEnabled(); }
     void setUnityMonitorEnabled(bool enabled);
@@ -88,10 +111,12 @@ public:
     void setCompressionModeFromEditor (int mode);
     float getBoundaryForBankDb (int bank, bool upper, int domain) const noexcept;
     float getActiveOutputGainDb() const noexcept;
-    // Mixed reference is reserved for calibration/MATCH; control linking uses wet only.
+    // Fixed-level reference retained for MATCH/calibration helpers; Limiter UI LINK is strict 1:1 dB.
     float getLimiterReferencePeakDb (float downThresholdShift = 0.0f, bool includeMix = true) const noexcept;
     float getLimiterLinkReferencePeakDb(float shift = 0.0f) const noexcept
-    { return getLimiterReferencePeakDb(shift, false); }
+    { return getLimiterReferencePeakDb(shift, true); }
+    bool isRestoringSoundState() const noexcept
+    { return restoringDynamicsState.load(std::memory_order_acquire); }
     float effectiveSingleRatio (size_t domain) const noexcept;
     bool isClassicAlgorithm() const noexcept { return readSoundParameter(qqsc::params::algorithmMode) < 0.5f; }
     bool isClassicBoundary(bool upper) const noexcept
@@ -124,6 +149,7 @@ public:
     {
         uint64_t generation = 0;
         uint64_t counter = 0;
+        double sampleRate = 44100.0;
     };
 
     struct DisplayKeyHistorySnapshot
@@ -155,12 +181,15 @@ public:
     // absolute gate (not a strict EBU R128 integrated meter). During
     // host playback the processor measures Dry vs compressed Wet pre-Makeup in
     // ST, LR and MS domains simultaneously. Match writes the relevant Makeup.
+    // Message-thread/offline-driver service; never call from the audio callback.
+    void refreshMatchResults();
     bool hasMatchData() const noexcept;
     bool applyMatchForCurrentMode();
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout (const std::atomic<bool>* classicForText = nullptr);
 
 private:
+    friend struct QQSCReviewCheck;
     struct DisplayKeyHistoryStorage;
     void parameterChanged (const juce::String&, float) override;
     void timerCallback() override;
@@ -171,6 +200,10 @@ private:
     // Packed float pairs allow one atomic transition for both boundaries, with
     // no allocations, locks or recursive host calls on an automation callback.
     std::array<std::atomic<uint64_t>, 20> boundaryPairs {};
+    // Every host/UI parameter change advances one cheap revision. DynamicDisplay
+    // uses it to invalidate retrospective projection caches without polling and
+    // re-rendering the full history unconditionally at 60 Hz.
+    std::atomic<uint64_t> displayProjectionRevision { 1 };
     // Publish a new Limiter Single/Dual selection only after its destination
     // boundaries are ready. Host automation never waits for an editor/timer.
     std::atomic<int> limiterCompressionModeForAudio { 0 };
@@ -236,9 +269,11 @@ private:
         bool limiterInitialised = false;
         bool domainLink = true, dualRatioLink = true, inputOutputLink = true;
         bool limiterMode = false, limiterLink = true, truePeakLimiting = true;
+        int tpRecoveryMode = qqsc::params::tpAuto;
+        int ceilingOversampling = qqsc::params::ceiling8x;
         float ceilingDb = 0.0f, limiterOutputDb = 0.0f, limiterCalibrationDb = 0.0f;
         float lookaheadMs = 26.0f;
-        int oversampling = 1;
+        int oversampling = qqsc::params::os8x;
         int mode = qqsc::params::stereoLinked;
         int keySource = qqsc::params::keyInternal;
         float keyGainDb = 0.0f;
@@ -276,9 +311,12 @@ private:
     void resetKeyHighPassState() noexcept;
     void updateKeyHighPassCoefficients (float cutoffHz) noexcept;
     void resetAllProcessingState() noexcept;
+    void resumeFromEcoTransportStop(bool forceBypass) noexcept;
     juce::dsp::Oversampling<float>& getCurrentOversampler() noexcept;
     int getOversamplingLatencySamples (int oversamplingIndex) const noexcept;
     int getCombinedLatencySamples (float requestedLookaheadMs, int oversamplingIndex) const noexcept;
+    bool shouldShareCeilingOversampling (int coreFactor, int ceilingChoice, int lookaheadSamplesBase) const noexcept;
+    int getCurrentCeilingAdditionalLatency() const noexcept;
 
     void resetMatchAccumulator() noexcept;
     void updateMatchResults() noexcept;
@@ -307,27 +345,29 @@ private:
     qqsc::OutputCeiling outputCeiling;
     std::vector<std::array<float,9>> ceilingReferenceDelay;
     size_t ceilingReferenceIndex=0;
+    int ceilingReferenceDelaySamples=0;
+    bool currentCeilingSharesCoreOversampling=false;
+    int currentCeilingOversamplingChoice=qqsc::params::ceiling8x;
     float truePeakHold = -120.0f;
     int64_t truePeakRemaining = 0;
     std::atomic<bool> truePeakResetRequested { false };
     void updateTruePeakMeter (int numSamples);
+    void updateTruePeakHold (float db, int numSamples);
     std::atomic<bool> unityMonitor { false };
     juce::SmoothedValue<float> unityMonitorFade, unityOutputSmoother, bypassFade;
     bool bypassInitialised=false;
     int unityMatchSettling=0;
-    size_t unityMixLastBlocks=0;
-    float unityMakeupDelta=0;
 
     // 0.1.10: Oversampling is deliberately a Lookahead=0 ms-only option.
-    // User-facing choices are 1x/8x/16x; 10 ms and longer always use the 1x
-    // path regardless of the stored 0 ms choice. All three paths are created
+    // User-facing choices are 1x/4x/8x/16x; 10 ms and longer always use the 1x
+    // path regardless of the stored 0 ms choice. All four paths are created
     // ahead of time so switching never constructs filters on the audio thread.
-    // Index 0 is JUCE's dummy 1x stage; indices 1/2 are 8x/16x maximum-quality
+    // Index 0 is JUCE's dummy 1x stage; indices 1/2/3 are 4x/8x/16x high-quality
     // linear-phase FIR stages with integer latency compensation enabled.
-    std::array<std::unique_ptr<juce::dsp::Oversampling<float>>, 3> oversamplers;
+    std::array<std::unique_ptr<juce::dsp::Oversampling<float>>, 4> oversamplers;
     juce::AudioBuffer<float> wetBaseBuffer;
     // Six-channel staging keeps main L/R and optional Key L/R explicit before
-    // the shared 1x/8x/16x Oversampling stage. Key channels are overwritten by
+    // the shared 1x/4x/8x/16x Oversampling stage. Key channels are overwritten by
     // wet variants only after the detector has consumed them.
     juce::AudioBuffer<float> oversamplingInputBuffer;
     juce::AudioBuffer<float> keyInputBuffer;
@@ -364,8 +404,42 @@ private:
     int currentKeySource = -1;
     int currentOversamplingFactor = 1;
     int currentTotalLatencySamples = 0;
+    bool currentLimiterCeilingActive = false;
     int configuredMaximumBlockSize = 1;
     double currentSampleRate = 44100.0;
+    std::atomic<bool> ecoMode { false };
+    std::atomic<bool> editorOpen { false };
+    bool previousUiAnalysisEnabled = true;
+    // FULL retains exact-zero/tail-safe idle processing. ECO additionally
+    // mutes/suspends on a known stopped transport, independent of input level.
+    bool ecoTransportSuspended = false;
+    int64_t stoppedSilentSamples = 0;
+    uint64_t stoppedSilenceRevision = 0;
+    bool stoppedDspSleeping = false;
+    uint64_t stoppedFastPathBlocks = 0;
+    struct IdleInputDiagnostics
+    {
+        float mainPeak=0.0f, externalPeak=0.0f;
+        uint64_t nonFiniteSamples=0;
+        bool externalSelected=false;
+        int externalChannels=0;
+    };
+    static float measureInputPeak(const juce::AudioBuffer<float>&, int channels, uint64_t& nonFinite) noexcept;
+    struct PerformanceWindow
+    {
+        std::atomic<uint64_t> blocks {0}, ticks {0}, sleepBlocks {0}, zeroBlocks {0}, playingBlocks {0}, unknownBlocks {0};
+        std::atomic<int> blockSize {0}, coreFactor {1}, ceilingFactor {1}, idleGate {0};
+        std::atomic<uint64_t> stoppedInputBlocks {0}, nonFiniteSamples {0};
+        std::atomic<float> mainPeakMin {0}, mainPeakMax {0}, externalPeakMin {0}, externalPeakMax {0};
+        std::atomic<int> selectedKey {0}, externalChannels {0};
+    };
+    // Last uninterrupted visit to each FULL/ECO x editor open/closed state.
+    // Closed-window measurements remain readable after the editor reopens.
+    std::array<PerformanceWindow, 4> performanceWindows;
+    int performancePhase = -1;
+    void recordPerformanceBlock(int phase, int64_t start, int samples, bool zero,
+                                bool playing, bool known, bool sleeping, int idleGate, const IdleInputDiagnostics&) noexcept;
+    std::atomic<bool> latencyRefreshPending { false };
 
     // Parameter smoothing only prevents zipper noise while controls move. It is
     // not the compressor's user Attack/Release behaviour.
@@ -424,6 +498,7 @@ private:
     ParameterSnapshot snapshotA;
     ParameterSnapshot snapshotB;
     std::atomic<int> activeABSlot { 0 };
+    std::atomic<uint64_t> matchGeneration { 0 }, matchPublishedGeneration { 0 };
 
     // v1.0.3: final audible-only centered monitor state. Keep LR and MS
     // selections independent so changing processing mode never silently maps

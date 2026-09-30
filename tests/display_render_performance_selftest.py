@@ -6,7 +6,7 @@ cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
 header = (root / "Source" / "DynamicDisplay.h").read_text(encoding="utf-8")
 source = (root / "Source" / "DynamicDisplay.cpp").read_text(encoding="utf-8")
 
-assert "VERSION 1.2.3" in cmake
+assert any(f"VERSION 1.2.{v}" in cmake for v in range(28, 100))
 
 # Keep the previous eight-second history while doubling temporal resolution.
 assert "displayRefreshHz = 60" in header
@@ -47,4 +47,4 @@ assert "g.fillAll (qqsc::ui::canvas())" in source
 assert "hpfAutomationStableTicks = 4" in header
 assert "hpfRetryDelayTicks = 4" in header
 
-print("PASS: v1.1.5 cached 60 Hz Display rendering and bounded GR shading.")
+print("PASS: cached 60 Hz Display rendering and bounded GR shading remain present in 1.2.28+.")

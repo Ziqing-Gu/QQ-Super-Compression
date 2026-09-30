@@ -1,0 +1,15 @@
+{
+  "version": "1.2.17",
+  "status": "source candidate; Windows VST3 build/Cubase verification pending",
+  "baseline": {
+    "name": "QQSC-1.2.15-TP-Visual-Telemetry-Optimized-BuildFix1-Source.zip",
+    "sha256": "5A876BB98DD04D9E624CF23D8CEA5D7BD6D1C3A4E605F192760C45AE2BF3F5B3"
+  },
+  "changes": [
+    "restore retrospective Dynamic Display projection",
+    "retrospective TP display from inter-sample shape evidence",
+    "Normal Input/Output +/-24 dB",
+    "retain exact TP GR in GAIN +/- meter and Hold"
+  ],
+  "build_default": "D:\\Codex\\Temp\\QQSC1217-Build"
+}

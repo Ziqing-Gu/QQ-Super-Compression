@@ -1,0 +1,46 @@
+{
+  "version": "1.2.40",
+  "channel": "Candidate",
+  "recorded_at": "2026-10-01T04:43:47.332813+08:00",
+  "source": "D:\\Codex\\Workspaces\\QQSC-1.2.34-Review-Fixes",
+  "output_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.40-Windows-Candidate\\QQ Super Compression.vst3",
+  "bundle": [
+    {
+      "path": "Contents/Resources/moduleinfo.json",
+      "bytes": 1118,
+      "sha256": "98C05B1D98961818DFF8AD1016856EA5DE1D26380D11459F7EEF366AF3C82563"
+    },
+    {
+      "path": "Contents/x86_64-win/QQ Super Compression.vst3",
+      "bytes": 10700288,
+      "sha256": "FC5A0132E3456E446D36F0250F8A170269EA6F28F06D9A9BD5D745BEDEF758EF"
+    }
+  ],
+  "changes": [
+    "stopped raw main/selected external-key peak ranges and nonfinite counters",
+    "no silence threshold or audio sample change"
+  ],
+  "checks": {
+    "focused_input_diagnostics": "pass",
+    "diagnostics_UI_and_preferences": "pass",
+    "renders": [
+      1008,
+      1200,
+      1800
+    ],
+    "minimum_size_render_review": "readable panel text and buttons",
+    "source_architecture_audit": "pass",
+    "build_output_hash_parity": true,
+    "Cubase": "User report confirms persistent main-input block peak 1e-10 (-200 dBFS); INT key, no external bus, zero sleep; ECO closed 7749.3 us/block and open 8114.3 us/block at N=1024, 16x/16x. Silent-load issue remains unresolved. See Cubase-user-report.json."
+  },
+  "installation": {
+    "status": "installed_hash_verified",
+    "installed_at": "2026-10-01T04:45:01.377290+08:00",
+    "path": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+    "backup": "D:\\Codex\\Archives\\QQSC-1.2.39-before-1.2.40-20261001-044501\\QQ Super Compression.vst3",
+    "files": 2,
+    "host_check": "No listed audio host processes; exclusive installed-binary read check passed before copy",
+    "build_output_installed_hash_parity": true
+  },
+  "release_plans": "B/C/D not resumed"
+}

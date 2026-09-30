@@ -1,0 +1,17 @@
+{
+  "version": "1.2.41",
+  "channel": "Stable",
+  "status": "promoted_by_explicit_user_instruction",
+  "recorded_at_utc": "2026-09-30T22:12:47.170714+00:00",
+  "Windows_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.41-Windows-Stable\\QQ Super Compression.vst3",
+  "Windows_binary_sha256": "D36B604DA0E2A274DA66A28D40CC17D7746ECDF6004D02894BA1092E599DDC52",
+  "moduleinfo_sha256": "64E7B48934FFEC9E08A6250D9BDB8F58024453EE685EBCD386E9145BAA089AE9",
+  "Chinese_manual_sha256": "89A740E2124723CB200FCF687E5C0639A59F743C47F0DA13DCD44011403A532B",
+  "English_manual_sha256": "87F7638F036BEAB4BC1BA6A872A73CC826C2C0051C7ED30491221F29838A438A",
+  "manual_pages": 41,
+  "validation": "Verification/1.2.41-Windows/validation-report.json",
+  "installed_binary_parity_verified": true,
+  "host_validation_scope": "Windows automatic tests passed; no user Cubase 1.2.41 listening or ASIO-Guard report was supplied",
+  "previous_1.2.36_stable_record": "Withdrawn; preserved historically",
+  "release_plans": "Plan B/C/D requested; completion must be verified separately"
+}

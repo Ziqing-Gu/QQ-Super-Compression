@@ -1,0 +1,3 @@
+NEGATIVE CONTROL: restore only baseline void QQSuperCompressionAudioProcessor::enterLimiterMode into otherwise-current harness
+Compiling actual source functions: /mnt/data/qqsc_work/QQSuperCompression-1.2.9-Independent-Banks-Full-Link
+FAIL: first entry copied limiterAlgorithmMode

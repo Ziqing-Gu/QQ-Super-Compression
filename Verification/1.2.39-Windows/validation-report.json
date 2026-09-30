@@ -1,0 +1,51 @@
+{
+  "version": "1.2.39",
+  "channel": "Candidate",
+  "recorded_at": "2026-10-01T04:23:49.136962+08:00",
+  "source": "D:\\Codex\\Workspaces\\QQSC-1.2.34-Review-Fixes",
+  "output_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.39-Windows-Candidate\\QQ Super Compression.vst3",
+  "bundle": [
+    {
+      "path": "Contents/Resources/moduleinfo.json",
+      "bytes": 1118,
+      "sha256": "B9252742A1E5DBF9544BB7BC1CB1872181B1B02784426F994D1B6ADBB97CBD9C"
+    },
+    {
+      "path": "Contents/x86_64-win/QQ Super Compression.vst3",
+      "bytes": 10694144,
+      "sha256": "D777C9FA1A324CCE8471CA1FFBB9F7FC07E1C6287AC4D7B926773C3884AF39AC"
+    }
+  ],
+  "changes": [
+    "editor-owned TooltipWindow and stable hover text",
+    "right-click FULL/ECO diagnostic panel with frozen selectable/copyable snapshots",
+    "remember last explicit FULL/ECO choice for newly constructed instances only"
+  ],
+  "checks": {
+    "focused_diagnostic_UI_and_preferences": "pass",
+    "renders": [
+      1008,
+      1200,
+      1800
+    ],
+    "audio_callback_and_diagnostics_counter_code": "unchanged from 1.2.38",
+    "detector_ceiling_AB_LimiterMode_source_hashes": "unchanged from 1.2.38",
+    "preferences_test_files": "isolated under D drive; real user defaults not changed by tests",
+    "final_render_files": [
+      "final-diagnostics-1008.png",
+      "final-diagnostics-1200.png",
+      "final-diagnostics-1800.png"
+    ],
+    "source_architecture_audit": "pass",
+    "final_render_review": "panel, text, Copy report, Refresh and Close readable at minimum size"
+  },
+  "Cubase": "User supplied report: ECO closed 7619.1 us/block, N=1024, core/ceiling 16x/16x, 983 blocks, exact zero/sleep/playing/unknown all 0%; last gate nonzero input. Open 8449.9 us/block, 180 blocks, same gate. Amplitude/source unmeasured; silent-load issue unresolved.",
+  "installation": {
+    "status": "installed_hash_verified",
+    "installed_at": "2026-10-01T04:27:35.026258+08:00",
+    "path": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+    "backup": "D:\\Codex\\Archives\\QQSC-1.2.38-before-1.2.39-20261001-042734\\QQ Super Compression.vst3",
+    "files": 2
+  },
+  "release_plans": "B/C/D not resumed"
+}

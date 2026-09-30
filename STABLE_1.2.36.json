@@ -1,0 +1,16 @@
+{
+  "version": "1.2.36",
+  "channel": "Withdrawn",
+  "status": "withdrawn_user_reported_stopped_silence_load",
+  "confirmed_by": "User instructed Stable, then Plan B, then Plan C and D",
+  "recorded_at": "2026-10-01T01:56:57.251244+08:00",
+  "Windows_binary_sha256": "4502CC98F5A70E90A1F46334E109E0B3A56AE18F1745DCE6C2D8E15A848D08C6",
+  "Chinese_manual_sha256": "5A1C4F14E4D85DE3CD3F3BA4D7EB278B46D8C4051350BADBE3BCAF42B359EED8",
+  "English_manual_sha256": "1A21B5392CE70F3630592E2BF944742E47A41BFA4C23FB5052B15207E895771B",
+  "manual_pages": 41,
+  "validation": "Verification/1.2.36-Windows/validation-report.json",
+  "host_validation_scope": "Saved automatic checks; no new Cubase listening or ASIO-Guard measurement in this release stage",
+  "previous_status": "user_confirmed_Stable_Windows_validation_verified",
+  "release": "Plan B not executed; Plan C and D cancelled by user",
+  "candidate": "1.2.37 stopped-silence fix pending Cubase verification"
+}

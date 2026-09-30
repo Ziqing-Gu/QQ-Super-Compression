@@ -1,0 +1,19 @@
+{
+  "version": "1.2.35",
+  "installed": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+  "output": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.35-Instance-Eco-Silence\\QQ Super Compression.vst3",
+  "rollback": "D:\\Codex\\Archives\\QQSC-1.2.34-before-1.2.35-20260930-212800\\QQ Super Compression.vst3",
+  "files": [
+    {
+      "path": "Contents\\Resources\\moduleinfo.json",
+      "sha256": "0FF8D44AD6409FAC5DD0BF898FD9BAEB2D0EDCA7DF647A7457B78F692B83AC0E",
+      "bytes": 1118
+    },
+    {
+      "path": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+      "sha256": "015897A5705922553DCA9455C876DDFD6DD735F9B3DD147DB2D07D68A814729A",
+      "bytes": 10672640
+    }
+  ],
+  "hosts_closed": true
+}

@@ -21,6 +21,9 @@ struct Session
         for(const auto* id:qqsc::params::rangeIds)set(p,id,1);
         for(const auto* id:qqsc::params::ratioIds)set(p,id,20);
         p.enterLimiterMode();
+        set(p,p.soundParameterID("algorithmMode"),float(algo));set(p,p.soundParameterID("processingMode"),float(mode));
+        for(const auto* id:qqsc::params::rangeIds)set(p,p.soundParameterID(id),1);
+        for(const auto* id:qqsc::params::ratioIds)set(p,p.soundParameterID(id),20);
         for(int d=0;d<5;++d)p.setBoundaryForDomainDb(false,false,d,-26);
         set(p,"limiterOutputDb",18);set(p,"limiterCalibrationDb",0);set(p,"ceilingDb",-3);
         set(p,p.soundParameterID("inputGainDb"),4);
@@ -53,7 +56,20 @@ struct Session
                 }
             offset+=count;
         }
+        measurement.servicePending();p.refreshMatchResults();
         return measurement.getLatestMatch().st;
+    }
+};
+
+struct QQSCReviewCheck
+{
+    static void matchDiagnostic(QQSuperCompressionAudioProcessor& p)
+    {
+        std::cout<<"MATCH NOT READY counts="<<p.loudnessMatch.getBlockCount()<<","<<p.unityMixMatch.getBlockCount()
+            <<" reset="<<p.resetMatchOnNextPlaybackBlock.load()<<" ready="<<p.matchReady.load()
+            <<" generation="<<p.matchGeneration.load()<<","<<p.matchPublishedGeneration.load()
+            <<" valid="<<p.loudnessMatch.getLatestMatch().validST<<" unity="<<p.isUnityMonitorActive()
+            <<" settling="<<p.unityMatchSettling<<" ab="<<p.abActive<<"\n";
     }
 };
 
@@ -116,7 +132,10 @@ void unityAudioChecks()
     {
         QQSuperCompressionAudioProcessor p;baseline(p);set(p,"algorithmMode",float(algo));set(p,"processingMode",float(mode));
         for(const auto* id:qqsc::params::ratioIds)set(p,id,1);
-        p.enterLimiterMode();set(p,"limiterCalibrationDb",0);set(p,"limiterOutputDb",gain);set(p,"ceilingDb",-1);
+        p.enterLimiterMode();
+        set(p,p.soundParameterID("algorithmMode"),float(algo));set(p,p.soundParameterID("processingMode"),float(mode));
+        for(const auto* id:qqsc::params::rangeIds)set(p,p.soundParameterID(id),1);
+        for(const auto* id:qqsc::params::ratioIds)set(p,p.soundParameterID(id),20);set(p,"limiterCalibrationDb",0);set(p,"limiterOutputDb",gain);set(p,"ceilingDb",-1);
         set(p,"truePeakLimiting",1);const auto normal=render(p,2,127,false,12000,48000,.7f);
         p.setUnityMonitorEnabled(true);const auto monitored=render(p,2,127,false,12000,48000,.7f);
         const double factor=std::pow(10.,-gain/20.);
@@ -155,6 +174,7 @@ void QQSCUnityCheck::matchChecks(const juce::File& root)
         juce::PropertiesFile::Options opts;opts.applicationName="MatchLinkCheck";opts.storageFormat=juce::PropertiesFile::storeAsXML;
         QQSuperCompressionAudioProcessorEditor editor(s.p,std::make_unique<juce::PropertiesFile>(root.getChildFile("match.settings"),opts));
         const double before=s.run(4);
+        if(!s.p.hasMatchData())QQSCReviewCheck::matchDiagnostic(s.p);
         check(s.p.hasMatchData(),"Post-ceiling MATCH not ready");
         editor.matchButton.onClick();
         check(std::abs(get(s.p,"limiterOutputDb")+s.p.getLimiterReferencePeakDb()+get(s.p,"limiterCalibrationDb"))<.011,

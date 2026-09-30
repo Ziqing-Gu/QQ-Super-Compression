@@ -55,20 +55,24 @@ void peakGuardProcessorChecks()
         std::cout<<"Steady sine "<<frequency<<" Hz TP="<<tp<<" THD(2..7)="<<thd<<" dB\n";
         check(thd < -85,"Unexpected steady-sine harmonic distortion from final guard");
     }
-    qqsc::OutputCeiling guard;guard.prepare(48000,true,false,-1);
+    // OutputCeiling is Limiter-only in 1.2.28. Exercise only the switches that
+    // remain internal to the prepared Ceiling pipeline: TP and Ceiling value.
+    // Limiter ON/OFF itself is covered above through the real processor, where
+    // changing mode is allowed to rebuild host PDC.
+    qqsc::OutputCeiling guard;guard.prepare(48000.0,false,-1.0f);
     float last=0;double maxDelta=0;
     const auto begin=juce::Time::getMillisecondCounterHiRes();
     for(int i=0;i<48000*5;++i)
     {
-        if(i==48000)guard.set(true,true,-1);
-        if(i==96000)guard.set(true,false,-1);
-        if(i==144000)guard.set(false,true,-24);
-        if(i==192000)guard.set(true,true,-1);
+        if(i==48000)guard.set(true,-1.0f);
+        if(i==96000)guard.set(false,-1.0f);
+        if(i==144000)guard.set(true,-24.0f);
+        if(i==192000)guard.set(true,-1.0f);
         const float y=guard.process(2,1)[0];
         if(i>4800)maxDelta=std::max(maxDelta,std::abs(double(y-last)));
         last=y;
     }
     const auto ms=juce::Time::getMillisecondCounterHiRes()-begin;
-    check(maxDelta<.015,"TP/Limiter switching made an abrupt step");
-    std::cout<<"PASS: TP/Limiter/Ceiling transitions, max adjacent DC delta="<<maxDelta<<"; 5s stereo guard CPU wall="<<ms<<"ms.\n";
+    check(maxDelta<.015,"TP/Ceiling switching made an abrupt step");
+    std::cout<<"PASS: TP/Ceiling transitions inside the fixed Limiter pipeline, max adjacent DC delta="<<maxDelta<<"; 5s stereo guard CPU wall="<<ms<<"ms.\n";
 }

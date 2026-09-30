@@ -1,0 +1,560 @@
+--- 1.2.8/Source/DynamicsLimits.h
++++ 1.2.9/Source/DynamicsLimits.h
+@@ -2,6 +2,7 @@
+ 
+ namespace qqsc
+ {
++inline constexpr float normalMaximumMakeupDb = 30.0f;
+ inline constexpr float maximumMakeupDb = 120.0f;
+ inline constexpr float classicThresholdMinimumDb = -90.0f;
+ inline constexpr float classicThresholdMinimumGain = 3.162277660168379e-5f; // -90 dB
+--- 1.2.8/Source/LimiterEditor.cpp
++++ 1.2.9/Source/LimiterEditor.cpp
+@@ -35,13 +35,13 @@
+     unityMonitorButton.setTitle("1:1 Monitor");
+     unityMonitorButton.getProperties().set("qqscSmallLink",true);
+     unityMonitorButton.getProperties().set("qqscHeadphones",true);
+-    unityMonitorButton.setTooltip("1:1 Monitor: cancel Output Gain after the complete limiter and Ceiling. Threshold/Makeup links remain active. Use MATCH, then Bypass for a loudness comparison. Saved with this project, independent of A/B.");
++    unityMonitorButton.setTooltip("1:1 Monitor: cancel Output Gain after the complete limiter and Ceiling. Threshold/Ratio/Makeup/Mix links remain active. Use MATCH, then Bypass for a loudness comparison. Saved with this project, independent of A/B.");
+     unityMonitorButton.onClick=[this]
+     {
+         processor.setUnityMonitorEnabled(!processor.isUnityMonitorEnabled());
+         updateLimiterUi();
+     };
+-    limiterLinkButton.setTooltip ("Link only DOWN Threshold and Makeup to Output in opposite directions. Ratio, Mix, Input, algorithm, channel mode and branch switches never adjust Output. UP gate is not linked. GUI edits record both parameters; automate both recorded lanes.");
++    limiterLinkButton.setTooltip ("Link DOWN Threshold, Ratio, Makeup and Mix to Output using the complete fixed-level reference. UP Ratio may require zero compensation. Input, UP gate, algorithm, mode and branch switches do not adjust Output. GUI edits record companion lanes; replay/automate all recorded lanes. Not LUFS matching.");
+     limiterButton.onClick = [this]
+     {
+         finishCompressionControlGestures(); beginUndoTransaction ("Limiter Mode");
+@@ -52,7 +52,7 @@
+     };
+     limiterLinkButton.onClick = [this]
+     {
+-        finishCompressionControlGestures(); beginUndoTransaction ("Down Threshold / Output Link");
++        finishCompressionControlGestures(); beginUndoTransaction ("Limiter Output Link");
+         setChoiceParameter (qqsc::params::limiterLink,processor.isLimiterLinked() ? 0 : 1);
+         // Enabling LINK preserves the current pair, including saved/manual offsets.
+         updateLimiterUi(); captureLimiterLinkAnchor();
+@@ -145,25 +145,17 @@
+         endLinkedGesture(); limiterOutputGesture=false;
+         return result;
+     };
+-    // Output has an explicit edit whitelist: DOWN Threshold (in
+-    // handleBoundaryChange) and Makeup here. Never reconcile after a Ratio,
+-    // algorithm, channel/mode, branch-enable or Mix edit.
+-    const auto linkMakeup=[this] (FineKnob& slider)
+-    {
+-        slider.onBeforeValueEdit=[this]()
+-        {
+-            if(limiterUpdating || !limiterControlsReady) return;
+-            captureLimiterLinkAnchor();
+-        };
+-        auto original=slider.onValueChange;
+-        slider.onValueChange=[this,&slider,original]
+-        {
+-            if(original) original();
+-            if(!limiterUpdating && (slider.hasActiveNativeGesture() || activeLinkSource==&slider))
+-                reconcileLimiterOutput();
+-        };
+-    };
+-    for(auto* slider : { &makeupSTSlider,&makeupLSlider,&makeupRSlider,&makeupMSlider,&makeupSSlider }) linkMakeup(*slider);
++    // These formatters also survive rebinding. A formatter capturing the
++    // original Normal parameter would display Limiter values above 30 as 30.
++    for (auto* slider : { &makeupSTSlider,&makeupLSlider,&makeupRSlider,&makeupMSlider,&makeupSSlider })
++        slider->textFromValueFunction = [] (double value) { return juce::String(value, 2); };
++    // Whitelist only explicit edits. Mode/algorithm/branch switches, host
++    // playback and state/Undo restoration do not create fresh compensation.
++    for (auto* slider : { &makeupSTSlider,&makeupLSlider,&makeupRSlider,&makeupMSlider,&makeupSSlider,
++                          &mixSlider,&mixLSlider,&mixRSlider,&mixMSlider,&mixSSlider })
++        linkLimiterReferenceControl(*slider);
++    for (auto* slider : mainRatioControls()) linkLimiterReferenceControl(*slider);
++    for (auto& slider : downRatioSliders) linkLimiterReferenceControl(*slider);
+     // MATCH owns its mixed-signal correction inside the processor. Do not
+     // follow it with an unrelated control-reference reconciliation.
+     limiterControlsReady=true;
+@@ -269,9 +261,75 @@
+     refreshCeilingValue();
+ }
+ 
++void QQSuperCompressionAudioProcessorEditor::linkLimiterReferenceControl(FineKnob& slider)
++{
++    const auto originalBefore = slider.onBeforeValueEdit;
++    const auto originalStart = slider.onGestureStart;
++    const auto originalEnd = slider.onGestureEnd;
++    const auto originalChange = slider.onValueChange;
++    slider.onBeforeValueEdit = [this, originalBefore]
++    {
++        if (originalBefore) originalBefore();
++        if (!limiterUpdating && limiterControlsReady && !limiterReferenceEditInProgress)
++            captureLimiterLinkAnchor();
++    };
++    slider.onGestureStart = [this, &slider, originalStart]
++    {
++        if (originalStart) originalStart();
++        captureLimiterLinkAnchor();
++        limiterReferenceGestureSource = &slider;
++        if (limiterLinkAnchorValid)
++        {
++            auto* output = processor.getAPVTS().getParameter(qqsc::params::limiterOutputDb);
++            if (std::find(companionGestureParameters.begin(), companionGestureParameters.end(), output)
++                == companionGestureParameters.end())
++            {
++                output->beginChangeGesture();
++                companionGestureParameters.push_back(output);
++            }
++        }
++    };
++    slider.onGestureEnd = [this, originalEnd]
++    {
++        if (originalEnd) originalEnd();
++        endLinkedGesture();
++    };
++    slider.onValueChange = [this, &slider, originalChange]
++    {
++        // Linked members and float-normalisation callbacks must not each drive
++        // Output. The outer edit publishes the entire group before one reconcile.
++        if (limiterReferenceEditInProgress || linkedValueUpdateInProgress || dualRatioValueUpdateInProgress)
++            return;
++        if (limiterUpdating || !limiterControlsReady || processor.isRestoringSoundState()
++            || processor.getUndoManager().isPerformingUndoRedo())
++            return;
++        const bool explicitEdit = slider.hasActiveNativeGesture() || activeLinkSource == &slider
++            || limiterReferenceGestureSource == &slider;
++        if (!explicitEdit || !processor.isLimiterLinked())
++        {
++            if (originalChange) originalChange();
++            return;
++        }
++        const juce::ScopedValueSetter<bool> editGuard(limiterReferenceEditInProgress, true);
++        if (originalChange) originalChange();
++        // JUCE attachment callbacks may be nested during logarithmic clamping.
++        // Ensure the final (possibly group-clamped) source reaches the parameter
++        // before measuring; never use the raw uncommitted requested value.
++        const auto id = slider.getProperties()["qqscParameterID"].toString();
++        if (auto* parameter = processor.getAPVTS().getParameter(id))
++        {
++            const auto normalised = parameter->convertTo0to1(static_cast<float>(slider.getValue()));
++            if (parameter->getValue() != normalised)
++                parameter->setValueNotifyingHost(normalised);
++        }
++        reconcileLimiterOutput();
++    };
++}
++
+ void QQSuperCompressionAudioProcessorEditor::captureLimiterLinkAnchor()
+ {
+-    limiterLinkAnchorValid=processor.isLimiterLinked() && !limiterUpdating;
++    limiterLinkAnchorValid=processor.isLimiterLinked() && !limiterUpdating
++        && !processor.isRestoringSoundState() && !processor.getUndoManager().isPerformingUndoRedo();
+     if(!limiterLinkAnchorValid) return;
+     limiterLinkReference=processor.getLimiterLinkReferencePeakDb();
+     limiterLinkOutput=processor.readSoundParameter(qqsc::params::outputGainDb);
+@@ -279,7 +337,8 @@
+ 
+ void QQSuperCompressionAudioProcessorEditor::reconcileLimiterOutput()
+ {
+-    if(limiterUpdating || !processor.isLimiterLinked() || !limiterLinkAnchorValid) return;
++    if(limiterUpdating || !processor.isLimiterLinked() || !limiterLinkAnchorValid
++        || processor.isRestoringSoundState() || processor.getUndoManager().isPerformingUndoRedo()) return;
+     const juce::ScopedValueSetter<bool> guard(limiterUpdating,true);
+     const auto next=limiterLinkOutput+limiterLinkReference-processor.getLimiterLinkReferencePeakDb();
+     auto* p=processor.getAPVTS().getParameter(qqsc::params::limiterOutputDb);
+@@ -314,7 +373,7 @@
+     float lo=-120,hi=120;
+     if(std::abs(processor.getLimiterLinkReferencePeakDb(hi)-processor.getLimiterLinkReferencePeakDb(lo))<1.e-6f)
+     {
+-        // A unity/upward Ratio, disabled Down branch or finite Range may
++        // Mix 0%, a unity/upward Ratio, disabled Down or finite Range may
+         // leave no downward threshold response. Output remains a usable gain
+         // control; do not freeze it or move thresholds to fabricate a link.
+         limiterStartOutput=float(juce::jlimit(-120.0,120.0,requested));
+--- 1.2.8/Source/LimiterMode.cpp
++++ 1.2.9/Source/LimiterMode.cpp
+@@ -89,59 +89,27 @@
+ 
+ void QQSuperCompressionAudioProcessor::enterLimiterMode()
+ {
+-    if(isLimiterMode()) return;
++    if (isLimiterMode()) return;
+     const auto from = captureCurrentSnapshot();
+-    if(limiterBankInitialised.load(std::memory_order_acquire))
+-    {
+-        auto to = from; to.limiterMode = true;
+-        queueABTransfer(from,to);
+-        setActualParameterValue(qqsc::params::limiterMode,1);
+-        notifyHostProcessingLatency();
+-        return;
+-    }
+-    // Seed a new Limiter bank once. Subsequent entries only select the bank.
+-    // Undoing the first entry must undo its initialisation too, otherwise the
+-    // next entry would treat restored factory values as a configured bank.
+-    struct RememberInitialisation final : juce::UndoableAction
+-    {
+-        explicit RememberInitialisation(std::atomic<bool>& value) : flag(value), before(value.load()) {}
+-        bool perform() override { flag.store(true,std::memory_order_release); return true; }
+-        bool undo() override { flag.store(before,std::memory_order_release); return true; }
+-        std::atomic<bool>& flag;
+-        const bool before;
+-    };
+-    undoManager.perform(std::make_unique<RememberInitialisation>(limiterBankInitialised).release());
+-    // Two independent parameter banks make OFF an actual restoration, even
+-    // without an editor, after A/B, undo/redo, or a saved-project reload.
+-    const auto output=juce::jmax(0.0f,apvts.getRawParameterValue(qqsc::params::outputGainDb)->load());
+-    restoringDynamicsState.store(true,std::memory_order_release);
+-    for(size_t i=0;i<35;++i)
+-    {
+-        auto value=apvts.getRawParameterValue(qqsc::params::normalSoundIds[i])->load();
+-        if(i>=15)
++    if (! limiterBankInitialised.load(std::memory_order_acquire))
++    {
++        // Both banks already exist with their own factory defaults. Never seed
++        // this one from Normal, including the first visit or after first-entry
++        // Undo. Hidden Limiter automation/preloaded settings are retained too.
++        struct RememberInitialisation final : juce::UndoableAction
+         {
+-            const auto group=int(i/5);
+-            value=getBoundaryForBankDb(group>=5 ? 1 : 0,group==4||group==6,int(i%5));
+-        }
+-        if(i<5) value=value>=1.0f ? qqsc::params::limiterRatio(value,true,true) : qqsc::params::upwardRatio(value,true);
+-        if(i>=5 && i<10) value=qqsc::params::upwardRatio(value,true);
+-        if(i>=10 && i<15) value=qqsc::params::limiterRatio(value,true,true);
+-        setActualParameterValue(qqsc::params::limiterSoundIds[i],value);
+-    }
+-    for(size_t i=0;i<qqsc::params::normalModeIds.size();++i)
+-        setActualParameterValue(qqsc::params::limiterModeIds[i],apvts.getRawParameterValue(qqsc::params::normalModeIds[i])->load());
+-    restoringDynamicsState.store(false,std::memory_order_release);
+-    rebuildBoundaryPairs();
+-    setActualParameterValue(qqsc::params::limiterMode,1);
+-    setActualParameterValue(qqsc::params::limiterOutputDb,output);
+-    for(int d=0;d<5;++d)
+-    {
+-        setBoundaryForDomainDb(true,true,d,-output);
+-        if(effectiveSingleRatio(size_t(d))>1.0f) setBoundaryForDomainDb(false,false,d,-output);
+-    }
+-    setActualParameterValue(qqsc::params::limiterCalibrationDb,-getLimiterReferencePeakDb()-output);
+-    limiterBankInitialised.store(true,std::memory_order_release);
+-    queueABTransfer(from,captureCurrentSnapshot());
++            explicit RememberInitialisation(std::atomic<bool>& value) : flag(value), before(value.load()) {}
++            bool perform() override { flag.store(true,std::memory_order_release); return true; }
++            bool undo() override { flag.store(before,std::memory_order_release); return true; }
++            std::atomic<bool>& flag;
++            const bool before;
++        };
++        undoManager.perform(std::make_unique<RememberInitialisation>(limiterBankInitialised).release());
++    }
++    auto to = from;
++    to.limiterMode = true;
++    queueABTransfer(from, to);
++    setActualParameterValue(qqsc::params::limiterMode, 1);
+     notifyHostProcessingLatency();
+ }
+ 
+@@ -179,17 +147,17 @@
+         // Reference carrier: post-Input peak <= 1, matched/unfiltered internal
+         // key. No signal-dependent gain is introduced by this calculation.
+         const auto floor = (t.dual ? s.downAlgorithmMode : s.algorithmMode) == 0 ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb;
+-        if (t.dual && s.downEnabled[d])
++        if (shift != 0.0f && t.dual && s.downEnabled[d])
+             t.upper[d] = qqsc::params::thresholdLinear (juce::jlimit (juce::jmax (floor,juce::jmin(0.0f,getBoundaryForDomainDb(true,false,int(d))+0.01f)), 0.0f, getBoundaryForDomainDb(true,true,int(d))+shift));
+-        else if (!t.dual && t.ratio[d]>1.0f)
++        else if (shift != 0.0f && !t.dual && t.ratio[d]>1.0f)
+         {
+             t.lower[d] = qqsc::params::thresholdLinear (juce::jlimit (floor, juce::jmin (0.0f,getBoundaryForDomainDb(false,true,int(d))), getBoundaryForDomainDb(false,false,int(d))+shift));
+         }
+         const auto g = t.dual
+             ? qqsc::StaticCompressionEngine::dualGainForLevel (1.0f,t.upRatio[d],t.downRatio[d],t.lower[d],t.upper[d],t.upAlgorithm,t.downAlgorithm)
+             : qqsc::StaticCompressionEngine::singleGainForLevel (1.0f,t.ratio[d],t.lower[d],t.upper[d],t.algorithm);
+-        // GUI links must not retrospectively compensate a previous Mix edit.
+-        // Calibration and explicit MATCH still need the real mixed reference.
++        // Evaluate the completed curve, wet Makeup and linear dry/wet mix.
++        // At shift == 0 use the actual boundaries, including equal gates.
+         bound[d] = includeMix ? (1-t.mix[d]) + t.mix[d]*t.makeup[d]*g
+                               : t.makeup[d]*g;
+     }
+@@ -197,7 +165,7 @@
+     // independent M/S bounds before decoding; it is not a tight stereo maximum.
+     const auto peak = t.mode == qqsc::params::midSide ? bound[3]+bound[4]
+         : t.mode == qqsc::params::leftRight ? juce::jmax (bound[1],bound[2]) : bound[0];
+-    return juce::Decibels::gainToDecibels (juce::jmax (peak,1.0e-9f),-180.0f);
++    return juce::Decibels::gainToDecibels (juce::jmax (peak,1.0e-18f),-360.0f);
+ }
+ 
+ void QQSuperCompressionAudioProcessor::resetTruePeakHold() noexcept
+--- 1.2.8/Source/PluginEditor.cpp
++++ 1.2.9/Source/PluginEditor.cpp
+@@ -400,6 +400,14 @@
+     inputGainSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::inputOutput, inputGainSlider, outputGainSlider, "Input / Output Gain"); };
+     ratioSlider.onGestureStart = [this] { beginUndoTransaction ("Ratio ST"); };
+     makeupSTSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup ST"); };
++    // This converter survives bank rebinding. Do not keep JUCE's initial
++    // Normal-parameter capture, which would also clip Limiter typing to 30 dB.
++    makeupSTSlider.valueFromTextFunction = [this] (const juce::String& text)
++    {
++        const auto value = text.getDoubleValue();
++        return std::isfinite(value) ? juce::jlimit(makeupSTSlider.getMinimum(), makeupSTSlider.getMaximum(), value)
++                                   : makeupSTSlider.getValue();
++    };
+     mixSlider.onGestureStart = [this] { beginUndoTransaction ("Mix ST"); };
+     outputGainSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::inputOutput, outputGainSlider, inputGainSlider, "Output / Input Gain"); };
+     inputGainSlider.onGestureEnd = outputGainSlider.onGestureEnd = [this] { endLinkedGesture(); };
+@@ -816,8 +824,7 @@
+                                                                    FineKnob& target, const juce::String& undoName)
+ {
+     beginUndoTransaction (undoName);
+-    if(pair==LinkedPair::makeupLR || pair==LinkedPair::makeupMS)
+-        captureLimiterLinkAnchor();
++    captureLimiterLinkAnchor();
+     activeLinkedPair = pair;
+     activeLinkSource = &source;
+     activeLinkTarget = &target;
+@@ -835,6 +842,7 @@
+ 
+ void QQSuperCompressionAudioProcessorEditor::endLinkedGesture()
+ {
++    limiterReferenceGestureSource = nullptr;
+     dualRatioGestureActive = false;
+     for (auto* parameter : companionGestureParameters)
+         parameter->endChangeGesture();
+@@ -849,6 +857,7 @@
+ {
+     endLinkedGesture();
+     beginUndoTransaction ("Dual Ratio Link");
++    captureLimiterLinkAnchor();
+     dualRatioGestureActive = true;
+     dualRatioGestureDomain = domain;
+     dualRatioGestureUpward = upward;
+@@ -1527,7 +1536,7 @@
+     lower[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, false, domain), juce::dontSendNotification);
+     upperBoundarySliders[index]->setValue (processor.getBoundaryForDomainDb (attachedCompressionMode == 1, true, domain), juce::dontSendNotification);
+     refreshBoundaryReadouts();
+-    if(boundaryGestureActive && (attachedCompressionMode==1 ? upper : (!upper && processor.effectiveSingleRatio(index)>1.0f)))
++    if(boundaryGestureActive && !linkedValueUpdateInProgress && (attachedCompressionMode==1 ? upper : (!upper && processor.effectiveSingleRatio(index)>1.0f)))
+         reconcileLimiterOutput();
+ }
+ 
+--- 1.2.8/Source/PluginEditor.h
++++ 1.2.9/Source/PluginEditor.h
+@@ -40,7 +40,13 @@
+         }
+         std::function<void()> onDoubleClick;
+         void mouseDoubleClick (const juce::MouseEvent& e) override
+-        { if (onDoubleClick) onDoubleClick(); else juce::Slider::mouseDoubleClick(e); }
++        {
++            const bool ownGesture = !nativeGestureActive;
++            if (ownGesture && onBeforeValueEdit) onBeforeValueEdit();
++            if (ownGesture && onGestureStart) onGestureStart();
++            if (onDoubleClick) onDoubleClick(); else juce::Slider::mouseDoubleClick(e);
++            if (ownGesture && onGestureEnd) onGestureEnd();
++        }
+         std::function<void()> onGestureStart;
+         std::function<void()> onGestureEnd;
+         std::function<juce::Rectangle<float>()> boundaryPlotBounds;
+@@ -78,6 +84,33 @@
+         {
+             nativeGestureActive = false;
+             juce::Slider::stoppedDragging();
++        }
++
++        bool keyPressed (const juce::KeyPress& key) override
++        {
++            const auto code = key.getKeyCode();
++            const bool nudge = code == juce::KeyPress::leftKey || code == juce::KeyPress::rightKey
++                || code == juce::KeyPress::upKey || code == juce::KeyPress::downKey
++                || code == juce::KeyPress::homeKey || code == juce::KeyPress::endKey;
++            if (!nudge || nativeGestureActive || !isEnabled()) return juce::Slider::keyPressed(key);
++            if (onBeforeValueEdit) onBeforeValueEdit();
++            if (onGestureStart) onGestureStart();
++            const bool handled = juce::Slider::keyPressed(key);
++            if (onGestureEnd) onGestureEnd();
++            return handled;
++        }
++
++        void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
++        {
++            if (nativeGestureActive || !isEnabled() || !isScrollWheelEnabled())
++            {
++                juce::Slider::mouseWheelMove(event, wheel);
++                return;
++            }
++            if (onBeforeValueEdit) onBeforeValueEdit();
++            if (onGestureStart) onGestureStart();
++            juce::Slider::mouseWheelMove(event, wheel);
++            if (onGestureEnd) onGestureEnd();
+         }
+ 
+         void mouseDown (const juce::MouseEvent& event) override
+@@ -328,6 +361,9 @@
+     float limiterStartOutput=0;
+     float limiterLinkReference=0, limiterLinkOutput=0;
+     bool limiterLinkAnchorValid=false;
++    void linkLimiterReferenceControl(FineKnob& slider);
++    FineKnob* limiterReferenceGestureSource = nullptr;
++    bool limiterReferenceEditInProgress = false;
+     void captureLimiterLinkAnchor();
+     double ceilingDragValue=0.0;
+     std::function<double(const juce::String&)> limiterOutputText;
+--- 1.2.8/Source/PluginProcessor.cpp
++++ 1.2.9/Source/PluginProcessor.cpp
+@@ -26,7 +26,7 @@
+ constexpr auto monitorLRProperty = "qqscMonitorLRSelection";
+ constexpr auto monitorMSProperty = "qqscMonitorMSSelection";
+ constexpr int oversamplingSchemaVersion = 2; // v0.1.10: 0 ms-only 1x/8x/16x Oversampling schema
+-constexpr int currentStateSchemaVersion = 22; // Independent Dual Up/Down algorithm choices
++constexpr int currentStateSchemaVersion = 23; // Independent first entry; normal Makeup +/-30 dB
+ constexpr float centeredChannelMonitorGain = 0.70710678118654752440f; // 1/sqrt(2), -3.0103 dB
+ 
+ juce::Identifier abProperty (const juce::String& suffix)
+@@ -528,11 +528,11 @@
+     // parameters later so older projects keep their established parameter ID.
+     addRatio (qqsc::params::ratio, "Ratio ST");
+ 
+-    auto addMakeup = [&] (const char* id, const juce::String& name)
++    auto addMakeup = [&] (const char* id, const juce::String& name, float maximum = qqsc::normalMaximumMakeupDb)
+     {
+         layout.add (std::make_unique<juce::AudioParameterFloat> (
+             juce::ParameterID { id, 1 }, name,
+-            juce::NormalisableRange<float> { -qqsc::maximumMakeupDb, qqsc::maximumMakeupDb, 0.01f }, 0.0f,
++            juce::NormalisableRange<float> { -maximum, maximum, 0.01f }, 0.0f,
+             juce::AudioParameterFloatAttributes().withLabel ("dB")));
+     };
+ 
+@@ -747,7 +747,7 @@
+         juce::ParameterID { qqsc::params::algorithmMode, 1 }, "Compression Algorithm",
+         juce::StringArray { "Classic", "Super" }, qqsc::params::classicAlgorithm));
+     layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { qqsc::params::limiterMode, 1 }, "Limiter Mode", false));
+-    layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { qqsc::params::limiterLink, 1 }, "Down Threshold Output Link", true));
++    layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { qqsc::params::limiterLink, 1 }, "Limiter Output Link", true));
+     layout.add (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { qqsc::params::ceilingDb, 1 }, "Ceiling",
+         juce::NormalisableRange<float> { -24.0f, 0.0f, 0.01f }, 0.0f, juce::AudioParameterFloatAttributes().withLabel ("dB")));
+     layout.add (std::make_unique<juce::AudioParameterFloat> (juce::ParameterID { qqsc::params::limiterOutputDb, 1 }, "Limiter Output Gain",
+@@ -761,7 +761,7 @@
+             : group==1 ? qqsc::params::dynamicsRatioRange(qqsc::limiterMinimumUpRatio,1.0f)
+             : group==2 ? qqsc::params::dynamicsRatioRange(qqsc::limiterMinimumDownRatio,qqsc::maximumDownRatio)
+             : group==4 ? qqsc::params::rangeParameterRange() : juce::NormalisableRange<float>{-120.0f,0.0f,0.01f};
+-        const float initial=group==0||group==2 ? qqsc::limiterMinimumDownRatio : group==1 ? 1.0f : group==4 ? 1.0f : group==6 ? 0.0f : -120.0f;
++        const float initial=group==0||group==2 ? qqsc::limiterMinimumDownRatio : group==1 ? 1.0f : group==4 ? 1.0f : (group==3||group==6) ? 0.0f : -120.0f;
+         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{qqsc::params::limiterSoundIds[i],1},
+             "Limiter "+juce::String(qqsc::params::normalSoundIds[i]),range,initial,
+             group<3 ? juce::AudioParameterFloatAttributes()
+@@ -775,7 +775,7 @@
+     {
+         const auto* id=qqsc::params::limiterModeIds[i];
+         const auto name="Limiter "+juce::String(qqsc::params::normalModeIds[i]);
+-        if(i>=1 && i<=5) { addMakeup(id,name); continue; }
++        if(i>=1 && i<=5) { addMakeup(id,name,qqsc::maximumMakeupDb); continue; }
+         if(i>=6 && i<=10) { addMix(id,name); continue; }
+         if(i>=14 && i<=25)
+             layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{id,1},name,true));
+@@ -2484,7 +2484,14 @@
+             s.mixR = static_cast<float> (state.getProperty (abProperty (prefix + "mixR"), s.mix));
+             s.mixM = static_cast<float> (state.getProperty (abProperty (prefix + "mixM"), s.mix));
+             s.mixS = static_cast<float> (state.getProperty (abProperty (prefix + "mixS"), s.mix));
+-            for(size_t i=0;i<35;++i) s.limiterSound[i]=float(state.getProperty(abProperty(prefix+qqsc::params::limiterSoundIds[i]),s.limiterSound[i]));
++            const bool hadSnapshotLimiterBank = state.hasProperty(abProperty(prefix+qqsc::params::limiterSoundIds[0]));
++            for(size_t i=0;i<35;++i)
++            {
++                auto* parameter = apvts.getParameter(qqsc::params::limiterSoundIds[i]);
++                const auto fallbackValue = hadSnapshotLimiterBank ? s.limiterSound[i]
++                    : parameter->convertFrom0to1(parameter->getDefaultValue());
++                s.limiterSound[i]=float(state.getProperty(abProperty(prefix+qqsc::params::limiterSoundIds[i]),fallbackValue));
++            }
+             s.limiterMode = static_cast<bool> (state.getProperty (abProperty (prefix + "limiterMode"), false));
+             s.limiterLink = static_cast<bool> (state.getProperty (abProperty (prefix + "limiterLink"), true));
+             s.truePeakLimiting = static_cast<bool> (state.getProperty (abProperty (prefix + "truePeakLimiting"), false));
+@@ -2524,10 +2531,22 @@
+             s.inputOutputLink=bool(state.getProperty(abProperty(prefix+"inputOutputLink"),fallback.inputOutputLink));
+             const std::array<float,31> legacySettings { float(s.inputGainDb),float(s.makeupST),float(s.makeupL),float(s.makeupR),float(s.makeupM),float(s.makeupS),float(s.mix),float(s.mixL),float(s.mixR),float(s.mixM),float(s.mixS),float(s.algorithmMode),float(s.compressionMode),float(s.mode),float(s.domainLink),float(s.dualRatioLink),float(s.upEnabled[0]),float(s.upEnabled[1]),float(s.upEnabled[2]),float(s.upEnabled[3]),float(s.upEnabled[4]),float(s.downEnabled[0]),float(s.downEnabled[1]),float(s.downEnabled[2]),float(s.downEnabled[3]),float(s.downEnabled[4]),float(s.keySource),s.keyGainDb,s.keyHpfHz,float(s.oversampling),s.lookaheadMs };
+             for(size_t i=0;i<s.limiterSettings.size();++i)
+-                s.limiterSettings[i]=float(state.getProperty(abProperty(prefix+qqsc::params::limiterModeIds[i]),
+-                    i<31 ? legacySettings[i] : state.hasProperty(abProperty(prefix+"limiterAlgorithmMode"))
+-                        ? s.limiterSettings[11] : float(i==31 ? s.upAlgorithmMode : s.downAlgorithmMode)));
++            {
++                auto* parameter = apvts.getParameter(qqsc::params::limiterModeIds[i]);
++                const auto legacyValue = i<31 ? legacySettings[i]
++                    : state.hasProperty(abProperty(prefix+"limiterAlgorithmMode"))
++                        ? s.limiterSettings[11] : float(i==31 ? s.upAlgorithmMode : s.downAlgorithmMode);
++                const auto fallbackValue = hadSnapshotLimiterBank ? legacyValue
++                    : parameter->convertFrom0to1(parameter->getDefaultValue());
++                s.limiterSettings[i]=float(state.getProperty(abProperty(prefix+qqsc::params::limiterModeIds[i]),fallbackValue));
++            }
+             s.limiterInitialised=bool(state.getProperty(abProperty(prefix+"limiterInitialised"),state.hasProperty(abProperty(prefix+"limiterRatio"))));
++            if (int(state.getProperty(stateSchemaProperty,0)) < 23 && !s.limiterInitialised)
++                for (size_t d = 0; d < 5; ++d)
++                    if (s.limiterSound[15+d] <= -120.0f) s.limiterSound[15+d] = 0.0f;
++            // Clamp only the Normal bank, after any legacy Limiter migration.
++            for (auto* makeup : { &s.makeupST, &s.makeupL, &s.makeupR, &s.makeupM, &s.makeupS })
++                *makeup = juce::jlimit(-qqsc::normalMaximumMakeupDb, qqsc::normalMaximumMakeupDb, *makeup);
+         };
+ 
+         read ("A_", newA);
+@@ -2754,6 +2773,9 @@
+             std::array<bool,33> missingModeSettings {};
+             for(size_t i=0;i<missingModeSettings.size();++i)
+                 missingModeSettings[i]=!stateContainsParameter(state,qqsc::params::limiterModeIds[i]);
++            std::array<float,5> legacySharedMakeup {};
++            for(size_t d=0;d<5;++d)
++                legacySharedMakeup[d]=float(state.getChildWithProperty("id",qqsc::params::normalModeIds[1+d]).getProperty("value",0.0f));
+             for(const auto* id : qqsc::params::limiterSoundIds)
+                 if(!stateContainsParameter(state,id))
+                 { auto* p=apvts.getParameter(id); juce::ValueTree node("PARAM"); node.setProperty("id",id,nullptr); node.setProperty("value",p->convertFrom0to1(p->getDefaultValue()),nullptr);state.addChild(node,-1,nullptr); }
+@@ -2779,6 +2801,21 @@
+             const auto restoredMonitorLR = static_cast<int> (state.getProperty (monitorLRProperty, qqsc::params::monitorAll));
+             const auto restoredMonitorMS = static_cast<int> (state.getProperty (monitorMSProperty, qqsc::params::monitorAll));
+             restoringDynamicsState.store (true, std::memory_order_release);
++            // Before 1.2.9 an unused Limiter bank carried -120 dB Single
++            // placeholders, overwritten by first-entry cloning. Replace only
++            // those unused placeholders; configured Limiter banks are untouched.
++            if (schemaVersion < 23 && !bool(state.getProperty("qqscLimiterBankInitialised",hadLimiterBank)))
++                for (auto node : state)
++                    for (const auto* id : qqsc::params::limiterThresholdIds)
++                        if (node.getProperty("id").toString() == id && float(node.getProperty("value")) <= -120.0f)
++                            node.setProperty("value",0.0f,nullptr);
++            // Preserve physical dB inside the new Normal range. Limiter nodes
++            // keep their +/-120 dB values. This cannot remap DAW-owned automation.
++            for (auto node : state)
++                for (size_t i = 1; i <= 5; ++i)
++                    if (node.getProperty("id").toString() == qqsc::params::normalModeIds[i])
++                        node.setProperty("value", juce::jlimit(-qqsc::normalMaximumMakeupDb,
++                            qqsc::normalMaximumMakeupDb, float(node.getProperty("value"))), nullptr);
+             apvts.replaceState (state);
+             if (! stateHasAlgorithm)
+             {
+@@ -2893,9 +2930,18 @@
+                 if(!stateHasDualAlgorithms[i])setActualParameterValue(i==0 ? "upAlgorithmMode" : "downAlgorithmMode",
+                     apvts.getRawParameterValue(qqsc::params::algorithmMode)->load());
+             for(size_t i=0;i<missingModeSettings.size();++i)
+-                if(missingModeSettings[i]) setActualParameterValue(qqsc::params::limiterModeIds[i],
+-                    apvts.getRawParameterValue(i<31 || missingModeSettings[11]
+-                        ? qqsc::params::normalModeIds[i] : "limiterAlgorithmMode")->load());
++                if(missingModeSettings[i])
++                {
++                    auto* parameter = apvts.getParameter(qqsc::params::limiterModeIds[i]);
++                    // Only pre-independent-bank Limiter sessions need the old
++                    // shared-setting migration. A project with no Limiter bank
++                    // gets the Limiter parameter's own default, not Normal.
++                    const auto value = hadLimiterBank && i>=1 && i<=5 ? legacySharedMakeup[i-1]
++                        : hadLimiterBank ? apvts.getRawParameterValue(i<31 || missingModeSettings[11]
++                            ? qqsc::params::normalModeIds[i] : "limiterAlgorithmMode")->load()
++                        : parameter->convertFrom0to1(parameter->getDefaultValue());
++                    setActualParameterValue(qqsc::params::limiterModeIds[i],value);
++                }
+             limiterBankInitialised.store(bool(state.getProperty("qqscLimiterBankInitialised",hadLimiterBank)),std::memory_order_release);
+             rebuildBoundaryPairs();
+             restoringDynamicsState.store (false, std::memory_order_release);
+--- 1.2.8/Source/PluginProcessor.h
++++ 1.2.9/Source/PluginProcessor.h
+@@ -88,10 +88,12 @@
+     void setCompressionModeFromEditor (int mode);
+     float getBoundaryForBankDb (int bank, bool upper, int domain) const noexcept;
+     float getActiveOutputGainDb() const noexcept;
+-    // Mixed reference is reserved for calibration/MATCH; control linking uses wet only.
++    // All linked edits use the same full wet-Makeup plus dry/wet reference.
+     float getLimiterReferencePeakDb (float downThresholdShift = 0.0f, bool includeMix = true) const noexcept;
+     float getLimiterLinkReferencePeakDb(float shift = 0.0f) const noexcept
+-    { return getLimiterReferencePeakDb(shift, false); }
++    { return getLimiterReferencePeakDb(shift, true); }
++    bool isRestoringSoundState() const noexcept
++    { return restoringDynamicsState.load(std::memory_order_acquire); }
+     float effectiveSingleRatio (size_t domain) const noexcept;
+     bool isClassicAlgorithm() const noexcept { return readSoundParameter(qqsc::params::algorithmMode) < 0.5f; }
+     bool isClassicBoundary(bool upper) const noexcept

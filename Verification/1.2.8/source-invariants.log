@@ -1,0 +1,3 @@
+PASS: createParameterLayout, processBlock, applySnapshot, setStateInformation, getStateInformation, timerCallback unchanged after newline normalization.
+PASS: 23 other Source files byte-identical.
+PASS: state schema 22; plugin identity and host parameter layout unchanged; project version 1.2.8.

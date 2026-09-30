@@ -1,0 +1,66 @@
+--- /mnt/data/QQSC-1.2.12-TruePeak-Ceiling-Target-BuildFix1/tests/ceiling_check.cpp	2026-09-28 07:20:08.000000000 +0000
++++ /mnt/data/QQSC-1.2.13-TP-Display-GR/tests/ceiling_check.cpp	2026-09-28 09:00:27.986689118 +0000
+@@ -1,5 +1,6 @@
+ #include "OutputCeiling.h"
+ #include <iostream>
++#include <cmath>
+ #include <random>
+ #include <stdexcept>
+ 
+@@ -73,6 +74,56 @@
+             if(tpDb>.005 || tpDb<-.05)throw std::runtime_error("TP Ceiling does not approach 0 dBTP tightly");
+         }
+         std::cout<<"PASS: TP Ceiling=0 approaches 0 dBTP without the former fixed -0.10 dB reserve.\n";
++
++        // The Dynamic Display must receive the actual time-dependent OutputCeiling
++        // attenuation. Use a sample-safe but reconstruction-hostile waveform: the
++        // native path should require essentially no limiting at 0 dBFS, while TP
++        // must report a visible positive GR. Then exercise the 10 ms TP switch.
++        for(double rate:{44100.,48000.,96000.})
++        {
++            qqsc::OutputCeiling native,tp,switched;
++            native.prepare(rate,true,false,0.f);
++            tp.prepare(rate,true,true,0.f);
++            switched.prepare(rate,true,false,0.f);
++            const int count=int(rate*.45);
++            float maxNativeGr=0,maxTpGr=0;
++            for(int i=0;i<count;++i)
++            {
++                const float x=(i&1) ? -.7f : 1.f;
++                native.process(x,x);
++                tp.process(x,x);
++                if(i>int(rate*.15))
++                {
++                    maxNativeGr=juce::jmax(maxNativeGr,native.gainReductionDbForDisplay());
++                    maxTpGr=juce::jmax(maxTpGr,tp.gainReductionDbForDisplay());
++                }
++            }
++            if(maxNativeGr>.05f || maxTpGr<.10f || maxTpGr<maxNativeGr+.05f)
++                throw std::runtime_error("TP display GR does not distinguish reconstruction limiting");
++
++            for(int i=0;i<int(rate*.20);++i)
++            {
++                const float x=(i&1) ? -.7f : 1.f;
++                switched.process(x,x);
++            }
++            const float before=switched.gainReductionDbForDisplay();
++            switched.set(true,true,0.f);
++            float switchedPeak=before;
++            for(int i=0;i<int(rate*.04);++i)
++            {
++                const float x=(i&1) ? -.7f : 1.f;
++                switched.process(x,x);
++                const auto gr=switched.gainReductionDbForDisplay();
++                if(!std::isfinite(gr) || gr<-.0001f)
++                    throw std::runtime_error("TP display GR became invalid during crossfade");
++                switchedPeak=juce::jmax(switchedPeak,gr);
++            }
++            if(switchedPeak<before+.05f)
++                throw std::runtime_error("TP switch is not visible in display GR");
++            std::cout<<"DISPLAY rate="<<rate<<" nativeGR="<<maxNativeGr<<" tpGR="<<maxTpGr
++                     <<" switchPeak="<<switchedPeak<<" dB\n";
++        }
++        std::cout<<"PASS: OutputCeiling exposes TP/Sample-Peak attenuation for Dynamic Display.\n";
+     }
+     catch(const std::exception& e){std::cerr<<"FAIL: "<<e.what()<<'\n';return 1;}
+ }

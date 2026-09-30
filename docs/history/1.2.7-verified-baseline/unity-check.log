@@ -1,0 +1,28 @@
+PASS: headphone placement/three themes/ST-LR-MS, TP default and toggle, converted ceiling, project persistence and A/B independence.
+PASS: 18 post-TP cancellation cases, both algorithms/all domains/+negative Output,  TP meter and converted bound, dry bypass, Limiter OFF parity; max error=1.20656e-07.
+MATCH algo=0 mode=0 mix=100 before=8.55029 after=-0.099708 LU
+MATCH algo=0 mode=0 mix=66.9 before=4.16617 after=-0.0608028 LU
+MATCH algo=0 mode=0 mix=50 before=2.55265 after=-0.0417457 LU
+MATCH algo=0 mode=0 mix=10 before=-0.388272 after=-0.0766421 LU
+MATCH algo=0 mode=1 mix=100 before=4.84266 after=-0.0973401 LU
+MATCH algo=0 mode=1 mix=66.9 before=2.58464 after=-0.0623158 LU
+MATCH algo=0 mode=1 mix=50 before=1.56379 after=-0.0446179 LU
+MATCH algo=0 mode=1 mix=10 before=-0.529353 after=-0.0766432 LU
+MATCH algo=0 mode=2 mix=100 before=7.51493 after=-0.0950774 LU
+MATCH algo=0 mode=2 mix=66.9 before=3.75549 after=-0.0637874 LU
+MATCH algo=0 mode=2 mix=50 before=2.3 after=-0.0455407 LU
+MATCH algo=0 mode=2 mix=10 before=-0.423729 after=-0.0766422 LU
+MATCH algo=1 mode=0 mix=100 before=8.05415 after=-0.0958386 LU
+MATCH algo=1 mode=0 mix=66.9 before=3.96567 after=-0.0599272 LU
+MATCH algo=1 mode=0 mix=50 before=2.42775 after=-0.0417764 LU
+MATCH algo=1 mode=0 mix=10 before=-0.406149 after=-0.0766426 LU
+MATCH algo=1 mode=1 mix=100 before=4.55378 after=-0.096215 LU
+MATCH algo=1 mode=1 mix=66.9 before=2.42333 after=-0.0610447 LU
+MATCH algo=1 mode=1 mix=50 before=1.45435 after=-0.0437804 LU
+MATCH algo=1 mode=1 mix=10 before=-0.547021 after=-0.0766436 LU
+MATCH algo=1 mode=2 mix=100 before=7.05912 after=-0.0908692 LU
+MATCH algo=1 mode=2 mix=66.9 before=3.55729 after=-0.0576323 LU
+MATCH algo=1 mode=2 mix=50 before=2.17418 after=-0.0424517 LU
+MATCH algo=1 mode=2 mix=10 before=-0.442196 after=-0.0766428 LU
+MATCH worst measured error=0.099708 LU.
+FAIL: Unity MATCH reference not ready

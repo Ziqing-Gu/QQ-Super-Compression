@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<PROPERTIES>
+  <VALUE name="uiTheme" val="light"/>
+  <VALUE name="landscapeEditorWidth" val="1200"/>
+  <VALUE name="dualRatioLink" val="1"/>
+  <VALUE name="inputOutputLink" val="1"/>
+  <VALUE name="lastAlgorithmMode" val=""/>
+</PROPERTIES>

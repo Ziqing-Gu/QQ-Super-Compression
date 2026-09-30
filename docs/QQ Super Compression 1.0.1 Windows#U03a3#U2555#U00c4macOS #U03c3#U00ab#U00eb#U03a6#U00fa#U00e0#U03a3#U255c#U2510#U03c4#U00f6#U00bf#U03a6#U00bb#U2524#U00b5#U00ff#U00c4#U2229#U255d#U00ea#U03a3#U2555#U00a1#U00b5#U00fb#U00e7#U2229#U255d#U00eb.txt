@@ -1,0 +1,80 @@
+QQ Super Compression 1.0.1 — Windows 与 macOS 安装说明
+========================================================
+
+稳定基线
+--------
+
+本交付包对应 1.0.1 Display 0…-90 dB Scale Polish Plan D 稳定基线。
+四类插件压缩包必须来自同一个公开提交。
+
+包含的压缩包
+------------
+
+Win/QQ-Super-Compression-1.0.1-Windows-x64.zip
+Mac/QQ-Super-Compression-1.0.1-macOS-Apple-Silicon-VST3.zip
+Mac/QQ-Super-Compression-1.0.1-macOS-Intel-VST3.zip
+Mac/QQ-Super-Compression-1.0.1-macOS-Universal-AU.zip
+
+Windows x64 VST3
+----------------
+
+1. 关闭 Cubase 以及其他所有 DAW、插件宿主。
+2. 解压 QQ-Super-Compression-1.0.1-Windows-x64.zip。
+3. 将“QQ Super Compression.vst3”复制到：
+
+   C:\Program Files\Common Files\VST3\
+
+4. 如 Windows 询问，确认替换旧插件包。
+5. 重新打开 DAW；如未自动识别，请重新扫描 VST3。
+
+macOS VST3
+----------
+
+只能选择与电脑匹配的一种 VST3 架构：
+
+- Apple Silicon / M 系列 Mac：使用 Apple-Silicon arm64 压缩包。
+- Intel Mac：使用 Intel x86_64 压缩包。
+
+关闭全部音频宿主，解压所选压缩包，然后将
+“QQ Super Compression.vst3”复制到以下任一路径：
+
+  ~/Library/Audio/Plug-Ins/VST3/
+  /Library/Audio/Plug-Ins/VST3/
+
+不要同时安装两套不同架构的 VST3。
+
+macOS Universal 2 AU
+--------------------
+
+Logic Pro 等 AU 宿主请解压 Universal AU 压缩包，将
+“QQ Super Compression.component”复制到以下任一路径：
+
+  ~/Library/Audio/Plug-Ins/Components/
+  /Library/Audio/Plug-Ins/Components/
+
+该 AU 同时包含 arm64 与 x86_64，并在 Plan D 工作流中执行 auval 检查。
+
+macOS 安全提示
+--------------
+
+macOS 插件采用 ad-hoc 签名，没有 Apple Developer ID 公证。
+如果系统阻止你信任的下载副本，只对实际安装的准确插件路径移除 quarantine，例如：
+
+  xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+
+或者：
+
+  xattr -dr com.apple.quarantine "/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+升级与回滚
+----------
+
+替换旧版本前必须关闭宿主。同一种插件格式只保留一个生效副本。
+若 1.0.1 需要回滚，请恢复上一份经过验证的 Stable 插件并重新扫描。
+
+验证边界
+--------
+
+自动构建、架构检查、AU 验证、本地 Windows 测试和哈希核对不能替代实际听感与工程状态测试。
+请在 DAW 中检查 0…-90 dB Display、Threshold 线、ST/LR/MS、LINK、PDC、Mix/Bypass、
+自动化、A/B、Undo/Redo 和旧工程迁移。

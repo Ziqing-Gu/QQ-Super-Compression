@@ -1,0 +1,514 @@
+{
+  "version": "1.2.36",
+  "language": "Chinese",
+  "status": "PASS_Chinese_approved_by_user",
+  "pdf": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.36 Manuals\\QQ Super Compression 用户手册 中文版_v1.2.36.pdf",
+  "pdf_sha256": "5A1C4F14E4D85DE3CD3F3BA4D7EB278B46D8C4051350BADBE3BCAF42B359EED8",
+  "pdf_bytes": 8222141,
+  "pages": 41,
+  "outline_entries": 41,
+  "internal_links": [
+    {
+      "from": 2,
+      "to": 3
+    },
+    {
+      "from": 2,
+      "to": 5
+    },
+    {
+      "from": 2,
+      "to": 9
+    },
+    {
+      "from": 2,
+      "to": 12
+    },
+    {
+      "from": 2,
+      "to": 15
+    },
+    {
+      "from": 2,
+      "to": 18
+    },
+    {
+      "from": 2,
+      "to": 21
+    },
+    {
+      "from": 2,
+      "to": 25
+    },
+    {
+      "from": 2,
+      "to": 32
+    },
+    {
+      "from": 2,
+      "to": 36
+    },
+    {
+      "from": 2,
+      "to": 38
+    },
+    {
+      "from": 2,
+      "to": 40
+    }
+  ],
+  "text_bounds": [
+    {
+      "page": 1,
+      "chars": 382,
+      "body_lowest_bottom_pt": 624.94
+    },
+    {
+      "page": 2,
+      "chars": 709,
+      "body_lowest_bottom_pt": 733.68
+    },
+    {
+      "page": 3,
+      "chars": 458,
+      "body_lowest_bottom_pt": 713.45
+    },
+    {
+      "page": 4,
+      "chars": 399,
+      "body_lowest_bottom_pt": 664.15
+    },
+    {
+      "page": 5,
+      "chars": 822,
+      "body_lowest_bottom_pt": 669.39
+    },
+    {
+      "page": 6,
+      "chars": 751,
+      "body_lowest_bottom_pt": 574.07
+    },
+    {
+      "page": 7,
+      "chars": 679,
+      "body_lowest_bottom_pt": 711.67
+    },
+    {
+      "page": 8,
+      "chars": 705,
+      "body_lowest_bottom_pt": 560.76
+    },
+    {
+      "page": 9,
+      "chars": 563,
+      "body_lowest_bottom_pt": 711.3
+    },
+    {
+      "page": 10,
+      "chars": 584,
+      "body_lowest_bottom_pt": 652.07
+    },
+    {
+      "page": 11,
+      "chars": 771,
+      "body_lowest_bottom_pt": 699.05
+    },
+    {
+      "page": 12,
+      "chars": 689,
+      "body_lowest_bottom_pt": 585.73
+    },
+    {
+      "page": 13,
+      "chars": 799,
+      "body_lowest_bottom_pt": 575.6
+    },
+    {
+      "page": 14,
+      "chars": 797,
+      "body_lowest_bottom_pt": 585.58
+    },
+    {
+      "page": 15,
+      "chars": 718,
+      "body_lowest_bottom_pt": 706.22
+    },
+    {
+      "page": 16,
+      "chars": 646,
+      "body_lowest_bottom_pt": 519.44
+    },
+    {
+      "page": 17,
+      "chars": 681,
+      "body_lowest_bottom_pt": 712.18
+    },
+    {
+      "page": 18,
+      "chars": 355,
+      "body_lowest_bottom_pt": 663.68
+    },
+    {
+      "page": 19,
+      "chars": 354,
+      "body_lowest_bottom_pt": 613.53
+    },
+    {
+      "page": 20,
+      "chars": 661,
+      "body_lowest_bottom_pt": 625.94
+    },
+    {
+      "page": 21,
+      "chars": 436,
+      "body_lowest_bottom_pt": 567.87
+    },
+    {
+      "page": 22,
+      "chars": 579,
+      "body_lowest_bottom_pt": 455.46
+    },
+    {
+      "page": 23,
+      "chars": 659,
+      "body_lowest_bottom_pt": 557.83
+    },
+    {
+      "page": 24,
+      "chars": 903,
+      "body_lowest_bottom_pt": 533.22
+    },
+    {
+      "page": 25,
+      "chars": 779,
+      "body_lowest_bottom_pt": 733.45
+    },
+    {
+      "page": 26,
+      "chars": 716,
+      "body_lowest_bottom_pt": 691.29
+    },
+    {
+      "page": 27,
+      "chars": 589,
+      "body_lowest_bottom_pt": 632.73
+    },
+    {
+      "page": 28,
+      "chars": 538,
+      "body_lowest_bottom_pt": 594.38
+    },
+    {
+      "page": 29,
+      "chars": 667,
+      "body_lowest_bottom_pt": 545.95
+    },
+    {
+      "page": 30,
+      "chars": 712,
+      "body_lowest_bottom_pt": 501.58
+    },
+    {
+      "page": 31,
+      "chars": 1090,
+      "body_lowest_bottom_pt": 695.41
+    },
+    {
+      "page": 32,
+      "chars": 968,
+      "body_lowest_bottom_pt": 613.98
+    },
+    {
+      "page": 33,
+      "chars": 908,
+      "body_lowest_bottom_pt": 544.38
+    },
+    {
+      "page": 34,
+      "chars": 746,
+      "body_lowest_bottom_pt": 571.62
+    },
+    {
+      "page": 35,
+      "chars": 839,
+      "body_lowest_bottom_pt": 529.5
+    },
+    {
+      "page": 36,
+      "chars": 1141,
+      "body_lowest_bottom_pt": 740.37
+    },
+    {
+      "page": 37,
+      "chars": 741,
+      "body_lowest_bottom_pt": 676.52
+    },
+    {
+      "page": 38,
+      "chars": 621,
+      "body_lowest_bottom_pt": 623.86
+    },
+    {
+      "page": 39,
+      "chars": 670,
+      "body_lowest_bottom_pt": 711.69
+    },
+    {
+      "page": 40,
+      "chars": 629,
+      "body_lowest_bottom_pt": 611.32
+    },
+    {
+      "page": 41,
+      "chars": 697,
+      "body_lowest_bottom_pt": 593.21
+    }
+  ],
+  "outside_page_chars": [],
+  "current_product_source_files_unchanged": 569,
+  "installed_binary_unchanged": true,
+  "baseline_Chinese_and_English_unchanged": true,
+  "English_1_2_36_created": true,
+  "assets": [
+    {
+      "path": "assets\\manual-algorithm-button.png",
+      "bytes": 4255,
+      "sha256": "EDFA1104F659B6538E6D1E0AA206F56895F73D5F3A7CC59DBA54523D6A55CE44"
+    },
+    {
+      "path": "assets\\manual-classic.png",
+      "bytes": 207856,
+      "sha256": "F3B625316B2E190B044869F02D9D03EDFD189A6D0683AB3E3D22688FA53B3F45"
+    },
+    {
+      "path": "assets\\manual-dark.png",
+      "bytes": 826081,
+      "sha256": "31979A7028A6F2FA77DFE7CCAC0FFCD57AAC9D6EB522CB45B7AD18817E29752A"
+    },
+    {
+      "path": "assets\\manual-dual-down-only.png",
+      "bytes": 78566,
+      "sha256": "7CEF5A1E3577790DAB0C75AA9A0B17AB8F27DDE49569EF148091F861137332CD"
+    },
+    {
+      "path": "assets\\manual-dual-up-only.png",
+      "bytes": 78187,
+      "sha256": "B8B96F12DE3486B1AFF15031C27FC40460EA361650752D6555E8D24EF039DA99"
+    },
+    {
+      "path": "assets\\manual-input-output-link.png",
+      "bytes": 230183,
+      "sha256": "41807ECFB9EE7E32F9CB3E23BAA6E7ED4C8EC71B482EB003756E219A2AC7605D"
+    },
+    {
+      "path": "assets\\manual-light-0ms-controls.png",
+      "bytes": 17729,
+      "sha256": "6013578E2A979443212E63174DE6452266770591338479979116DE756C381498"
+    },
+    {
+      "path": "assets\\manual-light-0ms.png",
+      "bytes": 486666,
+      "sha256": "402410942F5C69855994565B3EAC4934686F374FAE717575542E0E123717324D"
+    },
+    {
+      "path": "assets\\manual-light-controls.png",
+      "bytes": 221157,
+      "sha256": "C21F35A213BDBC5B11DD0F67DD44ACAA6770EBEA695C08540A9E1F091B884017"
+    },
+    {
+      "path": "assets\\manual-light-display.png",
+      "bytes": 193495,
+      "sha256": "756E9D7A9C7464CA2D131A9F4B1E0B2E546A15913DD8D07AE632C3A4E19D0DF3"
+    },
+    {
+      "path": "assets\\manual-light-dual-controls.png",
+      "bytes": 73248,
+      "sha256": "48BDF1AD234C9EB611E94FEE57D255A22D77F4E5F94AB4DCCE869BA06AA8AB80"
+    },
+    {
+      "path": "assets\\manual-light-dual-LR.png",
+      "bytes": 614838,
+      "sha256": "20BEAE0D439AD6662413AEBE7834C1227EC1F72E06A1C0124FE543C800E8C54F"
+    },
+    {
+      "path": "assets\\manual-light-dual-MS.png",
+      "bytes": 636421,
+      "sha256": "5B121717362EE559851151911578539DF5BF4CAD498B566116208A5A17E92FAF"
+    },
+    {
+      "path": "assets\\manual-light-dual.png",
+      "bytes": 531228,
+      "sha256": "786055501CE6D03E164728768370A1447860B83A6C5852F5CFC517994A8ED591"
+    },
+    {
+      "path": "assets\\manual-light-LR-link.png",
+      "bytes": 286360,
+      "sha256": "2D5BE7096BFA759FBF8561B6A7740195F71C22BDFD01F7980BA5F996CC2FDA2B"
+    },
+    {
+      "path": "assets\\manual-light-LR.png",
+      "bytes": 561132,
+      "sha256": "868F76DCDFBEFD7EB65BBFEB931B8F4FE2D43EEA5DD0FD6FFC41516FF9499F01"
+    },
+    {
+      "path": "assets\\manual-light-MS.png",
+      "bytes": 581447,
+      "sha256": "5246BF8001905841DA715D9457EDEA7CE6D1F092B813BA4CB1A162D1137E1514"
+    },
+    {
+      "path": "assets\\manual-light-single-up.png",
+      "bytes": 510915,
+      "sha256": "906C0F080F83163891BFE730DFF4F18036E07652E2813D7E3EB9E47EC9157CD0"
+    },
+    {
+      "path": "assets\\manual-light-ST.png",
+      "bytes": 481764,
+      "sha256": "851CEFD1DA6A4783B6C2FF97DDB8268A165C68E6CC7C2035B3803B33D47D2BC6"
+    },
+    {
+      "path": "assets\\manual-light-super.png",
+      "bytes": 486704,
+      "sha256": "2ACCFFEE6BC336BDB8B646A5B238B5DC3981B21284F5DD7076F0640DFC62DC40"
+    },
+    {
+      "path": "assets\\manual-limiter-ceiling-peak.png",
+      "bytes": 49642,
+      "sha256": "03A24288DCF51E22D0852C4624FED3786445DB43965CB98155544DE89303F110"
+    },
+    {
+      "path": "assets\\manual-limiter-ceiling-tp.png",
+      "bytes": 51046,
+      "sha256": "5F839088039699A6F47DEFFDAE7B8F0524343C26AF975507174F8BBE07181256"
+    },
+    {
+      "path": "assets\\manual-limiter-classic.png",
+      "bytes": 265452,
+      "sha256": "EF616788D8C488DA4A4A4367ABC592C02229B5396CE15CB5A8CE723CE939D3EA"
+    },
+    {
+      "path": "assets\\manual-limiter-controls.png",
+      "bytes": 268028,
+      "sha256": "7B59F72384B104857F9B2CCD818A2A7F759AE1422ACBC792EA029C13832EA768"
+    },
+    {
+      "path": "assets\\manual-limiter-dark.png",
+      "bytes": 855112,
+      "sha256": "89F9924B03D23E6880EE751BD7F7708AC7C6D19481C0DAD8D4E7848F190AF40A"
+    },
+    {
+      "path": "assets\\manual-limiter-dual-gentle.png",
+      "bytes": 616243,
+      "sha256": "191A5FF35296B31FD6A319F178287B1FB17E505E2DB5A39E88072D4E376A2B33"
+    },
+    {
+      "path": "assets\\manual-limiter-light.png",
+      "bytes": 580664,
+      "sha256": "996B3F8403C1B249EB3D3157D476281413BA6FAD718FB87A6BFB767F670DEF10"
+    },
+    {
+      "path": "assets\\manual-limiter-lufs.png",
+      "bytes": 12029,
+      "sha256": "AA757AFA1C37B7D1D6A25AD3605CFA4537D33E92CF72415587B228DB7EC771E3"
+    },
+    {
+      "path": "assets\\manual-limiter-monitor-controls.png",
+      "bytes": 272238,
+      "sha256": "F8ED0E1F1791B915E7232D786676588CF4106ECF732735A6BEF943F326D16A94"
+    },
+    {
+      "path": "assets\\manual-limiter-monitor-output.png",
+      "bytes": 53219,
+      "sha256": "84A118DB9F1B8643E74F7731ACAF1F7182E1F459AFB54E9305ED675399818F47"
+    },
+    {
+      "path": "assets\\manual-limiter-monitor.png",
+      "bytes": 582030,
+      "sha256": "A6C356CC378D238E6F22E561FD291E05893B04EC75A9FFE3089FC6130C776787"
+    },
+    {
+      "path": "assets\\manual-limiter-os.png",
+      "bytes": 22980,
+      "sha256": "88EE373B24A6FA29DE05692613EAD228D9EAF7AEF428D477A08F941D64B69C3B"
+    },
+    {
+      "path": "assets\\manual-limiter-top.png",
+      "bytes": 34357,
+      "sha256": "F1847B9EAA17EB68C4B95723E84E5DA4A3246787E72A686E89E871D134D5D0F2"
+    },
+    {
+      "path": "assets\\manual-limiter-tp-meter.png",
+      "bytes": 5732,
+      "sha256": "BC9723ED65A2F6AB93BDDDABAAE6AF951CCB12765559B43B46CD6116102F2B32"
+    },
+    {
+      "path": "assets\\manual-performance-eco.png",
+      "bytes": 5728,
+      "sha256": "D4F3DE1E31014A13652DBD9709579CFFF1D5FAF08C92F31BA0B4C400A0840CEA"
+    },
+    {
+      "path": "assets\\manual-performance-full.png",
+      "bytes": 5297,
+      "sha256": "CC9919D5CAA332BCF72C2A6F5D1F9BEC0C638F2BB895BCD6BBF547B85D5D25BE"
+    },
+    {
+      "path": "assets\\manual-recovery-auto.png",
+      "bytes": 6718,
+      "sha256": "D27DADDE518FCA88950E27149860931DF0F9464EDC133D9C7B5C886AF4F20076"
+    },
+    {
+      "path": "assets\\manual-recovery-smooth.png",
+      "bytes": 6939,
+      "sha256": "11D19C5B7902B42DAC565B872B8AC2C0ACAA519223309F5A0CF380AD7C305999"
+    },
+    {
+      "path": "assets\\manual-recovery-tight.png",
+      "bytes": 6574,
+      "sha256": "A9C3D6B22D887E85B97A053CF331A5DACA72AB246785EE8C64A6CE7CE1E12339"
+    },
+    {
+      "path": "assets\\manual-sidechain-panel.png",
+      "bytes": 121966,
+      "sha256": "718539211DB7B74737B133EB42AC12F498004A429DC8D7B78C345874893C709E"
+    },
+    {
+      "path": "assets\\manual-theme-button.png",
+      "bytes": 4870,
+      "sha256": "86D794A0B658ECC225285EFD4CB2566B48928A954330144AD00BDEDDFE6CBEFD"
+    },
+    {
+      "path": "assets\\manual-top-controls.png",
+      "bytes": 33708,
+      "sha256": "5300E52F61817CDFDC52F96029B10D1F1E938BACF1C384AA90499C0DCF63C7D9"
+    }
+  ],
+  "capture_source": "D:\\Codex\\Workspaces\\QQSuperCompression-1.2.36-Manual\\source-1.2.36\\manual_capture_1_2_36.cpp",
+  "capture_source_sha256": "531F50D535DEB6229690D533D9379A195749A3F602000F77F172C233F03FCD63",
+  "render_directory": "D:\\Codex\\Temp\\QQSCManual1236\\limiter-0ms-review",
+  "host_validation_limit": "The manual describes callback behavior; no claim of new Cubase GUI/offline-export validation.",
+  "visual_review": {
+    "status": "PASS",
+    "rendered_pages": 41,
+    "full_size_pages_inspected": [
+      17,
+      25,
+      31
+    ],
+    "body_text_changed_pages": [
+      17,
+      25,
+      31
+    ],
+    "remaining_pages_pixel_identical_to_prior_review": 38,
+    "embedded_images_unchanged_on_all_pages": true,
+    "prior_review_backup": "D:\\备份文件\\Vibe Coding\\QQ Super Compression\\说明书\\QQSC-1.2.36-Chinese-Review-20261001-003559",
+    "prior_review_pdf_sha256": "A2CEC0EBFA0AA06DD9B9955E65D7F9B2B88A8C66BD9590BE73628CD9D4FA3428",
+    "checked_at": "2026-10-01T00:55:27.419342+08:00"
+  },
+  "revision": "Promote user-described Limiter 0 ms Lookahead behavior: loud chorus with quiet-section level retained, without greatly raising the entire song; audition Core OS 4x/8x/16x.",
+  "retained_user_workflow": "Limiter ratio 20:1-1000:1 + Output LINK; gentle Dual UP 1:1-1:1.2, kick/snare tail warning and segmented-compression advice.",
+  "English_followup": {
+    "pdf": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.36 Manuals\\QQ Super Compression User Manual English_v1.2.36.pdf",
+    "pdf_sha256": "1A21B5392CE70F3630592E2BF944742E47A41BFA4C23FB5052B15207E895771B",
+    "completed_at": "2026-10-01T01:21:15.398839+08:00"
+  }
+}

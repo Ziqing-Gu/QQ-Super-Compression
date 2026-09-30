@@ -1,0 +1,84 @@
+diff -ruN '--exclude=Verification' /mnt/data/qqsc1214baseline/QQSC-1.2.14-TP-Display-Meter-GR/Source/OutputCeiling.h Source/OutputCeiling.h
+--- /mnt/data/qqsc1214baseline/QQSC-1.2.14-TP-Display-Meter-GR/Source/OutputCeiling.h	2026-09-28 08:58:22.000000000 +0000
++++ Source/OutputCeiling.h	2026-09-28 09:14:47.732214642 +0000
+@@ -163,10 +163,17 @@
+         active.reset(rate,.010);active.setCurrentAndTargetValue(enabled ? 1.f : 0.f);
+         truePeakBlend.reset(rate,.010);truePeakBlend.setCurrentAndTargetValue(tp ? 1.f : 0.f);
+         ceiling.reset(rate,.010);ceiling.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(ceilingDb));
+-        displayGainReductionDb=0.0f;
++        displayGainLinear=1.0f;
+     }
+     int latencySamples() const noexcept { return latency; }
+-    float gainReductionDbForDisplay() const noexcept { return displayGainReductionDb; }
++    // Runtime telemetry stays in the linear domain so the audio thread does not
++    // perform a logarithm for every host sample. Callers that need block/display
++    // dB can convert the accumulated minimum gain once per block.
++    float gainForDisplayLinear() const noexcept { return displayGainLinear; }
++    float gainReductionDbForDisplay() const noexcept
++    {
++        return -juce::Decibels::gainToDecibels(juce::jmax(displayGainLinear,1.0e-9f),-180.0f);
++    }
+     void set(bool enabled,bool tp,float ceilingDb) noexcept
+     {
+         active.setTargetValue(enabled ? 1.f : 0.f);
+@@ -221,10 +228,14 @@
+         const float tpDisplayGain=juce::jlimit(0.0f,1.0f,truePeakDisplayGain*postDisplayGain);
+         const float selectedDisplayGain=nativeDisplayGain+t*(tpDisplayGain-nativeDisplayGain);
+         const float effectiveDisplayGain=juce::jlimit(0.0f,1.0f,1.0f+a*(selectedDisplayGain-1.0f));
+-        displayGainReductionDb=-juce::Decibels::gainToDecibels(juce::jmax(effectiveDisplayGain,1.0e-9f),-180.0f);
++        // Keep telemetry linear here. PluginProcessor accumulates the minimum
++        // effective gain for the host block and performs one dB conversion after
++        // the sample loop. Because -dB(g) is monotonic for g in (0, 1], this is
++        // exactly equivalent to taking the maximum per-sample GR in dB.
++        displayGainLinear=effectiveDisplayGain;
+ 
+         // OFF is an exact delayed copy, independent of hidden TP/Ceiling values.
+-        if (a == 0.0f) { displayGainReductionDb=0.0f; return dry[dryIndex]; }
++        if (a == 0.0f) { displayGainLinear=1.0f; return dry[dryIndex]; }
+         for(size_t ch=0;ch<2;++ch)
+         {
+             const float limited=peak[ch]+t*(corrected[ch]-peak[ch]);
+@@ -241,5 +252,6 @@
+     size_t peakIndex=0,dryIndex=0,analysisIndex=0;
+     int look=1,filterLatency=0,analysisDelay=0,latency=0;
+     juce::SmoothedValue<float> active,truePeakBlend,ceiling;
++    float displayGainLinear=1.0f;
+ };
+ }
+diff -ruN '--exclude=Verification' /mnt/data/qqsc1214baseline/QQSC-1.2.14-TP-Display-Meter-GR/Source/PluginProcessor.cpp Source/PluginProcessor.cpp
+--- /mnt/data/qqsc1214baseline/QQSC-1.2.14-TP-Display-Meter-GR/Source/PluginProcessor.cpp	2026-09-28 09:08:28.000000000 +0000
++++ Source/PluginProcessor.cpp	2026-09-28 09:14:47.732719522 +0000
+@@ -1757,7 +1757,7 @@
+     float meterInputPeak[2]  { 0.0f, 0.0f };
+     float meterOutputPeak[2] { 0.0f, 0.0f };
+     float displayInputPeak[2]  { 0.0f, 0.0f };
+-    float displayCeilingGainReductionDb = 0.0f;
++    float displayCeilingGainLinear = 1.0f;
+ 
+     for (int i = 0; i < numSamples; ++i)
+     {
+@@ -1869,8 +1869,8 @@
+         // compression, Makeup, Mix and Output Gain. This preserves the established
+         // latency-safe bypass contract while keeping Gain trims part of the effect.
+         const auto finalOutput=outputCeiling.process(activeOutL,stereoBus ? activeOutR : 0.0f);
+-        displayCeilingGainReductionDb=juce::jmax(displayCeilingGainReductionDb,
+-                                                 outputCeiling.gainReductionDbForDisplay());
++        displayCeilingGainLinear=juce::jmin(displayCeilingGainLinear,
++                                             outputCeiling.gainForDisplayLinear());
+         ceilingReferenceDelay[ceilingReferenceIndex]={displayDryL,displayDryR,delayedKeyL,delayedKeyR,
+             mixControlBuffer.getSample(15,i),mixDryL,mixDryR,mixedL-mixDryL,mixedR-mixDryR};
+         ceilingReferenceIndex=(ceilingReferenceIndex+1)%ceilingReferenceDelay.size();
+@@ -2019,6 +2019,13 @@
+     };
+     const auto effectiveGr0 = forceBypass ? 0.0f : signedPeakAfterMix (0, meterMix0);
+     const auto effectiveGr1 = forceBypass ? 0.0f : signedPeakAfterMix (1, meterMix1);
++    // Convert the accumulated OutputCeiling telemetry once per host block. The
++    // sample loop stays entirely in the linear gain domain. min(linear gain) is
++    // exactly equivalent to max(attenuation dB), without tens of thousands of
++    // log10 calls per second per plug-in instance.
++    const auto displayCeilingGainReductionDb = (forceBypass || displayCeilingGainLinear >= 1.0f)
++        ? 0.0f
++        : -juce::Decibels::gainToDecibels (juce::jmax (displayCeilingGainLinear, 1.0e-9f), -180.0f);
+     // GAIN +/- and Dynamic Display share the same final-processing semantics:
+     // compressor/Mix signed gain change plus the actual stereo-linked OutputCeiling
+     // attenuation. TP/Sample-Peak switching is already represented by the

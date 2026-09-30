@@ -1,0 +1,131 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.33
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+CMake is re-running because D:/Codex/Temp/QQSC1234-Review-Fixes/CMakeFiles/generate.stamp is out-of-date.
+  the file 'D:/Codex/Workspaces/QQSC-1.2.34-Review-Fixes/CMakeLists.txt'
+  is newer than 'D:/Codex/Temp/QQSC1234-Review-Fixes/CMakeFiles/generate.stamp.depend'
+  result='-1'
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Configuring done (1.9s)
+-- Generating done (1.3s)
+-- Build files have been written to: D:/Codex/Temp/QQSC1234-Review-Fixes
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSuperCompression_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_rc_lib.dir\Release\QQSuperCompression_rc_lib.lib
+  Building VST3 manifest helper for QQSuperCompression
+CUSTOMBUILD : warning : Environment variable CMAKE_GENERATOR_PLATFORM will be ignored, because CMAKE_GENERATOR is not set. [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_vst3_helper.vcxproj]
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+  -- Configuring done (0.0s)
+  -- Generating done (0.1s)
+  -- Build files have been written to: D:/Codex/Temp/QQSC1234-Review-Fixes/vst3_helpers/QQSuperCompression
+CUSTOMBUILD : warning : Environment variable CMAKE_GENERATOR_PLATFORM will be ignored, because CMAKE_GENERATOR is not set. [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_vst3_helper.vcxproj]
+  閫傜敤浜?.NET Framework MSBuild 鐗堟湰 17.14.40+3e7442088
+  
+    juce_VST3ManifestHelper.cpp
+    vst3_helper.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\vst3_helpers\QQSuperCompression\vst3_helper.exe
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\Release\QQSCWarmKnobAssets.lib
+  Generating QQSuperCompression_artefacts/JuceLibraryCode/JuceHeader.h
+  LimiterMode.cpp
+  LimiterEditor.cpp
+  PluginProcessor.cpp
+  DynamicDisplay.cpp
+  LevelMeters.cpp
+  PluginEditor.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_audio_utils.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244: “初始化”: 从“_Ty”转换到“_Ty2”，可能丢失数据 [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         with [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty=int [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         and [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty2=float [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression.vcxproj]
+  (编译源文件“../../Workspaces/QQSC-1.2.34-Review-Fixes/Source/PluginProcessor.cpp”)
+      C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\Codex\Workspaces\QQSC-1.2.34-Review-Fixes\Source\PluginProcessor.cpp(3343,84):
+          查看对正在编译的函数 模板 实例化“std::pair<const char *,float>::pair<const char*const &,int,0>(_Other1,_Other2 &&) noexcept”的引用
+          with
+          [
+              _Other1=const char *const &,
+              _Other2=int
+          ]
+              D:\Codex\Workspaces\QQSC-1.2.34-Review-Fixes\Source\PluginProcessor.cpp(3343,82):
+              请参阅 "QQSuperCompressionAudioProcessor::setStateInformation" 中对 "std::pair<const char *,float>::pair" 的第一个引用
+  
+  juce_graphics_Sheenbidi.c
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  juce_audio_plugin_client_AAX.cpp
+  juce_audio_plugin_client_AAX_utils.cpp
+  juce_audio_plugin_client_ARA.cpp
+  juce_audio_plugin_client_LV2.cpp
+  juce_audio_plugin_client_Standalone.cpp
+  juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_VST3.cpp
+    正在创建库 D:/Codex/Temp/QQSC1234-Review-Fixes/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.lib 和对象 D:/Codex/Temp/QQSC1234-Review-Fixes/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.exp
+  正在生成代码
+  已完成代码的生成
+  QQSuperCompression_VST3.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3\Contents\x86_64-win\QQ Super Compression.vst3
+  removing moduleinfo.json
+  creating D:/Codex/Temp/QQSC1234-Review-Fixes/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3/Contents/Resources/moduleinfo.json
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSCReviewCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSCReviewCheck_rc_lib.dir\Release\QQSCReviewCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  review_fixes_check.cpp
+  juce_audio_utils.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_audio_devices.cpp
+  juce_dsp.cpp
+  juce_graphics_Sheenbidi.c
+  正在生成代码
+  已完成代码的生成
+  QQSCReviewCheck.vcxproj -> D:\Codex\Temp\QQSC1234-Review-Fixes\QQSCReviewCheck_artefacts\Release\QQSCReviewCheck.exe

@@ -1,0 +1,2 @@
+Compiling actual extracted source functions: /mnt/data/qqsc_work/QQSuperCompression-1.2.7-Strict-Output-Link
+FAIL: Single->Dual recalled stale DOWN threshold got=0.000000 expected=-12.000000

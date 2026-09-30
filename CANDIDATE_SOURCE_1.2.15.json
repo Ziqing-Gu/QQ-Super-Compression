@@ -1,0 +1,11 @@
+{
+  "version": "1.2.15",
+  "baseline": "1.2.14 TP Display + Meter Gain Reduction",
+  "status": "source candidate; not Windows-built here",
+  "changes": [
+    "TP/Sample-Peak visual telemetry stays linear per sample",
+    "host block accumulates minimum linear ceiling gain",
+    "gain-to-dB conversion occurs once per block",
+    "Display, GAIN +/-, Hold and audio DSP semantics unchanged"
+  ]
+}

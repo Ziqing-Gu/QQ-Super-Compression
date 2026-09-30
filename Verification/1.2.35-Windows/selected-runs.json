@@ -1,0 +1,22 @@
+[
+  {
+    "name": "limiter-1234",
+    "exit_code": 0,
+    "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\limiter-1234.log"
+  },
+  {
+    "name": "limiter-1228",
+    "exit_code": 0,
+    "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\limiter-1228.log"
+  },
+  {
+    "name": "unity",
+    "exit_code": 0,
+    "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\unity.log"
+  },
+  {
+    "name": "profile-paired",
+    "exit_code": 0,
+    "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\profile-paired.log"
+  }
+]

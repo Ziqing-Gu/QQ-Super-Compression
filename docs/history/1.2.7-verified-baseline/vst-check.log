@@ -1,0 +1,27 @@
+PASS: 120 real VST3 normal-mode cases, same identity/parameter order/latency, max relative peak residual=0.
+PASS: actual previous VST3 wrapper state and ratio limit migration.
+Limiter comparison algo=0 mode=0 TP=0 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=0 TP=0 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=0 TP=1 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=0 TP=1 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=1 TP=0 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=1 TP=0 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=1 TP=1 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=1 TP=1 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=2 TP=0 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=2 TP=0 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=2 TP=1 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=0 mode=2 TP=1 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=0 TP=0 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=0 TP=0 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=0 TP=1 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=0 TP=1 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=1 TP=0 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=1 TP=0 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=1 TP=1 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=1 TP=1 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=2 TP=0 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=2 TP=0 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=2 TP=1 Ratio=200 error=0 peak=1 tail=0 at=0 old=0 new=0
+Limiter comparison algo=1 mode=2 TP=1 Ratio=1000 error=0 peak=1 tail=0 at=0 old=0 new=0
+PASS: 24 actual VST3 Limiter cases, 200:1 without overload and exactly representable 1000:1 with overload, Classic/Super, ST/LR/MS, TP/Peak; residual=0.

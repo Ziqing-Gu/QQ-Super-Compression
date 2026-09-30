@@ -1,0 +1,218 @@
+diff -ruN /mnt/data/qqsc1220_work/QQSC-1.2.18-TP-Recovery/Source/DynamicDisplay.cpp Source/DynamicDisplay.cpp
+--- /mnt/data/qqsc1220_work/QQSC-1.2.18-TP-Recovery/Source/DynamicDisplay.cpp	2026-09-28 19:00:36.000000000 +0000
++++ Source/DynamicDisplay.cpp	2026-09-28 21:08:06.651587300 +0000
+@@ -226,6 +226,8 @@
+     processor.setDisplayKeyHistoryCaptureEnabled (true);
+     lastObservedHpfHz = readParameter (processor, qqsc::params::keyHpfHz,
+                                        qqsc::params::keyHpfOffHz);
++    lastObservedLookaheadMs = qqsc::params::snapLookaheadMs (
++        readParameter (processor, qqsc::params::lookaheadMs));
+     hpfReplayWorker->startThread (juce::Thread::Priority::low);
+     startTimerHz (displayRefreshHz);
+ }
+@@ -307,7 +309,9 @@
+         m.displayTruePeakExcessDb.exchange (0.0f, std::memory_order_acq_rel));
+ 
+     const int limiter = processor.isLimiterMode() ? 1 : 0;
+-    if (mode != lastMode || keySource != lastKeySource || limiter != lastLimiter
++    // Limiter ON/OFF is a projection choice, not a new history source. Keep
++    // the evidence so switching Limiter also reshapes the already-visible past.
++    if (mode != lastMode || keySource != lastKeySource
+         || position.generation != lastCaptureGeneration)
+     {
+         clearHistories();
+@@ -348,6 +352,14 @@
+ 
+     const auto currentHpfHz = readParameter (processor, qqsc::params::keyHpfHz,
+                                              qqsc::params::keyHpfOffHz);
++    const auto currentLookaheadMs = qqsc::params::snapLookaheadMs (
++        readParameter (processor, qqsc::params::lookaheadMs));
++    if (std::abs (currentLookaheadMs - lastObservedLookaheadMs) > 0.01f)
++    {
++        lastObservedLookaheadMs = currentLookaheadMs;
++        hpfStableTimerTicks = 0;
++        hpfRefreshPending = true;
++    }
+     if (std::abs (currentHpfHz - lastObservedHpfHz) > 0.01f)
+     {
+         lastObservedHpfHz = currentHpfHz;
+@@ -656,25 +668,25 @@
+     const bool limiter = processor.isLimiterMode();
+     const bool truePeak = limiter && processor.isTruePeakSelected();
+     const auto ceilingDb = readParameter (processor, qqsc::params::ceilingDb);
+-    const auto tpRecovery=processor.getTpRecoveryMode();
+-    // Display remains retrospective: Recovery is evaluated from the CURRENT
+-    // choice over the stored level-independent TP evidence, not captured as a
+-    // historical rendered result. The visual envelope is a lightweight 60 Hz
+-    // replay of the audible release character, not a second 8x/16x DSP pass.
+-    const float recoverySeconds=tpRecovery==qqsc::params::tpTight ? .015f
+-        : tpRecovery==qqsc::params::tpSmooth ? .140f : .050f;
+-    const float recoveryStep=1.0f/(1.0f+float(displayRefreshHz)*recoverySeconds);
+-    float retrospectiveTpGain=1.0f;
++    const auto tpRecovery = processor.getTpRecoveryMode();
++
++    // TP is a post-dynamics stage. History stores only level/shape evidence;
++    // the CURRENT recovery choice is replayed over that evidence every repaint.
++    // This deliberately preserves QQ Super Compression's defining Display rule:
++    // changing a current control reshapes the already-visible history.
++    const float recoverySeconds = tpRecovery == qqsc::params::tpTight ? .015f
++        : tpRecovery == qqsc::params::tpSmooth ? .140f : .050f;
++    const float recoveryStep = 1.0f / (1.0f + float (displayRefreshHz) * recoverySeconds);
++    float retrospectiveTpGain = 1.0f;
+ 
+     for (const auto& point : histories[static_cast<size_t> (domainIndex)].points)
+     {
+         auto detectorDb = point.hasReplayedDetector ? point.replayedDetectorDb
+                                                      : point.detectorDb;
+ 
+-        // History stores evidence, never a rendered result. Replayed detector
+-        // samples are pre-gain; fallback live points use the capture-time delta.
+-        // Therefore current Input/Key controls immediately reshape the ENTIRE
+-        // visible history, which is the defining Dynamic Display behaviour.
++        // Replayed evidence is pre-gain. Live fallback points are post-gain and
++        // are moved by the delta from their capture setting. No rendered GR is
++        // stored, so Input/Key controls remain retrospective as well.
+         if (point.hasReplayedDetector)
+             detectorDb += externalKey ? keyGainDb : inputGainDb;
+         else if (externalKey)
+@@ -686,25 +698,47 @@
+ 
+         const auto compressedGain = processor.getDynamicsGainForDomain (
+             dbToDetectorLevel (detectorDb), domain);
+-        const auto effectiveGr = bypassed ? 0.0f
+-                                          : qqsc::StaticCompressionEngine::effectiveGainReductionDb (
+-                                                compressedGain, wetMix);
++        const auto dynamicsMixGrDb = bypassed ? 0.0f
++            : qqsc::StaticCompressionEngine::effectiveGainReductionDb (compressedGain, wetMix);
+ 
+-        auto projectedPreCeilingDb = point.inputDb;
++        // IMPORTANT DISPLAY CONTRACT
++        // --------------------------
++        // The blue trace is a calculated transfer/history view, not a measured
++        // post-compressor waveform. For INT, the detector peak is the level to
++        // which the current static Classic/Super transfer law actually applies.
++        // Convert it back to the pre-Input-Gain Display reference. This keeps the
++        // curve monotonic, makes finite-Ratio TP-OFF output stay on/above the
++        // displayed DOWN threshold, and prevents impossible spikes caused by
++        // pairing an unrelated carrier-block peak with a lookahead detector peak.
++        // EXT is intentionally different: key and carrier are unrelated, so the
++        // captured carrier remains the display reference while the external key
++        // supplies only gain control.
++        const auto transferInputDb = externalKey ? point.inputDb
++                                                 : detectorDb - inputGainDb;
++        const auto cutMixDb = bypassed ? transferInputDb
++                                       : transferInputDb - dynamicsMixGrDb;
++
++        // Re-project the current audible path from the SAME transfer evidence.
++        // Makeup is inside the Wet leg; Input/Output are fixed gains. These do
++        // not belong to base Dynamics GR, but they DO affect how hard the later
++        // TP stage is driven, so changing them can retrospectively change the TP
++        // contribution to the blue trace when TP is enabled.
++        auto projectedPreCeilingDb = transferInputDb;
+         if (! bypassed)
+         {
+-            // Makeup affects only the Wet leg, exactly as in processBlock.
+-            const auto mixedGain = (1.0f - wetMix) + compressedGain * makeupGain * wetMix;
+-            const auto totalGain = inputGain * juce::jmax (0.0f, mixedGain) * outputGain;
++            const auto mixedGainWithMakeup = (1.0f - wetMix)
++                                           + compressedGain * makeupGain * wetMix;
++            const auto totalGain = inputGain
++                                 * juce::jmax (0.0f, mixedGainWithMakeup)
++                                 * outputGain;
+             projectedPreCeilingDb += juce::Decibels::gainToDecibels (
+                 juce::jmax (totalGain, 1.0e-9f), -180.0f);
+         }
+ 
+-        // OutputCeiling is intentionally NOT captured as a historical result.
+-        // Instead the point retains only a level-independent inter-sample shape
+-        // descriptor. Re-evaluate the current Ceiling/TP setting against the
+-        // CURRENT static projection every paint pass. This keeps TP, Output,
+-        // Input, Ratio, Mix, Makeup, algorithm and boundaries retrospective.
++        // Re-evaluate the current Ceiling/TP choice from level-independent
++        // inter-sample evidence. TP recovery is time-dependent, so the Display
++        // uses the established light 60 Hz retrospective replay; the right-side
++        // GAIN +/- meter remains the authority for real-time DSP GR.
+         float projectedCeilingGrDb = 0.0f;
+         float projectedPostCeilingDb = projectedPreCeilingDb;
+         if (limiter && ! bypassed)
+@@ -713,19 +747,18 @@
+                 + (truePeak ? juce::jmax (0.0f, point.truePeakExcessDb) : 0.0f);
+             const auto overshootDb = projectedPeakDb - ceilingDb;
+             if (overshootDb > 0.0f)
+-            {
+-                // The audible TP residual stage lands only 0.01 dB below the
+-                // user's Ceiling when correction is actually required. Mirror
+-                // that tiny reserve in the retrospective visual projection.
+                 projectedCeilingGrDb = overshootDb + (truePeak ? 0.01f : 0.0f);
+-            }
+-            if(truePeak)
++
++            if (truePeak)
+             {
+-                const auto targetGain=juce::Decibels::decibelsToGain(-projectedCeilingGrDb);
+-                if(targetGain<=retrospectiveTpGain) retrospectiveTpGain=targetGain;
+-                else retrospectiveTpGain+=recoveryStep*(targetGain-retrospectiveTpGain);
+-                projectedCeilingGrDb=-juce::Decibels::gainToDecibels(
+-                    juce::jmax(retrospectiveTpGain,1.0e-9f),-180.0f);
++                const auto targetGain = juce::Decibels::decibelsToGain (-projectedCeilingGrDb);
++                if (targetGain <= retrospectiveTpGain)
++                    retrospectiveTpGain = targetGain;
++                else
++                    retrospectiveTpGain += recoveryStep * (targetGain - retrospectiveTpGain);
++
++                projectedCeilingGrDb = -juce::Decibels::gainToDecibels (
++                    juce::jmax (retrospectiveTpGain, 1.0e-9f), -180.0f);
+             }
+             projectedPostCeilingDb -= projectedCeilingGrDb;
+         }
+@@ -736,25 +769,20 @@
+         const auto index = projected.size++;
+         projected.input[index] = point.inputDb;
+ 
+-        if (limiter && ! bypassed)
+-        {
+-            // Limiter blue = current post-Dynamics/Mix/Makeup/TP projection
+-            // before the final fixed Output/Ceiling level shift. Orange is the
+-            // same projected contour with that fixed shift applied. They are
+-            // therefore point-for-point identical in shape while all current
+-            // controls continue to re-project old history.
+-            const auto blueDb = projectedPostCeilingDb - activeOutputGainDb;
+-            const auto displayedGainChange = point.inputDb - blueDb;
+-            projected.gainReductionBoundary[index] = blueDb;
+-            projected.output[index] = projectedPostCeilingDb;
+-            projected.effectiveGainReduction[index] = displayedGainChange;
+-        }
+-        else
+-        {
+-            projected.gainReductionBoundary[index] = point.inputDb - effectiveGr;
+-            projected.output[index] = bypassed ? point.inputDb : projectedPreCeilingDb;
+-            projected.effectiveGainReduction[index] = effectiveGr;
+-        }
++        // Blue = current QQ compression transfer + current Mix + CURRENT TP
++        // attenuation. Sample-Peak Ceiling is deliberately excluded from blue:
++        // with TP OFF the trace remains the pure compression transfer and, for
++        // INT finite DOWN thresholds, cannot be drawn below that threshold.
++        // With TP ON only the TP contribution may take blue below threshold.
++        const auto tpGrForBlue = (truePeak && ! bypassed) ? projectedCeilingGrDb : 0.0f;
++        projected.gainReductionBoundary[index] = cutMixDb - tpGrForBlue;
++        projected.effectiveGainReduction[index] = dynamicsMixGrDb + tpGrForBlue;
++
++        // Orange remains the current projected final output, including Makeup,
++        // Output Gain and the active Sample-Peak/True-Peak Ceiling stage.
++        projected.output[index] = limiter && ! bypassed
++            ? projectedPostCeilingDb
++            : (bypassed ? point.inputDb : projectedPreCeilingDb);
+         projected.externalKey[index] = detectorDb;
+     }
+ }
+diff -ruN /mnt/data/qqsc1220_work/QQSC-1.2.18-TP-Recovery/Source/DynamicDisplay.h Source/DynamicDisplay.h
+--- /mnt/data/qqsc1220_work/QQSC-1.2.18-TP-Recovery/Source/DynamicDisplay.h	2026-09-28 14:28:52.000000000 +0000
++++ Source/DynamicDisplay.h	2026-09-28 21:08:06.651390713 +0000
+@@ -140,6 +140,7 @@
+     int lastKeySource = -1;
+     uint64_t lastCaptureGeneration = 0;
+     float lastObservedHpfHz = qqsc::params::keyHpfOffHz;
++    float lastObservedLookaheadMs = 26.0f;
+     int hpfStableTimerTicks = 0;
+     int hpfRetryTimerTicks = 0;
+     int hpfRetryAttempts = 0;

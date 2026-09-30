@@ -1,0 +1,151 @@
+{
+  "version": "1.2.35",
+  "status": "selected_windows_checks_passed_installed_host_verification_pending",
+  "source": "D:\\Codex\\Workspaces\\QQSC-1.2.34-Review-Fixes",
+  "processor_sha256": "6000E8A9D2A13FB892EBBB5C39F4B8ADC0EAAC811D70BBA306F0C6424F24CD9F",
+  "tests": [
+    {
+      "check": "review-silence",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\review-silence.log",
+      "sha256": "C1CD98BE77177B4658BE10AA05A6137086BB66C8C4E61D4BC2FBE70AB72107EA"
+    },
+    {
+      "check": "limiter-1234",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\limiter-1234.log",
+      "sha256": "4C70BDC2A6C9C43BE22107E8DFF995C4A933B5F4FA9E96151AA7A468316752FF"
+    },
+    {
+      "check": "limiter-1228",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\limiter-1228.log",
+      "sha256": "0B3F0CE576E1B1433AB9DE2D450F8F77F72FD758CE9065DB16E3A358FF92BF3E"
+    },
+    {
+      "check": "unity",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\unity.log",
+      "sha256": "AF58DDB08A05041F5572F66BC59E5240AA231DBF495CB5EDCDB70D2A77FE6384"
+    },
+    {
+      "check": "profile-paired",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\profile-paired.log",
+      "sha256": "3A0A4E70FFAC473BDF05A5E49C83A31196E478B7C4417F6FEE8FDEE2B2C86BD4"
+    },
+    {
+      "check": "source-audit",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\source-audit.log",
+      "sha256": "9042EC0D22D7479B5482820DC9F60239A83E2275254825CB282967E86E959B7E"
+    },
+    {
+      "check": "vst3-validator",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\vst3-validator.log",
+      "sha256": "666E1FC604A34B49905A25B673BCD91B9BA154BCEBB81263D9BC5F2846E91576"
+    },
+    {
+      "check": "installed-vst3-validator",
+      "exit_code": 0,
+      "log": "D:\\Codex\\Temp\\QQSC1235-Instance-Eco-Checks\\installed-vst3-validator.log",
+      "sha256": "666E1FC604A34B49905A25B673BCD91B9BA154BCEBB81263D9BC5F2846E91576"
+    }
+  ],
+  "performance": [
+    {
+      "config": "Normal26",
+      "eco": false,
+      "before_us_per_256_samples": 280.735,
+      "after_us_per_256_samples": 183.76,
+      "reduction_percent": 34.54
+    },
+    {
+      "config": "Normal26",
+      "eco": true,
+      "before_us_per_256_samples": 168.563,
+      "after_us_per_256_samples": 87.2811,
+      "reduction_percent": 48.22
+    },
+    {
+      "config": "Normal0-16",
+      "eco": false,
+      "before_us_per_256_samples": 2314.18,
+      "after_us_per_256_samples": 119.893,
+      "reduction_percent": 94.82
+    },
+    {
+      "config": "Normal0-16",
+      "eco": true,
+      "before_us_per_256_samples": 2967.53,
+      "after_us_per_256_samples": 109.568,
+      "reduction_percent": 96.31
+    },
+    {
+      "config": "Limiter26-8",
+      "eco": false,
+      "before_us_per_256_samples": 742.871,
+      "after_us_per_256_samples": 151.169,
+      "reduction_percent": 79.65
+    },
+    {
+      "config": "Limiter26-8",
+      "eco": true,
+      "before_us_per_256_samples": 765.586,
+      "after_us_per_256_samples": 116.783,
+      "reduction_percent": 84.75
+    },
+    {
+      "config": "Limiter0-16shared",
+      "eco": false,
+      "before_us_per_256_samples": 3069.64,
+      "after_us_per_256_samples": 164.007,
+      "reduction_percent": 94.66
+    },
+    {
+      "config": "Limiter0-16shared",
+      "eco": true,
+      "before_us_per_256_samples": 2860.92,
+      "after_us_per_256_samples": 122.325,
+      "reduction_percent": 95.72
+    },
+    {
+      "config": "Limiter0-8core16ceiling",
+      "eco": false,
+      "before_us_per_256_samples": 2786.11,
+      "after_us_per_256_samples": 147.81,
+      "reduction_percent": 94.69
+    },
+    {
+      "config": "Limiter0-8core16ceiling",
+      "eco": true,
+      "before_us_per_256_samples": 2516.24,
+      "after_us_per_256_samples": 132.403,
+      "reduction_percent": 94.74
+    }
+  ],
+  "benchmark_context": "48 kHz, 256 samples; same stopped host and literal-zero input; reference forces continuous DSP. Wall-clock timing, not Cubase ASIO-Guard percentage. No concurrent test/build workloads.",
+  "audio_reference_max_absolute_delta": 0,
+  "installation": {
+    "version": "1.2.35",
+    "installed": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+    "output": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.35-Instance-Eco-Silence\\QQ Super Compression.vst3",
+    "rollback": "D:\\Codex\\Archives\\QQSC-1.2.34-before-1.2.35-20260930-212800\\QQ Super Compression.vst3",
+    "files": [
+      {
+        "path": "Contents\\Resources\\moduleinfo.json",
+        "sha256": "0FF8D44AD6409FAC5DD0BF898FD9BAEB2D0EDCA7DF647A7457B78F692B83AC0E",
+        "bytes": 1118
+      },
+      {
+        "path": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+        "sha256": "015897A5705922553DCA9455C876DDFD6DD735F9B3DD147DB2D07D68A814729A",
+        "bytes": 10672640
+      }
+    ],
+    "hosts_closed": true
+  },
+  "remaining_user_checks": "Cubase ASIO-Guard, stop/resume audio, instance FULL/ECO and project restore",
+  "plans": "No Plan B-F or public release performed"
+}

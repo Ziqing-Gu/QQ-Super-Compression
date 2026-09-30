@@ -1,0 +1,46 @@
+QQ Super Compression 1.0.3 — Windows 与 macOS 安装说明（中文）
+发布日期：2026-08-30
+厂商：Qing Audio
+格式：Windows x64 VST3；macOS Apple Silicon VST3；macOS Intel VST3；macOS Universal 2 AU
+
+本 Plan D 用户包只包含可安装插件和安装说明，不包含源码、构建缓存或内部验证日志。所有插件必须使用同一版本 1.0.3；升级前请完全退出 Cubase、Nuendo、REAPER、Studio One、Logic Pro 和其他可能扫描插件的宿主。
+
+本版变化
+1. LR 新增 ALL / L / R，MS 新增 ALL / M / S 的居中监听。
+2. L、R、S 复制到双输出时使用 1/sqrt(2)（-3.0103 dB）监听补偿；M 以 unity 复制到双输出。
+3. Monitor 仅改变最终试听输出。Display、meters、Match、A/B 声音快照、宿主自动化和 True Bypass 不受 Monitor 影响；LR/MS 选择分别随工程保存。
+
+包选择
+- Windows x64 VST3：Win\QQ-Super-Compression-1.0.3-Windows-x64.zip
+- Apple Silicon / M 系列 Mac VST3：Mac\QQ-Super-Compression-1.0.3-macOS-Apple-Silicon-VST3.zip
+- Intel Mac VST3：Mac\QQ-Super-Compression-1.0.3-macOS-Intel-VST3.zip
+- Universal 2 AU：Mac\QQ-Super-Compression-1.0.3-macOS-Universal-AU.zip
+- Linux、AAX 和独立应用：不提供。
+
+Windows x64 VST3
+1. 解压 Windows ZIP；根层应得到 `QQ Super Compression.vst3`。
+2. 将该 bundle 复制到 `C:\Program Files\Common Files\VST3`。系统可能要求管理员权限。
+3. 如已有旧版同名 `QQ Super Compression.vst3`，先在 DAW 完全关闭时覆盖它；不要在不同 VST3 目录保留两个同名版本。
+4. 重新打开宿主并执行 VST3 rescan；如果未出现，请重启宿主或清除宿主的插件缓存后重新扫描。
+
+macOS VST3
+1. 只选择一个 VST3 架构包：Apple Silicon/M 系列选择 arm64，Intel Mac 选择 x86_64；不要同时安装两套。
+2. 解压后应得到 `QQ Super Compression.vst3`。
+3. 复制到 `~/Library/Audio/Plug-Ins/VST3`；也可使用系统目录 `/Library/Audio/Plug-Ins/VST3`（通常需要管理员权限）。Finder 中按住 Option 点击“前往”可显示用户 Library。
+4. 重新打开宿主并重新扫描 VST3；必要时重启电脑。
+
+macOS Audio Unit
+1. Universal 2 AU 同时包含 arm64 与 x86_64。解压后应得到 `QQ Super Compression.component`。
+2. 复制到 `~/Library/Audio/Plug-Ins/Components`；系统目录为 `/Library/Audio/Plug-Ins/Components`。
+3. AU 与 VST3 是独立格式，只安装需要的格式，然后重新打开 Logic Pro 或重新扫描 Audio Units。
+
+macOS 安全提示
+macOS 成品为 CI 生成的 ad-hoc 签名包，不是 Apple Developer ID 公证版本。确认来源可信后，如 Gatekeeper 隔离插件，可对实际 bundle 路径执行：
+`xattr -dr com.apple.quarantine "~/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"`
+或把路径替换为实际 AU component 路径。不要对来源不明的文件执行解除隔离命令。
+
+兼容性与排错
+- 确保不要同时在用户与系统目录保留重复副本，也不要保留旧版同功能插件。
+- 如果宿主加载旧缓存，完全退出宿主后重新扫描。
+- Monitor 是试听工作流功能：LR/MS 的选择会保存；ST 隐藏该控制；它不会出现在宿主自动化列表。
+- 旧工程继续保留原有压缩、Threshold、LINK、Mix、Lookahead、Oversampling、PDC 与 Bypass 行为。

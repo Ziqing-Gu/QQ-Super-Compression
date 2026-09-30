@@ -1,0 +1,42 @@
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Configuring done (1.6s)
+-- Generating done (0.8s)
+-- Build files have been written to: D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSCLimiterCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck_rc_lib.dir\Release\QQSCLimiterCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  limiter_check.cpp
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244: “初始化”: 从“_Ty”转换到“_Ty2”，可能丢失数据 [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         with [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty=int [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         and [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty2=float [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+  (编译源文件“../../Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/tests/limiter_check.cpp”)
+      C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\tests\ratio_mix_checks.inc(45,17):
+          查看对正在编译的函数 模板 实例化“std::pair<const char *,float>::pair<const _Ty&,int,0>(_Other1,_Other2 &&) noexcept”的引用
+          with
+          [
+              _Ty=const char *,
+              _Other1=const char *const &,
+              _Other2=int
+          ]
+              D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\tests\ratio_mix_checks.inc(44,69):
+              请参阅 "QQSCLimiterCheck::ratioMixChecks" 中对 "std::pair<const char *,float>::pair" 的第一个引用
+  
+  正在生成代码
+  已完成代码的生成
+  QQSCLimiterCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck_artefacts\Release\QQSCLimiterCheck.exe

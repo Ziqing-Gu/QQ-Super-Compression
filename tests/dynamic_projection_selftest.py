@@ -10,7 +10,7 @@ processor = (root / "Source" / "PluginProcessor.cpp").read_text(encoding="utf-8"
 display_h = (root / "Source" / "DynamicDisplay.h").read_text(encoding="utf-8")
 display = (root / "Source" / "DynamicDisplay.cpp").read_text(encoding="utf-8")
 
-assert "VERSION 1.2.3" in cmake
+assert "VERSION 1.2.28" in cmake
 
 # Product-facing GR is Dry/Wet compression depth in the linear gain domain.
 def effective_gr(core_gr_db, wet_mix):
@@ -26,15 +26,15 @@ assert not math.isclose(effective_gr(12.0, 0.5), 6.0)
 for token in (
     "effectiveGainForMix",
     "effectiveGainReductionDb",
-    "1.0f + (compressedGain - 1.0f) * wetMix",
+    "(1.0f - wetMix) + compressedGain * wetMix",
 ):
     assert token in engine, token
 
 # Both the live GR meter and the historical Display use the same Mix-aware law.
 assert "effectiveGrForMeter" in processor
 assert "effectiveGainReductionDb (compressedGain, wetMix)" in processor
-assert "gainReductionDb0.store (effectiveGr0" in processor
-assert "updateGainReductionHoldChannel (0, effectiveGr0" in processor
+assert "gainReductionDb0.store (totalEffectiveGr0" in processor
+assert "updateGainReductionHoldChannel (0, totalEffectiveGr0" in processor
 assert "Cut / Mix" in display and "Boost / Mix" in display
 assert "GAIN (MIX)" in display
 
@@ -68,8 +68,8 @@ assert "linkedLevel" in processor
 
 # Makeup and Output affect only the projected Output curve; effective GR is
 # computed before either is applied.
-gr_pos = display.index("const auto effectiveGr =")
-makeup_mix_pos = display.index("const auto mixedGain =")
+gr_pos = display.index("qqsc::StaticCompressionEngine::effectiveGainReductionDb (compressedGain, wetMix)")
+makeup_mix_pos = display.index("const auto mixedGainWithMakeup =")
 assert gr_pos < makeup_mix_pos
 
-print("PASS: v1.1.5 Mix-aware GR, real-time Key Gain history, Wet removal and EXT Key ghost display.")
+print("PASS: Mix-aware GR, current-parameter history projection, Wet removal and EXT Key ghost display remain intact in 1.2.28.")

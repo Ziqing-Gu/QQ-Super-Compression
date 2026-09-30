@@ -1,0 +1,318 @@
+{
+  "version": "1.2.36",
+  "language": "English",
+  "status": "PASS_English_matches_approved_Chinese",
+  "pdf": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.36 Manuals\\QQ Super Compression User Manual English_v1.2.36.pdf",
+  "pdf_sha256": "1A21B5392CE70F3630592E2BF944742E47A41BFA4C23FB5052B15207E895771B",
+  "pdf_bytes": 7652487,
+  "pages": 41,
+  "outline_entries": 41,
+  "internal_links": [
+    {
+      "from": 2,
+      "to": 3
+    },
+    {
+      "from": 2,
+      "to": 5
+    },
+    {
+      "from": 2,
+      "to": 9
+    },
+    {
+      "from": 2,
+      "to": 12
+    },
+    {
+      "from": 2,
+      "to": 15
+    },
+    {
+      "from": 2,
+      "to": 18
+    },
+    {
+      "from": 2,
+      "to": 21
+    },
+    {
+      "from": 2,
+      "to": 25
+    },
+    {
+      "from": 2,
+      "to": 32
+    },
+    {
+      "from": 2,
+      "to": 36
+    },
+    {
+      "from": 2,
+      "to": 38
+    },
+    {
+      "from": 2,
+      "to": 40
+    }
+  ],
+  "translated_strings": 675,
+  "approved_Chinese_pdf_unchanged": true,
+  "approved_Chinese_pdf_sha256": "5A1C4F14E4D85DE3CD3F3BA4D7EB278B46D8C4051350BADBE3BCAF42B359EED8",
+  "Chinese_builder_unchanged": true,
+  "capture_assets_unchanged": true,
+  "product_source_files_unchanged": 569,
+  "installed_binary_unchanged": true,
+  "legacy_manuals_unchanged": true,
+  "text_bounds": [
+    {
+      "page": 1,
+      "chars": 781,
+      "body_lowest_bottom_pt": 638.87
+    },
+    {
+      "page": 2,
+      "chars": 1394,
+      "body_lowest_bottom_pt": 727.49
+    },
+    {
+      "page": 3,
+      "chars": 924,
+      "body_lowest_bottom_pt": 711.47
+    },
+    {
+      "page": 4,
+      "chars": 819,
+      "body_lowest_bottom_pt": 688.19
+    },
+    {
+      "page": 5,
+      "chars": 1765,
+      "body_lowest_bottom_pt": 714.34
+    },
+    {
+      "page": 6,
+      "chars": 1559,
+      "body_lowest_bottom_pt": 591.36
+    },
+    {
+      "page": 7,
+      "chars": 1431,
+      "body_lowest_bottom_pt": 689.98
+    },
+    {
+      "page": 8,
+      "chars": 1578,
+      "body_lowest_bottom_pt": 566.52
+    },
+    {
+      "page": 9,
+      "chars": 1086,
+      "body_lowest_bottom_pt": 723.08
+    },
+    {
+      "page": 10,
+      "chars": 1375,
+      "body_lowest_bottom_pt": 643.02
+    },
+    {
+      "page": 11,
+      "chars": 1538,
+      "body_lowest_bottom_pt": 685.04
+    },
+    {
+      "page": 12,
+      "chars": 1395,
+      "body_lowest_bottom_pt": 603.57
+    },
+    {
+      "page": 13,
+      "chars": 1728,
+      "body_lowest_bottom_pt": 631.06
+    },
+    {
+      "page": 14,
+      "chars": 1829,
+      "body_lowest_bottom_pt": 598.94
+    },
+    {
+      "page": 15,
+      "chars": 1732,
+      "body_lowest_bottom_pt": 762.68
+    },
+    {
+      "page": 16,
+      "chars": 1732,
+      "body_lowest_bottom_pt": 567.86
+    },
+    {
+      "page": 17,
+      "chars": 1456,
+      "body_lowest_bottom_pt": 716.9
+    },
+    {
+      "page": 18,
+      "chars": 730,
+      "body_lowest_bottom_pt": 649.01
+    },
+    {
+      "page": 19,
+      "chars": 719,
+      "body_lowest_bottom_pt": 642.37
+    },
+    {
+      "page": 20,
+      "chars": 1372,
+      "body_lowest_bottom_pt": 614.46
+    },
+    {
+      "page": 21,
+      "chars": 936,
+      "body_lowest_bottom_pt": 604.66
+    },
+    {
+      "page": 22,
+      "chars": 1346,
+      "body_lowest_bottom_pt": 473.34
+    },
+    {
+      "page": 23,
+      "chars": 1559,
+      "body_lowest_bottom_pt": 544.68
+    },
+    {
+      "page": 24,
+      "chars": 2059,
+      "body_lowest_bottom_pt": 574.54
+    },
+    {
+      "page": 25,
+      "chars": 1567,
+      "body_lowest_bottom_pt": 749.28
+    },
+    {
+      "page": 26,
+      "chars": 1601,
+      "body_lowest_bottom_pt": 694.64
+    },
+    {
+      "page": 27,
+      "chars": 1312,
+      "body_lowest_bottom_pt": 653.29
+    },
+    {
+      "page": 28,
+      "chars": 1322,
+      "body_lowest_bottom_pt": 653.79
+    },
+    {
+      "page": 29,
+      "chars": 1557,
+      "body_lowest_bottom_pt": 591.87
+    },
+    {
+      "page": 30,
+      "chars": 1677,
+      "body_lowest_bottom_pt": 501.74
+    },
+    {
+      "page": 31,
+      "chars": 2684,
+      "body_lowest_bottom_pt": 752.05
+    },
+    {
+      "page": 32,
+      "chars": 1701,
+      "body_lowest_bottom_pt": 649.72
+    },
+    {
+      "page": 33,
+      "chars": 1533,
+      "body_lowest_bottom_pt": 570.48
+    },
+    {
+      "page": 34,
+      "chars": 1728,
+      "body_lowest_bottom_pt": 581.5
+    },
+    {
+      "page": 35,
+      "chars": 1895,
+      "body_lowest_bottom_pt": 567.97
+    },
+    {
+      "page": 36,
+      "chars": 2430,
+      "body_lowest_bottom_pt": 745.56
+    },
+    {
+      "page": 37,
+      "chars": 1521,
+      "body_lowest_bottom_pt": 694.42
+    },
+    {
+      "page": 38,
+      "chars": 1529,
+      "body_lowest_bottom_pt": 641.4
+    },
+    {
+      "page": 39,
+      "chars": 1635,
+      "body_lowest_bottom_pt": 727.64
+    },
+    {
+      "page": 40,
+      "chars": 1600,
+      "body_lowest_bottom_pt": 640.8
+    },
+    {
+      "page": 41,
+      "chars": 2181,
+      "body_lowest_bottom_pt": 673.82
+    }
+  ],
+  "required_content_pages": [
+    17,
+    25,
+    26,
+    31,
+    32,
+    33,
+    36,
+    37,
+    40,
+    41
+  ],
+  "render_directory": "D:\\Codex\\Temp\\QQSCManual1236\\english-render",
+  "host_validation_limit": "Documentation translation only; no new audio, Cubase or offline-export test claimed.",
+  "visual_review": {
+    "status": "PASS",
+    "rendered_pages": 41,
+    "contact_sheets_inspected": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "full_size_pages_inspected": [
+      15,
+      17,
+      25,
+      26,
+      31,
+      32,
+      33,
+      36,
+      37,
+      40,
+      41
+    ],
+    "findings": "No clipped text, overlapping content or broken tables. Key Limiter, oversampling and performance pages inspected at full size.",
+    "checked_at": "2026-10-01T01:21:15.398839+08:00"
+  },
+  "Chinese_approval": "User confirmed the Chinese manual and requested the English edition: OK 出英文版。"
+}

@@ -1,5 +1,6 @@
 #pragma once
 #include <JuceHeader.h>
+#include "Parameters.h"
 #include <array>
 #include <vector>
 
@@ -14,6 +15,7 @@ public:
     void prepare(double rate,int lookSamples)
     {
         sampleRate=rate;
+        silenceSettlingSamples=int64_t(std::ceil(rate*.12));
         look=juce::jmax(1,lookSamples);
         window=look;
         nodes.assign(size_t(window+2),{});
@@ -22,6 +24,8 @@ public:
         audio.assign(size_t(look+1),{});
         gains.assign(size_t(look+1),1.0);
         head=tail=audioIndex=gainIndex=0;index=0;sum=double(look+1);released=1;
+        displayGain=1.0;
+        inputPeakForTelemetry=0.0;silentSamples=0;
         remainingHold=0;
         repeatedRemaining=quietSamples=0;trough=crest=1;rising=false;
         for(auto& p:periods)p={};
@@ -29,10 +33,42 @@ public:
         energyCoefficient=1.0-std::exp(-1.0/(rate*.010));
         periodCoefficient=1.0-std::exp(-1.0/(rate*.030));
     }
-    bool useConservativeTiming() const noexcept { return repeatedRemaining>0; }
-    std::array<float,2> process(float l,float r,float ceiling,float detectedPeak=0,bool repeatedHint=false) noexcept
+    void reset() noexcept
+    {
+        std::fill(nodes.begin(),nodes.end(),Node{});
+        std::fill(slowNodes.begin(),slowNodes.end(),Node{});
+        std::fill(audio.begin(),audio.end(),std::array<float,2>{});
+        std::fill(gains.begin(),gains.end(),1.0);
+        head=tail=audioIndex=gainIndex=0;
+        slowHead=slowTail=0;
+        index=0;sum=double(look+1);released=1.0;displayGain=1.0;
+        inputPeakForTelemetry=0.0;silentSamples=0;remainingHold=0;repeatedRemaining=quietSamples=0;
+        trough=crest=1.0;rising=false;energy={};
+        for(auto& p:periods)p={};
+    }
+    // Suspend only after the safety windows drain and recovery is within
+    // 1e-10 of unity. Keep this state on wake; resetting changes the next hit.
+    bool isSilentAndSettled() const noexcept
+    {
+        return silentSamples>=silenceSettlingSamples
+            && repeatedRemaining==0 && energy[0]<=1.e-20 && energy[1]<=1.e-20
+            && std::abs(released-1.0)<=1.e-10
+            && std::abs(sum/double(gains.size())-1.0)<=1.e-10;
+    }
+    bool useConservativeTiming(int recoveryMode) const noexcept
+    {
+        recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recoveryMode);
+        if(recoveryMode==qqsc::params::tpTight) return false;
+        if(recoveryMode==qqsc::params::tpSmooth) return true;
+        return repeatedRemaining>0;
+    }
+    float gainForDisplay() const noexcept { return static_cast<float> (displayGain); }
+    float inputPeakForDisplay() const noexcept { return static_cast<float> (inputPeakForTelemetry); }
+    std::array<float,2> process(float l,float r,float ceiling,float detectedPeak=0,bool repeatedHint=false,float triggerCeiling=-1.0f,int recoveryMode=qqsc::params::tpAuto) noexcept
     {
         const std::array<float,2> input {l,r};
+        silentSamples=(l==0.0f && r==0.0f && detectedPeak==0.0f)
+            ? juce::jmin(silentSamples+1,silenceSettlingSamples):0;
         double halfPeriod=.0005;
         for(size_t ch=0;ch<2;++ch)
         {
@@ -58,24 +94,28 @@ public:
             if(energy[ch]>=largestEnergy*.0001)
                 halfPeriod=juce::jmax(halfPeriod,periods[ch].estimate);
         const double peak=juce::jmax(double(detectedPeak),juce::jmax(std::abs(double(l)),std::abs(double(r))));
-        const double target=peak>ceiling ? double(ceiling)/peak : 1.0;
-        while(head!=tail && nodes[head].index<index-window) head=(head+1)%nodes.size();
+        inputPeakForTelemetry=peak;
+        const double trigger=triggerCeiling>0.0f ? double(triggerCeiling) : double(ceiling);
+        const double target=peak>trigger ? double(ceiling)/peak : 1.0;
+        // Each ring cursor advances by one; conditional wrap is exact and
+        // avoids runtime integer division at every oversampled sample.
+        while(head!=tail && nodes[head].index<index-window) { if(++head==nodes.size()) head=0; }
         while(head!=tail)
         {
-            const auto back=(tail+nodes.size()-1)%nodes.size();
+            const auto back=(tail==0 ? nodes.size()-1 : tail-1);
             if(nodes[back].value<target)break;
             tail=back;
         }
-        nodes[tail]={index++,target};tail=(tail+1)%nodes.size();
+        nodes[tail]={index++,target};if(++tail==nodes.size()) tail=0;
         const auto now=index-1;
-        while(slowHead!=slowTail && slowNodes[slowHead].index<now-slowWindow) slowHead=(slowHead+1)%slowNodes.size();
+        while(slowHead!=slowTail && slowNodes[slowHead].index<now-slowWindow) { if(++slowHead==slowNodes.size()) slowHead=0; }
         while(slowHead!=slowTail)
         {
-            const auto back=(slowTail+slowNodes.size()-1)%slowNodes.size();
+            const auto back=(slowTail==0 ? slowNodes.size()-1 : slowTail-1);
             if(slowNodes[back].value<target)break;
             slowTail=back;
         }
-        slowNodes[slowTail]={now,target};slowTail=(slowTail+1)%slowNodes.size();
+        slowNodes[slowTail]={now,target};if(++slowTail==slowNodes.size()) slowTail=0;
         const auto minimum=nodes[head].value;
         // Repeated deep envelope reversals are modulation, not isolated
         // overshoots. Keep the conservative timing while they persist, so
@@ -94,10 +134,33 @@ public:
             if(minimum<crest/1.12 && minimum<.999)
             { repeatedRemaining=int(rate()*.080);rising=false;trough=minimum; }
         }
-        const bool repeated=repeatedRemaining>0 || repeatedHint;
+        recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recoveryMode);
+        const bool autoRepeated=repeatedRemaining>0 || repeatedHint;
+        const bool repeated=recoveryMode==qqsc::params::tpSmooth
+            || (recoveryMode==qqsc::params::tpAuto && autoRepeated);
         const double controlledMinimum=repeated ? slowNodes[slowHead].value : minimum;
-        const int holdSamples=repeated ? 0 : int(std::ceil(rate()*juce::jlimit(.0015,.030,1.1*halfPeriod-double(look)/rate()+.0015)));
-        const double releaseSeconds=repeated ? .060 : juce::jlimit(.015,.075,2.5*halfPeriod);
+        int holdSamples=0;
+        double releaseSeconds=.060;
+        if(recoveryMode==qqsc::params::tpTight)
+        {
+            // Loudness-first recovery. The lookahead moving minimum remains the
+            // hard safety constraint; only post-peak recovery is accelerated.
+            holdSamples=0;
+            releaseSeconds=juce::jlimit(.005,.025,halfPeriod);
+        }
+        else if(recoveryMode==qqsc::params::tpSmooth)
+        {
+            // Smooth deliberately retains the longer safety minimum and a slow
+            // release. It trades short-term loudness for a calmer gain envelope.
+            holdSamples=0;
+            releaseSeconds=juce::jlimit(.060,.180,6.0*halfPeriod);
+        }
+        else
+        {
+            // AUTO is the verified 1.2.17 adaptive timing, unchanged.
+            holdSamples=autoRepeated ? 0 : int(std::ceil(rate()*juce::jlimit(.0015,.030,1.1*halfPeriod-double(look)/rate()+.0015)));
+            releaseSeconds=autoRepeated ? .060 : juce::jlimit(.015,.075,2.5*halfPeriod);
+        }
         // Backward-Euler coefficient avoids a per-sample transcendental and
         // remains a convex, stable move toward the current safety minimum.
         const double releaseCoefficient=1.0/(1.0+rate()*releaseSeconds);
@@ -109,9 +172,10 @@ public:
         else if(remainingHold>0) --remainingHold;
         else released+=releaseCoefficient*(controlledMinimum-released);
         sum+=released-gains[gainIndex];gains[gainIndex]=released;
-        gainIndex=(gainIndex+1)%gains.size();
-        audio[audioIndex]={l,r};audioIndex=(audioIndex+1)%audio.size();
+        if(++gainIndex==gains.size()) gainIndex=0;
+        audio[audioIndex]={l,r};if(++audioIndex==audio.size()) audioIndex=0;
         const auto gain=juce::jlimit(0.0,1.0,sum/double(gains.size()));
+        displayGain=gain;
         return {float(audio[audioIndex][0]*gain),float(audio[audioIndex][1]*gain)};
     }
 private:
@@ -128,7 +192,8 @@ private:
     int look=1,window=1;int64_t index=0;
     int slowWindow=1;
     size_t slowHead=0,slowTail=0;
-    double sum=0,released=1,sampleRate=48000,energyCoefficient=0,periodCoefficient=0;
+    double sum=0,released=1,displayGain=1,inputPeakForTelemetry=0,sampleRate=48000,energyCoefficient=0,periodCoefficient=0;
+    int64_t silentSamples=0,silenceSettlingSamples=1;
     int remainingHold=0;
     int repeatedRemaining=0,quietSamples=0;
     double trough=1,crest=1;
@@ -138,82 +203,336 @@ private:
 class OutputCeiling
 {
 public:
-    void prepare(double rate,bool enabled,bool tp,float ceilingDb)
+    // 1.2.34: Ceiling quality is independent from the 0 ms dynamics-core OS.
+    // Choice index follows the public 1x/4x/8x/16x convention. 8x remains the
+    // compatibility default. All 4x, 8x and 16x filters are prepared up-front;
+    // changing quality may reset the Ceiling state/PDC but never allocates an
+    // oversampler on the audio thread.
+    void prepare(double rate,bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto,
+                 int osChoice=qqsc::params::ceiling8x,int maximumBlockSize=16384)
     {
-        look=juce::jmax(1,int(std::ceil(rate*.003)));
-        oversampling.initProcessing(1);oversampling.reset();
-        filterLatency=juce::roundToInt(oversampling.getLatencyInSamples());
+        sampleRate=juce::jmax(1.0,rate);
+        look=juce::jmax(1,int(std::ceil(sampleRate*.003)));
+        maxBlock=juce::jmax(1,maximumBlockSize);
+
+        oversampling4.initProcessing(1);
+        oversampling8.initProcessing(1); // Standalone path processes one host sample at a time.
+        oversampling16.initProcessing(1);
+        oversampling4.reset();
+        oversampling8.reset();
+        oversampling16.reset();
+        filterLatency4=juce::roundToInt(oversampling4.getLatencyInSamples());
+        filterLatency8=juce::roundToInt(oversampling8.getLatencyInSamples());
+        filterLatency16=juce::roundToInt(oversampling16.getLatencyInSamples());
+
+        // The residual reconstruction remains a fixed 16x read-only guard.
+        // This preserves the verified 1.2.28 TP target semantics for 8x while
+        // giving the 4x and 16x audio paths the same final safety check.
         analysis.initProcessing(256);analysis.reset();
         juce::AudioBuffer<float> impulse(2,256);impulse.clear();impulse.setSample(0,0,1);
         auto measured=analysis.processSamplesUp(juce::dsp::AudioBlock<float>(impulse));
         int maximum=0;for(int i=1;i<int(measured.getNumSamples());++i)
             if(std::abs(measured.getSample(0,i))>std::abs(measured.getSample(0,maximum)))maximum=i;
-        analysisDelay=juce::roundToInt(double(maximum)/8.0);analysis.reset();
-        latency=2*look+filterLatency+analysisDelay;
-        native.prepare(rate,look);truePeak.prepare(rate*8,look*8);
-        post.prepare(rate,look);
-        peakAlignment.assign(size_t(latency-look+1),{});
+        analysisDelay=juce::roundToInt(double(maximum)/16.0);analysis.reset();
+
+        truePeak4.prepare(sampleRate*4.0,look*4);
+        truePeak8.prepare(sampleRate*8.0,look*8);
+        truePeak16.prepare(sampleRate*16.0,look*16);
+        post.prepare(sampleRate,look);
+
+        hardOversampledAlignment.assign(size_t(look*16+2),{});
         analysisAlignment.assign(size_t(analysisDelay+1),{});
-        dry.assign(size_t(latency+1),{});peakIndex=dryIndex=analysisIndex=0;
+        hardPostAlignment.assign(size_t(look+1),{});
         buffer.setSize(2,1);
-        active.reset(rate,.010);active.setCurrentAndTargetValue(enabled ? 1.f : 0.f);
-        truePeakBlend.reset(rate,.010);truePeakBlend.setCurrentAndTargetValue(tp ? 1.f : 0.f);
-        ceiling.reset(rate,.010);ceiling.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(ceilingDb));
+
+        sharedCeiling.assign(size_t(maxBlock),1.0f);
+        sharedBlend.assign(size_t(maxBlock),0.0f);
+        sharedHardGain.assign(size_t(maxBlock),1.0f);
+        sharedTpGain.assign(size_t(maxBlock),1.0f);
+        sharedTruePeak.assign(size_t(maxBlock),0.0f);
+        sharedSamplePeak.assign(size_t(maxBlock),0.0f);
+        sharedConservative.assign(size_t(maxBlock),0u);
+
+        truePeakBlend.reset(sampleRate,.010);
+        ceiling.reset(sampleRate,.010);
+        selectedChoice=juce::jlimit(0,3,osChoice);
+        recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recovery);
+        resetForLimiter(tp,ceilingDb,recovery);
     }
-    int latencySamples() const noexcept { return latency; }
-    void set(bool enabled,bool tp,float ceilingDb) noexcept
+
+    // Source-compatibility overload for legacy regression harnesses.
+    void prepare(double rate,bool /*enabled*/,bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto)
     {
-        active.setTargetValue(enabled ? 1.f : 0.f);
-        truePeakBlend.setTargetValue(tp ? 1.f : 0.f);
-        ceiling.setTargetValue(juce::Decibels::decibelsToGain(juce::jlimit(-24.f,0.f,ceilingDb)));
+        prepare(rate,tp,ceilingDb,recovery,qqsc::params::ceiling8x,16384);
     }
+
+    void selectOversamplingChoice(int osChoice,bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto) noexcept
+    {
+        osChoice=juce::jlimit(0,3,osChoice);
+        if(selectedChoice==osChoice)
+        {
+            set(tp,ceilingDb,recovery);
+            return;
+        }
+        selectedChoice=osChoice;
+        resetForLimiter(tp,ceilingDb,recovery);
+    }
+
+    int oversamplingChoice() const noexcept { return selectedChoice; }
+    int oversamplingFactor() const noexcept { return qqsc::params::ceilingOversamplingFactorForChoiceIndex(selectedChoice); }
+    int filterLatencySamples() const noexcept
+    { return selectedChoice==1 ? filterLatency4 : selectedChoice==2 ? filterLatency8 : selectedChoice==3 ? filterLatency16 : 0; }
+
+    // Full latency includes the Ceiling's own audio up/down filter. When the
+    // 0 ms core already runs at the same factor the processor may share that
+    // filter; only the two safety windows + residual alignment remain extra.
+    int latencySamples() const noexcept
+    { return latencySamplesForChoice(selectedChoice); }
+    int sharedLatencySamples() const noexcept
+    { return sharedLatencySamplesForChoice(selectedChoice); }
+    int latencySamplesForChoice(int choice) const noexcept
+    {
+        choice=juce::jlimit(0,3,choice);
+        if(choice==0) return 0;
+        const int filter=choice==1 ? filterLatency4 : choice==2 ? filterLatency8 : filterLatency16;
+        return 2*look+filter+analysisDelay;
+    }
+    int sharedLatencySamplesForChoice(int choice) const noexcept
+    { return juce::jlimit(0,3,choice)==0 ? 0 : 2*look+analysisDelay; }
+    bool canShareAudioOversampling(int factor) const noexcept
+    { return selectedChoice>0 && factor==oversamplingFactor(); }
+
+    void resetForLimiter(bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto) noexcept
+    {
+        oversampling4.reset();oversampling8.reset();oversampling16.reset();analysis.reset();
+        truePeak4.reset();truePeak8.reset();truePeak16.reset();post.reset();
+        std::fill(hardOversampledAlignment.begin(),hardOversampledAlignment.end(),std::array<float,2>{});
+        std::fill(analysisAlignment.begin(),analysisAlignment.end(),std::array<float,2>{});
+        std::fill(hardPostAlignment.begin(),hardPostAlignment.end(),std::array<float,2>{});
+        hardOversampledIndex=analysisIndex=hardPostIndex=0;
+        const bool effectiveTp=selectedChoice>0 && tp;
+        truePeakBlend.setCurrentAndTargetValue(effectiveTp ? 1.f : 0.f);
+        ceiling.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(juce::jlimit(-24.f,0.f,ceilingDb)));
+        recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recovery);
+        displayGainLinear=1.0f;inputSamplePeakLinear=0.0f;inputTruePeakLinear=0.0f;
+    }
+
+    bool isSilentAndSettled() const noexcept
+    {
+        if(ceiling.isSmoothing() || truePeakBlend.isSmoothing()) return false;
+        if(selectedChoice==0) return true;
+        return (selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16).isSilentAndSettled()
+            && post.isSilentAndSettled();
+    }
+
+    // Display telemetry is independent from the peak detection used by the
+    // audible protection. Switching this flag must never reset audio state.
+    void setAnalysisEnabled(bool enabled) noexcept
+    {
+        analysisEnabled=enabled;
+        if(!enabled){displayGainLinear=1.0f;inputSamplePeakLinear=inputTruePeakLinear=0.0f;}
+    }
+    float inputSamplePeakForDisplayLinear() const noexcept { return inputSamplePeakLinear; }
+    float inputTruePeakForDisplayLinear() const noexcept { return inputTruePeakLinear; }
+    float gainForDisplayLinear() const noexcept { return displayGainLinear; }
+    float gainReductionDbForDisplay() const noexcept
+    { return -juce::Decibels::gainToDecibels(juce::jmax(displayGainLinear,1.0e-9f),-180.0f); }
+
+    void set(bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto) noexcept
+    {
+        // TP requires reconstructed samples. 1x therefore always means native
+        // Hard Clip; the editor/processor promotes TP+1x to an effective 8x.
+        const bool effectiveTp=selectedChoice>0 && tp;
+        truePeakBlend.setTargetValue(effectiveTp ? 1.f : 0.f);
+        ceiling.setTargetValue(juce::Decibels::decibelsToGain(juce::jlimit(-24.f,0.f,ceilingDb)));
+        recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recovery);
+    }
+    void set(bool /*enabled*/,bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto) noexcept
+    { set(tp,ceilingDb,recovery); }
+
+    // Standalone/fallback path used whenever the dynamics-core OS cannot share
+    // the exact requested Ceiling factor. 8x preserves the 1.2.28 topology;
+    // 16x is the same law at a 16x audible reconstruction rate.
     std::array<float,2> process(float l,float r) noexcept
     {
         const float c=ceiling.getNextValue();
-        auto peak=native.process(l,r,c);
-        peakAlignment[peakIndex]=peak;peakIndex=(peakIndex+1)%peakAlignment.size();
-        peak=peakAlignment[peakIndex];
-        dry[dryIndex]={l,r};dryIndex=(dryIndex+1)%dry.size();
+        const float t=(selectedChoice==0 ? 0.0f : truePeakBlend.getNextValue());
+        if(analysisEnabled)
+        {
+            inputSamplePeakLinear=juce::jmax(std::abs(l),std::abs(r));
+            inputTruePeakLinear=inputSamplePeakLinear;
+        }
+
+        if(selectedChoice==0)
+        {
+            if(analysisEnabled)
+            {
+                const float peak=inputSamplePeakLinear;
+                displayGainLinear=peak>c ? c/juce::jmax(peak,1.0e-12f) : 1.0f;
+            }
+            return {juce::jlimit(-c,c,l),juce::jlimit(-c,c,r)};
+        }
+
         buffer.setSample(0,0,l);buffer.setSample(1,0,r);
         auto block=juce::dsp::AudioBlock<float>(buffer);
-        auto up=oversampling.processSamplesUp(block);
-        // Small reconstruction allowance; final validation uses a separate
-        // 16x meter, not this processing interpolator or the GUI's 4x meter.
-        const float tpCeiling=c*juce::Decibels::decibelsToGain(-0.02f);
+        auto& os=currentOversampler();
+        auto up=os.processSamplesUp(block);
+        HighStats stats;
         for(size_t i=0;i<up.getNumSamples();++i)
         {
-            const auto limited=truePeak.process(up.getSample(0,int(i)),up.getSample(1,int(i)),tpCeiling);
-            up.setSample(0,int(i),limited[0]);up.setSample(1,int(i),limited[1]);
+            const auto out=processHighSample(up.getSample(0,int(i)),up.getSample(1,int(i)),c,t,stats);
+            up.setSample(0,int(i),out[0]);up.setSample(1,int(i),out[1]);
         }
-        oversampling.processSamplesDown(block);
+        os.processSamplesDown(block);
+        if(analysisEnabled) inputTruePeakLinear=juce::jmax(inputTruePeakLinear,stats.truePeak);
+        return processPostBaseSample(buffer.getSample(0,0),buffer.getSample(1,0),c,t,stats,
+                                     inputSamplePeakLinear);
+    }
+
+    // Shared path: the 0 ms dynamics core has already reconstructed the final
+    // mixed/output signal at the exact same 8x/16x factor. Apply only the
+    // Ceiling law in that domain, then let the core's one downsampling filter do
+    // the return to host rate. This removes the duplicate audio OS pair for the
+    // important 8x/8x and 16x/16x combinations.
+    void processSharedOversampledBlock(juce::dsp::AudioBlock<float> block,
+                                       int hostSamples,int factor) noexcept
+    {
+        if(!canShareAudioOversampling(factor) || block.getNumChannels()<2u) return;
+        hostSamples=juce::jlimit(0,juce::jmin(maxBlock,int(block.getNumSamples()/size_t(factor))),hostSamples);
+        for(int b=0;b<hostSamples;++b)
+        {
+            const float c=ceiling.getNextValue();
+            const float t=truePeakBlend.getNextValue();
+            HighStats stats;
+            // Measure the complete incoming signal on its host-rate sample grid.
+            // It already contains A/B, Dry, Makeup, Mix and Output exactly once.
+            if(analysisEnabled) sharedSamplePeak[size_t(b)]=juce::jmax(std::abs(block.getSample(0,b*factor)),
+                                                   std::abs(block.getSample(1,b*factor)));
+            for(int j=0;j<factor;++j)
+            {
+                const int i=b*factor+j;
+                const auto out=processHighSample(block.getSample(0,i),block.getSample(1,i),c,t,stats);
+                block.setSample(0,i,out[0]);block.setSample(1,i,out[1]);
+            }
+            sharedCeiling[size_t(b)]=c;sharedBlend[size_t(b)]=t;
+            if(analysisEnabled)
+            {
+                sharedHardGain[size_t(b)]=stats.hardGain;sharedTpGain[size_t(b)]=stats.tpGain;
+                sharedTruePeak[size_t(b)]=stats.truePeak;
+            }
+            sharedConservative[size_t(b)]=currentTruePeak().useConservativeTiming(recoveryMode) ? 1u : 0u;
+        }
+    }
+
+    std::array<float,2> finishSharedBaseSample(float l,float r,int baseSample) noexcept
+    {
+        baseSample=juce::jlimit(0,maxBlock-1,baseSample);
+        const float samplePeakLinear=analysisEnabled ? sharedSamplePeak[size_t(baseSample)] : 0.0f;
+        HighStats stats;
+        if(analysisEnabled)
+        {
+            stats.hardGain=sharedHardGain[size_t(baseSample)];
+            stats.tpGain=sharedTpGain[size_t(baseSample)];
+            stats.truePeak=sharedTruePeak[size_t(baseSample)];
+            inputSamplePeakLinear=samplePeakLinear;
+            inputTruePeakLinear=juce::jmax(samplePeakLinear,stats.truePeak);
+        }
+        stats.conservative=sharedConservative[size_t(baseSample)]!=0;
+        return processPostBaseSample(l,r,sharedCeiling[size_t(baseSample)],sharedBlend[size_t(baseSample)],stats,
+                                     samplePeakLinear);
+    }
+
+private:
+    struct HighStats
+    {
+        float hardGain=1.0f,tpGain=1.0f,truePeak=0.0f;
+        bool conservative=false;
+    };
+
+    juce::dsp::Oversampling<float>& currentOversampler() noexcept
+    { return selectedChoice==1 ? oversampling4 : selectedChoice==2 ? oversampling8 : oversampling16; }
+    SmoothPeakCap& currentTruePeak() noexcept
+    { return selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16; }
+
+    std::array<float,2> processHighSample(float inL,float inR,float c,float t,HighStats& stats) noexcept
+    {
+        if(analysisEnabled)
+        {
+            const float reconstructedPeak=juce::jmax(std::abs(inL),std::abs(inR));
+            stats.truePeak=juce::jmax(stats.truePeak,reconstructedPeak);
+            if(reconstructedPeak>c)
+                stats.hardGain=juce::jmin(stats.hardGain,c/juce::jmax(reconstructedPeak,1.0e-12f));
+        }
+
+        auto& tp=currentTruePeak();
+        const auto tpLimited=tp.process(inL,inR,c,0,false,-1.0f,recoveryMode);
+        if(analysisEnabled) stats.tpGain=juce::jmin(stats.tpGain,tp.gainForDisplay());
+        stats.conservative=tp.useConservativeTiming(recoveryMode);
+
+        const std::array<float,2> hardClipped{juce::jlimit(-c,c,inL),juce::jlimit(-c,c,inR)};
+        const int delay=look*oversamplingFactor();
+        hardOversampledAlignment[hardOversampledIndex]=hardClipped;
+        int read=int(hardOversampledIndex)-delay;
+        while(read<0)read+=int(hardOversampledAlignment.size());
+        const auto hardAligned=hardOversampledAlignment[size_t(read)];
+        if(++hardOversampledIndex==hardOversampledAlignment.size()) hardOversampledIndex=0;
+        return {hardAligned[0]+t*(tpLimited[0]-hardAligned[0]),
+                hardAligned[1]+t*(tpLimited[1]-hardAligned[1])};
+    }
+
+    std::array<float,2> processPostBaseSample(float l,float r,float c,float t,HighStats stats,
+                                               float samplePeakLinear) noexcept
+    {
+        buffer.setSample(0,0,l);buffer.setSample(1,0,r);
+        auto block=juce::dsp::AudioBlock<float>(buffer);
         const auto reconstructed=analysis.processSamplesUp(block);
-        float detected=0;
+        float detected=0.0f;
         for(int ch=0;ch<2;++ch)for(int i=0;i<int(reconstructed.getNumSamples());++i)
             detected=juce::jmax(detected,std::abs(reconstructed.getSample(ch,i)));
-        analysisAlignment[analysisIndex]={buffer.getSample(0,0),buffer.getSample(1,0)};
-        analysisIndex=(analysisIndex+1)%analysisAlignment.size();
+
+        analysisAlignment[analysisIndex]={l,r};
+        if(++analysisIndex==analysisAlignment.size()) analysisIndex=0;
         const auto aligned=analysisAlignment[analysisIndex];
-        // The residual TP correction also follows the main guard's modulation
-        // decision: its tiny gain excursions alone may not trip the detector.
-        const auto corrected=post.process(aligned[0],aligned[1],c*juce::Decibels::decibelsToGain(-0.10f),detected,truePeak.useConservativeTiming());
-        const auto t=truePeakBlend.getNextValue(),a=active.getNextValue();
-        // OFF is an exact delayed copy, independent of hidden TP/Ceiling values.
-        if (a == 0.0f) return dry[dryIndex];
-        for(size_t ch=0;ch<2;++ch)
+
+        constexpr float residualSafetyDb=-0.01f;
+        const float residualTarget=c*juce::Decibels::decibelsToGain(residualSafetyDb);
+        const auto corrected=post.process(aligned[0],aligned[1],residualTarget,detected,
+            stats.conservative,c,recoveryMode);
+
+        hardPostAlignment[hardPostIndex]=aligned;
+        if(++hardPostIndex==hardPostAlignment.size()) hardPostIndex=0;
+        const auto hardFinal=hardPostAlignment[hardPostIndex];
+        const std::array<float,2> hardFinalClipped{juce::jlimit(-c,c,hardFinal[0]),juce::jlimit(-c,c,hardFinal[1])};
+
+        if(analysisEnabled)
         {
-            const float limited=peak[ch]+t*(corrected[ch]-peak[ch]);
-            peak[ch]=dry[dryIndex][ch]+a*(limited-dry[dryIndex][ch]);
+            const float hardFinalPeak=juce::jmax(std::abs(hardFinal[0]),std::abs(hardFinal[1]));
+            if(hardFinalPeak>c)
+                stats.hardGain=juce::jmin(stats.hardGain,c/juce::jmax(hardFinalPeak,1.0e-12f));
+            const float tpDisplayGain=juce::jlimit(0.0f,1.0f,stats.tpGain*post.gainForDisplay());
+            displayGainLinear=juce::jlimit(0.0f,1.0f,stats.hardGain+t*(tpDisplayGain-stats.hardGain));
+            inputSamplePeakLinear=samplePeakLinear;
+            inputTruePeakLinear=juce::jmax(inputTruePeakLinear,stats.truePeak);
         }
-        return peak;
+        return {hardFinalClipped[0]+t*(corrected[0]-hardFinalClipped[0]),
+                hardFinalClipped[1]+t*(corrected[1]-hardFinalClipped[1])};
     }
-private:
-    juce::dsp::Oversampling<float> oversampling {2,3,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,true};
-    juce::dsp::Oversampling<float> analysis {2,3,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,false};
+
+    juce::dsp::Oversampling<float> oversampling4{2,2,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,true};
+    juce::dsp::Oversampling<float> oversampling8{2,3,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,true};
+    juce::dsp::Oversampling<float> oversampling16{2,4,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,true};
+    juce::dsp::Oversampling<float> analysis{2,4,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,false};
     juce::AudioBuffer<float> buffer;
-    SmoothPeakCap native,truePeak,post;
-    std::vector<std::array<float,2>> peakAlignment,dry,analysisAlignment;
-    size_t peakIndex=0,dryIndex=0,analysisIndex=0;
-    int look=1,filterLatency=0,analysisDelay=0,latency=0;
-    juce::SmoothedValue<float> active,truePeakBlend,ceiling;
+    SmoothPeakCap truePeak4,truePeak8,truePeak16,post;
+    std::vector<std::array<float,2>> hardOversampledAlignment,analysisAlignment,hardPostAlignment;
+    std::vector<float> sharedCeiling,sharedBlend,sharedHardGain,sharedTpGain,sharedTruePeak,sharedSamplePeak;
+    std::vector<uint8_t> sharedConservative;
+    size_t hardOversampledIndex=0,analysisIndex=0,hardPostIndex=0;
+    int look=1,filterLatency4=0,filterLatency8=0,filterLatency16=0,analysisDelay=0,selectedChoice=qqsc::params::ceiling8x,maxBlock=1;
+    int recoveryMode=qqsc::params::tpAuto;
+    double sampleRate=48000.0;
+    juce::SmoothedValue<float> truePeakBlend,ceiling;
+    bool analysisEnabled=true;
+    float displayGainLinear=1.0f,inputSamplePeakLinear=0.0f,inputTruePeakLinear=0.0f;
 };
 }

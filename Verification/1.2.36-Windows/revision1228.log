@@ -1,0 +1,2 @@
+PASS: 1.2.28 Normal latency excludes Limiter Ceiling; Limiter Hard/TP share fixed 8x PDC and live TP toggles leave latency unchanged.
+PASS: retrospective Display keeps evidence, reprojects Classic/Super/Ratio/Threshold/Mix, shows 8x Hard Clip at TP OFF, and replays TP recovery at TP ON.

@@ -1,0 +1,198 @@
+[
+  {
+    "path": "Source/ABTransfer.h",
+    "bytes": 2149,
+    "sha256": "b3975f95d779f5eee7d44d5e757659c16b2297b1e8ec18f50c16ff5ca19b4484",
+    "baseline_sha256": "b3975f95d779f5eee7d44d5e757659c16b2297b1e8ec18f50c16ff5ca19b4484",
+    "changed": false
+  },
+  {
+    "path": "Source/BS1770LoudnessMatch.h",
+    "bytes": 11918,
+    "sha256": "83180e164dd62d97366e680c45359520c48947ac5cc5c096b3eb353091cb4306",
+    "baseline_sha256": "83180e164dd62d97366e680c45359520c48947ac5cc5c096b3eb353091cb4306",
+    "changed": false
+  },
+  {
+    "path": "Source/DarkMaterial.h",
+    "bytes": 10130,
+    "sha256": "01a9199659164f9a475a3481dd96721fbb4f7b4819c7eafdfd256ee53ed8e5c7",
+    "baseline_sha256": "01a9199659164f9a475a3481dd96721fbb4f7b4819c7eafdfd256ee53ed8e5c7",
+    "changed": false
+  },
+  {
+    "path": "Source/DarkPanelMaterial.h",
+    "bytes": 3173,
+    "sha256": "970cefedf1d23472ab7b6248eaf927c7bac0b0e3c80b7e4a18d2a0dcd280cf4f",
+    "baseline_sha256": "970cefedf1d23472ab7b6248eaf927c7bac0b0e3c80b7e4a18d2a0dcd280cf4f",
+    "changed": false
+  },
+  {
+    "path": "Source/DynamicDisplay.cpp",
+    "bytes": 53331,
+    "sha256": "8f9eec6362aa6c1b843bb57f832d693850b7bfdbff574a933f3a663f9b2e3990",
+    "baseline_sha256": "c3d85b2e421ca3494a8ff534ad4133d2dc1621d28f7df83cc0e079fc53508d62",
+    "changed": true
+  },
+  {
+    "path": "Source/DynamicDisplay.h",
+    "bytes": 6503,
+    "sha256": "4a53138ecc1a2a723812fd09ae31683f15b08f34801a810fbd54b289cd76d809",
+    "baseline_sha256": "e62a828e5d16eb2bc0bbe5a269a6c35076eabf2dd15cd63bc80154e399a57ecf",
+    "changed": true
+  },
+  {
+    "path": "Source/DynamicsLimits.h",
+    "bytes": 679,
+    "sha256": "36962ac7f79584060bea1b4c174a3fa6a99d4640fd65454450b80047ae24e523",
+    "baseline_sha256": "36962ac7f79584060bea1b4c174a3fa6a99d4640fd65454450b80047ae24e523",
+    "changed": false
+  },
+  {
+    "path": "Source/IntegratedLoudnessMeter.h",
+    "bytes": 4327,
+    "sha256": "09efad60e18c9c5bb4ff0e3d990a061301c945fcb29acf336e6633866acfc3e7",
+    "baseline_sha256": "09efad60e18c9c5bb4ff0e3d990a061301c945fcb29acf336e6633866acfc3e7",
+    "changed": false
+  },
+  {
+    "path": "Source/KWeightingFilter.h",
+    "bytes": 3072,
+    "sha256": "ea1e4c922ea38b6e185e90beb14f3ec5cd8fd60b03555617bf31a85f6eca2825",
+    "baseline_sha256": "ea1e4c922ea38b6e185e90beb14f3ec5cd8fd60b03555617bf31a85f6eca2825",
+    "changed": false
+  },
+  {
+    "path": "Source/KnobLight.h",
+    "bytes": 443,
+    "sha256": "5e77f1aab99b5130b81286319434b9672d3a70e8372e89b85511ba405ddbc748",
+    "baseline_sha256": "5e77f1aab99b5130b81286319434b9672d3a70e8372e89b85511ba405ddbc748",
+    "changed": false
+  },
+  {
+    "path": "Source/LevelMeters.cpp",
+    "bytes": 13061,
+    "sha256": "6ba7e3bbfaf6eb36fb0ef3c230f382bf17f003eca6a150dec84f84117ca759b4",
+    "baseline_sha256": "6ba7e3bbfaf6eb36fb0ef3c230f382bf17f003eca6a150dec84f84117ca759b4",
+    "changed": false
+  },
+  {
+    "path": "Source/LevelMeters.h",
+    "bytes": 1611,
+    "sha256": "9ac7e9f287d160343b6349e2f8dfc4e81b069b118e7ba3b1349839407be3531e",
+    "baseline_sha256": "9ac7e9f287d160343b6349e2f8dfc4e81b069b118e7ba3b1349839407be3531e",
+    "changed": false
+  },
+  {
+    "path": "Source/LightKnobScale.h",
+    "bytes": 1264,
+    "sha256": "813c0f01ede8f6ddb93d461f715e17c4bb10ba36d6aacbe6a33eb4e37aeb087d",
+    "baseline_sha256": "813c0f01ede8f6ddb93d461f715e17c4bb10ba36d6aacbe6a33eb4e37aeb087d",
+    "changed": false
+  },
+  {
+    "path": "Source/LimiterEditor.cpp",
+    "bytes": 24124,
+    "sha256": "33159de4d4a7389fdc418c512796df8f80ca1ba3e3a6acdda240dc21fca07d1c",
+    "baseline_sha256": "33159de4d4a7389fdc418c512796df8f80ca1ba3e3a6acdda240dc21fca07d1c",
+    "changed": false
+  },
+  {
+    "path": "Source/LimiterMode.cpp",
+    "bytes": 9828,
+    "sha256": "ec650de9a0fa462d9c0dce7958d8b73368493595a92312d609ab1b4f155fb2a4",
+    "baseline_sha256": "ec650de9a0fa462d9c0dce7958d8b73368493595a92312d609ab1b4f155fb2a4",
+    "changed": false
+  },
+  {
+    "path": "Source/LimiterModeContinuity.h",
+    "bytes": 1147,
+    "sha256": "2cbda51bf80dfc444bc982b61bdd32afe8079357a12e49ffd26b83daac03ce66",
+    "baseline_sha256": "2cbda51bf80dfc444bc982b61bdd32afe8079357a12e49ffd26b83daac03ce66",
+    "changed": false
+  },
+  {
+    "path": "Source/MeterState.h",
+    "bytes": 3462,
+    "sha256": "faa8f812b9e4446a759222dbec2a777a8db6d4500e8f42584411157d807e8de6",
+    "baseline_sha256": "faa8f812b9e4446a759222dbec2a777a8db6d4500e8f42584411157d807e8de6",
+    "changed": false
+  },
+  {
+    "path": "Source/OutputCeiling.h",
+    "bytes": 16435,
+    "sha256": "498d057d55035e63d900312b90dd8420b468668f0790809e7c9dca4c4739d7df",
+    "baseline_sha256": "498d057d55035e63d900312b90dd8420b468668f0790809e7c9dca4c4739d7df",
+    "changed": false
+  },
+  {
+    "path": "Source/Parameters.h",
+    "bytes": 24267,
+    "sha256": "3219b2595ba67a492be1e526b008ebfc83af6bb192e306588f4930e16d9e34ea",
+    "baseline_sha256": "3219b2595ba67a492be1e526b008ebfc83af6bb192e306588f4930e16d9e34ea",
+    "changed": false
+  },
+  {
+    "path": "Source/PluginEditor.cpp",
+    "bytes": 133262,
+    "sha256": "615e0fed80e3a1d856a16f8a277fb3550995f767c1d249c631430ed8ba755066",
+    "baseline_sha256": "615e0fed80e3a1d856a16f8a277fb3550995f767c1d249c631430ed8ba755066",
+    "changed": false
+  },
+  {
+    "path": "Source/PluginEditor.h",
+    "bytes": 24014,
+    "sha256": "980657e9059796257107497c69efc3805d7a8203bc5fda48aab22f61678297b7",
+    "baseline_sha256": "980657e9059796257107497c69efc3805d7a8203bc5fda48aab22f61678297b7",
+    "changed": false
+  },
+  {
+    "path": "Source/PluginProcessor.cpp",
+    "bytes": 171232,
+    "sha256": "bb51690a93b17d26f3528e9ee0d70fa6b388c35016636900c07c6e1060cf14fe",
+    "baseline_sha256": "bb51690a93b17d26f3528e9ee0d70fa6b388c35016636900c07c6e1060cf14fe",
+    "changed": false
+  },
+  {
+    "path": "Source/PluginProcessor.h",
+    "bytes": 24306,
+    "sha256": "b88c9541f61b5a606fbbab587a4ef4f1b44ddbd0df98c7f1a76717bda43e064e",
+    "baseline_sha256": "b88c9541f61b5a606fbbab587a4ef4f1b44ddbd0df98c7f1a76717bda43e064e",
+    "changed": false
+  },
+  {
+    "path": "Source/RefinedDarkKnob.h",
+    "bytes": 13899,
+    "sha256": "8124d7cc94d5de2459f2fdeb3a04e5d7152c42337639eea69241257a5118c574",
+    "baseline_sha256": "8124d7cc94d5de2459f2fdeb3a04e5d7152c42337639eea69241257a5118c574",
+    "changed": false
+  },
+  {
+    "path": "Source/StaticCompressionEngine.h",
+    "bytes": 13702,
+    "sha256": "51b36d3aa7be1113aa4e90ac6c0c534163a9b7a3a9edc2dfe24d455cad3fa6ba",
+    "baseline_sha256": "51b36d3aa7be1113aa4e90ac6c0c534163a9b7a3a9edc2dfe24d455cad3fa6ba",
+    "changed": false
+  },
+  {
+    "path": "Source/UTF8LookAndFeel.h",
+    "bytes": 21154,
+    "sha256": "935982cf81b6d8f3a29bf87c9ad394f68c47a4c20658187b34f82a001736e98a",
+    "baseline_sha256": "935982cf81b6d8f3a29bf87c9ad394f68c47a4c20658187b34f82a001736e98a",
+    "changed": false
+  },
+  {
+    "path": "Source/WarmKnobAsset.h",
+    "bytes": 12631,
+    "sha256": "75bed09c5d7aa49be759c67a15a72a3e11f0585a959496d1cc64be3feb9bace0",
+    "baseline_sha256": "75bed09c5d7aa49be759c67a15a72a3e11f0585a959496d1cc64be3feb9bace0",
+    "changed": false
+  },
+  {
+    "path": "Source/WarmMaterial.h",
+    "bytes": 3806,
+    "sha256": "940c14435c861307f87e9e29e198daea39c8dc86adac2ac125ce01461c925ff7",
+    "baseline_sha256": "940c14435c861307f87e9e29e198daea39c8dc86adac2ac125ce01461c925ff7",
+    "changed": false
+  }
+]

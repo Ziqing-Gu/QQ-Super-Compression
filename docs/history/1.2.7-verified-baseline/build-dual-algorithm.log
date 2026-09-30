@@ -1,0 +1,132 @@
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Configuring done (1.6s)
+-- Generating done (0.8s)
+-- Build files have been written to: D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSuperCompression_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_rc_lib.dir\Release\QQSuperCompression_rc_lib.lib
+  Building VST3 manifest helper for QQSuperCompression
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+  -- Configuring done (0.0s)
+  -- Generating done (0.1s)
+  -- Build files have been written to: D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link/vst3_helpers/QQSuperCompression
+  閫傜敤浜?.NET Framework MSBuild 鐗堟湰 17.14.40+3e7442088
+  
+    1>Checking Build System
+    Building Custom Rule D:/Codex/Temp/JUCE-8.0.15-src/JUCE-8.0.15/extras/Build/CMake/juce_vst3_helper/CMakeLists.txt
+    vst3_helper.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\vst3_helpers\QQSuperCompression\vst3_helper.exe
+    Building Custom Rule D:/Codex/Temp/JUCE-8.0.15-src/JUCE-8.0.15/extras/Build/CMake/juce_vst3_helper/CMakeLists.txt
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  DynamicDisplay.cpp
+  LevelMeters.cpp
+  LimiterEditor.cpp
+  LimiterMode.cpp
+  PluginEditor.cpp
+  PluginProcessor.cpp
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244: “初始化”: 从“_Ty”转换到“_Ty2”，可能丢失数据 [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         with [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty=int [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         and [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty2=float [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression.vcxproj]
+  (编译源文件“../../Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/Source/PluginProcessor.cpp”)
+      C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\Source\PluginProcessor.cpp(2688,84):
+          查看对正在编译的函数 模板 实例化“std::pair<const char *,float>::pair<const char*const &,int,0>(_Other1,_Other2 &&) noexcept”的引用
+          with
+          [
+              _Other1=const char *const &,
+              _Other2=int
+          ]
+              D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\Source\PluginProcessor.cpp(2688,82):
+              请参阅 "QQSuperCompressionAudioProcessor::setStateInformation" 中对 "std::pair<const char *,float>::pair" 的第一个引用
+  
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+    正在创建库 D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.lib 和对象 D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.exp
+  正在生成代码
+  已完成代码的生成
+  QQSuperCompression_VST3.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3\Contents\x86_64-win\QQ Super Compression.vst3
+  removing moduleinfo.json
+  creating D:/Codex/Temp/QQSC-1.2.7-Strict-Output-Link/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3/Contents/Resources/moduleinfo.json
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCLimiterCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck_rc_lib.dir\Release\QQSCLimiterCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  limiter_check.cpp
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244: “初始化”: 从“_Ty”转换到“_Ty2”，可能丢失数据 [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         with [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty=int [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         and [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty2=float [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck.vcxproj]
+  (编译源文件“../../Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/tests/limiter_check.cpp”)
+      C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\tests\ratio_mix_checks.inc(45,17):
+          查看对正在编译的函数 模板 实例化“std::pair<const char *,float>::pair<const _Ty&,int,0>(_Other1,_Other2 &&) noexcept”的引用
+          with
+          [
+              _Ty=const char *,
+              _Other1=const char *const &,
+              _Other2=int
+          ]
+              D:\Codex\Workspaces\QQSuperCompression-1.2.7-Strict-Output-Link\tests\ratio_mix_checks.inc(44,69):
+              请参阅 "QQSCLimiterCheck::ratioMixChecks" 中对 "std::pair<const char *,float>::pair" 的第一个引用
+  
+  正在生成代码
+  已完成代码的生成
+  QQSCLimiterCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterCheck_artefacts\Release\QQSCLimiterCheck.exe
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSCUnityCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCUnityCheck_rc_lib.dir\Release\QQSCUnityCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  unity_check.cpp
+  正在生成代码
+  已完成代码的生成
+  QQSCUnityCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCUnityCheck_artefacts\Release\QQSCUnityCheck.exe
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCLoudnessCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLoudnessCheck_rc_lib.dir\Release\QQSCLoudnessCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  loudness_check.cpp
+  正在生成代码
+  已完成代码的生成
+  QQSCLoudnessCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLoudnessCheck_artefacts\Release\QQSCLoudnessCheck.exe
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  QQSCLimiterVSTCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterVSTCheck_rc_lib.dir\Release\QQSCLimiterVSTCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  Building Custom Rule D:/Codex/Workspaces/QQSuperCompression-1.2.7-Strict-Output-Link/CMakeLists.txt
+  ratio_mix_vst_check.cpp
+  正在生成代码
+  已完成代码的生成
+  QQSCLimiterVSTCheck.vcxproj -> D:\Codex\Temp\QQSC-1.2.7-Strict-Output-Link\QQSCLimiterVSTCheck_artefacts\Release\QQSCLimiterVSTCheck.exe

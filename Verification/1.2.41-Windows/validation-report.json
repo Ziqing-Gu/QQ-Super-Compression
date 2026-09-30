@@ -1,0 +1,49 @@
+{
+  "version": "1.2.41",
+  "channel": "Candidate",
+  "recorded_at": "2026-10-01T05:30:32.445347+08:00",
+  "source": "D:\\Codex\\Workspaces\\QQSC-1.2.34-Review-Fixes",
+  "output_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.41-Windows-Candidate\\QQ Super Compression.vst3",
+  "bundle": [
+    {
+      "path": "Contents/Resources/moduleinfo.json",
+      "bytes": 1118,
+      "sha256": "64E7B48934FFEC9E08A6250D9BDB8F58024453EE685EBCD386E9145BAA089AE9"
+    },
+    {
+      "path": "Contents/x86_64-win/QQ Super Compression.vst3",
+      "bytes": 10702336,
+      "sha256": "D36B604DA0E2A274DA66A28D40CC17D7746ECDF6004D02894BA1092E599DDC52"
+    }
+  ],
+  "changes": [
+    "ECO known stopped transport mutes and suspends irrespective of input level or editor visibility",
+    "FULL retains live processing and previous exact-zero idle policy",
+    "playing/recording/offline/unknown transport and switching to FULL resume before current block; pre-stop history reset and current controls used; PDC unchanged",
+    "no new transport crossfade; user explicitly cancelled it for all processing results",
+    "equivalent conditional wrap replaces DSP integer remainder"
+  ],
+  "checks": {
+    "build": "pass",
+    "source_architecture_audit": "pass",
+    "no_transport_crossfade_in_source": true,
+    "build_output_hash_parity": true,
+    "complete_review": "pass; full regression suite, mode isolation, preferences, diagnostics, zero idle, variable blocks, mono/stereo, AB and ECO transport cases",
+    "active_actual_VST_comparison": "pass; 16 configurations x 5 continuous input phases; output sample delta=0; PDC identical against 1.2.40",
+    "ECO_stopped_16x_16x_1024_mean_us": 12.8316,
+    "transport_resume_vs_clean_reference_max_delta": 0,
+    "first_sample_no_crossfade": "pass for normal playback and offline render",
+    "diagnostic_render": "minimum-size panel reviewed; 1008/1200/1800 pixel snapshots"
+  },
+  "installation": {
+    "status": "installed_hash_verified",
+    "installed_at": "2026-10-01T05:33:18.335082+08:00",
+    "path": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+    "backup": "D:\\Codex\\Archives\\QQSC-1.2.40-before-1.2.41-20261001-053318\\QQ Super Compression.vst3",
+    "files": 2,
+    "build_output_installed_hash_parity": true,
+    "host_check": "No listed audio hosts; exclusive installed-binary read passed before copy"
+  },
+  "Cubase": "Pending user verification; standalone microsecond measurements do not equal ASIO-Guard percentages.",
+  "release_plans": "B/C/D remain stopped"
+}

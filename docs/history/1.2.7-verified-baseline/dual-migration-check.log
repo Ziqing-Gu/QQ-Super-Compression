@@ -1,0 +1,6 @@
+PASS: Dual algorithm 10 ms crossfades/reversal at 44.1/48/96 kHz; max DC adjacent step=0.000140354.
+MIGRATE slot=0 limiter=0 single=0 up=0 down=0 expected=0
+MIGRATE slot=0 limiter=1 single=1 up=1 down=1 expected=1
+MIGRATE slot=1 limiter=0 single=1 up=1 down=1 expected=1
+MIGRATE slot=1 limiter=1 single=0 up=0 down=0 expected=0
+FAIL: Algorithm selector overlaps nearby button

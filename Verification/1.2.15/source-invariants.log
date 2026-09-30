@@ -1,0 +1,31 @@
+Baseline: 1.2.14 source package
+Changed Source files: 2
+CHANGED Source/OutputCeiling.h
+CHANGED Source/PluginProcessor.cpp
+Byte-identical Source files: 26
+SAME Source/ABTransfer.h
+SAME Source/BS1770LoudnessMatch.h
+SAME Source/DarkMaterial.h
+SAME Source/DarkPanelMaterial.h
+SAME Source/DynamicDisplay.cpp
+SAME Source/DynamicDisplay.h
+SAME Source/DynamicsLimits.h
+SAME Source/IntegratedLoudnessMeter.h
+SAME Source/KWeightingFilter.h
+SAME Source/KnobLight.h
+SAME Source/LevelMeters.cpp
+SAME Source/LevelMeters.h
+SAME Source/LightKnobScale.h
+SAME Source/LimiterEditor.cpp
+SAME Source/LimiterMode.cpp
+SAME Source/LimiterModeContinuity.h
+SAME Source/MeterState.h
+SAME Source/Parameters.h
+SAME Source/PluginEditor.cpp
+SAME Source/PluginEditor.h
+SAME Source/PluginProcessor.h
+SAME Source/RefinedDarkKnob.h
+SAME Source/StaticCompressionEngine.h
+SAME Source/UTF8LookAndFeel.h
+SAME Source/WarmKnobAsset.h
+SAME Source/WarmMaterial.h

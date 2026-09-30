@@ -12,6 +12,9 @@ namespace qqsc::params
     inline constexpr auto limiterLink = "limiterLink";
     inline constexpr auto ceilingDb = "ceilingDb";
     inline constexpr auto truePeakLimiting = "truePeakLimiting";
+    inline constexpr auto tpRecoveryMode = "tpRecoveryMode";
+    inline constexpr auto ceilingOversampling = "ceilingOversampling"; // 1.2.36: Limiter Ceiling 1x/4x/8x/16x
+    enum TpRecoveryMode { tpTight = 0, tpAuto = 1, tpSmooth = 2 };
     inline constexpr auto limiterCalibrationDb = "limiterCalibrationDb";
     inline constexpr auto limiterOutputDb = "limiterOutputDb";
     inline float limiterRatio (float ratio, bool limiter, bool dualDown = false) noexcept
@@ -23,27 +26,26 @@ namespace qqsc::params
     }
     inline float upwardRatio (float ratio, bool limiter) noexcept
     {
-        return juce::jlimit (limiter ? limiterMinimumUpRatio : minimumUpRatio, 1.0f, ratio);
+        return juce::jlimit (limiter ? limiterDualMinimumUpRatio : minimumUpRatio, 1.0f, ratio);
     }
     template <typename T = double>
     inline juce::NormalisableRange<T> limiterSingleRange()
     {
-        // Unity and 200:1 need distinct normalised positions. A tiny detent
-        // keeps the downward endpoint round-trippable through host automation.
+        // Limiter SINGLE is still the normal QQ compression curve: the lower
+        // half is Upward 1:8..1:1, the upper half is Downward 1:1..1000:1.
+        // Unity is the exact midpoint. The final Ceiling/TP stage performs the
+        // actual peak limiting, so no artificial 1:1..200:1 gap is needed.
         return { T(limiterMinimumUpRatio), T(maximumDownRatio),
             [] (T lo, T hi, T n) {
                 return n <= T(0.5) ? lo * std::pow (T(1)/lo, T(2)*n)
-                    : T(limiterMinimumDownRatio) * std::pow (hi/T(limiterMinimumDownRatio),
-                        juce::jmax(T(0), (n-T(0.5001))/T(0.4999)));
-            },
-            [] (T lo, T hi, T v) {
-                return v <= T(1) ? T(0.5)*std::log(juce::jmax(lo,v)/lo)/std::log(T(1)/lo)
-                    : T(0.5001)+T(0.4999)*std::log(juce::jmax(T(limiterMinimumDownRatio),v)/T(limiterMinimumDownRatio))/std::log(hi/T(limiterMinimumDownRatio));
+                                   : std::pow (hi, T(2)*n-T(1));
             },
             [] (T lo, T hi, T v) {
                 v=juce::jlimit(lo,hi,v);
-                return v>T(1) && v<T(limiterMinimumDownRatio) ? T(limiterMinimumDownRatio) : v;
-            } };
+                return v <= T(1) ? T(0.5)*std::log(juce::jmax(lo,v)/lo)/std::log(T(1)/lo)
+                                 : T(0.5)+T(0.5)*std::log(v)/std::log(hi);
+            },
+            [] (T lo, T hi, T v) { return juce::jlimit(lo,hi,v); } };
     }
     inline constexpr auto algorithmMode = "algorithmMode"; // Appended host parameter in v1.2.4
     enum AlgorithmMode { classicAlgorithm = 0, superAlgorithm = 1 };
@@ -369,12 +371,27 @@ namespace qqsc::params
 
 
     inline constexpr std::array<float, 6> lookaheadPresetMs { 0.0f, 10.0f, 26.0f, 40.0f, 80.0f, 100.0f };
-    inline constexpr std::array<int, 3> oversamplingFactors { 1, 8, 16 };
-    inline constexpr std::array<int, 3> oversamplingStageCounts { 0, 3, 4 };
+    inline constexpr std::array<int, 4> oversamplingFactors { 1, 4, 8, 16 };
+    inline constexpr std::array<int, 4> oversamplingStageCounts { 0, 2, 3, 4 };
+
+    // Independent Core and Ceiling controls share the ordered 1x/4x/8x/16x choices.
+    enum OversamplingChoice { osNative = 0, os4x = 1, os8x = 2, os16x = 3 };
+    enum CeilingOversamplingChoice { ceilingNative = 0, ceiling4x = 1, ceiling8x = 2, ceiling16x = 3 };
+    inline juce::StringArray ceilingOversamplingChoices() { return { "1x", "4x", "8x", "16x" }; }
+    inline int ceilingOversamplingFactorForChoiceIndex(int index) noexcept
+    {
+        constexpr std::array<int,4> factors {1,4,8,16};
+        return factors[size_t(juce::jlimit(0,3,index))];
+    }
+    inline int migrateLegacyOversamplingChoice(int index) noexcept
+    {
+        index=juce::jlimit(0,2,index);
+        return index==0 ? ceilingNative : index+1;
+    }
 
     inline juce::StringArray oversamplingChoices()
     {
-        return { "1x", "8x", "16x" };
+        return { "1x", "4x", "8x", "16x" };
     }
 
     inline juce::String oversamplingNameForChoiceIndex (int index)

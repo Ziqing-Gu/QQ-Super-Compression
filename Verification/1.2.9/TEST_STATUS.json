@@ -1,0 +1,72 @@
+{
+  "version": "1.2.9",
+  "status": "source-candidate; no full JUCE or Windows build performed",
+  "baseline": {
+    "version": "1.2.8",
+    "stable_and_plan_b": "user-confirmed in this conversation",
+    "uploaded_source_sha256": "A8A7C812647E96186FB3D3E0A0F7C52919F59E7D83D963B3C955EBAB5F121655",
+    "local_plan_b_read": false
+  },
+  "generated_utc": "2026-09-28T00:18:39.511833+00:00",
+  "new_binary_included": false,
+  "installed": false,
+  "published": false,
+  "plan_b_executed": false,
+  "changed_product_source_files": [
+    "Source/DynamicsLimits.h",
+    "Source/LimiterEditor.cpp",
+    "Source/LimiterMode.cpp",
+    "Source/PluginEditor.cpp",
+    "Source/PluginEditor.h",
+    "Source/PluginProcessor.cpp",
+    "Source/PluginProcessor.h"
+  ],
+  "unchanged_product_source_files": [
+    "Source/ABTransfer.h",
+    "Source/BS1770LoudnessMatch.h",
+    "Source/DarkMaterial.h",
+    "Source/DarkPanelMaterial.h",
+    "Source/DynamicDisplay.cpp",
+    "Source/DynamicDisplay.h",
+    "Source/IntegratedLoudnessMeter.h",
+    "Source/KWeightingFilter.h",
+    "Source/KnobLight.h",
+    "Source/LevelMeters.cpp",
+    "Source/LevelMeters.h",
+    "Source/LightKnobScale.h",
+    "Source/LimiterModeContinuity.h",
+    "Source/MeterState.h",
+    "Source/OutputCeiling.h",
+    "Source/Parameters.h",
+    "Source/RefinedDarkKnob.h",
+    "Source/StaticCompressionEngine.h",
+    "Source/UTF8LookAndFeel.h",
+    "Source/WarmKnobAsset.h",
+    "Source/WarmMaterial.h"
+  ],
+  "completed_tests": {
+    "extracted_editor_edits": 4896,
+    "independent_reference_cases": 1200,
+    "bank_entry_revisit_cases": 4,
+    "mixed_inverse_output_edits": 36,
+    "mix_round_trips": 200,
+    "continuity_scenarios": 864,
+    "normal_mode_toggles": 100,
+    "continuity_boundary_policy_checks": 252021,
+    "asan_ubsan": "no diagnostics reported in passing isolated runs",
+    "negative_controls": "old entry and old wet-only wrapper fail the new specification as expected",
+    "source_invariants": "passed"
+  },
+  "not_run": [
+    "full JUCE/MSVC compilation",
+    "Windows VST3",
+    "real GUI",
+    "real Undo/Redo",
+    "real APVTS serialization/A-B tests",
+    "Cubase automation",
+    "audio rendering/null/listening",
+    "macOS"
+  ],
+  "build_probe": "dependency failure: JUCE was not found",
+  "compatibility_warning": "Normal Makeup host range is now +/-30 dB. DAW-owned normalized automation may map differently; stored physical Normal/A-B values outside range clamp. Limiter +/-120 dB is retained."
+}

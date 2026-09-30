@@ -1,0 +1,9 @@
+QQ Super Compression 1.2.36：用户已确认中文版，对应英文版已完成。
+中英文均为 41 页；英文完整覆盖 675 处中文文本，保留相同章节与页码关系。
+英文 41 页已渲染，7 张整本预览及 11 个关键页完成视觉检查；41 个书签、12 个内部目录链接有效。
+Limiter 0 ms 特色、4x/8x/16x、标准下压与双压补偿、实例 FULL/ECO、停止后恢复说明均与中文对应。
+已确认中文 PDF、界面截图、产品源码 569 个文件及已安装插件保持哈希。
+中文版：D:\Codex\Outputs\QQ Super Compression\1.2.36 Manuals\QQ Super Compression 用户手册 中文版_v1.2.36.pdf
+英文版：D:\Codex\Outputs\QQ Super Compression\1.2.36 Manuals\QQ Super Compression User Manual English_v1.2.36.pdf
+制作源码：D:\Codex\Workspaces\QQSuperCompression-1.2.36-Manual\source-1.2.36
+本次仅完成说明书双语制作及备份；不代表代码 Plan B 已刷新或已发布版本。

@@ -12,6 +12,8 @@
 
 // Include the standard-library headers before exposing private members. Modern
 // MSVC rejects macro substitution of the private keyword inside its own headers.
+#include "Source/ExactEnergyIndex.h"
+#include <atomic>
 #define private public
 #include "Source/BS1770LoudnessMatch.h"
 #undef private
@@ -44,6 +46,7 @@ int main()
                                  sample, 0.0f);
     }
 
+    reference.servicePending();
     const auto referenceLufs = reference.integratedFor (&qqsc::BS1770LoudnessMatch::BlockEnergies::dryL);
     std::cout << "1 kHz 0 dBFS mono: " << referenceLufs << " LUFS\n";
     if (! near (referenceLufs, -3.01, 0.05))
@@ -67,6 +70,7 @@ int main()
                              wet, 0.0f);
     }
 
+    match.servicePending();
     const auto result = match.getLatestMatch();
     std::cout << "6 dB fixed difference, ST Match: " << result.st << " dB\n";
     if (! result.validST || ! near (result.st, 6.0, 0.03))

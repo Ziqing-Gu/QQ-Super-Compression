@@ -1,0 +1,1294 @@
+diff -ruN /mnt/data/qqsc1218/Source/DynamicDisplay.cpp /mnt/data/QQSC-1.2.18-TP-Recovery/Source/DynamicDisplay.cpp
+--- /mnt/data/qqsc1218/Source/DynamicDisplay.cpp	2026-09-28 14:28:52.000000000 +0000
++++ /mnt/data/QQSC-1.2.18-TP-Recovery/Source/DynamicDisplay.cpp	2026-09-28 19:00:36.965494652 +0000
+@@ -656,6 +656,15 @@
+     const bool limiter = processor.isLimiterMode();
+     const bool truePeak = limiter && processor.isTruePeakSelected();
+     const auto ceilingDb = readParameter (processor, qqsc::params::ceilingDb);
++    const auto tpRecovery=processor.getTpRecoveryMode();
++    // Display remains retrospective: Recovery is evaluated from the CURRENT
++    // choice over the stored level-independent TP evidence, not captured as a
++    // historical rendered result. The visual envelope is a lightweight 60 Hz
++    // replay of the audible release character, not a second 8x/16x DSP pass.
++    const float recoverySeconds=tpRecovery==qqsc::params::tpTight ? .015f
++        : tpRecovery==qqsc::params::tpSmooth ? .140f : .050f;
++    const float recoveryStep=1.0f/(1.0f+float(displayRefreshHz)*recoverySeconds);
++    float retrospectiveTpGain=1.0f;
+ 
+     for (const auto& point : histories[static_cast<size_t> (domainIndex)].points)
+     {
+@@ -709,8 +718,16 @@
+                 // user's Ceiling when correction is actually required. Mirror
+                 // that tiny reserve in the retrospective visual projection.
+                 projectedCeilingGrDb = overshootDb + (truePeak ? 0.01f : 0.0f);
+-                projectedPostCeilingDb -= projectedCeilingGrDb;
+             }
++            if(truePeak)
++            {
++                const auto targetGain=juce::Decibels::decibelsToGain(-projectedCeilingGrDb);
++                if(targetGain<=retrospectiveTpGain) retrospectiveTpGain=targetGain;
++                else retrospectiveTpGain+=recoveryStep*(targetGain-retrospectiveTpGain);
++                projectedCeilingGrDb=-juce::Decibels::gainToDecibels(
++                    juce::jmax(retrospectiveTpGain,1.0e-9f),-180.0f);
++            }
++            projectedPostCeilingDb -= projectedCeilingGrDb;
+         }
+ 
+         if (projected.size >= static_cast<size_t> (historyLength))
+diff -ruN /mnt/data/qqsc1218/Source/LimiterEditor.cpp /mnt/data/QQSC-1.2.18-TP-Recovery/Source/LimiterEditor.cpp
+--- /mnt/data/qqsc1218/Source/LimiterEditor.cpp	2026-09-28 06:51:40.000000000 +0000
++++ /mnt/data/QQSC-1.2.18-TP-Recovery/Source/LimiterEditor.cpp	2026-09-28 19:03:56.388679431 +0000
+@@ -15,7 +15,7 @@
+ 
+ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
+ {
+-    for (auto* button : { &limiterButton,&limiterLinkButton,&unityMonitorButton,&truePeakButton })
++    for (auto* button : { &limiterButton,&limiterLinkButton,&unityMonitorButton,&truePeakButton,&tpRecoveryButton })
+     {
+         configureActionButton (*button); contentRoot.addAndMakeVisible (*button); registerKeyboardListener (*button);
+     }
+@@ -31,6 +31,18 @@
+         setChoiceParameter(qqsc::params::truePeakLimiting,processor.isTruePeakSelected() ? 0 : 1);
+         updateLimiterUi();
+     };
++    tpRecoveryButton.setComponentID("tpRecoveryMode");
++    tpRecoveryButton.getProperties().set("qqscSmallLink",true);
++    tpRecoveryButton.setTooltip("TP Recovery: TIGHT = fastest recovery / maximum loudness; AUTO = adaptive 1.2.17 timing (default); SMOOTH = slower, calmer gain recovery. True-Peak Ceiling protection remains active in all modes.");
++    tpRecoveryButton.onClick=[this]
++    {
++        beginUndoTransaction("TP Recovery");
++        const auto current=processor.getTpRecoveryMode();
++        const auto next=current==qqsc::params::tpAuto ? qqsc::params::tpTight
++            : current==qqsc::params::tpTight ? qqsc::params::tpSmooth : qqsc::params::tpAuto;
++        setChoiceParameter(qqsc::params::tpRecoveryMode,next);
++        updateLimiterUi();
++    };
+     unityMonitorButton.setComponentID("limiterUnityMonitor");
+     unityMonitorButton.setTitle("1:1 Monitor");
+     unityMonitorButton.getProperties().set("qqscSmallLink",true);
+@@ -171,6 +183,10 @@
+     unityMonitorButton.setVisible(limiter);
+     truePeakButton.setToggleState(processor.isTruePeakSelected(),juce::dontSendNotification);
+     truePeakButton.setVisible(limiter);
++    const auto recovery=processor.getTpRecoveryMode();
++    tpRecoveryButton.setButtonText(recovery==qqsc::params::tpTight ? "TIGHT"
++        : recovery==qqsc::params::tpSmooth ? "SMOOTH" : "AUTO");
++    tpRecoveryButton.setVisible(limiter && processor.isTruePeakSelected());
+     monitorCeilingLabel.setVisible(processor.isUnityMonitorActive());
+     inputOutputLinkButton.setVisible(!limiter);
+     ceilingSlider.setVisible(false);
+diff -ruN /mnt/data/qqsc1218/Source/OutputCeiling.h /mnt/data/QQSC-1.2.18-TP-Recovery/Source/OutputCeiling.h
+--- /mnt/data/qqsc1218/Source/OutputCeiling.h	2026-09-28 14:27:20.000000000 +0000
++++ /mnt/data/QQSC-1.2.18-TP-Recovery/Source/OutputCeiling.h	2026-09-28 18:59:33.087236726 +0000
+@@ -1,5 +1,6 @@
+ #pragma once
+ #include <JuceHeader.h>
++#include "Parameters.h"
+ #include <array>
+ #include <vector>
+ 
+@@ -31,10 +32,16 @@
+         energyCoefficient=1.0-std::exp(-1.0/(rate*.010));
+         periodCoefficient=1.0-std::exp(-1.0/(rate*.030));
+     }
+-    bool useConservativeTiming() const noexcept { return repeatedRemaining>0; }
++    bool useConservativeTiming(int recoveryMode) const noexcept
++    {
++        recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recoveryMode);
++        if(recoveryMode==qqsc::params::tpTight) return false;
++        if(recoveryMode==qqsc::params::tpSmooth) return true;
++        return repeatedRemaining>0;
++    }
+     float gainForDisplay() const noexcept { return static_cast<float> (displayGain); }
+     float inputPeakForDisplay() const noexcept { return static_cast<float> (inputPeakForTelemetry); }
+-    std::array<float,2> process(float l,float r,float ceiling,float detectedPeak=0,bool repeatedHint=false,float triggerCeiling=-1.0f) noexcept
++    std::array<float,2> process(float l,float r,float ceiling,float detectedPeak=0,bool repeatedHint=false,float triggerCeiling=-1.0f,int recoveryMode=qqsc::params::tpAuto) noexcept
+     {
+         const std::array<float,2> input {l,r};
+         double halfPeriod=.0005;
+@@ -100,10 +107,33 @@
+             if(minimum<crest/1.12 && minimum<.999)
+             { repeatedRemaining=int(rate()*.080);rising=false;trough=minimum; }
+         }
+-        const bool repeated=repeatedRemaining>0 || repeatedHint;
++        recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recoveryMode);
++        const bool autoRepeated=repeatedRemaining>0 || repeatedHint;
++        const bool repeated=recoveryMode==qqsc::params::tpSmooth
++            || (recoveryMode==qqsc::params::tpAuto && autoRepeated);
+         const double controlledMinimum=repeated ? slowNodes[slowHead].value : minimum;
+-        const int holdSamples=repeated ? 0 : int(std::ceil(rate()*juce::jlimit(.0015,.030,1.1*halfPeriod-double(look)/rate()+.0015)));
+-        const double releaseSeconds=repeated ? .060 : juce::jlimit(.015,.075,2.5*halfPeriod);
++        int holdSamples=0;
++        double releaseSeconds=.060;
++        if(recoveryMode==qqsc::params::tpTight)
++        {
++            // Loudness-first recovery. The lookahead moving minimum remains the
++            // hard safety constraint; only post-peak recovery is accelerated.
++            holdSamples=0;
++            releaseSeconds=juce::jlimit(.005,.025,halfPeriod);
++        }
++        else if(recoveryMode==qqsc::params::tpSmooth)
++        {
++            // Smooth deliberately retains the longer safety minimum and a slow
++            // release. It trades short-term loudness for a calmer gain envelope.
++            holdSamples=0;
++            releaseSeconds=juce::jlimit(.060,.180,6.0*halfPeriod);
++        }
++        else
++        {
++            // AUTO is the verified 1.2.17 adaptive timing, unchanged.
++            holdSamples=autoRepeated ? 0 : int(std::ceil(rate()*juce::jlimit(.0015,.030,1.1*halfPeriod-double(look)/rate()+.0015)));
++            releaseSeconds=autoRepeated ? .060 : juce::jlimit(.015,.075,2.5*halfPeriod);
++        }
+         // Backward-Euler coefficient avoids a per-sample transcendental and
+         // remains a convex, stable move toward the current safety minimum.
+         const double releaseCoefficient=1.0/(1.0+rate()*releaseSeconds);
+@@ -145,7 +175,7 @@
+ class OutputCeiling
+ {
+ public:
+-    void prepare(double rate,bool enabled,bool tp,float ceilingDb)
++    void prepare(double rate,bool enabled,bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto)
+     {
+         look=juce::jmax(1,int(std::ceil(rate*.003)));
+         oversampling.initProcessing(1);oversampling.reset();
+@@ -166,6 +196,7 @@
+         active.reset(rate,.010);active.setCurrentAndTargetValue(enabled ? 1.f : 0.f);
+         truePeakBlend.reset(rate,.010);truePeakBlend.setCurrentAndTargetValue(tp ? 1.f : 0.f);
+         ceiling.reset(rate,.010);ceiling.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(ceilingDb));
++        recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recovery);
+         displayGainLinear=1.0f;
+         inputSamplePeakLinear=0.0f;
+         inputTruePeakLinear=0.0f;
+@@ -187,16 +218,17 @@
+     {
+         return -juce::Decibels::gainToDecibels(juce::jmax(displayGainLinear,1.0e-9f),-180.0f);
+     }
+-    void set(bool enabled,bool tp,float ceilingDb) noexcept
++    void set(bool enabled,bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto) noexcept
+     {
+         active.setTargetValue(enabled ? 1.f : 0.f);
+         truePeakBlend.setTargetValue(tp ? 1.f : 0.f);
+         ceiling.setTargetValue(juce::Decibels::decibelsToGain(juce::jlimit(-24.f,0.f,ceilingDb)));
++        recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recovery);
+     }
+     std::array<float,2> process(float l,float r) noexcept
+     {
+         const float c=ceiling.getNextValue();
+-        auto peak=native.process(l,r,c);
++        auto peak=native.process(l,r,c,0,false,-1.0f,qqsc::params::tpAuto);
+         inputSamplePeakLinear=native.inputPeakForDisplay();
+         inputTruePeakLinear=inputSamplePeakLinear;
+         const float nativeDisplayGain=native.gainForDisplay();
+@@ -212,7 +244,7 @@
+         float truePeakDisplayGain=1.0f;
+         for(size_t i=0;i<up.getNumSamples();++i)
+         {
+-            const auto limited=truePeak.process(up.getSample(0,int(i)),up.getSample(1,int(i)),tpCeiling);
++            const auto limited=truePeak.process(up.getSample(0,int(i)),up.getSample(1,int(i)),tpCeiling,0,false,-1.0f,recoveryMode);
+             inputTruePeakLinear=juce::jmax(inputTruePeakLinear,truePeak.inputPeakForDisplay());
+             truePeakDisplayGain=juce::jmin(truePeakDisplayGain,truePeak.gainForDisplay());
+             up.setSample(0,int(i),limited[0]);up.setSample(1,int(i),limited[1]);
+@@ -232,7 +264,7 @@
+         // audible headroom. The modulation timing follows the main guard.
+         constexpr float residualSafetyDb=-0.01f;
+         const float residualTarget=c*juce::Decibels::decibelsToGain(residualSafetyDb);
+-        const auto corrected=post.process(aligned[0],aligned[1],residualTarget,detected,truePeak.useConservativeTiming(),c);
++        const auto corrected=post.process(aligned[0],aligned[1],residualTarget,detected,truePeak.useConservativeTiming(recoveryMode),c,recoveryMode);
+         const float postDisplayGain=post.gainForDisplay();
+         const auto t=truePeakBlend.getNextValue(),a=active.getNextValue();
+ 
+@@ -267,6 +299,7 @@
+     std::vector<std::array<float,2>> peakAlignment,dry,analysisAlignment;
+     size_t peakIndex=0,dryIndex=0,analysisIndex=0;
+     int look=1,filterLatency=0,analysisDelay=0,latency=0;
++    int recoveryMode=qqsc::params::tpAuto;
+     juce::SmoothedValue<float> active,truePeakBlend,ceiling;
+     float displayGainLinear=1.0f;
+     float inputSamplePeakLinear=0.0f;
+diff -ruN /mnt/data/qqsc1218/Source/Parameters.h /mnt/data/QQSC-1.2.18-TP-Recovery/Source/Parameters.h
+--- /mnt/data/qqsc1218/Source/Parameters.h	2026-09-28 05:52:00.000000000 +0000
++++ /mnt/data/QQSC-1.2.18-TP-Recovery/Source/Parameters.h	2026-09-28 18:59:07.048318988 +0000
+@@ -1,466 +1,468 @@
+-#pragma once
+-
+-#include <JuceHeader.h>
+-#include "DynamicsLimits.h"
+-#include <array>
+-#include <cmath>
+-#include <limits>
+-
+-namespace qqsc::params
+-{
+-    inline constexpr auto limiterMode = "limiterMode";
+-    inline constexpr auto limiterLink = "limiterLink";
+-    inline constexpr auto ceilingDb = "ceilingDb";
+-    inline constexpr auto truePeakLimiting = "truePeakLimiting";
+-    inline constexpr auto limiterCalibrationDb = "limiterCalibrationDb";
+-    inline constexpr auto limiterOutputDb = "limiterOutputDb";
+-    inline float limiterRatio (float ratio, bool limiter, bool dualDown = false) noexcept
+-    {
+-        if (limiter && (dualDown || ratio > 1.0f))
+-            return juce::jlimit (limiterMinimumDownRatio, maximumDownRatio, ratio);
+-        return juce::jlimit (dualDown ? 1.0f : limiter ? limiterMinimumUpRatio : minimumUpRatio,
+-                            limiter ? 1.0f : normalMaximumDownRatio, ratio);
+-    }
+-    inline float upwardRatio (float ratio, bool limiter) noexcept
+-    {
+-        return juce::jlimit (limiter ? limiterMinimumUpRatio : minimumUpRatio, 1.0f, ratio);
+-    }
+-    template <typename T = double>
+-    inline juce::NormalisableRange<T> limiterSingleRange()
+-    {
+-        // Unity and 200:1 need distinct normalised positions. A tiny detent
+-        // keeps the downward endpoint round-trippable through host automation.
+-        return { T(limiterMinimumUpRatio), T(maximumDownRatio),
+-            [] (T lo, T hi, T n) {
+-                return n <= T(0.5) ? lo * std::pow (T(1)/lo, T(2)*n)
+-                    : T(limiterMinimumDownRatio) * std::pow (hi/T(limiterMinimumDownRatio),
+-                        juce::jmax(T(0), (n-T(0.5001))/T(0.4999)));
+-            },
+-            [] (T lo, T hi, T v) {
+-                return v <= T(1) ? T(0.5)*std::log(juce::jmax(lo,v)/lo)/std::log(T(1)/lo)
+-                    : T(0.5001)+T(0.4999)*std::log(juce::jmax(T(limiterMinimumDownRatio),v)/T(limiterMinimumDownRatio))/std::log(hi/T(limiterMinimumDownRatio));
+-            },
+-            [] (T lo, T hi, T v) {
+-                v=juce::jlimit(lo,hi,v);
+-                return v>T(1) && v<T(limiterMinimumDownRatio) ? T(limiterMinimumDownRatio) : v;
+-            } };
+-    }
+-    inline constexpr auto algorithmMode = "algorithmMode"; // Appended host parameter in v1.2.4
+-    enum AlgorithmMode { classicAlgorithm = 0, superAlgorithm = 1 };
+-
+-    inline constexpr auto inputGainDb    = "inputGainDb";
+-    inline constexpr auto ratio          = "ratio";          // ST / legacy Ratio
+-    inline constexpr auto ratioL         = "ratioL";
+-    inline constexpr auto ratioR         = "ratioR";
+-    inline constexpr auto ratioM         = "ratioM";
+-    inline constexpr auto ratioS         = "ratioS";
+-    inline constexpr auto makeupGainDb   = "makeupGainDb";   // ST / legacy shared Makeup
+-    inline constexpr auto makeupGainLDb  = "makeupGainLDb";
+-    inline constexpr auto makeupGainRDb  = "makeupGainRDb";
+-    inline constexpr auto makeupGainMDb  = "makeupGainMDb";
+-    inline constexpr auto makeupGainSDb  = "makeupGainSDb";
+-    inline constexpr auto mix            = "mix";            // ST / legacy Mix
+-    inline constexpr auto mixL           = "mixL";
+-    inline constexpr auto mixR           = "mixR";
+-    inline constexpr auto mixM           = "mixM";
+-    inline constexpr auto mixS           = "mixS";
+-    inline constexpr auto outputGainDb   = "outputGainDb";
+-    inline constexpr auto inputOutputLink = "inputOutputLink";
+-    inline constexpr auto lookaheadMs    = "lookaheadMs";
+-    inline constexpr auto oversampling   = "oversampling";
+-    inline constexpr auto processingMode = "processingMode";
+-    inline constexpr auto bypass         = "bypass";
+-    inline constexpr auto thresholdDb    = "thresholdDb";    // ST / legacy Threshold
+-    inline constexpr auto thresholdLDb   = "thresholdLDb";
+-    inline constexpr auto thresholdRDb   = "thresholdRDb";
+-    inline constexpr auto thresholdMDb   = "thresholdMDb";
+-    inline constexpr auto thresholdSDb   = "thresholdSDb";
+-    inline constexpr auto domainLink     = "domainLink";
+-    // v1.1.x: append Side Chain parameters after every v1.0.4 parameter so
+-    // existing host-facing IDs/order and old projects remain safe.
+-    inline constexpr auto keySource      = "keySource";
+-    inline constexpr auto keyGainDb      = "keyGainDb";
+-    inline constexpr auto keyHpfHz       = "keyHpfHz";
+-
+-
+-    // v1.2.0 parameters are appended after the complete v1.1.9 sequence.
+-    inline constexpr auto compressionMode = "compressionMode";
+-    inline constexpr auto rangeDb = "rangeDb";
+-    inline constexpr auto rangeLDb = "rangeLDb";
+-    inline constexpr auto rangeRDb = "rangeRDb";
+-    inline constexpr auto rangeMDb = "rangeMDb";
+-    inline constexpr auto rangeSDb = "rangeSDb";
+-    inline constexpr auto upThresholdDb = "upThresholdDb";
+-    inline constexpr auto upThresholdLDb = "upThresholdLDb";
+-    inline constexpr auto upThresholdRDb = "upThresholdRDb";
+-    inline constexpr auto upThresholdMDb = "upThresholdMDb";
+-    inline constexpr auto upThresholdSDb = "upThresholdSDb";
+-    inline constexpr auto downThresholdDb = "downThresholdDb";
+-    inline constexpr auto downThresholdLDb = "downThresholdLDb";
+-    inline constexpr auto downThresholdRDb = "downThresholdRDb";
+-    inline constexpr auto downThresholdMDb = "downThresholdMDb";
+-    inline constexpr auto downThresholdSDb = "downThresholdSDb";
+-    inline constexpr auto upRatio = "upRatio";
+-    inline constexpr auto dualRatioLink = "dualRatioLink";
+-    inline constexpr auto upRatioL = "upRatioL";
+-    inline constexpr auto upRatioR = "upRatioR";
+-    inline constexpr auto upRatioM = "upRatioM";
+-    inline constexpr auto upRatioS = "upRatioS";
+-    inline constexpr auto downRatio = "downRatio";
+-    inline constexpr auto downRatioL = "downRatioL";
+-    inline constexpr auto downRatioR = "downRatioR";
+-    inline constexpr auto downRatioM = "downRatioM";
+-    inline constexpr auto downRatioS = "downRatioS";
+-
+-    // Rev4: appended branch enables; saved ratios and thresholds stay intact.
+-    inline constexpr auto upEnabled = "upEnabled";
+-    inline constexpr auto upEnabledL = "upEnabledL";
+-    inline constexpr auto upEnabledR = "upEnabledR";
+-    inline constexpr auto upEnabledM = "upEnabledM";
+-    inline constexpr auto upEnabledS = "upEnabledS";
+-    inline constexpr std::array<const char*, 5> upEnabledIds { upEnabled, upEnabledL, upEnabledR, upEnabledM, upEnabledS };
+-    inline constexpr auto downEnabled = "downEnabled";
+-    inline constexpr auto downEnabledL = "downEnabledL";
+-    inline constexpr auto downEnabledR = "downEnabledR";
+-    inline constexpr auto downEnabledM = "downEnabledM";
+-    inline constexpr auto downEnabledS = "downEnabledS";
+-    inline constexpr std::array<const char*, 5> downEnabledIds { downEnabled, downEnabledL, downEnabledR, downEnabledM, downEnabledS };
+-
+-    enum CompressionMode { singleCompression = 0, dualCompression = 1 };
+-    inline constexpr std::array<const char*, 5> thresholdIds { thresholdDb, thresholdLDb, thresholdRDb, thresholdMDb, thresholdSDb };
+-    inline constexpr std::array<const char*, 5> rangeIds { rangeDb, rangeLDb, rangeRDb, rangeMDb, rangeSDb };
+-    inline constexpr std::array<const char*, 5> upThresholdIds { upThresholdDb, upThresholdLDb, upThresholdRDb, upThresholdMDb, upThresholdSDb };
+-    inline constexpr std::array<const char*, 5> downThresholdIds { downThresholdDb, downThresholdLDb, downThresholdRDb, downThresholdMDb, downThresholdSDb };
+-    inline constexpr std::array<const char*, 5> ratioIds { ratio, ratioL, ratioR, ratioM, ratioS };
+-    inline constexpr std::array<const char*, 5> upRatioIds { upRatio, upRatioL, upRatioR, upRatioM, upRatioS };
+-    inline constexpr std::array<const char*, 5> downRatioIds { downRatio, downRatioL, downRatioR, downRatioM, downRatioS };
+-
+-    inline constexpr std::array<const char*,35> normalSoundIds { "ratio", "ratioL", "ratioR", "ratioM", "ratioS", "upRatio", "upRatioL", "upRatioR", "upRatioM", "upRatioS", "downRatio", "downRatioL", "downRatioR", "downRatioM", "downRatioS", "thresholdDb", "thresholdLDb", "thresholdRDb", "thresholdMDb", "thresholdSDb", "rangeDb", "rangeLDb", "rangeRDb", "rangeMDb", "rangeSDb", "upThresholdDb", "upThresholdLDb", "upThresholdRDb", "upThresholdMDb", "upThresholdSDb", "downThresholdDb", "downThresholdLDb", "downThresholdRDb", "downThresholdMDb", "downThresholdSDb" };
+-    inline constexpr std::array<const char*,35> limiterSoundIds { "limiterRatio", "limiterRatioL", "limiterRatioR", "limiterRatioM", "limiterRatioS", "limiterUpRatio", "limiterUpRatioL", "limiterUpRatioR", "limiterUpRatioM", "limiterUpRatioS", "limiterDownRatio", "limiterDownRatioL", "limiterDownRatioR", "limiterDownRatioM", "limiterDownRatioS", "limiterThresholdDb", "limiterThresholdLDb", "limiterThresholdRDb", "limiterThresholdMDb", "limiterThresholdSDb", "limiterRangeDb", "limiterRangeLDb", "limiterRangeRDb", "limiterRangeMDb", "limiterRangeSDb", "limiterUpThresholdDb", "limiterUpThresholdLDb", "limiterUpThresholdRDb", "limiterUpThresholdMDb", "limiterUpThresholdSDb", "limiterDownThresholdDb", "limiterDownThresholdLDb", "limiterDownThresholdRDb", "limiterDownThresholdMDb", "limiterDownThresholdSDb" };
+-    inline constexpr std::array<const char*,5> limiterRatioIds { "limiterRatio", "limiterRatioL", "limiterRatioR", "limiterRatioM", "limiterRatioS" };
+-    inline constexpr std::array<const char*,5> limiterUpRatioIds { "limiterUpRatio", "limiterUpRatioL", "limiterUpRatioR", "limiterUpRatioM", "limiterUpRatioS" };
+-    inline constexpr std::array<const char*,5> limiterDownRatioIds { "limiterDownRatio", "limiterDownRatioL", "limiterDownRatioR", "limiterDownRatioM", "limiterDownRatioS" };
+-    inline constexpr std::array<const char*,5> limiterThresholdIds { "limiterThresholdDb", "limiterThresholdLDb", "limiterThresholdRDb", "limiterThresholdMDb", "limiterThresholdSDb" };
+-    inline constexpr std::array<const char*,5> limiterRangeIds { "limiterRangeDb", "limiterRangeLDb", "limiterRangeRDb", "limiterRangeMDb", "limiterRangeSDb" };
+-    inline constexpr std::array<const char*,5> limiterUpThresholdIds { "limiterUpThresholdDb", "limiterUpThresholdLDb", "limiterUpThresholdRDb", "limiterUpThresholdMDb", "limiterUpThresholdSDb" };
+-    inline constexpr std::array<const char*,5> limiterDownThresholdIds { "limiterDownThresholdDb", "limiterDownThresholdLDb", "limiterDownThresholdRDb", "limiterDownThresholdMDb", "limiterDownThresholdSDb" };
+-    // These were shared before the independent-mode revision. Appended IDs
+-    // preserve every existing host parameter ID/index. Each mode owns its timing.
+-    inline constexpr std::array<const char*,33> normalModeIds { "inputGainDb", "makeupGainDb", "makeupGainLDb", "makeupGainRDb", "makeupGainMDb", "makeupGainSDb", "mix", "mixL", "mixR", "mixM", "mixS", "algorithmMode", "compressionMode", "processingMode", "domainLink", "dualRatioLink", "upEnabled", "upEnabledL", "upEnabledR", "upEnabledM", "upEnabledS", "downEnabled", "downEnabledL", "downEnabledR", "downEnabledM", "downEnabledS", "keySource", "keyGainDb", "keyHpfHz", "oversampling", "lookaheadMs", "upAlgorithmMode", "downAlgorithmMode" };
+-    inline constexpr std::array<const char*,33> limiterModeIds { "limiterInputGainDb", "limiterMakeupGainDb", "limiterMakeupGainLDb", "limiterMakeupGainRDb", "limiterMakeupGainMDb", "limiterMakeupGainSDb", "limiterMix", "limiterMixL", "limiterMixR", "limiterMixM", "limiterMixS", "limiterAlgorithmMode", "limiterCompressionMode", "limiterProcessingMode", "limiterDomainLink", "limiterDualRatioLink", "limiterUpEnabled", "limiterUpEnabledL", "limiterUpEnabledR", "limiterUpEnabledM", "limiterUpEnabledS", "limiterDownEnabled", "limiterDownEnabledL", "limiterDownEnabledR", "limiterDownEnabledM", "limiterDownEnabledS", "limiterKeySource", "limiterKeyGainDb", "limiterKeyHpfHz", "limiterOversampling", "limiterLookaheadMs", "limiterUpAlgorithmMode", "limiterDownAlgorithmMode" };
+-    inline const std::array<const char*,5>& boundaryBankIds (int bank, bool upper) noexcept
+-    {
+-        if (bank==0) return upper ? rangeIds : thresholdIds;
+-        if (bank==1) return upper ? downThresholdIds : upThresholdIds;
+-        if (bank==2) return upper ? limiterRangeIds : limiterThresholdIds;
+-        return upper ? limiterDownThresholdIds : limiterUpThresholdIds;
+-    }
+-
+-    inline juce::NormalisableRange<float> dynamicsRatioRange (float minimum = qqsc::minimumUpRatio, float maximum = qqsc::normalMaximumDownRatio)
+-    {
+-        // Keep Single's unity position at the exact midpoint with finite,
+-        // logarithmic upward and downward ranges on their respective halves.
+-        if (minimum < 1.0f && maximum > 1.0f)
+-            return { minimum, maximum,
+-                     [] (float lo, float hi, float n)
+-                     {
+-                         return n < 0.5f ? lo * std::pow (1.0f / lo, n * 2.0f)
+-                                         : std::pow (hi, (n - 0.5f) * 2.0f);
+-                     },
+-                     [] (float lo, float hi, float value)
+-                     {
+-                         value = juce::jlimit (lo, hi, value);
+-                         return value < 1.0f ? 0.5f * std::log (value / lo) / std::log (1.0f / lo)
+-                                            : 0.5f + 0.5f * std::log (value) / std::log (hi);
+-                     },
+-                     [] (float lo, float hi, float value) { return juce::jlimit (lo, hi, value); } };
+-        return { minimum, maximum,
+-                 [] (float lo, float hi, float normalised) { return lo * std::pow (hi / lo, normalised); },
+-                 [] (float lo, float hi, float value) { return std::log (juce::jlimit (lo, hi, value) / lo) / std::log (hi / lo); },
+-                 [] (float lo, float hi, float value) { return juce::jlimit (lo, hi, value); } };
+-    }
+-
+-    inline juce::String dynamicsRatioText (float value)
+-    {
+-        if (value < 0.99999f)
+-        {
+-            const auto denominator = 1.0f / value;
+-            return "1:" + juce::String (denominator, denominator >= 999.5f ? 0 : denominator >= 100.0f ? 1 : 2);
+-        }
+-        return juce::String (value, value >= 999.5f ? 0 : value < 10.0f ? 2 : 1) + ":1";
+-    }
+-
+-    inline float dynamicsRatioFromText (const juce::String& text)
+-    {
+-        if (text.containsChar (':'))
+-        {
+-            const auto left = text.upToFirstOccurrenceOf (":", false, false).getFloatValue();
+-            const auto right = text.fromFirstOccurrenceOf (":", false, false).getFloatValue();
+-            return right > 0.0f ? left / right : 1.0f;
+-        }
+-        if (text.containsChar ('/'))
+-        {
+-            const auto left = text.upToFirstOccurrenceOf ("/", false, false).getFloatValue();
+-            const auto right = text.fromFirstOccurrenceOf ("/", false, false).getFloatValue();
+-            return right > 0.0f ? left / right : 1.0f;
+-        }
+-        return text.getFloatValue();
+-    }
+-
+-    // Preserve the host numeric endpoint. Super interprets it as -inf;
+-    // Classic clamps stored values below -90 dB inside its transfer functions.
+-    // Keeping the per-algorithm mapping in the engine also preserves both
+-    // sides of the Classic/Super crossfade at this shared stored value.
+-    inline constexpr float thresholdOffDb = -120.0f;
+-    // Virtual Range endpoint: +1 is a stored OFF sentinel, never physical dB.
+-    // Finite 0 dB remains a distinct strict upper cutoff in saved projects.
+-    inline constexpr float rangeOffDb = 1.0f;
+-    inline constexpr float keyHpfOffHz = 0.0f;
+-    inline constexpr float keyHpfMinHz = 20.0f;
+-    inline constexpr float keyHpfMaxHz = 500.0f;
+-
+-    inline bool isThresholdEnabled (float db) noexcept
+-    {
+-        return db > thresholdOffDb + 0.0001f;
+-    }
+-
+-    inline float thresholdLinear (float db) noexcept
+-    {
+-        if (! isThresholdEnabled (db))
+-            return 0.0f;
+-
+-        return juce::Decibels::decibelsToGain (juce::jlimit (thresholdOffDb, 0.0f, db), thresholdOffDb);
+-    }
+-
+-    inline bool isRangeEnabled (float db) noexcept
+-    {
+-        return db <= 0.0f;
+-    }
+-
+-    inline float clampRangeDb (float db) noexcept
+-    {
+-        return isRangeEnabled (db) ? juce::jlimit (thresholdOffDb, 0.0f, db) : rangeOffDb;
+-    }
+-
+-    inline float rangeLinear (float db) noexcept
+-    {
+-        return isRangeEnabled (db) ? thresholdLinear (db) : std::numeric_limits<float>::infinity();
+-    }
+-
+-    inline juce::String boundaryText (float db, bool classic, int decimals = 2)
+-    {
+-        if (classic) db = juce::jmax (classicThresholdMinimumDb, db);
+-        return classic || isThresholdEnabled (db)
+-            ? juce::String (db, decimals) + " dB" : juce::String ("-inf dB");
+-    }
+-
+-    inline juce::String rangeText (float db, bool classic = false)
+-    {
+-        if (! isRangeEnabled (db)) return "OFF";
+-        if (! classic && ! isThresholdEnabled (db)) return "-inf dB";
+-        if (classic) db = juce::jmax (classicThresholdMinimumDb, db);
+-        return juce::String (db, 2) + " dB";
+-    }
+-
+-    inline float rangeFromText (const juce::String& text)
+-    {
+-        if (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("+inf")) return rangeOffDb;
+-        if (text.containsIgnoreCase ("-inf")) return thresholdOffDb;
+-        return juce::jlimit (thresholdOffDb, 0.0f, text.getFloatValue());
+-    }
+-
+-    inline juce::NormalisableRange<float> rangeParameterRange()
+-    {
+-        // The final 2% of travel is an explicit OFF detent; finite 0 dB remains
+-        // reachable immediately below it. No values between 0 and OFF are dB.
+-        constexpr float finiteEnd = 0.98f;
+-        return { thresholdOffDb, rangeOffDb,
+-                 [finiteEnd] (float, float, float normalised)
+-                 {
+-                     return normalised > finiteEnd ? rangeOffDb
+-                         : thresholdOffDb * (1.0f - normalised / finiteEnd);
+-                 },
+-                 [finiteEnd] (float, float, float value)
+-                 {
+-                     return isRangeEnabled (value)
+-                         ? finiteEnd * (1.0f - juce::jlimit (thresholdOffDb, 0.0f, value) / thresholdOffDb)
+-                         : 1.0f;
+-                 },
+-                 [] (float, float, float value)
+-                 {
+-                     return isRangeEnabled (value)
+-                         ? std::round (clampRangeDb (value) * 100.0f) * 0.01f
+-                         : rangeOffDb;
+-                 } };
+-    }
+-
+-    inline bool isKeyHpfEnabled (float hz) noexcept
+-    {
+-        return hz >= keyHpfMinHz;
+-    }
+-
+-    inline float clampKeyHpfHz (float hz) noexcept
+-    {
+-        return juce::jlimit (keyHpfMinHz, keyHpfMaxHz, hz);
+-    }
+-
+-    inline juce::NormalisableRange<float> keyHpfRange()
+-    {
+-        // Reserve the first 2% of normalised travel for a true OFF position;
+-        // the active 20-500 Hz section then follows a perceptually useful log law.
+-        constexpr float activeStart = 0.02f;
+-        const auto logSpan = std::log (keyHpfMaxHz / keyHpfMinHz);
+-
+-        return { keyHpfOffHz, keyHpfMaxHz,
+-                 [logSpan, activeStart] (float, float, float normalised)
+-                 {
+-                     if (normalised < activeStart)
+-                         return keyHpfOffHz;
+-
+-                     const auto activeNormalised = (normalised - activeStart) / (1.0f - activeStart);
+-                     return keyHpfMinHz * std::exp (logSpan * activeNormalised);
+-                 },
+-                 [logSpan, activeStart] (float, float, float value)
+-                 {
+-                     if (! isKeyHpfEnabled (value))
+-                         return 0.0f;
+-
+-                     const auto activeNormalised = std::log (clampKeyHpfHz (value) / keyHpfMinHz) / logSpan;
+-                     return activeStart + activeNormalised * (1.0f - activeStart);
+-                 },
+-                 [] (float, float, float value)
+-                 {
+-                     if (! isKeyHpfEnabled (value))
+-                         return keyHpfOffHz;
+-
+-                     return std::round (clampKeyHpfHz (value));
+-                 } };
+-    }
+-
+-    // Dynamic Display Dry is intentionally pre-Input-Gain, while the detector
+-    // sees post-Input-Gain audio. Shift the visual line into the Display reference.
+-    inline float effectiveDisplayThresholdDb (float threshold, float inputGain) noexcept
+-    {
+-        return threshold - inputGain;
+-    }
+-
+-    enum ProcessingMode
+-    {
+-        stereoLinked = 0,
+-        midSide      = 1,
+-        leftRight    = 2
+-    };
+-
+-    // LR/MS audition monitor is intentionally a local workflow state rather than
+-    // a host-automatable sound parameter. ALL preserves the normal stereo result;
+-    // FIRST/SECOND select L/R or M/S depending on the current processing mode.
+-    enum DomainMonitorSelection
+-    {
+-        monitorAll    = 0,
+-        monitorFirst  = 1,
+-        monitorSecond = 2
+-    };
+-
+-    enum KeySource
+-    {
+-        keyInternal = 0,
+-        keyExternal = 1
+-    };
+-
+-
+-    inline constexpr std::array<float, 6> lookaheadPresetMs { 0.0f, 10.0f, 26.0f, 40.0f, 80.0f, 100.0f };
+-    inline constexpr std::array<int, 3> oversamplingFactors { 1, 8, 16 };
+-    inline constexpr std::array<int, 3> oversamplingStageCounts { 0, 3, 4 };
+-
+-    inline juce::StringArray oversamplingChoices()
+-    {
+-        return { "1x", "8x", "16x" };
+-    }
+-
+-    inline juce::String oversamplingNameForChoiceIndex (int index)
+-    {
+-        const auto choices = oversamplingChoices();
+-        index = juce::jlimit (0, choices.size() - 1, index);
+-        return choices[index];
+-    }
+-
+-    inline int oversamplingFactorForChoiceIndex (int index) noexcept
+-    {
+-        index = juce::jlimit (0, static_cast<int> (oversamplingFactors.size()) - 1, index);
+-        return oversamplingFactors[static_cast<size_t> (index)];
+-    }
+-
+-    inline int oversamplingStageCountForChoiceIndex (int index) noexcept
+-    {
+-        index = juce::jlimit (0, static_cast<int> (oversamplingStageCounts.size()) - 1, index);
+-        return oversamplingStageCounts[static_cast<size_t> (index)];
+-    }
+-
+-    inline juce::StringArray lookaheadChoices()
+-    {
+-        return { "0 ms", "10 ms", "26 ms", "40 ms", "80 ms", "100 ms" };
+-    }
+-
+-    inline int lookaheadChoiceIndexForMs (float ms) noexcept
+-    {
+-        int bestIndex = 0;
+-        auto bestDistance = std::abs (ms - lookaheadPresetMs[0]);
+-
+-        for (int i = 1; i < static_cast<int> (lookaheadPresetMs.size()); ++i)
+-        {
+-            const auto distance = std::abs (ms - lookaheadPresetMs[static_cast<size_t> (i)]);
+-            // On an exact tie prefer the longer preset. This avoids migrating
+-            // a legacy non-zero Lookahead (notably 5 ms) down to the special
+-            // 0 ms distortion/flavour mode.
+-            if (distance <= bestDistance)
+-            {
+-                bestDistance = distance;
+-                bestIndex = i;
+-            }
+-        }
+-
+-        return bestIndex;
+-    }
+-
+-    inline float lookaheadMsForChoiceIndex (int index) noexcept
+-    {
+-        index = juce::jlimit (0, static_cast<int> (lookaheadPresetMs.size()) - 1, index);
+-        return lookaheadPresetMs[static_cast<size_t> (index)];
+-    }
+-
+-    inline float snapLookaheadMs (float ms) noexcept
+-    {
+-        return lookaheadMsForChoiceIndex (lookaheadChoiceIndexForMs (ms));
+-    }
+-
+-    inline int effectiveOversamplingChoiceIndex (float requestedLookaheadMs, int userChoiceIndex) noexcept
+-    {
+-        // Oversampling is intentionally a 0 ms flavour/anti-aliasing option only.
+-        // User PluginDoctor testing found no meaningful aliasing need at 10 ms
+-        // or longer, so every non-zero Lookahead always runs the Ratio core at 1x.
+-        if (snapLookaheadMs (requestedLookaheadMs) > 0.0001f)
+-            return 0;
+-
+-        return juce::jlimit (0, static_cast<int> (oversamplingFactors.size()) - 1, userChoiceIndex);
+-    }
+-
+-    inline juce::StringArray modeChoices()
+-    {
+-        return { "ST", "MS", "LR" };
+-    }
+-
+-    inline juce::StringArray keySourceChoices()
+-    {
+-        return { "Internal", "External" };
+-    }
+-
+-    inline juce::String modeName (int mode)
+-    {
+-        switch (mode)
+-        {
+-            case midSide:   return "MS";
+-            case leftRight: return "LR";
+-            default:        return "ST";
+-        }
+-    }
+-}
++#pragma once
++
++#include <JuceHeader.h>
++#include "DynamicsLimits.h"
++#include <array>
++#include <cmath>
++#include <limits>
++
++namespace qqsc::params
++{
++    inline constexpr auto limiterMode = "limiterMode";
++    inline constexpr auto limiterLink = "limiterLink";
++    inline constexpr auto ceilingDb = "ceilingDb";
++    inline constexpr auto truePeakLimiting = "truePeakLimiting";
++    inline constexpr auto tpRecoveryMode = "tpRecoveryMode";
++    enum TpRecoveryMode { tpTight = 0, tpAuto = 1, tpSmooth = 2 };
++    inline constexpr auto limiterCalibrationDb = "limiterCalibrationDb";
++    inline constexpr auto limiterOutputDb = "limiterOutputDb";
++    inline float limiterRatio (float ratio, bool limiter, bool dualDown = false) noexcept
++    {
++        if (limiter && (dualDown || ratio > 1.0f))
++            return juce::jlimit (limiterMinimumDownRatio, maximumDownRatio, ratio);
++        return juce::jlimit (dualDown ? 1.0f : limiter ? limiterMinimumUpRatio : minimumUpRatio,
++                            limiter ? 1.0f : normalMaximumDownRatio, ratio);
++    }
++    inline float upwardRatio (float ratio, bool limiter) noexcept
++    {
++        return juce::jlimit (limiter ? limiterMinimumUpRatio : minimumUpRatio, 1.0f, ratio);
++    }
++    template <typename T = double>
++    inline juce::NormalisableRange<T> limiterSingleRange()
++    {
++        // Unity and 200:1 need distinct normalised positions. A tiny detent
++        // keeps the downward endpoint round-trippable through host automation.
++        return { T(limiterMinimumUpRatio), T(maximumDownRatio),
++            [] (T lo, T hi, T n) {
++                return n <= T(0.5) ? lo * std::pow (T(1)/lo, T(2)*n)
++                    : T(limiterMinimumDownRatio) * std::pow (hi/T(limiterMinimumDownRatio),
++                        juce::jmax(T(0), (n-T(0.5001))/T(0.4999)));
++            },
++            [] (T lo, T hi, T v) {
++                return v <= T(1) ? T(0.5)*std::log(juce::jmax(lo,v)/lo)/std::log(T(1)/lo)
++                    : T(0.5001)+T(0.4999)*std::log(juce::jmax(T(limiterMinimumDownRatio),v)/T(limiterMinimumDownRatio))/std::log(hi/T(limiterMinimumDownRatio));
++            },
++            [] (T lo, T hi, T v) {
++                v=juce::jlimit(lo,hi,v);
++                return v>T(1) && v<T(limiterMinimumDownRatio) ? T(limiterMinimumDownRatio) : v;
++            } };
++    }
++    inline constexpr auto algorithmMode = "algorithmMode"; // Appended host parameter in v1.2.4
++    enum AlgorithmMode { classicAlgorithm = 0, superAlgorithm = 1 };
++
++    inline constexpr auto inputGainDb    = "inputGainDb";
++    inline constexpr auto ratio          = "ratio";          // ST / legacy Ratio
++    inline constexpr auto ratioL         = "ratioL";
++    inline constexpr auto ratioR         = "ratioR";
++    inline constexpr auto ratioM         = "ratioM";
++    inline constexpr auto ratioS         = "ratioS";
++    inline constexpr auto makeupGainDb   = "makeupGainDb";   // ST / legacy shared Makeup
++    inline constexpr auto makeupGainLDb  = "makeupGainLDb";
++    inline constexpr auto makeupGainRDb  = "makeupGainRDb";
++    inline constexpr auto makeupGainMDb  = "makeupGainMDb";
++    inline constexpr auto makeupGainSDb  = "makeupGainSDb";
++    inline constexpr auto mix            = "mix";            // ST / legacy Mix
++    inline constexpr auto mixL           = "mixL";
++    inline constexpr auto mixR           = "mixR";
++    inline constexpr auto mixM           = "mixM";
++    inline constexpr auto mixS           = "mixS";
++    inline constexpr auto outputGainDb   = "outputGainDb";
++    inline constexpr auto inputOutputLink = "inputOutputLink";
++    inline constexpr auto lookaheadMs    = "lookaheadMs";
++    inline constexpr auto oversampling   = "oversampling";
++    inline constexpr auto processingMode = "processingMode";
++    inline constexpr auto bypass         = "bypass";
++    inline constexpr auto thresholdDb    = "thresholdDb";    // ST / legacy Threshold
++    inline constexpr auto thresholdLDb   = "thresholdLDb";
++    inline constexpr auto thresholdRDb   = "thresholdRDb";
++    inline constexpr auto thresholdMDb   = "thresholdMDb";
++    inline constexpr auto thresholdSDb   = "thresholdSDb";
++    inline constexpr auto domainLink     = "domainLink";
++    // v1.1.x: append Side Chain parameters after every v1.0.4 parameter so
++    // existing host-facing IDs/order and old projects remain safe.
++    inline constexpr auto keySource      = "keySource";
++    inline constexpr auto keyGainDb      = "keyGainDb";
++    inline constexpr auto keyHpfHz       = "keyHpfHz";
++
++
++    // v1.2.0 parameters are appended after the complete v1.1.9 sequence.
++    inline constexpr auto compressionMode = "compressionMode";
++    inline constexpr auto rangeDb = "rangeDb";
++    inline constexpr auto rangeLDb = "rangeLDb";
++    inline constexpr auto rangeRDb = "rangeRDb";
++    inline constexpr auto rangeMDb = "rangeMDb";
++    inline constexpr auto rangeSDb = "rangeSDb";
++    inline constexpr auto upThresholdDb = "upThresholdDb";
++    inline constexpr auto upThresholdLDb = "upThresholdLDb";
++    inline constexpr auto upThresholdRDb = "upThresholdRDb";
++    inline constexpr auto upThresholdMDb = "upThresholdMDb";
++    inline constexpr auto upThresholdSDb = "upThresholdSDb";
++    inline constexpr auto downThresholdDb = "downThresholdDb";
++    inline constexpr auto downThresholdLDb = "downThresholdLDb";
++    inline constexpr auto downThresholdRDb = "downThresholdRDb";
++    inline constexpr auto downThresholdMDb = "downThresholdMDb";
++    inline constexpr auto downThresholdSDb = "downThresholdSDb";
++    inline constexpr auto upRatio = "upRatio";
++    inline constexpr auto dualRatioLink = "dualRatioLink";
++    inline constexpr auto upRatioL = "upRatioL";
++    inline constexpr auto upRatioR = "upRatioR";
++    inline constexpr auto upRatioM = "upRatioM";
++    inline constexpr auto upRatioS = "upRatioS";
++    inline constexpr auto downRatio = "downRatio";
++    inline constexpr auto downRatioL = "downRatioL";
++    inline constexpr auto downRatioR = "downRatioR";
++    inline constexpr auto downRatioM = "downRatioM";
++    inline constexpr auto downRatioS = "downRatioS";
++
++    // Rev4: appended branch enables; saved ratios and thresholds stay intact.
++    inline constexpr auto upEnabled = "upEnabled";
++    inline constexpr auto upEnabledL = "upEnabledL";
++    inline constexpr auto upEnabledR = "upEnabledR";
++    inline constexpr auto upEnabledM = "upEnabledM";
++    inline constexpr auto upEnabledS = "upEnabledS";
++    inline constexpr std::array<const char*, 5> upEnabledIds { upEnabled, upEnabledL, upEnabledR, upEnabledM, upEnabledS };
++    inline constexpr auto downEnabled = "downEnabled";
++    inline constexpr auto downEnabledL = "downEnabledL";
++    inline constexpr auto downEnabledR = "downEnabledR";
++    inline constexpr auto downEnabledM = "downEnabledM";
++    inline constexpr auto downEnabledS = "downEnabledS";
++    inline constexpr std::array<const char*, 5> downEnabledIds { downEnabled, downEnabledL, downEnabledR, downEnabledM, downEnabledS };
++
++    enum CompressionMode { singleCompression = 0, dualCompression = 1 };
++    inline constexpr std::array<const char*, 5> thresholdIds { thresholdDb, thresholdLDb, thresholdRDb, thresholdMDb, thresholdSDb };
++    inline constexpr std::array<const char*, 5> rangeIds { rangeDb, rangeLDb, rangeRDb, rangeMDb, rangeSDb };
++    inline constexpr std::array<const char*, 5> upThresholdIds { upThresholdDb, upThresholdLDb, upThresholdRDb, upThresholdMDb, upThresholdSDb };
++    inline constexpr std::array<const char*, 5> downThresholdIds { downThresholdDb, downThresholdLDb, downThresholdRDb, downThresholdMDb, downThresholdSDb };
++    inline constexpr std::array<const char*, 5> ratioIds { ratio, ratioL, ratioR, ratioM, ratioS };
++    inline constexpr std::array<const char*, 5> upRatioIds { upRatio, upRatioL, upRatioR, upRatioM, upRatioS };
++    inline constexpr std::array<const char*, 5> downRatioIds { downRatio, downRatioL, downRatioR, downRatioM, downRatioS };
++
++    inline constexpr std::array<const char*,35> normalSoundIds { "ratio", "ratioL", "ratioR", "ratioM", "ratioS", "upRatio", "upRatioL", "upRatioR", "upRatioM", "upRatioS", "downRatio", "downRatioL", "downRatioR", "downRatioM", "downRatioS", "thresholdDb", "thresholdLDb", "thresholdRDb", "thresholdMDb", "thresholdSDb", "rangeDb", "rangeLDb", "rangeRDb", "rangeMDb", "rangeSDb", "upThresholdDb", "upThresholdLDb", "upThresholdRDb", "upThresholdMDb", "upThresholdSDb", "downThresholdDb", "downThresholdLDb", "downThresholdRDb", "downThresholdMDb", "downThresholdSDb" };
++    inline constexpr std::array<const char*,35> limiterSoundIds { "limiterRatio", "limiterRatioL", "limiterRatioR", "limiterRatioM", "limiterRatioS", "limiterUpRatio", "limiterUpRatioL", "limiterUpRatioR", "limiterUpRatioM", "limiterUpRatioS", "limiterDownRatio", "limiterDownRatioL", "limiterDownRatioR", "limiterDownRatioM", "limiterDownRatioS", "limiterThresholdDb", "limiterThresholdLDb", "limiterThresholdRDb", "limiterThresholdMDb", "limiterThresholdSDb", "limiterRangeDb", "limiterRangeLDb", "limiterRangeRDb", "limiterRangeMDb", "limiterRangeSDb", "limiterUpThresholdDb", "limiterUpThresholdLDb", "limiterUpThresholdRDb", "limiterUpThresholdMDb", "limiterUpThresholdSDb", "limiterDownThresholdDb", "limiterDownThresholdLDb", "limiterDownThresholdRDb", "limiterDownThresholdMDb", "limiterDownThresholdSDb" };
++    inline constexpr std::array<const char*,5> limiterRatioIds { "limiterRatio", "limiterRatioL", "limiterRatioR", "limiterRatioM", "limiterRatioS" };
++    inline constexpr std::array<const char*,5> limiterUpRatioIds { "limiterUpRatio", "limiterUpRatioL", "limiterUpRatioR", "limiterUpRatioM", "limiterUpRatioS" };
++    inline constexpr std::array<const char*,5> limiterDownRatioIds { "limiterDownRatio", "limiterDownRatioL", "limiterDownRatioR", "limiterDownRatioM", "limiterDownRatioS" };
++    inline constexpr std::array<const char*,5> limiterThresholdIds { "limiterThresholdDb", "limiterThresholdLDb", "limiterThresholdRDb", "limiterThresholdMDb", "limiterThresholdSDb" };
++    inline constexpr std::array<const char*,5> limiterRangeIds { "limiterRangeDb", "limiterRangeLDb", "limiterRangeRDb", "limiterRangeMDb", "limiterRangeSDb" };
++    inline constexpr std::array<const char*,5> limiterUpThresholdIds { "limiterUpThresholdDb", "limiterUpThresholdLDb", "limiterUpThresholdRDb", "limiterUpThresholdMDb", "limiterUpThresholdSDb" };
++    inline constexpr std::array<const char*,5> limiterDownThresholdIds { "limiterDownThresholdDb", "limiterDownThresholdLDb", "limiterDownThresholdRDb", "limiterDownThresholdMDb", "limiterDownThresholdSDb" };
++    // These were shared before the independent-mode revision. Appended IDs
++    // preserve every existing host parameter ID/index. Each mode owns its timing.
++    inline constexpr std::array<const char*,33> normalModeIds { "inputGainDb", "makeupGainDb", "makeupGainLDb", "makeupGainRDb", "makeupGainMDb", "makeupGainSDb", "mix", "mixL", "mixR", "mixM", "mixS", "algorithmMode", "compressionMode", "processingMode", "domainLink", "dualRatioLink", "upEnabled", "upEnabledL", "upEnabledR", "upEnabledM", "upEnabledS", "downEnabled", "downEnabledL", "downEnabledR", "downEnabledM", "downEnabledS", "keySource", "keyGainDb", "keyHpfHz", "oversampling", "lookaheadMs", "upAlgorithmMode", "downAlgorithmMode" };
++    inline constexpr std::array<const char*,33> limiterModeIds { "limiterInputGainDb", "limiterMakeupGainDb", "limiterMakeupGainLDb", "limiterMakeupGainRDb", "limiterMakeupGainMDb", "limiterMakeupGainSDb", "limiterMix", "limiterMixL", "limiterMixR", "limiterMixM", "limiterMixS", "limiterAlgorithmMode", "limiterCompressionMode", "limiterProcessingMode", "limiterDomainLink", "limiterDualRatioLink", "limiterUpEnabled", "limiterUpEnabledL", "limiterUpEnabledR", "limiterUpEnabledM", "limiterUpEnabledS", "limiterDownEnabled", "limiterDownEnabledL", "limiterDownEnabledR", "limiterDownEnabledM", "limiterDownEnabledS", "limiterKeySource", "limiterKeyGainDb", "limiterKeyHpfHz", "limiterOversampling", "limiterLookaheadMs", "limiterUpAlgorithmMode", "limiterDownAlgorithmMode" };
++    inline const std::array<const char*,5>& boundaryBankIds (int bank, bool upper) noexcept
++    {
++        if (bank==0) return upper ? rangeIds : thresholdIds;
++        if (bank==1) return upper ? downThresholdIds : upThresholdIds;
++        if (bank==2) return upper ? limiterRangeIds : limiterThresholdIds;
++        return upper ? limiterDownThresholdIds : limiterUpThresholdIds;
++    }
++
++    inline juce::NormalisableRange<float> dynamicsRatioRange (float minimum = qqsc::minimumUpRatio, float maximum = qqsc::normalMaximumDownRatio)
++    {
++        // Keep Single's unity position at the exact midpoint with finite,
++        // logarithmic upward and downward ranges on their respective halves.
++        if (minimum < 1.0f && maximum > 1.0f)
++            return { minimum, maximum,
++                     [] (float lo, float hi, float n)
++                     {
++                         return n < 0.5f ? lo * std::pow (1.0f / lo, n * 2.0f)
++                                         : std::pow (hi, (n - 0.5f) * 2.0f);
++                     },
++                     [] (float lo, float hi, float value)
++                     {
++                         value = juce::jlimit (lo, hi, value);
++                         return value < 1.0f ? 0.5f * std::log (value / lo) / std::log (1.0f / lo)
++                                            : 0.5f + 0.5f * std::log (value) / std::log (hi);
++                     },
++                     [] (float lo, float hi, float value) { return juce::jlimit (lo, hi, value); } };
++        return { minimum, maximum,
++                 [] (float lo, float hi, float normalised) { return lo * std::pow (hi / lo, normalised); },
++                 [] (float lo, float hi, float value) { return std::log (juce::jlimit (lo, hi, value) / lo) / std::log (hi / lo); },
++                 [] (float lo, float hi, float value) { return juce::jlimit (lo, hi, value); } };
++    }
++
++    inline juce::String dynamicsRatioText (float value)
++    {
++        if (value < 0.99999f)
++        {
++            const auto denominator = 1.0f / value;
++            return "1:" + juce::String (denominator, denominator >= 999.5f ? 0 : denominator >= 100.0f ? 1 : 2);
++        }
++        return juce::String (value, value >= 999.5f ? 0 : value < 10.0f ? 2 : 1) + ":1";
++    }
++
++    inline float dynamicsRatioFromText (const juce::String& text)
++    {
++        if (text.containsChar (':'))
++        {
++            const auto left = text.upToFirstOccurrenceOf (":", false, false).getFloatValue();
++            const auto right = text.fromFirstOccurrenceOf (":", false, false).getFloatValue();
++            return right > 0.0f ? left / right : 1.0f;
++        }
++        if (text.containsChar ('/'))
++        {
++            const auto left = text.upToFirstOccurrenceOf ("/", false, false).getFloatValue();
++            const auto right = text.fromFirstOccurrenceOf ("/", false, false).getFloatValue();
++            return right > 0.0f ? left / right : 1.0f;
++        }
++        return text.getFloatValue();
++    }
++
++    // Preserve the host numeric endpoint. Super interprets it as -inf;
++    // Classic clamps stored values below -90 dB inside its transfer functions.
++    // Keeping the per-algorithm mapping in the engine also preserves both
++    // sides of the Classic/Super crossfade at this shared stored value.
++    inline constexpr float thresholdOffDb = -120.0f;
++    // Virtual Range endpoint: +1 is a stored OFF sentinel, never physical dB.
++    // Finite 0 dB remains a distinct strict upper cutoff in saved projects.
++    inline constexpr float rangeOffDb = 1.0f;
++    inline constexpr float keyHpfOffHz = 0.0f;
++    inline constexpr float keyHpfMinHz = 20.0f;
++    inline constexpr float keyHpfMaxHz = 500.0f;
++
++    inline bool isThresholdEnabled (float db) noexcept
++    {
++        return db > thresholdOffDb + 0.0001f;
++    }
++
++    inline float thresholdLinear (float db) noexcept
++    {
++        if (! isThresholdEnabled (db))
++            return 0.0f;
++
++        return juce::Decibels::decibelsToGain (juce::jlimit (thresholdOffDb, 0.0f, db), thresholdOffDb);
++    }
++
++    inline bool isRangeEnabled (float db) noexcept
++    {
++        return db <= 0.0f;
++    }
++
++    inline float clampRangeDb (float db) noexcept
++    {
++        return isRangeEnabled (db) ? juce::jlimit (thresholdOffDb, 0.0f, db) : rangeOffDb;
++    }
++
++    inline float rangeLinear (float db) noexcept
++    {
++        return isRangeEnabled (db) ? thresholdLinear (db) : std::numeric_limits<float>::infinity();
++    }
++
++    inline juce::String boundaryText (float db, bool classic, int decimals = 2)
++    {
++        if (classic) db = juce::jmax (classicThresholdMinimumDb, db);
++        return classic || isThresholdEnabled (db)
++            ? juce::String (db, decimals) + " dB" : juce::String ("-inf dB");
++    }
++
++    inline juce::String rangeText (float db, bool classic = false)
++    {
++        if (! isRangeEnabled (db)) return "OFF";
++        if (! classic && ! isThresholdEnabled (db)) return "-inf dB";
++        if (classic) db = juce::jmax (classicThresholdMinimumDb, db);
++        return juce::String (db, 2) + " dB";
++    }
++
++    inline float rangeFromText (const juce::String& text)
++    {
++        if (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("+inf")) return rangeOffDb;
++        if (text.containsIgnoreCase ("-inf")) return thresholdOffDb;
++        return juce::jlimit (thresholdOffDb, 0.0f, text.getFloatValue());
++    }
++
++    inline juce::NormalisableRange<float> rangeParameterRange()
++    {
++        // The final 2% of travel is an explicit OFF detent; finite 0 dB remains
++        // reachable immediately below it. No values between 0 and OFF are dB.
++        constexpr float finiteEnd = 0.98f;
++        return { thresholdOffDb, rangeOffDb,
++                 [finiteEnd] (float, float, float normalised)
++                 {
++                     return normalised > finiteEnd ? rangeOffDb
++                         : thresholdOffDb * (1.0f - normalised / finiteEnd);
++                 },
++                 [finiteEnd] (float, float, float value)
++                 {
++                     return isRangeEnabled (value)
++                         ? finiteEnd * (1.0f - juce::jlimit (thresholdOffDb, 0.0f, value) / thresholdOffDb)
++                         : 1.0f;
++                 },
++                 [] (float, float, float value)
++                 {
++                     return isRangeEnabled (value)
++                         ? std::round (clampRangeDb (value) * 100.0f) * 0.01f
++                         : rangeOffDb;
++                 } };
++    }
++
++    inline bool isKeyHpfEnabled (float hz) noexcept
++    {
++        return hz >= keyHpfMinHz;
++    }
++
++    inline float clampKeyHpfHz (float hz) noexcept
++    {
++        return juce::jlimit (keyHpfMinHz, keyHpfMaxHz, hz);
++    }
++
++    inline juce::NormalisableRange<float> keyHpfRange()
++    {
++        // Reserve the first 2% of normalised travel for a true OFF position;
++        // the active 20-500 Hz section then follows a perceptually useful log law.
++        constexpr float activeStart = 0.02f;
++        const auto logSpan = std::log (keyHpfMaxHz / keyHpfMinHz);
++
++        return { keyHpfOffHz, keyHpfMaxHz,
++                 [logSpan, activeStart] (float, float, float normalised)
++                 {
++                     if (normalised < activeStart)
++                         return keyHpfOffHz;
++
++                     const auto activeNormalised = (normalised - activeStart) / (1.0f - activeStart);
++                     return keyHpfMinHz * std::exp (logSpan * activeNormalised);
++                 },
++                 [logSpan, activeStart] (float, float, float value)
++                 {
++                     if (! isKeyHpfEnabled (value))
++                         return 0.0f;
++
++                     const auto activeNormalised = std::log (clampKeyHpfHz (value) / keyHpfMinHz) / logSpan;
++                     return activeStart + activeNormalised * (1.0f - activeStart);
++                 },
++                 [] (float, float, float value)
++                 {
++                     if (! isKeyHpfEnabled (value))
++                         return keyHpfOffHz;
++
++                     return std::round (clampKeyHpfHz (value));
++                 } };
++    }
++
++    // Dynamic Display Dry is intentionally pre-Input-Gain, while the detector
++    // sees post-Input-Gain audio. Shift the visual line into the Display reference.
++    inline float effectiveDisplayThresholdDb (float threshold, float inputGain) noexcept
++    {
++        return threshold - inputGain;
++    }
++
++    enum ProcessingMode
++    {
++        stereoLinked = 0,
++        midSide      = 1,
++        leftRight    = 2
++    };
++
++    // LR/MS audition monitor is intentionally a local workflow state rather than
++    // a host-automatable sound parameter. ALL preserves the normal stereo result;
++    // FIRST/SECOND select L/R or M/S depending on the current processing mode.
++    enum DomainMonitorSelection
++    {
++        monitorAll    = 0,
++        monitorFirst  = 1,
++        monitorSecond = 2
++    };
++
++    enum KeySource
++    {
++        keyInternal = 0,
++        keyExternal = 1
++    };
++
++
++    inline constexpr std::array<float, 6> lookaheadPresetMs { 0.0f, 10.0f, 26.0f, 40.0f, 80.0f, 100.0f };
++    inline constexpr std::array<int, 3> oversamplingFactors { 1, 8, 16 };
++    inline constexpr std::array<int, 3> oversamplingStageCounts { 0, 3, 4 };
++
++    inline juce::StringArray oversamplingChoices()
++    {
++        return { "1x", "8x", "16x" };
++    }
++
++    inline juce::String oversamplingNameForChoiceIndex (int index)
++    {
++        const auto choices = oversamplingChoices();
++        index = juce::jlimit (0, choices.size() - 1, index);
++        return choices[index];
++    }
++
++    inline int oversamplingFactorForChoiceIndex (int index) noexcept
++    {
++        index = juce::jlimit (0, static_cast<int> (oversamplingFactors.size()) - 1, index);
++        return oversamplingFactors[static_cast<size_t> (index)];
++    }
++
++    inline int oversamplingStageCountForChoiceIndex (int index) noexcept
++    {
++        index = juce::jlimit (0, static_cast<int> (oversamplingStageCounts.size()) - 1, index);
++        return oversamplingStageCounts[static_cast<size_t> (index)];
++    }
++
++    inline juce::StringArray lookaheadChoices()
++    {
++        return { "0 ms", "10 ms", "26 ms", "40 ms", "80 ms", "100 ms" };
++    }
++
++    inline int lookaheadChoiceIndexForMs (float ms) noexcept
++    {
++        int bestIndex = 0;
++        auto bestDistance = std::abs (ms - lookaheadPresetMs[0]);
++
++        for (int i = 1; i < static_cast<int> (lookaheadPresetMs.size()); ++i)
++        {
++            const auto distance = std::abs (ms - lookaheadPresetMs[static_cast<size_t> (i)]);
++            // On an exact tie prefer the longer preset. This avoids migrating
++            // a legacy non-zero Lookahead (notably 5 ms) down to the special
++            // 0 ms distortion/flavour mode.
++            if (distance <= bestDistance)
++            {
++                bestDistance = distance;
++                bestIndex = i;
++            }
++        }
++
++        return bestIndex;
++    }
++
++    inline float lookaheadMsForChoiceIndex (int index) noexcept
++    {
++        index = juce::jlimit (0, static_cast<int> (lookaheadPresetMs.size()) - 1, index);
++        return lookaheadPresetMs[static_cast<size_t> (index)];
++    }
++
++    inline float snapLookaheadMs (float ms) noexcept
++    {
++        return lookaheadMsForChoiceIndex (lookaheadChoiceIndexForMs (ms));
++    }
++
++    inline int effectiveOversamplingChoiceIndex (float requestedLookaheadMs, int userChoiceIndex) noexcept
++    {
++        // Oversampling is intentionally a 0 ms flavour/anti-aliasing option only.
++        // User PluginDoctor testing found no meaningful aliasing need at 10 ms
++        // or longer, so every non-zero Lookahead always runs the Ratio core at 1x.
++        if (snapLookaheadMs (requestedLookaheadMs) > 0.0001f)
++            return 0;
++
++        return juce::jlimit (0, static_cast<int> (oversamplingFactors.size()) - 1, userChoiceIndex);
++    }
++
++    inline juce::StringArray modeChoices()
++    {
++        return { "ST", "MS", "LR" };
++    }
++
++    inline juce::StringArray keySourceChoices()
++    {
++        return { "Internal", "External" };
++    }
++
++    inline juce::String modeName (int mode)
++    {
++        switch (mode)
++        {
++            case midSide:   return "MS";
++            case leftRight: return "LR";
++            default:        return "ST";
++        }
++    }
++}
+diff -ruN /mnt/data/qqsc1218/Source/PluginEditor.cpp /mnt/data/QQSC-1.2.18-TP-Recovery/Source/PluginEditor.cpp
+--- /mnt/data/qqsc1218/Source/PluginEditor.cpp	2026-09-28 06:51:40.000000000 +0000
++++ /mnt/data/QQSC-1.2.18-TP-Recovery/Source/PluginEditor.cpp	2026-09-28 19:02:31.426036856 +0000
+@@ -634,7 +634,7 @@
+ 
+     for (auto* button : { &modeButton, &linkButton, &dualRatioLinkButton, &inputOutputLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
+                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
+-                          &limiterButton, &limiterLinkButton, &unityMonitorButton, &truePeakButton, &algorithmButton, &upAlgorithmButton, &downAlgorithmButton, &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
++                          &limiterButton, &limiterLinkButton, &unityMonitorButton, &truePeakButton, &tpRecoveryButton, &algorithmButton, &upAlgorithmButton, &downAlgorithmButton, &themeButton, &oversamplingButton, &sidechainButton, &keyInternalButton,
+                           &keyExternalButton, &sidechainListenButton })
+     {
+         button->setColour (juce::TextButton::buttonColourId, qqsc::ui::panel());
+@@ -2296,7 +2296,8 @@
+         limiterLinkButton.setBounds (983,controlsY+2,32,17);
+         outputGainSlider.setBounds(894,controlsY+16,100,108);
+         ceilingPanel.setBounds(884,controlsY+126,120,32);
+-        ceilingLabel.setBounds (888,controlsY+127,42,11);
++        ceilingLabel.setBounds (888,controlsY+127,36,11);
++        tpRecoveryButton.setBounds(925,controlsY+127,39,12);
+         truePeakButton.setBounds(966,controlsY+127,33,12);
+         monitorCeilingLabel.setBounds(884,controlsY+159,120,11);
+         ceilingValue.setBounds (890,controlsY+139,108,17);
+diff -ruN /mnt/data/qqsc1218/Source/PluginEditor.h /mnt/data/QQSC-1.2.18-TP-Recovery/Source/PluginEditor.h
+--- /mnt/data/qqsc1218/Source/PluginEditor.h	2026-09-28 06:51:40.000000000 +0000
++++ /mnt/data/QQSC-1.2.18-TP-Recovery/Source/PluginEditor.h	2026-09-28 19:00:14.862133730 +0000
+@@ -341,6 +341,7 @@
+     juce::TextButton limiterButton { "LIMITER" }, limiterLinkButton { "LINK" };
+     juce::TextButton unityMonitorButton;
+     juce::TextButton truePeakButton { "TP" };
++    juce::TextButton tpRecoveryButton { "AUTO" };
+     class CeilingPanel final : public juce::Component
+     {
+         void paint(juce::Graphics& g) override
+diff -ruN /mnt/data/qqsc1218/Source/PluginProcessor.cpp /mnt/data/QQSC-1.2.18-TP-Recovery/Source/PluginProcessor.cpp
+--- /mnt/data/qqsc1218/Source/PluginProcessor.cpp	2026-09-28 14:25:24.000000000 +0000
++++ /mnt/data/QQSC-1.2.18-TP-Recovery/Source/PluginProcessor.cpp	2026-09-28 18:59:57.218632938 +0000
+@@ -35,7 +35,7 @@
+ constexpr auto monitorLRProperty = "qqscMonitorLRSelection";
+ constexpr auto monitorMSProperty = "qqscMonitorMSSelection";
+ constexpr int oversamplingSchemaVersion = 2; // v0.1.10: 0 ms-only 1x/8x/16x Oversampling schema
+-constexpr int currentStateSchemaVersion = 24; // Normal I/O +/-24 dB; retrospective TP Display
++constexpr int currentStateSchemaVersion = 25; // TP Recovery TIGHT/AUTO/SMOOTH
+ constexpr float centeredChannelMonitorGain = 0.70710678118654752440f; // 1/sqrt(2), -3.0103 dB
+ 
+ juce::Identifier abProperty (const juce::String& suffix)
+@@ -816,6 +816,11 @@
+     for(const auto* id:{"upAlgorithmMode","downAlgorithmMode","limiterUpAlgorithmMode","limiterDownAlgorithmMode"})
+         layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{id,1},juce::String(id),
+             juce::StringArray{"Classic","Super"},0));
++    // Append-only sound parameter: TP release character. AUTO preserves the
++    // verified 1.2.17 timing exactly; old sessions migrate to AUTO.
++    layout.add(std::make_unique<juce::AudioParameterChoice>(
++        juce::ParameterID{qqsc::params::tpRecoveryMode,1},"TP Recovery",
++        juce::StringArray{"Tight","Auto","Smooth"},qqsc::params::tpAuto));
+     return layout;
+ }
+ 
+@@ -922,7 +927,7 @@
+     truePeakOversampler.initProcessing(size_t(juce::jmax(1,samplesPerBlock)));
+     truePeakOversampler.reset();
+     truePeakBuffer.setSize(2,juce::jmax(1,samplesPerBlock));
+-    outputCeiling.prepare(currentSampleRate,isLimiterMode(),isTruePeakSelected(),readSoundParameter(qqsc::params::ceilingDb));
++    outputCeiling.prepare(currentSampleRate,isLimiterMode(),isTruePeakSelected(),readSoundParameter(qqsc::params::ceilingDb),getTpRecoveryMode());
+     ceilingReferenceDelay.assign(size_t(outputCeiling.latencySamples()+1),{});
+     ceilingReferenceIndex=0;
+     outputLoudness.prepare(currentSampleRate);
+@@ -1764,7 +1769,7 @@
+ 
+     // Keep the wet path warm while auditioning bypass. The final crossfade
+     // selects the aligned original; it never sends that original through TP.
+-    outputCeiling.set(isLimiterMode(),isTruePeakSelected(),readSoundParameter(qqsc::params::ceilingDb));
++    outputCeiling.set(isLimiterMode(),isTruePeakSelected(),readSoundParameter(qqsc::params::ceilingDb),getTpRecoveryMode());
+     float meterInputPeak[2]  { 0.0f, 0.0f };
+     float meterOutputPeak[2] { 0.0f, 0.0f };
+     float displayInputPeak[2]  { 0.0f, 0.0f };
+@@ -2149,6 +2154,7 @@
+     snapshot.limiterMode = isLimiterMode();
+     snapshot.limiterLink = apvts.getRawParameterValue (qqsc::params::limiterLink)->load() >= 0.5f;
+     snapshot.truePeakLimiting = isTruePeakSelected();
++    snapshot.tpRecoveryMode = getTpRecoveryMode();
+     snapshot.ceilingDb = apvts.getRawParameterValue (qqsc::params::ceilingDb)->load();
+     snapshot.limiterCalibrationDb = apvts.getRawParameterValue(qqsc::params::limiterCalibrationDb)->load();
+     snapshot.limiterOutputDb = apvts.getRawParameterValue (qqsc::params::limiterOutputDb)->load();
+@@ -2316,6 +2322,7 @@
+     setActualParameterValue (qqsc::params::limiterMode, snapshot.limiterMode ? 1.0f : 0.0f);
+     setActualParameterValue (qqsc::params::limiterLink, snapshot.limiterLink ? 1.0f : 0.0f);
+     setActualParameterValue (qqsc::params::truePeakLimiting, snapshot.truePeakLimiting ? 1.0f : 0.0f);
++    setActualParameterValue (qqsc::params::tpRecoveryMode, float(snapshot.tpRecoveryMode));
+     setActualParameterValue (qqsc::params::ceilingDb, snapshot.ceilingDb);
+     setActualParameterValue (qqsc::params::limiterOutputDb, snapshot.limiterOutputDb);
+     setActualParameterValue (qqsc::params::limiterCalibrationDb, snapshot.limiterCalibrationDb);
+@@ -2464,6 +2471,7 @@
+         state.setProperty (abProperty (prefix + "limiterMode"), s.limiterMode, nullptr);
+         state.setProperty (abProperty (prefix + "limiterLink"), s.limiterLink, nullptr);
+         state.setProperty (abProperty (prefix + "truePeakLimiting"), s.truePeakLimiting, nullptr);
++        state.setProperty (abProperty (prefix + "tpRecoveryMode"), s.tpRecoveryMode, nullptr);
+         state.setProperty (abProperty (prefix + "ceilingDb"), s.ceilingDb, nullptr);
+         state.setProperty(abProperty(prefix+"limiterCalibrationDb"),s.limiterCalibrationDb,nullptr);
+         state.setProperty (abProperty (prefix + "limiterOutputDb"), s.limiterOutputDb, nullptr);
+@@ -2539,6 +2547,8 @@
+             s.limiterMode = static_cast<bool> (state.getProperty (abProperty (prefix + "limiterMode"), false));
+             s.limiterLink = static_cast<bool> (state.getProperty (abProperty (prefix + "limiterLink"), true));
+             s.truePeakLimiting = static_cast<bool> (state.getProperty (abProperty (prefix + "truePeakLimiting"), false));
++            s.tpRecoveryMode = juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),
++                int(state.getProperty(abProperty(prefix + "tpRecoveryMode"),qqsc::params::tpAuto)));
+             s.ceilingDb = static_cast<float> (state.getProperty (abProperty (prefix + "ceilingDb"), 0.0f));
+             s.limiterCalibrationDb = float(state.getProperty(abProperty(prefix+"limiterCalibrationDb"),0.0f));
+             s.limiterOutputDb = static_cast<float> (state.getProperty (abProperty (prefix + "limiterOutputDb"), 0.0f));
+@@ -2801,6 +2811,7 @@
+             const bool stateHasDualRatioLink = stateContainsParameter (state, qqsc::params::dualRatioLink);
+             const bool stateHasInputOutputLink = stateContainsParameter (state, qqsc::params::inputOutputLink);
+             const bool stateHasAlgorithm = stateContainsParameter (state, qqsc::params::algorithmMode);
++            const bool stateHasTpRecovery = stateContainsParameter (state, qqsc::params::tpRecoveryMode);
+             // replaceState adds missing parameter nodes to its shared tree.
+             // Record legacy absence BEFORE that happens, for active-bank
+             // migration as well as the inactive A/B snapshot defaults.
+@@ -2869,6 +2880,8 @@
+                         float(node.getProperty("value"))), nullptr);
+             }
+             apvts.replaceState (state);
++            if (! stateHasTpRecovery)
++                setActualParameterValue(qqsc::params::tpRecoveryMode,float(qqsc::params::tpAuto));
+             if (! stateHasAlgorithm)
+             {
+                 // 1.2.3 / dB comparison states retain their fixed-dB law.
+diff -ruN /mnt/data/qqsc1218/Source/PluginProcessor.h /mnt/data/QQSC-1.2.18-TP-Recovery/Source/PluginProcessor.h
+--- /mnt/data/qqsc1218/Source/PluginProcessor.h	2026-09-28 06:51:40.000000000 +0000
++++ /mnt/data/QQSC-1.2.18-TP-Recovery/Source/PluginProcessor.h	2026-09-28 18:59:57.217982400 +0000
+@@ -74,6 +74,11 @@
+     bool isLimiterMode() const noexcept { return apvts.getRawParameterValue (qqsc::params::limiterMode)->load() >= 0.5f; }
+     // Selection is saved with the sound; the output guard only acts in Limiter.
+     bool isTruePeakSelected() const noexcept { return apvts.getRawParameterValue (qqsc::params::truePeakLimiting)->load() >= 0.5f; }
++    int getTpRecoveryMode() const noexcept
++    {
++        return juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),
++            juce::roundToInt(apvts.getRawParameterValue(qqsc::params::tpRecoveryMode)->load()));
++    }
+     bool isUnityMonitorEnabled() const noexcept { return unityMonitor.load(std::memory_order_relaxed); }
+     bool isUnityMonitorActive() const noexcept { return isLimiterMode() && isUnityMonitorEnabled(); }
+     void setUnityMonitorEnabled(bool enabled);
+@@ -238,6 +243,7 @@
+         bool limiterInitialised = false;
+         bool domainLink = true, dualRatioLink = true, inputOutputLink = true;
+         bool limiterMode = false, limiterLink = true, truePeakLimiting = true;
++        int tpRecoveryMode = qqsc::params::tpAuto;
+         float ceilingDb = 0.0f, limiterOutputDb = 0.0f, limiterCalibrationDb = 0.0f;
+         float lookaheadMs = 26.0f;
+         int oversampling = 1;

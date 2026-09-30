@@ -1,0 +1,46 @@
+{
+  "version": "1.2.17",
+  "baseline": "1.2.15 Build Fix 1",
+  "changed_source_files": [
+    "DynamicDisplay.cpp",
+    "DynamicDisplay.h",
+    "MeterState.h",
+    "OutputCeiling.h",
+    "PluginProcessor.cpp"
+  ],
+  "unchanged_source_files": [
+    "ABTransfer.h",
+    "BS1770LoudnessMatch.h",
+    "DarkMaterial.h",
+    "DarkPanelMaterial.h",
+    "DynamicsLimits.h",
+    "IntegratedLoudnessMeter.h",
+    "KWeightingFilter.h",
+    "KnobLight.h",
+    "LevelMeters.cpp",
+    "LevelMeters.h",
+    "LightKnobScale.h",
+    "LimiterEditor.cpp",
+    "LimiterMode.cpp",
+    "LimiterModeContinuity.h",
+    "Parameters.h",
+    "PluginEditor.cpp",
+    "PluginEditor.h",
+    "PluginProcessor.h",
+    "RefinedDarkKnob.h",
+    "StaticCompressionEngine.h",
+    "UTF8LookAndFeel.h",
+    "WarmKnobAsset.h",
+    "WarmMaterial.h"
+  ],
+  "changed_count": 5,
+  "unchanged_count": 23,
+  "local_checks": [
+    "revision1217-source-audit",
+    "tp-display-meter-audit",
+    "tp-telemetry-performance-audit",
+    "strict-one-to-one-isolated",
+    "continuity-isolated"
+  ],
+  "windows_build": "NOT_RUN"
+}

@@ -5,9 +5,11 @@ void algorithmStateChecks()
     QQSuperCompressionAudioProcessor p;
     check(get(p,"algorithmMode")==0,"New instances must default to Classic");
     auto* last=dynamic_cast<juce::AudioProcessorParameterWithID*>(p.getParameters().getLast());
-    check(last && last->paramID=="limiterDownThresholdSDb","Limiter parameters must be appended to host contract");
+    check(last && last->paramID=="ceilingOversampling","Ceiling OS must be appended to host contract");
     check(p.getParameters().indexOf(p.getAPVTS().getParameter("algorithmMode"))
         ==p.getParameters().indexOf(p.getAPVTS().getParameter("inputOutputLink"))+1,"Algorithm legacy index changed");
+    check(p.getParameters().indexOf(p.getAPVTS().getParameter("truePeakLimiting"))
+        ==p.getParameters().indexOf(p.getAPVTS().getParameter("limiterDownThresholdSDb"))+1,"Legacy Limiter parameter suffix changed");
     set(p,"algorithmMode",1);p.copyAToB();set(p,"algorithmMode",0);
     p.selectABSlot(1);check(get(p,"algorithmMode")==1,"B did not retain Super");
     p.selectABSlot(0);check(get(p,"algorithmMode")==0,"A did not retain Classic");
@@ -57,18 +59,20 @@ double superLaw(double p,double r,double lower,double upper,bool dual)
 }
 void superAudioChecks()
 {
-    for(int dual:{0,1})for(int domain:{0,1,2,3})for(float ratio:{.001f,.125f,1.0f,8.0f,1000.0f})
+    for(int dual:{0,1})for(int domain:{0,1,2,3})for(float ratio:{qqsc::minimumUpRatio,.125f,1.0f,8.0f,qqsc::normalMaximumDownRatio})
     {
         const float amp=ratio<1?.08f:.65f;
         QQSuperCompressionAudioProcessor p;setupDb(p,dual,domain==0?0:domain==1?2:1,-40,dual?-12.0f:1.0f,ratio);
         set(p,"algorithmMode",1);
+        if(dual){set(p,"upAlgorithmMode",1);set(p,"downAlgorithmMode",1);}
         const auto out=render(p,amp,127,false,400,48000,domain==3?-1.0f:1.0f);
         const double expected=superLaw(amp,ratio,.01,dual?std::pow(10.,-12./20):std::numeric_limits<double>::infinity(),dual!=0);
+        if(std::abs(rmsGain(out,amp)/expected-1)>=1e-5)std::cout<<"SUPER mismatch dual="<<dual<<" domain="<<domain<<" ratio="<<ratio<<" actual="<<rmsGain(out,amp)<<" expected="<<expected<<"\n";
         check(std::abs(rmsGain(out,amp)/expected-1)<1e-5,"Super audio differs from old law");
         check(std::abs(p.getDynamicsGainForDomain(amp,domain==3?4:domain==2?3:domain)/expected-1)<1e-5,"Super display law differs from audio");
         check(out.latency==1248,"Super changed lookahead latency");
     }
-    std::cout<<"PASS: old Super law independent oracle, actual Single/Dual ST/LR/M/S audio and Display, ratios1/1000..1000.\n";
+    std::cout<<"PASS: old Super law independent oracle, actual Single/Dual ST/LR/M/S audio and Display, ratios1/200..200.\n";
 }
 void algorithmFadeChecks()
 {
@@ -79,11 +83,14 @@ void algorithmFadeChecks()
         set(p,"lookaheadMs",os==-1?26.f:0.f);set(p,"oversampling",float(std::max(os,0)));
         if(os==-1)
         {
-            p.copyAToB();p.selectABSlot(1);set(p,"algorithmMode",1);p.selectABSlot(0);
+            p.copyAToB();p.selectABSlot(1);set(p,"algorithmMode",1);
+            if(dual){set(p,"upAlgorithmMode",1);set(p,"downAlgorithmMode",1);}
+            p.selectABSlot(0);
         }
         const auto selectAlgorithm=[&](float value)
         {
             if(os==-1)p.selectABSlot(value>=.5f?1:0);
+            else if(dual){set(p,"upAlgorithmMode",value);set(p,"downAlgorithmMode",value);}
             else set(p,"algorithmMode",value);
         };
         p.setRateAndBufferSizeDetails(rate,64);p.prepareToPlay(rate,64);

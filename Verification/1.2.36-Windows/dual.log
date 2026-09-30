@@ -1,0 +1,12 @@
+DUAL-INDEPENDENCE limiter=0 mode=0 lookahead=26ms up=6.41976,6.41976,4.35724,4.35724 down=0.466786,0.530446,0.466786,0.530446 leaks=0,0,0,0
+DUAL-INDEPENDENCE limiter=0 mode=1 lookahead=26ms up=6.41976,6.41976,4.35724,4.35724 down=0.466786,0.530446,0.466786,0.530446 leaks=0,0,0,0
+DUAL-INDEPENDENCE limiter=0 mode=2 lookahead=26ms up=6.41976,6.41976,4.35724,4.35724 down=0.466786,0.530446,0.466786,0.530446 leaks=0,0,0,0
+DUAL-INDEPENDENCE limiter=1 mode=0 lookahead=26ms up=6.41397,6.41397,4.35331,4.35331 down=0.419181,0.420686,0.419181,0.420686 leaks=0,0,0,0
+DUAL-INDEPENDENCE limiter=1 mode=1 lookahead=26ms up=6.41397,6.41397,4.35331,4.35331 down=0.419181,0.420686,0.419181,0.420686 leaks=0,0,0,0
+DUAL-INDEPENDENCE limiter=1 mode=2 lookahead=26ms up=6.41397,6.41397,4.35331,4.35331 down=0.419181,0.420686,0.419181,0.420686 leaks=0,0,0,0
+PASS: Dual algorithm 10 ms crossfades/reversal at 44.1/48/96 kHz; max DC adjacent step=0.000140354.
+MIGRATE slot=0 limiter=0 single=0 up=0 down=0 expected=0
+MIGRATE slot=0 limiter=1 single=1 up=1 down=1 expected=1
+MIGRATE slot=1 limiter=0 single=1 up=1 down=1 expected=1
+MIGRATE slot=1 limiter=1 single=0 up=0 down=0 expected=0
+PASS: 600 branch-specific display projections, 48 real processor renders (four algorithm combinations, ST/LR/MS, Normal/Limiter), legacy four-bank migration, 18 real UI layouts, undo/redo and last-choice preferences.

@@ -1,141 +1,104 @@
-# ⚠️ 禁止商业使用 / NO COMMERCIAL USE
+# QQ Super Compression 1.2.41 Stable
 
-## Qing Audio 非商业源码共享许可证 1.0
+**Qing Audio 非商业源码共享许可证 1.0；仅允许非商业使用。** 完整条款见 [LICENSE](LICENSE)，许可政策说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。
 
-### 本项目源码公开，但不属于 OSI 认可的开源软件
+**Qing Audio Non-Commercial Source-Share License 1.0; non-commercial use only.** See [LICENSE](LICENSE) and [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md). Third-party licenses remain unchanged.
 
-> **禁止任何商业使用。** 仅允许个人、学习、教育、研究、评估、爱好及其他非商业用途。发布原版、二进制版或修改版时，必须同时免费公开完整对应源代码，保留作者、版权和许可证声明，醒目标明原项目名称、作者、来源链接、修改者、修改日期及修改内容，并使整个修改版继续采用同一许可证。完整条款见 [LICENSE](LICENSE)。
->
-> **NO COMMERCIAL USE.** Use is permitted only for personal, educational, research, evaluation, hobby, charitable, and other non-commercial purposes. Any distributed original, binary, or modified version must provide the complete corresponding source without charge, preserve authorship, copyright, and license notices, prominently identify the original project, author, source URL, modifier, date, and changes, and license the entire modified work under the same terms. See [LICENSE](LICENSE).
->
-> 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
+QQ Super Compression 用于人声、乐器、总线和母带，提供 Classic / Super 曲线、单压 / 双压、ST / LR / MS、内部 / 外部侧链，以及 Hard Clip / TP 最终峰值保护。动态核心通过 Lookahead、Ratio、Threshold、Range 和 Mix 调整，不使用传统 Attack / Release 旋钮。
 
-这是一个AI开发项目，大部分文字是由ChatGpt编辑，这些文字同时供用户和AI阅读。
+QQ Super Compression provides Classic / Super curves, Single / Dual compression, ST / LR / MS, internal / external sidechain, and final Hard Clip / TP protection for vocals, instruments, buses and mastering. The dynamics core uses Lookahead, Ratio, Threshold, Range and Mix rather than conventional Attack / Release knobs.
 
-所以如果你看到命令用语，那是给AI看的。
+## Limiter 的核心特色 / The defining Limiter feature
 
-这个效果器看起来像是一个压缩，但其算法本质却与传统压缩效果器完全不同。
+Limiter 使用 **0 ms Lookahead** 时，可以让副歌很响，同时保持安静部分的音量，不必把整首歌的音量都抬高很多。配合 **4x / 8x / 16x 核心过采样** 试听，保留响段与静段的动态对比，这是超级压缩 Limiter 最值得尝试的特色。
 
-我最初设计它的初衷是，无阈值、无启动时间释放时间对瞬态的影响，另外还要像手动画音量Automation一样干净透明无染色。
+With **0 ms Lookahead** in Limiter, the chorus can become very loud while retaining quiet-section levels, without raising the whole song by a large amount. Try **4x / 8x / 16x core oversampling** and listen to the contrast between loud and quiet passages. This is the Limiter's standout feature and is well worth trying.
 
-有音频经验的人应该知道，对正弦波进行扭曲一定会引入谐波失真。
+常规用法：Ratio 设为 **20:1 至 1000:1**，保持 **Output LINK**，逐渐下拉 Threshold，让 Output 自动补偿。下压调好以后，可切 DUAL，关闭 Ratio LINK、保留 Output LINK，从 **UP 1:1 到 1:1.2** 少量补充。留意底鼓和军鼓延音；双压效果不好时可改用分段压缩。Mix 留到这套处理调好以后再决定。
 
-在没有Attack和Release表现下硬拐，如何降低谐波失真是一个很严肃的问题。
+Standard use: set Ratio to **20:1-1000:1**, keep **Output LINK** on, and gradually lower Threshold so Output compensates. After setting downward compression, try DUAL with Ratio LINK off and Output LINK on, adding gentle **UP between 1:1 and 1:1.2**. Listen to kick and snare sustain; try segmented compression if Dual is unsuitable. Decide on Mix after settling the processing.
 
-最终我找到的方案是，用lookahead的延迟去换取干净透明的声音。
+## 1.2.41 ECO 停播省电 / ECO transport-stop suspension
 
-不过到了后期，我发现在算法稳定后，引入阈值概念也是可以的。
+按用户确认的工作方式：**ECO 在宿主停止时立即输出静音并暂停 DSP，不以输入全零为条件；FULL 保留实时监听和原有处理行为。** 界面开关、硬件底噪和侧链输入不阻止 ECO 停播。播放、录音、离线渲染或切回 FULL 时，在当前块恢复；宿主状态未知时继续处理。ECO 停播会截断当时的尾音，停止时需要试听硬件输入请使用 FULL。
 
-这个效果器本质上是一个Dynamic Processor，这也是我不称其为“Compressor”而叫“Compression”的原因。
+ECO immediately mutes and suspends DSP on a known stopped transport, regardless of input noise, sidechain activity or editor visibility. FULL retains live processing. Playback, recording, offline rendering and switching to FULL resume processing in the current block; unknown transport remains active. ECO stop cuts the current tail; use FULL for live monitoring while stopped.
 
+恢复时清除停止前的延迟/滤波器缓存并采用当前参数，保留插件报告的延迟。FULL/ECO 仍按实例保存，新实例记住上次明确选择。诊断中的 `ECO transport stop` 和 sleep 比例用于核对实际宿主是否走到暂停路径。
 
+Resume clears pre-stop carrier/filter histories and uses current controls while preserving reported latency. FULL/ECO remains per-instance with the last explicit selection used for new instances. The diagnostics report ECO transport stop separately from exact-zero sleep.
 
-This is an AI‑development project. Most of the text was edited by ChatGPT, and these texts are meant to be read by both users and the AI.
+本版另以等价的条件回绕替代压缩器/TP 环形索引中的整数取余，降低持续输入时的开销，保留音频运算、过采样倍率和保护算法。验证记录见 `Verification/1.2.41-Windows`；独立测试不代表 Cubase ASIO-Guard 实测。1.2.41 已按用户确认提升为 Stable。
 
-if you see command‑style phrasing, those are intended for the AI.
+## 1.2.40 停播输入测量 / Stopped-input measurements
 
-This effect unit appears to function as a compressor, yet its underlying algorithm is fundamentally different from conventional compressors.
+1.2.39 的 Cubase 实测：ECO 关窗共 983 块，宿主已停止（playing=0%），输入严格全零与休眠均为 0%，阻塞原因为 nonzero input。关窗 7619.1 us/block、开窗 8449.9 us/block，N=1024、Core/Ceiling=16x/16x。报告未提供非零输入幅度，不能据此判断为噪声或忽略它。
 
-My original design goal was to eliminate threshold‑, attack‑ and release‑related influences on transients. On top of that, it needed to remain clean, transparent and color‑free, much like manually drawing volume automation.
+The supplied 1.2.39 Cubase report records stopped transport and no all-zero or sleeping blocks. The nonzero input gate keeps DSP awake. Its amplitude/source was not measured, so no noise-floor assumption is justified.
 
-Anyone with audio experience will know that distorting a sine wave inevitably introduces harmonic distortion.
+1.2.40 增加停播期间主输入和已选外部侧链的每块峰值范围（科学计数与 dBFS）、侧链选择、外部总线通道数和非有限值计数。测量在输入增益之前完成，播放块不计入；关窗数据继续保留。音频样本、休眠条件及门限保持原样，本版用于补齐诊断，不宣称解决静音负载。Plan B/C/D 保持停止。
 
-Hard‑cornering without attack and release behaviour poses a serious challenge: how to reduce harmonic distortion.
+1.2.40 adds stopped raw main/selected-external-key block-peak ranges, scientific amplitudes and dBFS, key selection, bus channels and nonfinite counts. Playback is excluded. Audio samples and sleep policy are unchanged; this is a diagnostic candidate, not a claimed silent-load fix. Plan B/C/D remain stopped.
 
-The solution I ultimately arrived at is to trade lookahead latency for a clean, transparent sound.
+## 1.2.39 诊断入口与默认选择 / Diagnostics and new-instance defaults
 
-Later on, however, once the algorithm became stable, I found it feasible to introduce a threshold parameter.
+用户确认 1.2.38 的 ECO 有改善，停播静音负载仍偏高。1.2.38 悬停诊断缺少 TooltipWindow，且动态文字不断重置悬停计时。1.2.39 补齐稳定的提示，并提供 **右键 FULL/ECO → Performance / Idle diagnostics → Copy report**。面板保留关窗期间数据，打开时冻结快照，Refresh 可刷新。
 
-At its core, this is a dynamic processor. That is why I refer to it as "Compression" rather than a "Compressor".
+1.2.38 ECO improvement is user-confirmed; stopped-silence load remains unresolved. 1.2.39 fixes the missing tooltip window and changing tooltip text, and provides an explicit right-click FULL/ECO diagnostic panel with selectable/copyable snapshots.
 
-↑↑↑↑↑↑↑↑↑↑这是作者自己写的 Wtitten By Author↑↑↑↑↑↑↑↑↑↑
+新实例采用上次明确点击的 FULL/ECO 选择；每个实例保持独立。工程/预设保存的实例状态优先于默认值，重新打开编辑器和 A/B 不覆盖选择。没有偏好时首次默认 FULL；旧工程缺少实例属性时仍按原规则恢复 FULL。
 
+New instances inherit the last explicit FULL/ECO choice. Existing instances remain independent; stored project/preset state takes precedence. Editor reopen and A/B do not overwrite the choice. First use without a preference, and legacy project states lacking the instance property, retain FULL fallback.
 
+音频处理与 1.2.38 相同；本次修复诊断可见性及选择记忆，不宣称静音负载已解决。Plan B/C/D 保持停止。
+Audio processing is unchanged from 1.2.38. This update repairs diagnostics and default recall; it does not claim to resolve the remaining silent-load issue. Plan B/C/D remain stopped.
 
-# QQ Super Compression 1.2.8
+## 1.2.38 性能候选版 / Performance candidate
 
-**Classic / Super · Single / Upward / Dual · Limiter · TP / Peak · Headphone 1:1**
+用户实测 1.2.37 在 Cubase 中未改善停止播放后的高负载；先前的独立测试结果不能视为宿主验收通过。1.2.36 Stable 提升已撤回，Plan B/C/D 发布工作保持停止。
+The user reported no improvement from 1.2.37 in Cubase stopped-silence load. Standalone timings did not establish host acceptance. The 1.2.36 Stable promotion remains withdrawn and release work remains stopped.
 
-1.2.8 修复 Limiter 模式下 Single / Dual 切换的向下阈值连续性。切换时，Single Threshold 与 Dual DOWN Threshold 双向接续当前值；Makeup、Mix 和 Output Gain 保持不变。1.2.7 的 Limiter、Ceiling、TP、耳机 1:1、独立 Dual 算法及严格 Output LINK 行为全部保留。
+1.2.38 优化 0 ms 检测器，ECO 隐藏窗口时减少未使用模式的增益曲线运算，并保留切换所需的状态与滤波器历史。1.2.38 记录了关窗期间的处理耗时、全零输入与休眠比例，诊断显示入口在 1.2.39 修复。音频与性能对照见 `Verification/1.2.38-Windows`；Cubase 尚未验收。
+1.2.38 streamlines the zero-lookahead detector and skips unused gain-curve work in hidden ECO while retaining state and filter history for transitions. 1.2.38 records closed-editor timing, exact-zero input and sleep statistics; its display entry is repaired in 1.2.39. Audio and performance comparisons are recorded in `Verification/1.2.38-Windows`; Cubase acceptance is pending.
 
-Version 1.2.8 fixes downward-threshold continuity when switching Single / Dual in Limiter mode. Single Threshold and Dual DOWN Threshold now carry the current value in both directions, while Makeup, Mix and Output Gain remain unchanged. The 1.2.7 Limiter, Ceiling, TP, headphone 1:1, independent Dual algorithms and strict Output LINK behavior are retained.
+## 1.2.36 功能更新 / Feature changes
 
-当前阶段：Plan C（公开源码同步、四类跨平台成品与桌面用户包）。Windows 复用已验证的 Plan A 成品；macOS 构建与交付核验以本次 Plan C 记录为准。Plan D 仅指正式 GitHub Release，现暂缓；版本标签不代表成品已发布。
+- 0 ms 核心：1x / 4x / 8x / 16x；Lookahead 大于 0 ms 时核心为 1x。Core at 0 ms: 1x / 4x / 8x / 16x; above 0 ms the core uses 1x.
+- 独立 CEILING OS：Hard Clip 为 1x / 4x / 8x / 16x；TP 为 4x / 8x / 16x。Independent CEILING OS: Hard Clip at 1x / 4x / 8x / 16x; TP at 4x / 8x / 16x.
+- 两处初始值均为 8x；TP+存储 1x 临时用 8x，关闭 TP 恢复 1x；旧工程保持原来的实际倍率。Both initially use 8x. TP temporarily uses 8x for a stored 1x choice and restores 1x when disabled. Older projects retain their actual rates.
+- 同倍率 Core / Ceiling 在 0 ms 下可共享处理；总延迟以宿主报告为准。Matching Core / Ceiling rates can share processing at 0 ms; use the host's reported total latency.
+- FULL / ECO 每个实例独立并随工程保存，独立于 A/B；自 1.2.41 起 ECO 还按宿主停播状态暂停 DSP，见上文。FULL / ECO is per instance, project-saved and independent of A/B. As of 1.2.41, ECO also suspends stopped-transport DSP as described above.
+- 停播且全零输入、尾段稳定后休眠；播放、非零主输入或侧链在当前块恢复。After stopping, all-zero inputs and settled tails permit sleep; playback or nonzero main/sidechain input restores processing in the current block.
 
-Current stage: Plan C (public source synchronization, four platform packages and desktop delivery). Windows reuses the verified Plan A output; macOS build and delivery verification are recorded for this Plan C. Plan D means the formal GitHub Release only and is deferred; a version tag does not indicate a published binary release.
+## 说明书与安装 / Manuals and installation
 
-[已发布版本 / Published releases](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases) · [完整更新 / Release notes](RELEASE_NOTES_1.2.8.md) · [历史 / Changelog](CHANGELOG.md)
+- [中文说明书：1.2.41，41 页](docs/manuals/QQ-Super-Compression-1.2.41-User-Manual-Chinese.pdf)
+- [English manual: 1.2.41, 41 pages](docs/manuals/QQ-Super-Compression-1.2.41-User-Manual-English.pdf)
+- [中文安装指南](docs/QQ-Super-Compression-1.2.41-INSTALL-CN.txt)
+- [English installation guide](docs/QQ-Super-Compression-1.2.41-INSTALL-EN.txt)
+- [当前文档状态 / Current document status](docs/CURRENT_DOCUMENT_STATUS.md)
+- [双语更新记录 / Bilingual release notes](RELEASE_NOTES_1.2.41.md)
 
-- [中文安装指南](docs/QQ-Super-Compression-1.2.8-INSTALL-CN.txt)
-- [English installation guide](docs/QQ-Super-Compression-1.2.8-INSTALL-EN.txt)
-- [1.2.7 中文用户手册 · 历史功能参考](docs/manuals/QQ-Super-Compression-1.2.7-User-Manual-Chinese.pdf)
-- [1.2.7 English manual · historical feature reference](docs/manuals/QQ-Super-Compression-1.2.7-User-Manual-English.pdf)
+两本说明书章节和页码对应。旧版本说明书、SOURCE_MANIFEST、CANDIDATE_SOURCE、VERIFICATION 和 RELEASE_NOTES 为历史记录，不代表当前版本的验证或哈希。
 
-Plan C 交付格式 / Plan C package formats: Windows x64 VST3 / macOS Apple Silicon VST3 / Intel VST3 / Universal 2 AU。macOS 构建目标为 11 或更高，采用临时签名、未经公证。The macOS build target is 11 or newer with ad-hoc signing, without Apple notarization.
+Both manuals share the same chapter order and page numbers. Earlier manuals, SOURCE_MANIFEST, CANDIDATE_SOURCE, VERIFICATION and RELEASE_NOTES files are historical records, not evidence for the current build.
 
-四类成品已核验并交付桌面用户包。Apple Silicon 与 Intel 原生 Limiter、Unity、Dual 算法及模式连续性测试通过，Universal 2 AU 通过 auval；Windows 复用已验证的 Plan A 成品。三类 Mac 成品来自生产输入完全一致的公开提交，具体提交和任务见 [REPRODUCE.md](REPRODUCE.md)。正式 GitHub Release 仍待单独执行 Plan D。
+## 构建与验证 / Build and verification
 
-All four packages have been verified and delivered in the desktop user package. Native Apple Silicon and Intel Limiter, Unity, Dual-algorithm and continuity checks pass; Universal 2 AU passes auval. Windows reuses the verified Plan A output. The Mac packages use public commits with identical production inputs; exact commits and jobs are documented in [REPRODUCE.md](REPRODUCE.md). The formal GitHub Release remains deferred to Plan D.
+Windows：VS 2022 C++ Build Tools、Windows SDK、CMake 3.22+。在 x64 Native Tools 环境运行 BUILD_WINDOWS.cmd / BUILD_WINDOWS.ps1。默认构建目录为 D:\Codex\Temp\QQSC1241-Build。可通过 -JucePath 指定 JUCE，或由脚本识别正式快照内 Dependencies/JUCE-8.0.15。
 
-## 1.2.8 Limiter Single / Dual 连续性 / continuity
+Windows requires VS 2022 C++ Build Tools, Windows SDK and CMake 3.22+. Run BUILD_WINDOWS.cmd / BUILD_WINDOWS.ps1 from an x64 Native Tools environment. The script accepts -JucePath or detects Dependencies/JUCE-8.0.15 in the formal snapshot. Builds do not install the plugin.
 
-### 本次同步版本范围 / Versions covered by this synchronization
+JUCE 固定为 8.0.15。跨平台构建由 .github/workflows 中的手动任务完成，目标为 Windows x64 VST3、Apple Silicon VST3、Intel VST3 和 Universal 2 AU；macOS 部署目标为 11.0。
 
-远端此前完整记录到 1.2.6。本次包括 1.2.7 与 1.2.8，遗漏版本：无。
+JUCE is pinned to 8.0.15. Manual GitHub workflows target Windows x64 VST3, Apple Silicon VST3, Intel VST3 and Universal 2 AU, with macOS deployment target 11.0.
 
-The previous fully documented remote version was 1.2.6. This synchronization covers 1.2.7 and 1.2.8; omitted versions: none.
+1.2.41 的 Windows 自动验证涵盖 Ceiling 压力、状态迁移与 A/B、16 种倍率组合、动态块长、ECO 停播/恢复和 Limiter / Unity 回归。持续输入与 1.2.40 对照的样本差为 0，延迟补偿一致；宿主听感与 ASIO-Guard 仍需在实际工程中判断，未声称新的 Cubase 实测。
 
-- **1.2.7：** 新增 Limiter 独立参数库、最终 Ceiling、TP/Peak、耳机 1:1 和 MATCH。该版本后续迭代加入普通/Limiter 独立模式记忆、LUFS、Ratio/Mix 修正、Dual Up/Down 独立算法和严格 Output LINK。最终输入基线为 Strict Output Link；1.2.7 历史手册不覆盖所有后续细节，当前行为以源码和补充说明为准。
-- **1.2.7:** Added the independent Limiter bank, final Ceiling, TP/Peak, headphone 1:1 and MATCH. Later revisions within this version added independent Normal/Limiter mode memories, LUFS, Ratio/Mix fixes, independent Dual Up/Down algorithms and strict Output LINK. Strict Output Link is the input baseline; the historical manuals do not cover every later revision, so current behavior is defined by source and supplemental notes.
-- **1.2.8：** 修复 Limiter Single/Dual 双向切换的向下阈值接续；保留 Makeup、Mix、Output、正常模式独立阈值、算法、插件身份和工程兼容性。
-- **1.2.8:** Fixes downward-threshold continuity in both directions of Limiter Single/Dual switching, preserving Makeup, Mix, Output, normal-mode independent thresholds, algorithms, plug-in identity and project compatibility.
+Saved 1.2.41 Windows checks cover Ceiling stress, state migration and A/B, all 16 rate combinations, variable blocks, ECO stop/resume and Limiter / Unity regressions. Continuous output matches 1.2.40 sample-for-sample with identical PDC. Host listening and ASIO-Guard still depend on the actual session; no new Cubase measurement is claimed.
 
-Limiter 中从 Single 切到 Dual 时，当前 Single Threshold 写入目标 DOWN Threshold；从 Dual 切回 Single 时，当前 DOWN Threshold 写入目标 Threshold。ST、L、R、M、S 分别接续自己的值。该规则不依赖 Limiter LINK、声道 LINK 或 Ratio LINK，且不会改写 Makeup、Mix、Output Gain、Ratio 或算法选择。
+当前 Stable 为 1.2.41，见 STABLE_1.2.41.json。STABLE_1.2.36.json 记录早期撤回状态；旧版本验证仅作为历史保存。正式 Plan B/C/D 的执行证据分别在备份报告、GitHub 与最终交付包中核对。
 
-In Limiter mode, Single to Dual copies the current Single Threshold to the destination DOWN Threshold; Dual to Single copies the current DOWN Threshold to the destination Threshold. ST, L, R, M and S continue independently. The rule does not depend on Limiter, channel or Ratio links and does not rewrite Makeup, Mix, Output Gain, ratios or algorithm choices.
+1.2.41 is the current Stable version (STABLE_1.2.41.json). STABLE_1.2.36.json preserves the withdrawn historical promotion. Plan B/C/D completion must be verified from the backup report, GitHub and final delivery package respectively.
 
-Normal compression keeps separate Single / Dual threshold memories. A/B, project load and Undo/Redo remain whole-state operations. Existing parameter IDs, order, plug-in identity and state schema 22 are unchanged.
-
-## Limiter、TP 与耳机监听 / Limiter, TP and monitoring
-
-Limiter 支持两种算法、Single / Dual 和 ST / LR / MS。下压 Ratio 为 200:1 至 1000:1；上压仍可使用。Ceiling 为 -24 至 0 dB，默认 0，Alt 单击复位。TP 与 Ceiling 只在 Limiter 下生效。TP 表读取实际最终 L/R 输出，保留约 20 秒峰值，双击清零。
-
-Limiter supports both algorithms, Single / Dual and ST / LR / MS. Downward Ratio spans 200:1 to 1000:1; upward processing remains available. Ceiling spans -24 to 0 dB, defaults to 0 and resets with Alt-click. TP and Ceiling act only in Limiter. The meter reads actual final L/R true peaks, with about 20 seconds of hold and double-click reset.
-
-![Limiter / Light](docs/screenshots/v1.2.7/manual-limiter-light.png)
-
-Output 旁的 LINK 联动下压阈值与输出。耳机开启后，数值及联动仍有效，MON = Ceiling - Output Gain；MATCH 比较原始输入与实际限幅、监听补偿后的输出。耳机不自动保证等响，需先播放有代表性的素材，再使用 MATCH。耳机状态随工程保存，独立于 A/B；Limiter、TP、Ceiling 与 Limiter LINK 则随 A/B 保存。
-
-LINK beside Output connects the downward threshold and output. Headphones preserve those values and links, with MON = Ceiling - Output Gain. MATCH compares original input with actual limited, compensated listening output. Headphones alone do not guarantee equal loudness: play a representative passage before using MATCH. Headphones are saved with the project but independent of A/B; Limiter, TP, Ceiling and Limiter LINK are recalled by A/B.
-
-![Headphone 1:1 / MON](docs/screenshots/v1.2.7/manual-limiter-monitor-controls.png)
-
-## 上压与双压 / Upward and Dual
-
-上压提升下门槛以上、上边界以下的有效部分。Single 用 Threshold / Range；Dual 用 UP / DOWN 阈值及两个 Ratio，达到 DOWN 后结束上压，高于 DOWN 时只做下压。两路分别 ON/OFF，Ratio LINK 按相对反向倍数联动。
-
-Upward processing boosts eligible material above its lower gate and below the upper boundary. Single uses Threshold / Range; Dual uses UP / DOWN thresholds and two ratios. Up ends at DOWN, and only Down acts above it. Each branch has an independent switch; Ratio LINK preserves relative inverse changes.
-
-![Single Up / Dark](docs/screenshots/v1.2.7/manual-dark.png)
-
-![Dual / Light](docs/screenshots/v1.2.7/manual-light-dual.png)
-
-## 延迟与兼容 / Latency and compatibility
-
-Classic / Super 的已接受检测方式和默认 26 ms Lookahead 保持不变。最终峰值保护另需约 7-8.5 ms 固定缓冲，48 kHz 下约 8.17 ms；关闭 Limiter / TP 时仍保留相同总延迟。普通处理与 1.2.6 对齐延迟后的验证结果一致。本版不承诺任意信号零失真；细节及测试边界见说明书与发行说明。
-
-The accepted Classic / Super detector and initial 26 ms Lookahead remain. Final peak protection adds about 7-8.5 ms of fixed buffering, about 8.17 ms at 48 kHz; the same total latency is retained with Limiter / TP off. Validated normal processing matches 1.2.6 after delay alignment. This is not a universal zero-distortion guarantee; see the manuals and release notes for scope.
-
-正式名称、插件身份和已有参数 ID 保留。旧工程缺少新参数时，Limiter 默认关闭；已保存的新工程恢复自身状态。关闭 Limiter 恢复普通 Ratio、边界与 Output；共享 Makeup、Mix、Input 保留当前值。
-
-The formal name, plugin identity and existing parameter IDs remain. Old states without new parameters load with Limiter off; newer projects restore their saved state. Leaving Limiter restores normal Ratio, boundaries and Output, while shared Makeup, Mix and Input keep their current values.
-
-## 构建与验证 / Build and validation
-
-JUCE 8.0.15、CMake 3.22+；Windows 使用 VS 2022 x64。见 [构建方法](REPRODUCE.md)、[发行说明](RELEASE_NOTES_1.2.8.md) 和 [Windows 验证](VERIFICATION_1.2.8.md)。Mac 工作流对原生 VST3 执行 Limiter、Ceiling、耳机、MATCH、Unity、Dual 算法和 Single / Dual 连续性回归，并验证版本、架构、签名与 AU。
-
-Use JUCE 8.0.15 and CMake 3.22+, with VS 2022 x64 on Windows. See the build, release notes and verification records above. Mac workflows run native Limiter, Ceiling, headphone, MATCH, Unity, Dual-algorithm and Single / Dual continuity regressions, verify version, architectures and signatures, and validate the AU.
-
-历史版本文档保留供追溯。1.2.7 双语手册仍可用于既有功能，但不包含 1.2.8 的 Single / Dual 连续性修复；本页和 1.2.8 Release Notes 为该变化的当前说明。非商业源码共享许可保持不变，第三方声明保留。
-
-Historical documents remain for reference. The 1.2.7 manuals still describe the established feature set but do not include the 1.2.8 Single / Dual continuity fix; this page and the 1.2.8 Release Notes are the current supplement. The non-commercial source-share license and third-party notices are retained.
+按用户最终选择，取消插件主输出的启停 Crossfade；播放、实时录制和离线导出均不叠加此类渐变。监听启停平滑交由 DAW。Existing A/B/parameter smoothing remains unchanged. No new transport crossfade or crossfade DSP overhead is added.

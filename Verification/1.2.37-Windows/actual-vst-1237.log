@@ -1,0 +1,33 @@
+VST3 version=1.2.37 name=QQ Super Compression
+config,host,source,latency,early_us,late_us,late_output_peak
+Normal26,stopped-fixed,zero,1248,174.90781,5.8425781,0
+Normal26,stopped-advancing,zero,1248,177.36719,5.7976562,0
+Normal26,playing,zero,1248,458.51562,430.52266,0
+Normal0-4,stopped-fixed,zero,61,723.61094,6.8136719,0
+Normal0-4,stopped-advancing,zero,61,754.84688,5.8265625,0
+Normal0-4,playing,zero,61,891.22969,931.35234,0
+Normal0-8,stopped-fixed,zero,65,1183.4078,6.0535156,0
+Normal0-8,stopped-advancing,zero,65,1161.4734,5.6753906,0
+Normal0-8,playing,zero,65,1422.3078,1518.4672,0
+Normal0-16,stopped-fixed,zero,67,2237.4437,5.8175781,0
+Normal0-16,stopped-advancing,zero,67,2312.2375,5.8925781,0
+Normal0-16,playing,zero,67,2421.7312,2342.8883,0
+Limiter26-4,stopped-fixed,zero,1637,511.41562,8.2925781,0
+Limiter26-4,stopped-advancing,zero,1637,553.99688,7.8269531,0
+Limiter26-4,playing,zero,1637,769.74531,812.33906,0
+Limiter26-8,stopped-fixed,zero,1641,669.7125,10.845703,0
+Limiter26-8,stopped-advancing,zero,1641,741.10312,7.9066406,0
+Limiter26-8,playing,zero,1641,1017.3563,1110.7164,0
+Limiter26-16,stopped-fixed,zero,1643,1025.1844,10.570313,0
+Limiter26-16,stopped-advancing,zero,1643,992.29219,8.1992188,0
+Limiter26-16,playing,zero,1643,1208.7531,1254.5012,0
+Limiter0-16core4ceil,stopped-fixed,zero,456,2544.2687,7.8511719,0
+Limiter0-16core4ceil,stopped-advancing,zero,456,2635.5188,8.6808594,0
+Limiter0-16core4ceil,playing,zero,456,2892.65,2786.5133,0
+Limiter0-16core8ceil,stopped-fixed,zero,460,2956.5687,8.2570313,0
+Limiter0-16core8ceil,stopped-advancing,zero,460,2715.4672,7.9355469,0
+Limiter0-16core8ceil,playing,zero,460,2956.2578,2896.8297,0
+Limiter0-16shared,stopped-fixed,zero,395,2476.1734,8.1125,0
+Limiter0-16shared,stopped-advancing,zero,395,2700.3703,7.9597656,0
+Limiter0-16shared,playing,zero,395,2691.075,2675.3605,0
+PASS actual VST3 silence finite/drained and unchanged latency. Timings are diagnostic, not Cubase meter percentages.

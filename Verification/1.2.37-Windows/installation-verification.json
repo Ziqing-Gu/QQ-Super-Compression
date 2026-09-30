@@ -1,0 +1,12 @@
+{
+  "version": "1.2.37",
+  "channel": "Candidate",
+  "hosts_closed": true,
+  "exclusive_file_check": "passed",
+  "installed_bundle": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+  "rollback_bundle": "D:\\Codex\\Archives\\QQSuperCompression-1.2.36-before-1.2.37-20261001-023600\\QQ Super Compression.vst3",
+  "sha256": "4D50E724FF61D917ECF3B2B559601F723C78ACCEFF40ADC6CCDE8F8D8EB98C2D",
+  "candidate_and_installed_match": true,
+  "Cubase_session_validation": "pending user verification",
+  "recorded_at": "2026-10-01T02:36:00.5229938+08:00"
+}

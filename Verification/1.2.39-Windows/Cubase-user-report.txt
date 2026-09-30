@@ -1,0 +1,10 @@
+QQ Super Compression 1.2.39 — user-supplied Cubase report
+
+ECO closed: 7619.1 us/block, N=1024, core/ceiling=16x/16x
+  blocks=983, exact zero=0.0%, sleep=0.0%, playing=0.0%, transport unknown=0.0%
+  Last idle gate: nonzero input
+ECO open: 8449.9 us/block, N=1024, core/ceiling=16x/16x
+  blocks=180, exact zero=0.0%, sleep=0.0%, playing=0.0%, transport unknown=0.0%
+  Last idle gate: nonzero input
+
+No amplitude measurement exists in this report. Do not infer a noise floor or treat the idle issue as fixed.

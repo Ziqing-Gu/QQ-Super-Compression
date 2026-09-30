@@ -1,0 +1,18 @@
+SILENCE rate=48000 core=2 ceiling=2 recovery=0 first_sleep_s=0.9965 max_delta=0
+SILENCE rate=48000 core=2 ceiling=2 recovery=2 first_sleep_s=4.06571 max_delta=0
+SILENCE rate=48000 core=1 ceiling=2 recovery=1 first_sleep_s=1.67827 max_delta=0
+SILENCE rate=44100 core=0 ceiling=1 recovery=2 first_sleep_s=4.10671 max_delta=0
+SILENCE rate=96000 core=2 ceiling=1 recovery=1 first_sleep_s=1.70531 max_delta=0
+SILENCE rate=48000 core=2 ceiling=0 recovery=1 first_sleep_s=0.9965 max_delta=0
+SILENCE rate=48000 core=0 ceiling=0 recovery=1 first_sleep_s=0.9965 max_delta=0
+PASS stopped silence: drain/recovery, wake audio, tiny input, sidechain, automation, transport, FULL history, mono/stereo, variable blocks and PDC; max delta=0
+PASS ten-instance FULL/ECO isolation, live meters/MATCH, project and legacy state, A/B independence, editor controls/reopen, exact audio/PDC parity
+PASS hidden retained display blocks and cancels replay
+PASS A/B recall, hidden Normal settings, append-only AU ordering
+PASS shared pre-Ceiling sample-grid/phase peak telemetry
+MONO MS OS=8 filtered-reference gain=1.99986 expected=1.99986 ideal-sine gain=1.99807
+MONO MS OS=16 filtered-reference gain=1.99986 expected=1.99986 ideal-sine gain=1.99041
+PASS actual mono MS 8x/16x gain
+PASS block partition/rate/shared+fallback/ECO audio, max delta=0
+PASS stale editor settings reload (isolated settings file)
+PASS all review regression checks

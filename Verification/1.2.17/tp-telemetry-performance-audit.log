@@ -1,0 +1,3 @@
+PASS: no dB/log conversion in per-sample OutputCeiling::process telemetry path.
+PASS: 100000 random blocks prove min(linear gain) == max(per-sample attenuation dB).
+PASS: runtime conversion count drops from about sample-rate times/sec to block-rate times/sec (e.g. 48000 -> 187.5 at 256 samples).

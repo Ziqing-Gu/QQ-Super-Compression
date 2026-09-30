@@ -1,0 +1,2 @@
+PASS: 36 actual-APVTS headless cases and 36 real-editor cases; all domains, both algorithms, LINK off/on, Mix 0/37/100, both directions, Undo/Redo, immediate save/load and Normal independent memories.
+PASS: A/B slot isolation, subsequent mode continuity and existing boundary collision rules.

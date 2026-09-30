@@ -36,13 +36,15 @@ private:
     // projection fluid while preserving the previous eight-second window.
     static constexpr int displayRefreshHz = 60;
     static constexpr int historyLength = 480;
+    static constexpr float historyWindowSeconds = static_cast<float> (historyLength) / static_cast<float> (displayRefreshHz);
     static constexpr int gainReductionShadeSegments = 160;
+    static constexpr int dynamicsLutSize = 4097;
 
     struct HistoryPoint
     {
         float inputDb = -120.0f;
-        float measuredOutputDb = -120.0f;
         float detectorDb = -120.0f;
+        float truePeakExcessDb = 0.0f;
         float capturedInputGainDb = 0.0f;
         float capturedKeyGainDb = 0.0f;
         float replayedDetectorDb = -120.0f;
@@ -83,6 +85,7 @@ private:
         std::array<float, historyLength> output {};
         std::array<float, historyLength> externalKey {};
         std::array<float, historyLength> effectiveGainReduction {};
+        std::array<uint64_t, historyLength> captureCounter {};
         size_t size = 0;
     };
 
@@ -97,12 +100,16 @@ private:
         juce::Path gainReductionShadePath;
         juce::Path gainIncreaseShadePath;
         float currentGainReductionDb = 0.0f;
+        std::array<float, dynamicsLutSize> dynamicsGainLut {};
+        uint64_t dynamicsLutSignature = 0;
+        bool dynamicsLutValid = false;
         bool valid = false;
     };
 
     void timerCallback() override;
     void pushHistory (HistorySet&, HistoryPoint);
     void updatePath (juce::Path&, const std::array<float, historyLength>& values,
+                     const std::array<uint64_t, historyLength>& captureCounters,
                      size_t valueCount, juce::Rectangle<float> plot) const;
     void updateGainChangePaths (juce::Path& reductionPath, juce::Path& increasePath,
                                 const ProjectedHistory&, juce::Rectangle<float> plot) const;
@@ -110,11 +117,17 @@ private:
                                        const std::array<float, historyLength>& upper,
                                        const std::array<float, historyLength>& lower,
                                        const std::array<float, historyLength>& gainReduction,
+                                       const std::array<uint64_t, historyLength>& captureCounters,
                                        size_t valueCount, juce::Rectangle<float> plot) const;
     float dbToY (float db, juce::Rectangle<float> plot) const noexcept;
+    float historyXForCounter (uint64_t captureCounter, juce::Rectangle<float> plot) const noexcept;
+    void trimHistoryToVisibleWindow (HistorySet&, uint64_t referenceCounter) const;
     juce::Rectangle<float> domainPanelBounds (int domainIndex, int mode) const noexcept;
     static juce::Rectangle<float> plotBoundsForPanel (juce::Rectangle<float> panel) noexcept;
     void refreshRenderCaches (int mode);
+    uint64_t dynamicsLutSignatureForDomain (int domainIndex, int mode) const noexcept;
+    void rebuildDynamicsLut (RenderCache&, int domainIndex, int mode, uint64_t signature);
+    float dynamicsGainFromLut (const RenderCache&, float detectorDb) const noexcept;
     void drawDomainPanel (juce::Graphics&, juce::Rectangle<float> panel, int domainIndex,
                           const juce::String& domainName, int mode);
     float thresholdDbForDomain (int domainIndex, int mode) const noexcept;
@@ -122,7 +135,7 @@ private:
     float makeupDbForDomain (int domainIndex, int mode) const noexcept;
     float mixForDomain (int domainIndex, int mode) const noexcept;
     void projectHistory (int domainIndex, int mode, bool externalKey,
-                         bool bypassed, ProjectedHistory&) const;
+                         bool bypassed, const RenderCache&, ProjectedHistory&) const;
     bool buildHpfReplay (const ReplayRequest&, ReplayResult&, juce::Thread&) const;
     bool requestHpfHistoryRefresh (bool retrying = false);
     void scheduleHpfReplayRetry (uint64_t failedEndCounter);
@@ -133,13 +146,22 @@ private:
     QQSuperCompressionAudioProcessor& processor;
     std::array<HistorySet, 2> histories;
     std::array<RenderCache, 2> renderCaches;
+    std::array<float, dynamicsLutSize> detectorLevelLut {};
     std::unique_ptr<HpfReplayWorker> hpfReplayWorker;
     std::shared_ptr<std::atomic<uint64_t>> replayRequestGeneration;
     int lastMode = -1;
     int lastLimiter = -1;
     int lastKeySource = -1;
     uint64_t lastCaptureGeneration = 0;
+    uint64_t lastCapturedHistoryCounter = 0;
+    uint64_t historyRevision = 1;
+    uint64_t renderedHistoryRevision = 0;
+    uint64_t renderedProjectionRevision = 0;
+    uint64_t renderReferenceCounter = 0;
+    double renderReferenceSampleRate = 44100.0;
+    bool geometryDirty = true;
     float lastObservedHpfHz = qqsc::params::keyHpfOffHz;
+    float lastObservedLookaheadMs = 26.0f;
     int hpfStableTimerTicks = 0;
     int hpfRetryTimerTicks = 0;
     int hpfRetryAttempts = 0;

@@ -1,4 +1,4 @@
-name: Build Windows VST3 1.2.8
+name: Build Windows VST3 1.2.41
 
 on:
   workflow_dispatch:
@@ -23,22 +23,43 @@ jobs:
           -G "Visual Studio 17 2022"
           -A x64
           -DQQSC_FETCH_JUCE=ON
+          -DQQSC_BUILD_DYNAMICS_CHECK=ON
 
       - name: Build VST3
         shell: pwsh
-        run: cmake --build build-windows --target QQSuperCompression_VST3 --config Release --parallel 3
+        run: cmake --build build-windows --target QQSuperCompression_VST3 QQSCCeilingCheck QQSCReviewCheck QQSCLimiterCheck QQSCUnityCheck --config Release --parallel 3
+
+      - name: Verify current release checks
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $checkRoot = Join-Path $env:RUNNER_TEMP 'qqsc-1.2.41-checks'
+          & 'build-windows/QQSCCeilingCheck_artefacts/Release/QQSCCeilingCheck.exe'
+          if ($LASTEXITCODE -ne 0) { throw 'Ceiling checks failed' }
+          & 'build-windows/QQSCReviewCheck_artefacts/Release/QQSCReviewCheck.exe' "$checkRoot/review"
+          if ($LASTEXITCODE -ne 0) { throw 'Review checks failed' }
+          & 'build-windows/QQSCUnityCheck_artefacts/Release/QQSCUnityCheck.exe' "$checkRoot/unity"
+          if ($LASTEXITCODE -ne 0) { throw 'Unity checks failed' }
+          foreach ($profile in @('revision1228','revision1234','continuity','dual')) {
+            & 'build-windows/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck.exe' "$checkRoot/$profile" $profile
+            if ($LASTEXITCODE -ne 0) { throw "Limiter checks failed: $profile" }
+          }
+          python tests/revision1234_performance_architecture_source_audit.py
+          if ($LASTEXITCODE -ne 0) { throw 'Source audit failed' }
 
       - name: Verify and package VST3
         shell: pwsh
         run: |
           $vst3 = "build-windows/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3"
           if (-not (Test-Path -LiteralPath $vst3)) { throw "Missing VST3 bundle: $vst3" }
-          Compress-Archive -LiteralPath $vst3 -DestinationPath "QQ-Super-Compression-1.2.8-Windows-x64.zip"
+          $module = Get-Content -LiteralPath "$vst3/Contents/Resources/moduleinfo.json" -Raw | ConvertFrom-Json
+          if ($module.Version -ne '1.2.41') { throw 'Wrong VST3 version' }
+          Compress-Archive -LiteralPath $vst3 -DestinationPath "QQ-Super-Compression-1.2.41-Windows-x64.zip"
 
       - name: Upload packaged VST3
         uses: actions/upload-artifact@v4
         with:
-          name: QQ-Super-Compression-1.2.8-Windows-x64
-          path: QQ-Super-Compression-1.2.8-Windows-x64.zip
+          name: QQ-Super-Compression-1.2.41-Windows-x64
+          path: QQ-Super-Compression-1.2.41-Windows-x64.zip
           if-no-files-found: error
           retention-days: 7

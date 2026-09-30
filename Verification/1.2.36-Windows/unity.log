@@ -1,0 +1,36 @@
+PASS: headphone placement/three themes/ST-LR-MS, TP default and toggle, converted ceiling, project persistence and A/B independence.
+MATCH unity reference algo=0 linked=0 error=0.00820824 ready=1
+MATCH unity reference algo=0 linked=1 error=0.00820824 ready=1
+MATCH unity reference algo=1 linked=0 error=0.00820824 ready=1
+MATCH unity reference algo=1 linked=1 error=0.00820824 ready=1
+PASS: MATCH preserves manual Output offset after Ratio -> 1:1, Classic/Super and LINK on/off; only the measured Makeup correction contributes.
+PASS: 18 post-TP cancellation cases, both algorithms/all domains/+negative Output,  TP meter and converted bound, dry bypass, Limiter OFF parity; max error=1.21044e-07.
+MATCH algo=0 mode=0 mix=100 before=8.1207 after=-0.08929 LU
+MATCH algo=0 mode=0 mix=66.9 before=3.99219 after=-0.0568122 LU
+MATCH algo=0 mode=0 mix=50 before=2.44412 after=-0.0399685 LU
+MATCH algo=0 mode=0 mix=10 before=-0.403839 after=-0.0766422 LU
+MATCH algo=0 mode=1 mix=100 before=4.62686 after=-0.0931361 LU
+MATCH algo=0 mode=1 mix=66.9 before=2.46211 after=-0.0580597 LU
+MATCH algo=0 mode=1 mix=50 before=1.48024 after=-0.0413123 LU
+MATCH algo=0 mode=1 mix=10 before=-0.54295 after=-0.0766433 LU
+MATCH algo=0 mode=2 mix=100 before=7.13923 after=-0.0907734 LU
+MATCH algo=0 mode=2 mix=66.9 before=3.59147 after=-0.0587678 LU
+MATCH algo=0 mode=2 mix=50 before=2.19561 after=-0.0436835 LU
+MATCH algo=0 mode=2 mix=10 before=-0.439111 after=-0.0766423 LU
+MATCH algo=1 mode=0 mix=100 before=5.02834 after=-0.0716586 LU
+MATCH algo=1 mode=0 mix=66.9 before=2.56336 after=-0.044492 LU
+MATCH algo=1 mode=0 mix=50 before=1.52313 after=-0.0310644 LU
+MATCH algo=1 mode=0 mix=10 before=-0.542636 after=-0.0766431 LU
+MATCH algo=1 mode=1 mix=100 before=2.73484 after=-0.0651524 LU
+MATCH algo=1 mode=1 mix=66.9 before=1.36858 after=-0.0399999 LU
+MATCH algo=1 mode=1 mix=50 before=0.723613 after=-0.0296235 LU
+MATCH algo=1 mode=1 mix=10 before=-0.670127 after=-0.0766439 LU
+MATCH algo=1 mode=2 mix=100 before=4.32603 after=-0.073962 LU
+MATCH algo=1 mode=2 mix=66.9 before=2.21277 after=-0.0433639 LU
+MATCH algo=1 mode=2 mix=50 before=1.29181 after=-0.0314882 LU
+MATCH algo=1 mode=2 mix=10 before=-0.578734 after=-0.0766431 LU
+MATCH worst measured error=0.0931361 LU.
+PASS: headphone/bypass transitions max DC adjacent delta=0.000104025; settled bypass exact dry.
+PASS: A/B equal monitored levels and rapid retarget TP=0 max level error=1.96826e-05 max adjacent delta=1.62795e-06.
+PASS: A/B equal monitored levels and rapid retarget TP=1 max level error=1.96826e-05 max adjacent delta=1.62795e-06.
+PASS: Unity monitor checks complete.

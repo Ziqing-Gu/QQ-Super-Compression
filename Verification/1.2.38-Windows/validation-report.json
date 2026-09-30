@@ -1,0 +1,373 @@
+{
+  "version": "1.2.38",
+  "channel": "Candidate",
+  "status": "user_confirmed_ECO_improvement_idle_still_high_diagnostics_tooltip_missing",
+  "recorded_at": "2026-10-01T03:21:46.281719+08:00",
+  "source": "D:\\Codex\\Workspaces\\QQSC-1.2.34-Review-Fixes",
+  "output_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.38-Windows-Candidate\\QQ Super Compression.vst3",
+  "bundle": [
+    {
+      "path": "Contents/Resources/moduleinfo.json",
+      "bytes": 1118,
+      "sha256": "9FF41BDBD7980BB90CC2E1AEAAA88EF58A6E09DF641A2799CF2261C8AA950737"
+    },
+    {
+      "path": "Contents/x86_64-win/QQ Super Compression.vst3",
+      "bytes": 10682880,
+      "sha256": "458270B05AD3B8B03BD268E529D0748A0AAFA26BD3C05238BC190EA0213D08CE"
+    }
+  ],
+  "checks": {
+    "full_review": "pass",
+    "actual_old_new_VST3_configurations": 32,
+    "actual_audio_max_absolute_delta": 0,
+    "PDC": "unchanged in tested cases",
+    "ECO_mode_UI_AB_offline_transition_max_absolute_delta": 0,
+    "detector_reference": "pass",
+    "Ceiling_telemetry_suspended_when_hidden_ECO": "pass",
+    "idle_gate_diagnostics": "pass"
+  },
+  "benchmark": {
+    "sample_rate": 48000,
+    "block_sizes": [
+      256,
+      2048
+    ],
+    "editor": "closed",
+    "transport": "playing",
+    "signal": "audible modulated tones, identical inputs",
+    "baseline": "actual released 1.2.37 candidate VST3",
+    "scope": "Local plugin processing time; NOT Cubase ASIO-Guard percentages; one run, alternating old/new order, 32 warm blocks and 128 measured blocks per case",
+    "rows": [
+      {
+        "config": "Normal0-1",
+        "block": 256,
+        "eco": 0,
+        "old_us": 425.11797,
+        "new_us": 385.46094,
+        "reduction_percent": 9.3284768,
+        "max_audio_delta": 0.0,
+        "latency": 0
+      },
+      {
+        "config": "Normal0-1",
+        "block": 256,
+        "eco": 1,
+        "old_us": 137.04062,
+        "new_us": 89.379688,
+        "reduction_percent": 34.778692,
+        "max_audio_delta": 0.0,
+        "latency": 0
+      },
+      {
+        "config": "Normal0-1",
+        "block": 2048,
+        "eco": 0,
+        "old_us": 2931.1234,
+        "new_us": 2596.1391,
+        "reduction_percent": 11.428532,
+        "max_audio_delta": 0.0,
+        "latency": 0
+      },
+      {
+        "config": "Normal0-1",
+        "block": 2048,
+        "eco": 1,
+        "old_us": 729.21719,
+        "new_us": 396.96563,
+        "reduction_percent": 45.562772,
+        "max_audio_delta": 0.0,
+        "latency": 0
+      },
+      {
+        "config": "Normal0-4",
+        "block": 256,
+        "eco": 0,
+        "old_us": 895.99688,
+        "new_us": 753.70234,
+        "reduction_percent": 15.881141,
+        "max_audio_delta": 0.0,
+        "latency": 61
+      },
+      {
+        "config": "Normal0-4",
+        "block": 256,
+        "eco": 1,
+        "old_us": 634.84453,
+        "new_us": 475.575,
+        "reduction_percent": 25.087958,
+        "max_audio_delta": 0.0,
+        "latency": 61
+      },
+      {
+        "config": "Normal0-4",
+        "block": 2048,
+        "eco": 0,
+        "old_us": 6999.1938,
+        "new_us": 5788.6438,
+        "reduction_percent": 17.295564,
+        "max_audio_delta": 0.0,
+        "latency": 61
+      },
+      {
+        "config": "Normal0-4",
+        "block": 2048,
+        "eco": 1,
+        "old_us": 4969.9477,
+        "new_us": 3630.6852,
+        "reduction_percent": 26.947215,
+        "max_audio_delta": 0.0,
+        "latency": 61
+      },
+      {
+        "config": "Normal0-8",
+        "block": 256,
+        "eco": 0,
+        "old_us": 1525.8867,
+        "new_us": 1195.6234,
+        "reduction_percent": 21.644024,
+        "max_audio_delta": 0.0,
+        "latency": 65
+      },
+      {
+        "config": "Normal0-8",
+        "block": 256,
+        "eco": 1,
+        "old_us": 1159.4891,
+        "new_us": 848.28437,
+        "reduction_percent": 26.839812,
+        "max_audio_delta": 0.0,
+        "latency": 65
+      },
+      {
+        "config": "Normal0-8",
+        "block": 2048,
+        "eco": 0,
+        "old_us": 11053.88,
+        "new_us": 8657.3273,
+        "reduction_percent": 21.680644,
+        "max_audio_delta": 0.0,
+        "latency": 65
+      },
+      {
+        "config": "Normal0-8",
+        "block": 2048,
+        "eco": 1,
+        "old_us": 8697.8062,
+        "new_us": 6117.218,
+        "reduction_percent": 29.669416,
+        "max_audio_delta": 0.0,
+        "latency": 65
+      },
+      {
+        "config": "Normal0-16",
+        "block": 256,
+        "eco": 0,
+        "old_us": 2341.5859,
+        "new_us": 1738.5781,
+        "reduction_percent": 25.752111,
+        "max_audio_delta": 0.0,
+        "latency": 67
+      },
+      {
+        "config": "Normal0-16",
+        "block": 256,
+        "eco": 1,
+        "old_us": 2053.6688,
+        "new_us": 1433.2453,
+        "reduction_percent": 30.210492,
+        "max_audio_delta": 0.0,
+        "latency": 67
+      },
+      {
+        "config": "Normal0-16",
+        "block": 2048,
+        "eco": 0,
+        "old_us": 18814.143,
+        "new_us": 13856.056,
+        "reduction_percent": 26.352977,
+        "max_audio_delta": 0.0,
+        "latency": 67
+      },
+      {
+        "config": "Normal0-16",
+        "block": 2048,
+        "eco": 1,
+        "old_us": 15885.655,
+        "new_us": 10829.309,
+        "reduction_percent": 31.829631,
+        "max_audio_delta": 0.0,
+        "latency": 67
+      },
+      {
+        "config": "Normal26",
+        "block": 256,
+        "eco": 0,
+        "old_us": 424.36563,
+        "new_us": 393.57969,
+        "reduction_percent": 7.2545785,
+        "max_audio_delta": 0.0,
+        "latency": 1248
+      },
+      {
+        "config": "Normal26",
+        "block": 256,
+        "eco": 1,
+        "old_us": 135.87266,
+        "new_us": 129.79844,
+        "reduction_percent": 4.4705233,
+        "max_audio_delta": 0.0,
+        "latency": 1248
+      },
+      {
+        "config": "Normal26",
+        "block": 2048,
+        "eco": 0,
+        "old_us": 2987.6648,
+        "new_us": 2926.1117,
+        "reduction_percent": 2.060242,
+        "max_audio_delta": 0.0,
+        "latency": 1248
+      },
+      {
+        "config": "Normal26",
+        "block": 2048,
+        "eco": 1,
+        "old_us": 805.08047,
+        "new_us": 749.10859,
+        "reduction_percent": 6.952333,
+        "max_audio_delta": 0.0,
+        "latency": 1248
+      },
+      {
+        "config": "Limiter26-16",
+        "block": 256,
+        "eco": 0,
+        "old_us": 1240.7633,
+        "new_us": 1214.9695,
+        "reduction_percent": 2.0788615,
+        "max_audio_delta": 0.0,
+        "latency": 1643
+      },
+      {
+        "config": "Limiter26-16",
+        "block": 256,
+        "eco": 1,
+        "old_us": 960.25156,
+        "new_us": 934.44688,
+        "reduction_percent": 2.6872841,
+        "max_audio_delta": 0.0,
+        "latency": 1643
+      },
+      {
+        "config": "Limiter26-16",
+        "block": 2048,
+        "eco": 0,
+        "old_us": 9313.6234,
+        "new_us": 9208.3203,
+        "reduction_percent": 1.1306354,
+        "max_audio_delta": 0.0,
+        "latency": 1643
+      },
+      {
+        "config": "Limiter26-16",
+        "block": 2048,
+        "eco": 1,
+        "old_us": 6967.4617,
+        "new_us": 6837.0727,
+        "reduction_percent": 1.8713998,
+        "max_audio_delta": 0.0,
+        "latency": 1643
+      },
+      {
+        "config": "Limiter0-16shared",
+        "block": 256,
+        "eco": 0,
+        "old_us": 2920.0328,
+        "new_us": 2330.7711,
+        "reduction_percent": 20.179969,
+        "max_audio_delta": 0.0,
+        "latency": 395
+      },
+      {
+        "config": "Limiter0-16shared",
+        "block": 256,
+        "eco": 1,
+        "old_us": 2818.6023,
+        "new_us": 2173.2914,
+        "reduction_percent": 22.894714,
+        "max_audio_delta": 0.0,
+        "latency": 395
+      },
+      {
+        "config": "Limiter0-16shared",
+        "block": 2048,
+        "eco": 0,
+        "old_us": 22318.325,
+        "new_us": 17414.295,
+        "reduction_percent": 21.973108,
+        "max_audio_delta": 0.0,
+        "latency": 395
+      },
+      {
+        "config": "Limiter0-16shared",
+        "block": 2048,
+        "eco": 1,
+        "old_us": 19695.538,
+        "new_us": 14583.596,
+        "reduction_percent": 25.954823,
+        "max_audio_delta": 0.0,
+        "latency": 395
+      },
+      {
+        "config": "Limiter0-16ceil4",
+        "block": 256,
+        "eco": 0,
+        "old_us": 2714.9875,
+        "new_us": 2112.8797,
+        "reduction_percent": 22.177185,
+        "max_audio_delta": 0.0,
+        "latency": 456
+      },
+      {
+        "config": "Limiter0-16ceil4",
+        "block": 256,
+        "eco": 1,
+        "old_us": 2385.6391,
+        "new_us": 1797.8773,
+        "reduction_percent": 24.637496,
+        "max_audio_delta": 0.0,
+        "latency": 456
+      },
+      {
+        "config": "Limiter0-16ceil4",
+        "block": 2048,
+        "eco": 0,
+        "old_us": 21232.66,
+        "new_us": 16393.002,
+        "reduction_percent": 22.793463,
+        "max_audio_delta": 0.0,
+        "latency": 456
+      },
+      {
+        "config": "Limiter0-16ceil4",
+        "block": 2048,
+        "eco": 1,
+        "old_us": 18717.755,
+        "new_us": 13601.655,
+        "reduction_percent": 27.332875,
+        "max_audio_delta": 0.0,
+        "latency": 456
+      }
+    ]
+  },
+  "Cubase": "User confirms ECO has an effect. Stopped-silence load remains high. Hovering FULL/ECO did not show diagnostics; 1.2.39 repairs the missing TooltipWindow and unstable tooltip text, and adds an explicit diagnostic panel.",
+  "release_plans": "B/C/D not resumed",
+  "installation": {
+    "status": "installed_hash_verified",
+    "bundle": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+    "backup": "D:\\Codex\\Archives\\QQSC-1.2.37-before-1.2.38-20261001-032146\\QQ Super Compression.vst3",
+    "bundle_files": 2,
+    "bytes": 10683998
+  }
+}
