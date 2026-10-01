@@ -1,0 +1,50 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.33
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Configuring done (1.8s)
+-- Generating done (1.2s)
+-- Build files have been written to: D:/Codex/Temp/QQSC1242-Full-Idle-Build
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSCReviewCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSCReviewCheck_rc_lib.dir\Release\QQSCReviewCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  review_fixes_check.cpp
+  正在生成代码
+  已完成代码的生成
+  QQSCReviewCheck.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSCReviewCheck_artefacts\Release\QQSCReviewCheck.exe
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSuperCompression_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_rc_lib.dir\Release\QQSuperCompression_rc_lib.lib
+  Building VST3 manifest helper for QQSuperCompression
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+  -- Configuring done (0.0s)
+  -- Generating done (0.1s)
+  -- Build files have been written to: D:/Codex/Temp/QQSC1242-Full-Idle-Build/vst3_helpers/QQSuperCompression
+  閫傜敤浜?.NET Framework MSBuild 鐗堟湰 17.14.40+3e7442088
+  
+    vst3_helper.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\vst3_helpers\QQSuperCompression\vst3_helper.exe
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  QQSuperCompression_VST3.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3\Contents\x86_64-win\QQ Super Compression.vst3
+  removing moduleinfo.json
+  creating D:/Codex/Temp/QQSC1242-Full-Idle-Build/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3/Contents/Resources/moduleinfo.json
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSCSilenceVSTCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSCSilenceVSTCheck_rc_lib.dir\Release\QQSCSilenceVSTCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  silence_vst_check.cpp
+  正在生成代码
+  已完成代码的生成
+  QQSCSilenceVSTCheck.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSCSilenceVSTCheck_artefacts\Release\QQSCSilenceVSTCheck.exe

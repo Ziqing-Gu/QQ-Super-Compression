@@ -1,0 +1,18 @@
+{
+  "version": "1.2.42",
+  "channel": "Stable",
+  "status": "promoted_by_explicit_user_instruction",
+  "promoted_at_local": "2026-10-01T23:45:21+08:00",
+  "previous_stable": "1.2.41",
+  "source_workspace": "D:\\Codex\\Workspaces\\QQSC-1.2.42-Stable",
+  "validated_windows_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.42-Windows-Stable\\QQ Super Compression.vst3",
+  "windows_binary_sha256": "E490F56FE9F4CE535CA5C52E2AACBA593D9ECD97D1212B82BA8ECCE68871614A",
+  "moduleinfo_sha256": "73DF330BE7D0EF3200ABAF0B5E0B9C458A4CF9BC070C601F99B6DD55117639E4",
+  "chinese_manual_sha256": "4697F08939A2D4F29D90334E654CA2E02A418EB7787E4EAA045495240677E872",
+  "english_manual_sha256": "43CE9A0928AFD57366544B3D1880698CC7F4F3B193928CCC807217AA9C793B98",
+  "manual_pages": 41,
+  "validation": "Verification/1.2.42-Windows/validation-report.json",
+  "installed_binary_parity_verified_in_previous_turn": true,
+  "host_validation_scope": "Explicit user Stable promotion after installed candidate; no numerical Cubase ASIO-Guard report claimed.",
+  "plan_bcd": "Requested; stage completion tracked separately."
+}

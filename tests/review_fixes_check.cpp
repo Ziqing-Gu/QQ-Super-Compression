@@ -149,7 +149,7 @@ struct QQSCReviewCheck
                     {
                         if(signal==1)for(int ch=0;ch<(c.mono?1:2);++ch)
                             a.setSample(ch,i,float(1.8*std::sin(2*pi*(ch?73:997)*(host.sample+i)/c.rate)));
-                        if(signal==2 && done==0 && i==0)a.setSample(0,i,1.e-15f);
+                        if(signal==2 && done==0 && i==0)a.setSample(0,i,1.e-8f);
                         if(signal==3)a.setSample(c.mono?1:2,i,float(.4*std::sin(2*pi*113*(host.sample+i)/c.rate)));
                     }
                     b.makeCopyOf(a,true);
@@ -174,7 +174,7 @@ struct QQSCReviewCheck
             check(p.stoppedDspSleeping && slept>0,"Stopped Limiter never reached sleep after recovery");
             p.refreshMatchResults();check(p.loudnessMatch.getBlockCount()==history,"Stop sleep reset FULL MATCH history");
             check(p.meterState.outputDb0.load()<=-119,"Stopped meter did not clear");
-            render(int(c.rate*.1),2); // Exact input detection, not a noise gate.
+            render(int(c.rate*.1),2); // Above the FULL stopped residual floor: must wake in the same block.
             render(int(c.rate*1.2),0);check(p.stoppedDspSleeping,"Tiny input prevented later sleep");
             for(auto* processor:{&p,&reference})set(*processor,processor->soundParameterID("mix"),37);
             render(17,0);check(!p.stoppedDspSleeping,"Parameter edit did not wake DSP");
@@ -378,6 +378,7 @@ struct QQSCReviewCheck
     #include "revision1239_diagnostics_checks.inc"
     #include "revision1240_input_checks.inc"
     #include "revision1241_transport_checks.inc"
+    #include "revision1242_full_idle_checks.inc"
 
     static void sharedPeak()
     {
@@ -406,7 +407,9 @@ int main(int argc,char** argv)
         if(argc==3 && juce::String(argv[2])=="--eco-1238"){QQSCReviewCheck::eco1238();return 0;}
         if(argc==3 && juce::String(argv[2])=="--diagnostics-1239"){QQSCReviewCheck::diagnostics1239(root);return 0;}
         if(argc==3 && juce::String(argv[2])=="--input-1240"){QQSCReviewCheck::inputDiagnostics1240();return 0;}
+        if(argc==3 && juce::String(argv[2])=="--full-idle-1242"){QQSCReviewCheck::fullResidual1242();return 0;}
         if(argc==3 && juce::String(argv[2])=="--transport-1241"){QQSCReviewCheck::ecoTransport1241();return 0;}
+        QQSCReviewCheck::fullResidual1242();
         QQSCReviewCheck::ecoTransport1241();
         QQSCReviewCheck::inputDiagnostics1240();
         QQSCReviewCheck::diagnostics1239(root);

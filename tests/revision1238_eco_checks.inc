@@ -108,7 +108,7 @@ static void eco1238()
         host.playing=true;b.clear();render();check(p.performanceWindows[0].idleGate.load()==2,"playing diagnostic");
         host.available=false;render();check(p.performanceWindows[0].idleGate.load()==1,"unknown transport diagnostic");
         host.available=true;host.playing=false;set(p,"ratio",13);render();check(p.performanceWindows[0].idleGate.load()==3,"parameter wake diagnostic");
-        b.clear();b.setSample(0,0,1.e-15f);render();check(p.performanceWindows[0].idleGate.load()==4,"nonzero wake diagnostic");
+        b.clear();b.setSample(0,0,1.e-8f);render();check(p.performanceWindows[0].idleGate.load()==4,"above-floor wake diagnostic");
         p.setPlayHead(nullptr);
     }
     std::cout<<"PASS detector reference; ECO mono/stereo, internal/external SC, dual/single, algorithm smoothing, "<<transitions<<" mode transitions, UI, A/B, offline, PDC; max_delta="<<worst<<"\n";

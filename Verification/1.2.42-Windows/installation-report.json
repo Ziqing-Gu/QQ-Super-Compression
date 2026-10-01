@@ -1,0 +1,27 @@
+{
+  "installed_at": "2026-10-01T23:13:46.9530469+08:00",
+  "version": "1.2.42",
+  "channel": "Candidate",
+  "installed_bundle": "C:\\Program Files\\Common Files\\VST3\\QQ Super Compression.vst3",
+  "source_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.42-Windows-Candidate\\QQ Super Compression.vst3",
+  "previous_version": "1.2.41",
+  "backup_bundle": "D:\\Codex\\Archives\\QQ Super Compression\\1.2.41-before-1.2.42-20261001-231346\\QQ Super Compression.vst3",
+  "daw_processes_detected": [],
+  "loaded_plugin_owners_detected": [],
+  "backup_hash_verified": true,
+  "installed_hash_parity": true,
+  "bundle": [
+    {
+      "path": "Contents\\Resources\\moduleinfo.json",
+      "bytes": 1118,
+      "sha256": "73DF330BE7D0EF3200ABAF0B5E0B9C458A4CF9BC070C601F99B6DD55117639E4"
+    },
+    {
+      "path": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+      "bytes": 10704896,
+      "sha256": "E490F56FE9F4CE535CA5C52E2AACBA593D9ECD97D1212B82BA8ECCE68871614A"
+    }
+  ],
+  "cubase_validation": "pending",
+  "plan_cd_resumed": false
+}

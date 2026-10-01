@@ -1,0 +1,80 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.33
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+-- Configuring juceaide
+-- Building juceaide
+-- Exporting juceaide
+-- Testing juceaide
+-- Finished setting up juceaide
+-- Configuring done (1.8s)
+-- Generating done (1.1s)
+-- Build files have been written to: D:/Codex/Temp/QQSC1242-Full-Idle-Build
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSCReviewCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSCReviewCheck_rc_lib.dir\Release\QQSCReviewCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\Release\QQSCWarmKnobAssets.lib
+  DynamicDisplay.cpp
+  LevelMeters.cpp
+  LimiterEditor.cpp
+  LimiterMode.cpp
+  PluginEditor.cpp
+  PluginProcessor.cpp
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244: “初始化”: 从“_Ty”转换到“_Ty2”，可能丢失数据 [D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         with [D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty=int [D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         and [D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         [ [D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:             _Ty2=float [D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54): warning C4244:         ] [D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression.vcxproj]
+  (编译源文件“../../Workspaces/QQSC-1.2.42-Full-Idle-Candidate/Source/PluginProcessor.cpp”)
+      C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\include\utility(274,54):
+      模板实例化上下文(最早的实例化上下文)为
+          D:\Codex\Workspaces\QQSC-1.2.42-Full-Idle-Candidate\Source\PluginProcessor.cpp(3440,84):
+          查看对正在编译的函数 模板 实例化“std::pair<const char *,float>::pair<const char*const &,int,0>(_Other1,_Other2 &&) noexcept”的引用
+          with
+          [
+              _Other1=const char *const &,
+              _Other2=int
+          ]
+              D:\Codex\Workspaces\QQSC-1.2.42-Full-Idle-Candidate\Source\PluginProcessor.cpp(3440,82):
+              请参阅 "QQSuperCompressionAudioProcessor::setStateInformation" 中对 "std::pair<const char *,float>::pair" 的第一个引用
+  
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  review_fixes_check.cpp
+  正在生成代码
+  已完成代码的生成
+  QQSCReviewCheck.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSCReviewCheck_artefacts\Release\QQSCReviewCheck.exe
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSuperCompression_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_rc_lib.dir\Release\QQSuperCompression_rc_lib.lib
+  Building VST3 manifest helper for QQSuperCompression
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.22621.
+  -- Configuring done (0.0s)
+  -- Generating done (0.1s)
+  -- Build files have been written to: D:/Codex/Temp/QQSC1242-Full-Idle-Build/vst3_helpers/QQSuperCompression
+  閫傜敤浜?.NET Framework MSBuild 鐗堟湰 17.14.40+3e7442088
+  
+    vst3_helper.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\vst3_helpers\QQSuperCompression\vst3_helper.exe
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+    正在创建库 D:/Codex/Temp/QQSC1242-Full-Idle-Build/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.lib 和对象 D:/Codex/Temp/QQSC1242-Full-Idle-Build/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.exp
+  正在生成代码
+  已完成代码的生成
+  QQSuperCompression_VST3.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_artefacts\Release\VST3\QQ Super Compression.vst3\Contents\x86_64-win\QQ Super Compression.vst3
+  removing moduleinfo.json
+  creating D:/Codex/Temp/QQSC1242-Full-Idle-Build/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3/Contents/Resources/moduleinfo.json
+适用于 .NET Framework MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  QQSCSilenceVSTCheck_rc_lib.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSCSilenceVSTCheck_rc_lib.dir\Release\QQSCSilenceVSTCheck_rc_lib.lib
+  QQSCWarmKnobAssets.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\Release\QQSCWarmKnobAssets.lib
+  QQSuperCompression.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSuperCompression_artefacts\Release\QQ Super Compression_SharedCode.lib
+  正在生成代码
+  已完成代码的生成
+  QQSCSilenceVSTCheck.vcxproj -> D:\Codex\Temp\QQSC1242-Full-Idle-Build\QQSCSilenceVSTCheck_artefacts\Release\QQSCSilenceVSTCheck.exe

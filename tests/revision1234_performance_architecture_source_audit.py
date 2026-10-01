@@ -8,7 +8,7 @@ ceil=(r/'Source/OutputCeiling.h').read_text(encoding='utf-8')
 params=(r/'Source/Parameters.h').read_text(encoding='utf-8')
 cmake=(r/'CMakeLists.txt').read_text(encoding='utf-8')
 checks={
-'1.2.41 version':'project(QQSuperCompression VERSION 1.2.41' in cmake,
+'1.2.42 version':'project(QQSuperCompression VERSION 1.2.42' in cmake,
 'ceiling os param':'ceilingOversampling' in params and '"Ceiling Oversampling"' in proc,
 'instance ECO persisted':'qqscPerformanceEco' in proc and 'ecoMode { false }' in proch and 'state.setProperty (performanceEcoProperty, isEcoMode()' in proc and 'EcoModeGlobal' not in proc+proch+editor,
 'per instance editor gate':'editorOpen.store' in proch and 'shouldRunUiAnalysis' in proch and 'processor.setEditorOpen (isShowing())' in editor,

@@ -1,0 +1,103 @@
+{
+  "version": "1.2.42",
+  "channel": "Candidate",
+  "recorded_at": "2026-10-01T23:10:09.3158066+08:00",
+  "source": "D:\\Codex\\Workspaces\\QQSC-1.2.42-Full-Idle-Candidate",
+  "output_bundle": "D:\\Codex\\Outputs\\QQ Super Compression\\1.2.42-Windows-Candidate\\QQ Super Compression.vst3",
+  "bundle": [
+    {
+      "path": "Contents\\Resources\\moduleinfo.json",
+      "bytes": 1118,
+      "sha256": "73DF330BE7D0EF3200ABAF0B5E0B9C458A4CF9BC070C601F99B6DD55117639E4"
+    },
+    {
+      "path": "Contents\\x86_64-win\\QQ Super Compression.vst3",
+      "bytes": 10704896,
+      "sha256": "E490F56FE9F4CE535CA5C52E2AACBA593D9ECD97D1212B82BA8ECCE68871614A"
+    }
+  ],
+  "source_input_files": 131,
+  "baseline_version": "1.2.41",
+  "baseline_sha256": "D36B604DA0E2A274DA66A28D40CC17D7746ECDF6004D02894BA1092E599DDC52",
+  "installed_sha256": "D36B604DA0E2A274DA66A28D40CC17D7746ECDF6004D02894BA1092E599DDC52",
+  "installed_this_candidate": false,
+  "published_this_candidate": false,
+  "plan_cd_resumed": false,
+  "policy": {
+    "full_raw_floor_dbfs": -180,
+    "full_output_floor_dbfs": -160,
+    "minimum_quiet_seconds": 1,
+    "ceiling_gain_recovery_tolerance": 1E-10,
+    "play_record_offline_unknown_transport": "always process",
+    "ordinary_live_noise": "always process",
+    "extreme_gain": "conservatively remains awake",
+    "new_output_crossfade": false
+  },
+  "checks": {
+    "windows_build": "pass",
+    "all_review_regressions": "pass",
+    "active_old_new_vst_sample_identical": "pass",
+    "active_max_sample_delta": 0,
+    "actual_vst_residual_cases": 30,
+    "actual_vst_residual_sleep": "pass",
+    "block_1024_sample_rate_48000": true,
+    "pdc_unchanged": true,
+    "bundle_copy_hash_parity": true,
+    "cubase_validation": "pending",
+    "performance_note": "Host callback timings are not Cubase ASIO-Guard percentages; early/late stopped measurements are not an old/new benchmark"
+  },
+  "evidence": {
+    "residual_matrix": [
+      "FULL_RESIDUAL limiter=0 core=0 ceiling=0 recovery=2 tp=1 rate=48000 max_settling_s=1.25 delta=1e-10",
+      "FULL_RESIDUAL limiter=0 core=3 ceiling=3 recovery=2 tp=1 rate=48000 max_settling_s=1.25 delta=1.52485e-10",
+      "FULL_RESIDUAL limiter=0 core=0 ceiling=0 recovery=2 tp=1 rate=44100 max_settling_s=1.25 delta=1e-10",
+      "FULL_RESIDUAL limiter=0 core=1 ceiling=0 recovery=2 tp=1 rate=96000 max_settling_s=1.25 delta=2.59464e-10",
+      "FULL_RESIDUAL limiter=1 core=3 ceiling=3 recovery=2 tp=1 rate=48000 max_settling_s=1.25 delta=5.86445e-10",
+      "FULL_RESIDUAL limiter=1 core=2 ceiling=1 recovery=2 tp=1 rate=48000 max_settling_s=4.25 delta=7.53037e-10",
+      "FULL_RESIDUAL limiter=1 core=0 ceiling=3 recovery=2 tp=1 rate=44100 max_settling_s=1.25 delta=5.86445e-10",
+      "FULL_RESIDUAL limiter=1 core=1 ceiling=2 recovery=2 tp=1 rate=48000 max_settling_s=4.25 delta=7.53037e-10",
+      "FULL_RESIDUAL limiter=1 core=3 ceiling=3 recovery=1 tp=1 rate=48000 max_settling_s=1.25 delta=5.86445e-10",
+      "FULL_RESIDUAL limiter=1 core=1 ceiling=2 recovery=0 tp=0 rate=48000 max_settling_s=1.25 delta=7.53037e-10"
+    ],
+    "internal_profile": [
+      "FULL_16x_16x_1024 active_us=7169.07 idle_us=30.8195"
+    ],
+    "sleep_wake_regression": [
+      "PASS stopped silence: drain/recovery, wake audio, tiny input, sidechain, automation, transport, FULL history, mono/stereo, variable blocks and PDC; max delta=5.96046e-08",
+      "PASS full idle: Normal native/OS, Limiter shared/separate Ceiling, fixed stopped clock, FULL history/holds, unused/selected SC, tiny input, edits, bypass, Unity, playback and offline wake."
+    ],
+    "vst_residual_results": [
+      "Normal26,stopped-fixed,residual_-200,1248,445.88125,17.6375,0",
+      "Normal26,stopped-advancing,residual_-200,1248,428.9125,17.6,0",
+      "Normal26,playing,residual_-200,1248,1395.8375,1395.6953,1e-10",
+      "Normal0-4,stopped-fixed,residual_-200,61,2104.4437,17.539063,0",
+      "Normal0-4,stopped-advancing,residual_-200,61,2088.325,17.892187,0",
+      "Normal0-4,playing,residual_-200,61,3011.0938,3023.8875,9.9981107e-11",
+      "Normal0-8,stopped-fixed,residual_-200,65,3541.4437,20.801563,0",
+      "Normal0-8,stopped-advancing,residual_-200,65,3527.6875,17.478125,0",
+      "Normal0-8,playing,residual_-200,65,4492.5938,5189.2797,9.9904821e-11",
+      "Normal0-16,stopped-fixed,residual_-200,67,8085.7063,21.08125,0",
+      "Normal0-16,stopped-advancing,residual_-200,67,6505.7,19.235938,0",
+      "Normal0-16,playing,residual_-200,67,7833.2,7051.1703,9.9521759e-11",
+      "Limiter26-4,stopped-fixed,residual_-200,1637,1634.0125,23.185937,0",
+      "Limiter26-4,stopped-advancing,residual_-200,1637,1618.3438,23.395312,0",
+      "Limiter26-4,playing,residual_-200,1637,2662.3375,2998.9484,6.286634e-10",
+      "Limiter26-8,stopped-fixed,residual_-200,1641,2141.2625,23.223438,0",
+      "Limiter26-8,stopped-advancing,residual_-200,1641,2093.2812,24.321875,0",
+      "Limiter26-8,playing,residual_-200,1641,3137.7625,3120.5062,6.2818362e-10",
+      "Limiter26-16,stopped-fixed,residual_-200,1643,2950.75,23.085938,0",
+      "Limiter26-16,stopped-advancing,residual_-200,1643,2853.0312,24.265625,0",
+      "Limiter26-16,playing,residual_-200,1643,3954.6,3908.5828,6.2577499e-10",
+      "Limiter0-16core4ceil,stopped-fixed,residual_-200,456,7277.9437,23.185938,0",
+      "Limiter0-16core4ceil,stopped-advancing,residual_-200,456,7343.9375,24.870312,0",
+      "Limiter0-16core4ceil,playing,residual_-200,456,8364.3125,8248.0828,6.2565686e-10",
+      "Limiter0-16core8ceil,stopped-fixed,residual_-200,460,7715.2188,24.085938,0",
+      "Limiter0-16core8ceil,stopped-advancing,residual_-200,460,7955.2937,27.825,0",
+      "Limiter0-16core8ceil,playing,residual_-200,460,9319.575,8747.7547,6.2517935e-10",
+      "Limiter0-16shared,stopped-fixed,residual_-200,395,7147.7688,23.582812,0",
+      "Limiter0-16shared,stopped-advancing,residual_-200,395,7169.675,23.6,0",
+      "Limiter0-16shared,playing,residual_-200,395,8252.2688,8209.0969,6.2577499e-10"
+    ],
+    "vst_active_result": "PASS actual old/new VST3 output/PDC; max_delta=0. Plugin CPU timings are not Cubase ASIO-Guard percentages."
+  }
+}

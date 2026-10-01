@@ -1,4 +1,4 @@
-name: Build Windows VST3 1.2.41
+name: Build Windows VST3 1.2.42
 
 on:
   workflow_dispatch:
@@ -37,7 +37,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $checkRoot = Join-Path $env:RUNNER_TEMP 'qqsc-1.2.41-checks'
+          $checkRoot = Join-Path $env:RUNNER_TEMP 'qqsc-1.2.42-checks'
           & 'build-windows/QQSCCeilingCheck_artefacts/Release/QQSCCeilingCheck.exe'
           if ($LASTEXITCODE -ne 0) { throw 'Ceiling checks failed' }
           & 'build-windows/QQSCReviewCheck_artefacts/Release/QQSCReviewCheck.exe' "$checkRoot/review"
@@ -57,13 +57,13 @@ jobs:
           $vst3 = "build-windows/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3"
           if (-not (Test-Path -LiteralPath $vst3)) { throw "Missing VST3 bundle: $vst3" }
           $module = Get-Content -LiteralPath "$vst3/Contents/Resources/moduleinfo.json" -Raw | ConvertFrom-Json
-          if ($module.Version -ne '1.2.41') { throw 'Wrong VST3 version' }
-          Compress-Archive -LiteralPath $vst3 -DestinationPath "QQ-Super-Compression-1.2.41-Windows-x64.zip"
+          if ($module.Version -ne '1.2.42') { throw 'Wrong VST3 version' }
+          Compress-Archive -LiteralPath $vst3 -DestinationPath "QQ-Super-Compression-1.2.42-Windows-x64.zip"
 
       - name: Upload packaged VST3
         uses: actions/upload-artifact@v4
         with:
-          name: QQ-Super-Compression-1.2.41-Windows-x64
-          path: QQ-Super-Compression-1.2.41-Windows-x64.zip
+          name: QQ-Super-Compression-1.2.42-Windows-x64
+          path: QQ-Super-Compression-1.2.42-Windows-x64.zip
           if-no-files-found: error
           retention-days: 7

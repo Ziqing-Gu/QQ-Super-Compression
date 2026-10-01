@@ -30,7 +30,7 @@ static void stoppedFastPath1237()
                 for(int i=0;i<n;++i)
                 {
                     if(signal==1)for(int ch=0;ch<2;++ch)a.setSample(ch,i,float(.8*std::sin(2*pi*(ch?73:997)*(host.sample+i)/48000.)));
-                    if(signal==2)a.setSample(0,i,1.e-15f);
+                    if(signal==2)a.setSample(0,i,1.e-8f); // Above the stopped FULL residual floor.
                     if(signal==3)for(int ch=2;ch<4;++ch)a.setSample(ch,i,.25f);
                 }
                 b.makeCopyOf(a,true);reference.stoppedSilentSamples=0;reference.stoppedDspSleeping=false;

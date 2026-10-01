@@ -1124,7 +1124,7 @@ void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int sam
     currentOversamplingFactor = 1;
     currentTotalLatencySamples = 0;
     currentLimiterCeilingActive = false;
-    stoppedSilentSamples=0;stoppedDspSleeping=false;stoppedFastPathBlocks=0;ecoTransportSuspended=false;
+    stoppedQuietOutputSamples=0;stoppedSilentSamples=0;stoppedDspSleeping=false;stoppedFastPathBlocks=0;ecoTransportSuspended=false;
     performancePhase=-1;
     for(auto& w:performanceWindows)
     {
@@ -1274,6 +1274,34 @@ void QQSuperCompressionAudioProcessor::resetAllProcessingState() noexcept
         oversampler->reset();
 }
 
+// Conservative amplitude bound for stopped FULL residuals, including upward
+// compression and gains before/after Ceiling. Never used to gate active audio.
+double QQSuperCompressionAudioProcessor::fullIdleGainBound() const noexcept
+{
+    const auto gain=[](float db){return std::pow(10.0,double(db)*.05);};
+    const auto input=gain(readSoundParameter(qqsc::params::inputGainDb));
+    const auto output=gain(getActiveOutputGainDb());
+    const auto unity=isLimiterMode() ? juce::jmax(1.0,gain(-readSoundParameter(qqsc::params::limiterOutputDb))) : 1.0;
+    const bool dual=readSoundParameter(qqsc::params::compressionMode)>=.5f;
+    const bool super=readSoundParameter(dual ? "upAlgorithmMode" : qqsc::params::algorithmMode)>=.5f;
+    const int mode=juce::roundToInt(readSoundParameter(qqsc::params::processingMode));
+    const int first=mode==qqsc::params::leftRight ? 1 : mode==qqsc::params::midSide ? 3 : 0;
+    const int last=first==0 ? 0 : first+1;
+    const char* makeupIds[]={"makeupGainDb","makeupGainLDb","makeupGainRDb","makeupGainMDb","makeupGainSDb"};
+    double domainBound=1.0;
+    for(int d=first;d<=last;++d)
+    {
+        const float ratio=dual ? qqsc::params::upwardRatio(readSoundParameter(qqsc::params::upRatioIds[size_t(d)]),isLimiterMode())
+                               : effectiveSingleRatio(size_t(d));
+        const bool upward=ratio<1.f && (!dual || readSoundParameter(qqsc::params::upEnabledIds[size_t(d)])>.5f);
+        const double boost=!upward ? 1.0 : super ? 1.0/double(juce::jmax(qqsc::minimumUpRatio,ratio))
+                                                : double(qqsc::maximumUpwardGain);
+        domainBound=juce::jmax(domainBound,boost*gain(readSoundParameter(makeupIds[d])));
+    }
+    // Reserve 12 dB for M/S summing and filter excursions, and include bypass.
+    return 4.0*juce::jmax(1.0,input*domainBound*output*unity);
+}
+
 // A transport stop is a deliberate discontinuity in ECO. Discard the old
 // carrier/ceiling history before processing the first resumed block; never emit
 // cached pre-stop audio. Reuse prepared storage and the existing PDC.
@@ -1305,7 +1333,7 @@ void QQSuperCompressionAudioProcessor::resumeFromEcoTransportStop(bool forceBypa
     truePeakHold=-120.f;truePeakRemaining=0;
     resetMatchAccumulator();matchReady.store(false,std::memory_order_relaxed);
     outputLoudness.reset();
-    stoppedSilentSamples=0;stoppedDspSleeping=false;ecoTransportSuspended=false;
+    stoppedQuietOutputSamples=0;stoppedSilentSamples=0;stoppedDspSleeping=false;ecoTransportSuspended=false;
 }
 
 void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force)
@@ -1613,7 +1641,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         && !transportPlaying && !transportRecording && !offlineRendering;
     const auto silenceRevision=displayProjectionRevision.load(std::memory_order_acquire);
     const bool silenceRevisionStable=silenceRevision==stoppedSilenceRevision;
-    bool stoppedInputIsZero=!ecoForBlock && transportAvailable && !transportPlaying && !transportRecording && !offlineRendering && silenceRevisionStable;
+    const bool stoppedFullEligible=!ecoForBlock && transportAvailable && !transportPlaying && !transportRecording && !offlineRendering && silenceRevisionStable;
     stoppedSilenceRevision=silenceRevision;
     const auto keySource = juce::jlimit (static_cast<int> (qqsc::params::keyInternal),
                                          static_cast<int> (qqsc::params::keyExternal),
@@ -1642,12 +1670,19 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         if(useExternalKey)
             idleInput.externalPeak=measureInputPeak(externalKeyBuffer,externalKeyChannels,idleInput.nonFiniteSamples);
     }
-    stoppedInputIsZero = stoppedInputIsZero && selectedInputIsZero;
+    const bool rawResidualSmall=idleInput.nonFiniteSamples==0
+        && idleInput.mainPeak<=fullIdleRawFloor
+        && (!useExternalKey || idleInput.externalPeak<=fullIdleRawFloor);
+    bool stoppedInputIsQuiet=stoppedFullEligible && rawResidualSmall
+        && (selectedInputIsZero || (double(idleInput.mainPeak)*fullIdleGainBound()<=double(fullIdleOutputFloor)
+        && double(useExternalKey ? idleInput.externalPeak : idleInput.mainPeak)
+            *std::pow(10.0,.05*double(readSoundParameter(useExternalKey ? qqsc::params::keyGainDb : qqsc::params::inputGainDb)))
+            *4.0<=double(fullIdleOutputFloor)));
     int idleGate = !transportAvailable ? 1 : offlineRendering ? 12 : transportRecording ? 11 : transportPlaying ? 2
-                 : !silenceRevisionStable ? 3 : !selectedInputIsZero ? 4 : 0;
+                 : !silenceRevisionStable ? 3 : stoppedInputIsQuiet ? 0 : !selectedInputIsZero ? (rawResidualSmall ? 15 : 4) : 0;
 
     const bool stereoBus = numInputChannels >= 2;
-    if(ecoTransportStop || (!ecoForBlock && stoppedDspSleeping && stoppedSilentSamples>0 && stoppedInputIsZero
+    if(ecoTransportStop || (!ecoForBlock && stoppedDspSleeping && stoppedSilentSamples>0 && stoppedInputIsQuiet
         && !ecoTransportSuspended && !abActive && !abTransferPending.load(std::memory_order_acquire)))
     {
         if(ecoTransportStop)
@@ -1695,7 +1730,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         lastTransportBlockSize=numSamples;
         ++stoppedFastPathBlocks;
         recordPerformanceBlock(performancePhaseForBlock, performanceStart, numSamples,
-                               selectedInputIsZero, transportPlaying, transportAvailable, true, ecoTransportStop ? 10 : 9, idleInput);
+                               selectedInputIsZero, transportPlaying, transportAvailable, true, ecoTransportStop ? 10 : !selectedInputIsZero ? 13 : 9, idleInput);
         return;
     }
     if(ecoTransportSuspended)
@@ -1882,20 +1917,27 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
     if (currentLimiterCeilingActive)
         outputCeiling.set(isTruePeakSelected(),readSoundParameter(qqsc::params::ceilingDb),getTpRecoveryMode());
 
-    // Keep the HPF advancing, including its low-frequency tail. Its selected
-    // output must be below -400 dBFS for a further second before suspending.
-    // FULL display, meter holds, host-rate controls and transport still run.
+    // Keep the HPF and output tail advancing until both have remained quiet
+    // for a full second. Zero and sub-floor blocks share the same settling
+    // window so a host alternating between them cannot defeat sleep.
     const bool idleABBusy=abActive || abTransferPending.load(std::memory_order_acquire);
-    const bool idleKeySettled=!(stoppedInputIsZero && !idleABBusy) || keyInputBuffer.getMagnitude(0,numSamples)<=1.e-20f;
-    stoppedInputIsZero=stoppedInputIsZero && !idleABBusy && idleKeySettled;
+    const bool idleKeySettled=!(stoppedInputIsQuiet && !idleABBusy)
+        || keyInputBuffer.getMagnitude(0,numSamples)<=fullIdleOutputFloor;
+    stoppedInputIsQuiet=stoppedInputIsQuiet && !idleABBusy && idleKeySettled;
     if(idleGate==0) idleGate=idleABBusy ? 5 : !idleKeySettled ? 6 : 0;
     const auto silenceWait=juce::jmax(int64_t(std::ceil(currentSampleRate)),
                                     int64_t(2)*currentTotalLatencySamples+configuredMaximumBlockSize);
-    stoppedSilentSamples=stoppedInputIsZero
+    stoppedSilentSamples=stoppedInputIsQuiet
         ? juce::jmin(silenceWait,stoppedSilentSamples+numSamples):0;
-    stoppedDspSleeping=stoppedSilentSamples>=silenceWait
-        && (!currentLimiterCeilingActive || outputCeiling.isSilentAndSettled());
-    if(idleGate==0) idleGate=stoppedDspSleeping ? 9 : stoppedSilentSamples<silenceWait ? 7 : 8;
+    const bool residualOutputSettled=stoppedQuietOutputSamples>=silenceWait;
+    // Quiet output alone is insufficient: Ceiling's release can still affect
+    // the next hit. Keep the original recovery tolerance, while permitting a
+    // sub-floor carrier instead of requiring a permanently exact-zero input.
+    const bool ceilingTailSettled=!currentLimiterCeilingActive
+        || outputCeiling.isQuietAndSettled(fullIdleOutputFloor);
+    stoppedDspSleeping=stoppedSilentSamples>=silenceWait && residualOutputSettled && ceilingTailSettled;
+    if(idleGate==0) idleGate=stoppedDspSleeping ? (!selectedInputIsZero ? 13 : 9)
+        : stoppedSilentSamples<silenceWait ? 7 : !residualOutputSettled ? 14 : 8;
 
     if(stoppedDspSleeping)
         wetBaseBuffer.clear(0,numSamples);
@@ -2504,6 +2546,14 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         meterState.gainReductionHoldDb1.store (gainReductionHoldDb[1], std::memory_order_relaxed);
     }
 
+    if(stoppedInputIsQuiet && !stoppedDspSleeping)
+    {
+        uint64_t invalid=0;
+        const auto peak=measureInputPeak(buffer,numOutputChannels,invalid);
+        stoppedQuietOutputSamples=invalid==0 && peak<=fullIdleOutputFloor
+            ? juce::jmin(silenceWait,stoppedQuietOutputSamples+numSamples) : 0;
+    }
+    else if(!stoppedInputIsQuiet) stoppedQuietOutputSamples=0;
     recordPerformanceBlock(performancePhaseForBlock, performanceStart, numSamples,
                            selectedInputIsZero, transportPlaying, transportAvailable, stoppedDspSleeping, idleGate, idleInput);
 }
@@ -2567,7 +2617,7 @@ juce::String QQSuperCompressionAudioProcessor::getPerformanceDiagnostics() const
 {
     juce::String result;
     const char* labels[] = {"FULL closed", "FULL open", "ECO closed", "ECO open"};
-    const char* gates[] = {"pending", "transport unknown", "host playing", "parameter change", "nonzero input", "A/B transition", "key/HPF tail", "draining", "Ceiling settling", "sleeping", "ECO transport stop", "host recording", "offline rendering"};
+    const char* gates[] = {"pending", "transport unknown", "host playing", "parameter change", "nonzero input", "A/B transition", "key/HPF tail", "draining", "Ceiling settling", "sleeping", "ECO transport stop", "host recording", "offline rendering", "FULL residual sleep", "FULL output tail", "FULL gain safety"};
     for (size_t i=0;i<performanceWindows.size();++i)
     {
         const auto& w=performanceWindows[i];
@@ -2580,7 +2630,7 @@ juce::String QQSuperCompressionAudioProcessor::getPerformanceDiagnostics() const
             +"\n  blocks="+juce::String(juce::int64(blocks))+", exact zero="+percent(w.zeroBlocks.load())
             +", sleep="+percent(w.sleepBlocks.load())+", playing="+percent(w.playingBlocks.load())
             +", transport unknown="+percent(w.unknownBlocks.load())
-            +"\n  Last idle gate: "+juce::String(gates[juce::jlimit(0,12,w.idleGate.load())]);
+            +"\n  Last idle gate: "+juce::String(gates[juce::jlimit(0,15,w.idleGate.load())]);
         if(w.stoppedInputBlocks.load()>0)
         {
             const auto level=[](float peak)
@@ -3607,4 +3657,3 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new QQSuperCompressionAudioProcessor();
 }
-

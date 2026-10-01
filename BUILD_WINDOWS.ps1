@@ -25,7 +25,7 @@ try {
     if ([Environment]::OSVersion.Platform -ne 'Win32NT') { throw 'This script requires Windows.' }
     $projectText = Get-Content -LiteralPath (Join-Path $source 'CMakeLists.txt') -Raw
     if ($projectText -notmatch 'project\(QQSuperCompression VERSION 1\.2\.41\s') {
-        throw 'This build helper is for QQ Super Compression 1.2.41 only.'
+        throw 'This build helper is for QQ Super Compression 1.2.42 only.'
     }
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
     if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio 2022 C++ Build Tools (and Windows SDK) are required.' }
@@ -53,7 +53,7 @@ try {
         throw 'JUCE source is not bundled. Supply the project-pinned JUCE 8.0.15 checkout: BUILD_WINDOWS.ps1 -JucePath "D:\path\to\JUCE-8.0.15"'
     }
     $JucePath = (Resolve-Path -LiteralPath $JucePath).Path
-    if ([string]::IsNullOrWhiteSpace($BuildDirectory)) { $BuildDirectory = 'D:\Codex\Temp\QQSC1241-Build' }
+    if ([string]::IsNullOrWhiteSpace($BuildDirectory)) { $BuildDirectory = 'D:\Codex\Temp\QQSC1242-Build' }
     $BuildDirectory = [IO.Path]::GetFullPath($BuildDirectory)
 
     # Build-fix archives naturally live in different source folders. CMake pins
@@ -100,11 +100,11 @@ try {
     $dll = Join-Path $bundle 'Contents\x86_64-win\QQ Super Compression.vst3'
     if (-not (Test-Path -LiteralPath $dll)) { throw 'Build returned without the expected Windows VST3 binary.' }
     $record = [ordered]@{
-        version = '1.2.41'; status = 'built locally; not installed by this script'
+        version = '1.2.42'; status = 'built locally; not installed by this script'
         source = $source; juce = $JucePath; binary = $dll; tests = $testStatus
         timestamp = (Get-Date).ToString('o'); sha256 = (Get-SourceFileSha256 -Path $dll)
     }
-    $record | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $BuildDirectory 'WINDOWS_BUILD_RESULT_1.2.41.json') -Encoding UTF8
+    $record | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $BuildDirectory 'WINDOWS_BUILD_RESULT_1.2.42.json') -Encoding UTF8
     Write-Host "Build ready: $bundle"
     Write-Host "Tests: $testStatus"
     Write-Host 'Close Cubase and other plugin hosts before manually replacing an installed VST3. Keep the previously verified source and binary as rollback.'

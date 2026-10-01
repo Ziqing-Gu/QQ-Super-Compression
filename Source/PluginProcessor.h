@@ -410,9 +410,13 @@ private:
     std::atomic<bool> ecoMode { false };
     std::atomic<bool> editorOpen { false };
     bool previousUiAnalysisEnabled = true;
-    // FULL retains exact-zero/tail-safe idle processing. ECO additionally
-    // mutes/suspends on a known stopped transport, independent of input level.
+    // FULL also admits sub-audible residuals, guarded by raw level, gain,
+    // measured output and settled tails. ECO suspends on a known host Stop.
     bool ecoTransportSuspended = false;
+    static constexpr float fullIdleRawFloor = 1.e-9f; // -180 dBFS, stopped FULL only.
+    static constexpr float fullIdleOutputFloor = 1.e-8f; // -160 dBFS, includes gain/monitor safety.
+    double fullIdleGainBound() const noexcept;
+    int64_t stoppedQuietOutputSamples = 0;
     int64_t stoppedSilentSamples = 0;
     uint64_t stoppedSilenceRevision = 0;
     bool stoppedDspSleeping = false;

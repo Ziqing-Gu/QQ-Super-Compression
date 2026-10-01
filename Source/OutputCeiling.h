@@ -55,6 +55,16 @@ public:
             && std::abs(released-1.0)<=1.e-10
             && std::abs(sum/double(gains.size())-1.0)<=1.e-10;
     }
+    // The caller has already observed quiet input/output for at least a second.
+    // Ignore exact-zero counting, but never freeze an unfinished gain release.
+    bool isQuietAndSettled(float floor) const noexcept
+    {
+        const double energyFloor=double(floor)*floor;
+        return repeatedRemaining==0
+            && energy[0]<=energyFloor && energy[1]<=energyFloor
+            && std::abs(released-1.0)<=1.e-10
+            && std::abs(sum/double(gains.size())-1.0)<=1.e-10;
+    }
     bool useConservativeTiming(int recoveryMode) const noexcept
     {
         recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recoveryMode);
@@ -323,6 +333,14 @@ public:
         if(selectedChoice==0) return true;
         return (selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16).isSilentAndSettled()
             && post.isSilentAndSettled();
+    }
+
+    bool isQuietAndSettled(float floor) const noexcept
+    {
+        if(ceiling.isSmoothing() || truePeakBlend.isSmoothing()) return false;
+        if(selectedChoice==0) return true;
+        return (selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16).isQuietAndSettled(floor)
+            && post.isQuietAndSettled(floor);
     }
 
     // Display telemetry is independent from the peak detection used by the
