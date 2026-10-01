@@ -16,6 +16,26 @@ Qing Audio 的压缩/限制器插件，适用于人声、乐器、总线和母�
 
 Qing Audio compressor/limiter for vocals, instruments, buses and mastering. Features Classic / Super curves, Single / Dual compression, ST / LR / MS, internal/external sidechain, Limiter, 1x / 4x / 8x / 16x core oversampling at 0 ms Lookahead and independent Hard Clip / TP Ceiling oversampling.
 
+## 下载与安装 / Download and installation
+
+**当前正式版 / Latest stable:** [全部 Release / All releases](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [QQ Super Compression 1.2.42](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.42)
+
+请按操作系统、宿主架构与插件格式选择文件。Mac VST3 仅需安装与宿主架构相符的一包；需要 AU 时另选 Universal 2 AU。 / Choose by OS, host architecture and plugin format. Install only the matching Mac VST3 package; choose Universal 2 AU separately when needed.
+
+- Windows 10/11 x64 · VST3：[QQ.Super.Compression.1.2.42.Windows.x64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.Windows.x64.VST3.zip)
+- macOS 11+ · Apple Silicon arm64 · VST3：[QQ.Super.Compression.1.2.42.macOS.Apple.Silicon.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.macOS.Apple.Silicon.VST3.zip)
+- macOS 11+ · Intel x86_64 · VST3：[QQ.Super.Compression.1.2.42.macOS.Intel.x86_64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.macOS.Intel.x86_64.VST3.zip)
+- macOS 11+ · Universal 2 · AU：[QQ.Super.Compression.1.2.42.macOS.Universal.2.AU.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.macOS.Universal.2.AU.zip)
+- 中文安装说明 / Chinese installation guide：[QQ.Super.Compression.1.2.42.Installation.Guide.Chinese.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.Installation.Guide.Chinese.txt)
+- English installation guide / 英文安装说明：[QQ.Super.Compression.1.2.42.Installation.Guide.English.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.Installation.Guide.English.txt)
+- 中文用户手册 / Chinese user manual：[QQ.Super.Compression.1.2.42.User.Manual.Chinese.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.User.Manual.Chinese.pdf)
+- English user manual / 英文用户手册：[QQ.Super.Compression.1.2.42.User.Manual.English.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.User.Manual.English.pdf)
+
+本版未提供 Linux 成品。升级前请保存工程、退出 DAW 并备份旧插件；macOS 包为临时签名且未经公证，遇到系统安全提示请阅读对应安装说明。
+No Linux build is provided. Save the session, quit the DAW and back up the old plugin before upgrading. macOS bundles are ad-hoc signed and not notarized; consult the installation guide for system security prompts.
+
+**注意 / Note:** GitHub 自动生成的 Source code (zip) 和 Source code (tar.gz) 是源码快照，不能直接安装为插件。 / GitHub-generated Source code (zip) and Source code (tar.gz) are source snapshots, not installable plugins.
+
 ## 当前稳定版 / Current stable version
 
 **1.2.42 (2026-10-01).** FULL 在宿主明确停播且仅有极低残留时，经输入、增益、输出和尾音安全检查后暂停主要 DSP；普通底噪和实时监听继续处理。ECO 沿用停播即停止处理。播放、录音、离线渲染与宿主状态未知时完整处理；无插件主输出启停 Crossfade，延迟不变。
