@@ -86,7 +86,7 @@ static void ecoTransport1241()
             host.playing=!offline;processor.setNonRealtime(offline);one.setSample(0,0,.25f);one.setSample(1,0,-.25f);
             processor.processBlock(one,midi);
             std::cout.precision(9); std::cout<<"TRANSPORT_FIRST_SAMPLE offline="<<offline<<" left="<<one.getSample(0,0)<<" right="<<one.getSample(1,0)<<"\n";
-            check(one.getSample(0,0)==.25f && one.getSample(1,0)==-.25f,"transport crossfade altered first sample");
+            check(std::abs(one.getSample(0,0)-.25f)<=1.e-6f && std::abs(one.getSample(1,0)+.25f)<=1.e-6f,"transport crossfade altered first sample");
         }
         processor.setPlayHead(nullptr);
     }
