@@ -1,7 +1,3 @@
-# QQ Super Compression 1.2.42 project handoff
+# Current: QQ Super Compression 1.3.2 Stable
 
-Stable: 1.2.42, explicitly promoted by the user after Windows candidate installation and evaluation. Previous Stable: 1.2.41. The Windows validation evidence is in `Verification/1.2.42-Windows/validation-report.json`; no quantified Cubase ASIO-Guard result is asserted.
-
-ECO suspends processing on a known host Stop. FULL keeps live monitoring and can suspend only after conservative low-residual input, gain, output and tail checks. Playback, recording, offline rendering and unknown transport continue full processing. No plugin main-output transport crossfade was added; PDC is unchanged.
-
-The formal Plan B source snapshot was completed and frozen separately. Later stages reuse its completion record and do not revisit or refresh that backup. Plan C synchronizes public non-commercial source and produces the Windows + three macOS artifacts. Plan D publishes a GitHub Release and README download links. See `STABLE_1.2.42.json`, `RELEASE_NOTES_1.2.42.md`, `docs/CURRENT_DOCUMENT_STATUS.md` and the current manuals.
+Current public documentation: RELEASE_NOTES_1.3.2.md, REPRODUCE_1.3.2.md, docs/CURRENT_DOCUMENT_STATUS.md. Chinese and English manuals are complete. Current workflow checks target SAFE, Distort/Window, unified OS, Display, transport and FULL residual sleep; historical tests are not all current acceptance profiles. The previously completed source backup is frozen and is not revisited for publication.

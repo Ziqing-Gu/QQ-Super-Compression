@@ -11,11 +11,10 @@ namespace qqsc
 enum class CompressionAlgorithm { classic, super };
 // QQ Super Compression transparent lookahead level engine.
 //
-// v1.2.6: align the detector to the audible sample t with two peak windows:
+// Original detector: align the audible sample t with two peak windows and use
 // min(max |x[t-N .. t]|, max |x[t .. t+N]|). Both include the current sample.
-// The audible delay remains N; the past window prevents an upcoming loud event
-// from attenuating a preceding quiet plateau. Steady tones still use peak hold.
-// This is not a guarantee of zero modulation distortion on changing signals.
+// The optional bilateral detector uses max of the same two peaks. It covers
+// transients on either side without adding an Attack/Release envelope.
 //
 // There is intentionally NO compressor Attack or Release envelope here.
 // Gain is derived directly from the current lookahead-window level:
@@ -59,6 +58,8 @@ public:
         peakHistoryWrite = 0;
         peakHistoryCount = 0;
         currentLevel = 0.0f;
+        currentFuturePeak = 0.0f;
+        currentPastPeak = 0.0f;
         currentGain = 1.0f;
         currentGainReductionDb = 0.0f;
     }
@@ -87,7 +88,10 @@ public:
         // A zero-length window is exactly this sample. Changing lookahead
         // resets the queues; the processor replays its retained key history.
         if (lookaheadSamples == 0)
+        {
+            currentFuturePeak = currentPastPeak = magnitude;
             return currentLevel = magnitude;
+        }
 
         while (queueCount > 0 && backValue() <= magnitude)
             popBack();
@@ -104,6 +108,8 @@ public:
         const auto pastIndex = peakHistoryWrite >= delay ? peakHistoryWrite - delay
                                                         : peakHistoryWrite + peakHistory.size() - delay;
         const auto pastPeak = peakHistoryCount >= delay ? peakHistory[pastIndex] : 0.0f;
+        currentFuturePeak = futurePeak;
+        currentPastPeak = pastPeak;
         currentLevel = juce::jmin (futurePeak, pastPeak);
         if (++peakHistoryWrite == peakHistory.size()) peakHistoryWrite = 0;
         peakHistoryCount = juce::jmin (peakHistoryCount + 1, peakHistory.size());
@@ -262,6 +268,9 @@ public:
     }
 
     float getCurrentLevel() const noexcept { return currentLevel; }
+    float getCurrentFuturePeak() const noexcept { return currentFuturePeak; }
+    float getCurrentPastPeak() const noexcept { return currentPastPeak; }
+    float getCurrentBilateralPeak() const noexcept { return juce::jmax (currentFuturePeak, currentPastPeak); }
     float getCurrentGain() const noexcept { return currentGain; }
     float getCurrentGainReductionDb() const noexcept { return currentGainReductionDb; }
     int getLookaheadSamples() const noexcept { return lookaheadSamples; }
@@ -319,6 +328,8 @@ private:
     size_t peakHistoryCount = 0;
 
     float currentLevel = 0.0f;
+    float currentFuturePeak = 0.0f;
+    float currentPastPeak = 0.0f;
     float currentGain = 1.0f;
     float currentGainReductionDb = 0.0f;
 };

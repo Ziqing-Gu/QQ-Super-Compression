@@ -1,5 +1,87 @@
 #include "PluginEditor.h"
 
+void QQSuperCompressionAudioProcessorEditor::refreshDetectorWindowControl()
+{
+    const auto maximum = qqsc::params::snapLookaheadMs (processor.readSoundParameter (qqsc::params::lookaheadMs));
+    const bool safe = processor.readSoundParameter(qqsc::params::detectorMode) >= 0.5f;
+    const auto value = safe ? processor.readSoundParameter(qqsc::params::detectorWindowMs)
+        : juce::jlimit (0.0f, 100.0f, processor.readSoundParameter (qqsc::params::distort));
+    detectorWindowLabel.setText(safe ? "WINDOW" : "DISTORT",juce::dontSendNotification);
+    detectorWindowValue.setTooltip(safe
+        ? "Safe Window: 0 ms to Lookahead. A longer window helps prevent gain-modulation crackles at the cost of pre/post attenuation. Double-click: type ms. Drag vertically; Shift: fine. Alt-click: full Lookahead. Window 0 equals Normal at Distort 100%."
+        : "Normal Distort: 0% = full detection window; 100% = sample detection. Higher settings can add coloration or crackles. This is not measured THD; 0% is not zero distortion. Double-click: type %. Drag vertically; Shift: fine. Alt-click: 0%.");
+    detectorWindowValue.setEnabled (maximum > 0.0f);
+    detectorWindowLabel.setAlpha (maximum > 0.0f ? 1.0f : 0.45f);
+    if (! detectorWindowValue.isBeingEdited())
+        detectorWindowValue.setText (juce::String (value, 2) + (safe ? " ms" : " %"), juce::dontSendNotification);
+}
+
+void QQSuperCompressionAudioProcessorEditor::setDetectorWindowValue (double value)
+{
+    const auto maximum = qqsc::params::snapLookaheadMs (processor.readSoundParameter (qqsc::params::lookaheadMs));
+    if (std::isfinite (value))
+    {
+        auto* parameter = processor.getAPVTS().getParameter (qqsc::params::distort);
+        const auto percent=processor.readSoundParameter(qqsc::params::detectorMode)>=0.5f
+            ? qqsc::params::distortForWindowMs(maximum,float(juce::jlimit(0.0,double(maximum),value)))
+            : float(juce::jlimit(0.0,100.0,value));
+        parameter->setValueNotifyingHost (parameter->convertTo0to1(percent));
+    }
+    refreshDetectorWindowControl();
+}
+
+void QQSuperCompressionAudioProcessorEditor::initialiseDetectorWindowControl()
+{
+    configureLabel (detectorWindowLabel, "DISTORT");
+    configureLabel (detectorWindowValue, {});
+    detectorWindowValue.setFont (juce::Font (juce::FontOptions (11.0f)));
+    detectorWindowValue.setEditable (false, true, false);
+    detectorWindowValue.setComponentID (qqsc::params::distort);
+    detectorWindowValue.setTooltip ("Distort: 0% uses the full detection window; 100% uses sample detection. Higher values shorten Safe's pre/post attenuation and may add coloration or crackles. The percentage is not measured THD. Lookahead delay stays fixed. Double-click: type %. Drag vertically; Shift: fine. Alt-click: 0%. At 0 ms this control has no effect.");
+    for (auto* component : { &detectorWindowLabel, static_cast<juce::Label*>(&detectorWindowValue) })
+    {
+        contentRoot.addAndMakeVisible (*component);
+        registerKeyboardListener (*component);
+    }
+    detectorWindowValue.start = [this]
+    {
+        beginUndoTransaction ("Distort");
+        detectorWindowDragValue = processor.readSoundParameter(processor.readSoundParameter(qqsc::params::detectorMode)>=0.5f
+            ? qqsc::params::detectorWindowMs : qqsc::params::distort);
+        processor.getAPVTS().getParameter (qqsc::params::distort)->beginChangeGesture();
+    };
+    detectorWindowValue.move = [this] (float delta, bool fine)
+    {
+        const auto maximum=processor.readSoundParameter(qqsc::params::detectorMode)>=0.5f
+            ? qqsc::params::snapLookaheadMs(processor.readSoundParameter(qqsc::params::lookaheadMs)) : 100.0f;
+        detectorWindowDragValue = juce::jlimit (0.0, double(maximum), detectorWindowDragValue + double(delta) * (fine ? 0.01 : 0.1));
+        setDetectorWindowValue (detectorWindowDragValue);
+    };
+    detectorWindowValue.finish = [this] { processor.getAPVTS().getParameter (qqsc::params::distort)->endChangeGesture(); };
+    detectorWindowValue.reset = [this]
+    {
+        beginUndoTransaction ("Reset Distort");
+        auto* parameter = processor.getAPVTS().getParameter (qqsc::params::distort);
+        parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(0.0f));
+        parameter->endChangeGesture(); refreshDetectorWindowControl();
+    };
+    detectorWindowValue.onEditorShow = [this]
+    {
+        if (auto* editor = detectorWindowValue.getCurrentTextEditor())
+        { editor->setInputRestrictions (16, "0123456789+-. %msMS"); registerKeyboardListener (*editor); }
+    };
+    detectorWindowValue.onTextChange = [this]
+    {
+        const auto text = detectorWindowValue.getText().trim();
+        if (! text.containsAnyOf ("0123456789")) { refreshDetectorWindowControl(); return; }
+        beginUndoTransaction ("Distort");
+        auto* parameter = processor.getAPVTS().getParameter (qqsc::params::distort);
+        parameter->beginChangeGesture(); setDetectorWindowValue (text.getDoubleValue()); parameter->endChangeGesture();
+    };
+    refreshDetectorWindowControl();
+}
+
 void QQSuperCompressionAudioProcessorEditor::setLimiterParameter (const char* id, float value)
 {
     if (auto* parameter = processor.getAPVTS().getParameter (id))
@@ -15,6 +97,19 @@ void QQSuperCompressionAudioProcessorEditor::refreshCeilingValue()
 
 void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
 {
+    initialiseDetectorWindowControl();
+    configureActionButton (detectorModeButton);
+    contentRoot.addAndMakeVisible (detectorModeButton);
+    registerKeyboardListener (detectorModeButton);
+    detectorModeButton.setComponentID (qqsc::params::detectorMode);
+    detectorModeButton.setTooltip ("SAFE: lit = Safe detection with Window in ms; unlit = Normal detection with Distort in %. Safe uses the larger surrounding peak to help prevent gain-modulation crackles, at the cost of pre/post attenuation. At Window 0 ms both detectors are identical. No extra Attack/Release envelope.");
+    detectorModeButton.onClick = [this]
+    {
+        beginUndoTransaction ("Detector Mode");
+        const auto next = processor.readSoundParameter (qqsc::params::detectorMode) >= 0.5f ? 0 : 1;
+        setChoiceParameter (qqsc::params::detectorMode, next);
+        updateLimiterUi();
+    };
     for (auto* button : { &limiterButton,&limiterLinkButton,&unityMonitorButton,&truePeakButton,&tpRecoveryButton })
     {
         configureActionButton (*button); contentRoot.addAndMakeVisible (*button); registerKeyboardListener (*button);
@@ -53,13 +148,13 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     unityMonitorButton.setTitle("1:1 Monitor");
     unityMonitorButton.getProperties().set("qqscSmallLink",true);
     unityMonitorButton.getProperties().set("qqscHeadphones",true);
-    unityMonitorButton.setTooltip("1:1 Monitor: cancel Output Gain after the complete limiter and Ceiling. Active UP/DOWN Threshold and Makeup 1:1 links remain active. Use MATCH, then Bypass for a loudness comparison. Saved with this project, independent of A/B.");
+    unityMonitorButton.setTooltip("1:1 Monitor: cancel Output Gain after the complete limiter and Ceiling. DOWN Threshold and Makeup 1:1 links remain active; UP is independent. Use MATCH, then Bypass for a loudness comparison. Saved with this project, independent of A/B.");
     unityMonitorButton.onClick=[this]
     {
         processor.setUnityMonitorEnabled(!processor.isUnityMonitorEnabled());
         updateLimiterUi();
     };
-    limiterLinkButton.setTooltip ("Strict 1:1 dB Link: the active UP or DOWN Threshold and Makeup move Output Gain by the same dB amount in the opposite direction; editing Output moves every active non-unity Threshold oppositely 1:1. Ratio, Mix, Input and algorithms never adjust Output.");
+    limiterLinkButton.setTooltip ("Strict 1:1 dB Link: the active DOWN Threshold and Makeup move Output Gain by the same dB amount in the opposite direction; editing Output moves active DOWN Thresholds oppositely 1:1. UP Threshold is independent. Ratio, Mix, Input and algorithms never adjust Output.");
     limiterButton.onClick = [this]
     {
         finishCompressionControlGestures(); beginUndoTransaction ("Limiter Mode");
@@ -184,6 +279,9 @@ void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
     if(!limiterControlsReady) return;
     const bool limiter=processor.isLimiterMode(), dual=attachedCompressionMode==1;
     const juce::ScopedValueSetter<bool> guard(limiterUpdating,true);
+    const bool bilateral = processor.readSoundParameter (qqsc::params::detectorMode) >= 0.5f;
+    detectorModeButton.setToggleState (bilateral, juce::dontSendNotification);
+    refreshDetectorWindowControl();
     limiterButton.setToggleState(limiter,juce::dontSendNotification);
     limiterLinkButton.setToggleState(processor.isLimiterLinked(),juce::dontSendNotification);
     unityMonitorButton.setToggleState(processor.isUnityMonitorEnabled(),juce::dontSendNotification);
@@ -408,11 +506,10 @@ void QQSuperCompressionAudioProcessorEditor::beginLimiterOutputGesture()
             continue;
         }
 
-        const auto upRatio=qqsc::params::upwardRatio(processor.readSoundParameter(qqsc::params::upRatioIds[d]),true);
         const auto downRatio=qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[d]),true,true);
-        const bool upActive=processor.readSoundParameter(qqsc::params::upEnabledIds[d])>=0.5f && upRatio<1.0f-1.0e-6f;
+
         const bool downActive=processor.readSoundParameter(qqsc::params::downEnabledIds[d])>=0.5f && downRatio>1.0f+1.0e-6f;
-        if(upActive) openGesture(qqsc::params::upThresholdIds[d]);
+
         if(downActive) openGesture(qqsc::params::downThresholdIds[d]);
     }
 }
@@ -449,25 +546,15 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
             continue;
         }
 
-        const auto upRatio=qqsc::params::upwardRatio(processor.readSoundParameter(qqsc::params::upRatioIds[size_t(d)]),true);
         const auto downRatio=qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[size_t(d)]),true,true);
-        const bool upActive=processor.readSoundParameter(qqsc::params::upEnabledIds[size_t(d)])>=0.5f && upRatio<1.0f-1.0e-6f;
-        const bool downActive=processor.readSoundParameter(qqsc::params::downEnabledIds[size_t(d)])>=0.5f && downRatio>1.0f+1.0e-6f;
-        moveLower[size_t(d)]=upActive; moveUpper[size_t(d)]=downActive;
 
-        const auto lowerFloor=processor.isClassicBoundary(false) ? -90.0f : -120.0f;
+        const bool downActive=processor.readSoundParameter(qqsc::params::downEnabledIds[size_t(d)])>=0.5f && downRatio>1.0f+1.0e-6f;
+        moveLower[size_t(d)]=false; moveUpper[size_t(d)]=downActive;
+
         const auto upperFloor=processor.isClassicBoundary(true) ? -90.0f : -120.0f;
-        if(upActive)
-        {
-            const auto minimum=lowerFloor;
-            const auto maximum=downActive ? 0.0f : juce::jmin(0.0f,limiterStartUpperThresholds[size_t(d)]-0.01f);
-            const auto start=limiterStartLowerThresholds[size_t(d)];
-            minDelta=juce::jmax(minDelta,start-maximum);
-            maxDelta=juce::jmin(maxDelta,start-minimum);
-        }
         if(downActive)
         {
-            const auto minimum=upActive ? upperFloor : juce::jmax(upperFloor,juce::jmin(0.0f,limiterStartLowerThresholds[size_t(d)]+0.01f));
+            const auto minimum=juce::jmax(upperFloor,limiterStartLowerThresholds[size_t(d)]);
             const auto maximum=0.0f;
             const auto start=limiterStartUpperThresholds[size_t(d)];
             minDelta=juce::jmax(minDelta,start-maximum);

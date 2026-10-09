@@ -69,6 +69,9 @@ namespace qqsc::params
     inline constexpr auto outputGainDb   = "outputGainDb";
     inline constexpr auto inputOutputLink = "inputOutputLink";
     inline constexpr auto lookaheadMs    = "lookaheadMs";
+    inline constexpr auto detectorMode   = "detectorMode"; // Original or bilateral peak window
+    inline constexpr auto distort = "distort"; // 0% full window, 100% sample detection
+    inline constexpr auto detectorWindowMs = "detectorWindowMs"; // Radius, independent of audio/PDC delay
     inline constexpr auto oversampling   = "oversampling";
     inline constexpr auto processingMode = "processingMode";
     inline constexpr auto bypass         = "bypass";
@@ -370,7 +373,7 @@ namespace qqsc::params
     };
 
 
-    inline constexpr std::array<float, 6> lookaheadPresetMs { 0.0f, 10.0f, 26.0f, 40.0f, 80.0f, 100.0f };
+    inline constexpr std::array<float, 5> lookaheadPresetMs { 0.0f, 26.0f, 40.0f, 80.0f, 100.0f };
     inline constexpr std::array<int, 4> oversamplingFactors { 1, 4, 8, 16 };
     inline constexpr std::array<int, 4> oversamplingStageCounts { 0, 2, 3, 4 };
 
@@ -415,20 +418,22 @@ namespace qqsc::params
 
     inline juce::StringArray lookaheadChoices()
     {
-        return { "0 ms", "10 ms", "26 ms", "40 ms", "80 ms", "100 ms" };
+        return { "0 ms", "26 ms", "40 ms", "80 ms", "100 ms" };
     }
 
     inline int lookaheadChoiceIndexForMs (float ms) noexcept
     {
+        // The retired 10 ms preset (including its legacy 5 ms midpoint) now
+        // selects 26 ms. Do not migrate that nonzero mode to zero latency.
+        if (ms >= 5.0f && ms < 26.0f)
+            return 1;
         int bestIndex = 0;
         auto bestDistance = std::abs (ms - lookaheadPresetMs[0]);
 
         for (int i = 1; i < static_cast<int> (lookaheadPresetMs.size()); ++i)
         {
             const auto distance = std::abs (ms - lookaheadPresetMs[static_cast<size_t> (i)]);
-            // On an exact tie prefer the longer preset. This avoids migrating
-            // a legacy non-zero Lookahead (notably 5 ms) down to the special
-            // 0 ms distortion/flavour mode.
+            // On an exact tie prefer the longer preset.
             if (distance <= bestDistance)
             {
                 bestDistance = distance;
@@ -452,13 +457,16 @@ namespace qqsc::params
 
     inline int effectiveOversamplingChoiceIndex (float requestedLookaheadMs, int userChoiceIndex) noexcept
     {
-        // Oversampling is intentionally a 0 ms flavour/anti-aliasing option only.
-        // User PluginDoctor testing found no meaningful aliasing need at 10 ms
-        // or longer, so every non-zero Lookahead always runs the Ratio core at 1x.
-        if (snapLookaheadMs (requestedLookaheadMs) > 0.0001f)
-            return 0;
-
+        juce::ignoreUnused (requestedLookaheadMs); // One audio OS factor at every Lookahead.
         return juce::jlimit (0, static_cast<int> (oversamplingFactors.size()) - 1, userChoiceIndex);
+    }
+
+    inline float windowMsForDistort (float lookahead, float percent) noexcept
+    { return snapLookaheadMs(lookahead) * (1.0f - juce::jlimit(0.0f,100.0f,percent) * 0.01f); }
+    inline float distortForWindowMs (float lookahead, float window) noexcept
+    {
+        lookahead = snapLookaheadMs(lookahead);
+        return lookahead > 0.0f ? juce::jlimit(0.0f,100.0f,100.0f*(1.0f-window/lookahead)) : 0.0f;
     }
 
     inline juce::StringArray modeChoices()

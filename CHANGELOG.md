@@ -1,3 +1,22 @@
+# QQ Super Compression changelog
+
+### 1.3.2 — Stable, 2026-10-09
+
+- 中文：检测切换统一为 SAFE 按钮，位于 Limiter 右侧。新实例默认关闭；点亮为黄色 Safe，关闭为 Normal。Normal 显示 Distort 百分比，Safe 显示 Window 毫秒；切换保持实际窗口长度。更新配套中英文 43 页手册。DSP 沿用已验证的 1.3.1 后续方案。
+- English: A fixed SAFE button sits to the right of Limiter, off by default in new instances. Lit yellow means Safe; unlit means Normal. Normal shows Distort percent, Safe shows Window in milliseconds; switching retains the actual window. Includes matching 43-page Chinese and English manuals. DSP retains the verified final 1.3.1 design.
+
+### 1.3.1 — Development series consolidated into 1.3.2
+
+- 中文：在固定 Lookahead 基础延迟内加入可调检测窗口。Normal 的 Distort 0% 对应全窗口，100% 对应零窗口；Safe 的 Window 为 0 至当前 Lookahead。手动切换 Lookahead 和 Alt 单击恢复全窗口，工程及 A/B 保留已存设置。过采样统一为 1x/4x/8x/16x，覆盖所有 Lookahead 的动态与 Ceiling；保留 1x 音频下的独立 TP 重建检测。移除 10 ms 档，旧 10/5 ms 状态迁移至 26 ms，最终档位为 0/26/40/80/100 ms。Limiter 上压阈值不再参与 Output/Makeup 联动，Super 最低 -inf、Classic 最低 -90 dB；下压和 Makeup 联动保留。修正 0 ms、Lookahead 切换及 A/B 的 Display 对齐。
+- English: Adds an adjustable detector window within the fixed Lookahead base delay. Normal Distort maps 0% to the full window and 100% to zero; Safe Window spans zero to the current Lookahead. Manual Lookahead changes and Alt-click restore the full window; projects and A/B retain saved settings. Unified 1x/4x/8x/16x audio oversampling covers dynamics and Ceiling at every Lookahead, including independent TP reconstruction at native 1x audio. Removes the 10 ms preset; old 10/5 ms states migrate to 26 ms. Final presets are 0/26/40/80/100 ms. Limiter UP Threshold no longer links to Output/Makeup; its Super floor is -inf and Classic floor is -90 dB. DOWN and Makeup linking remain. Corrects Display alignment at 0 ms and across Lookahead/A/B changes.
+
+### 1.3.0 — Detector investigation and comparison candidate
+
+- 中文：针对带 Delay/混响素材的持续噼啪声，引入前后窗口峰值取较小值与取较大值的对比方案，并排查 1:1 Display 参考对齐。较大峰值方案以提前压及峰后压为代价，帮助抑制快速增益变化；相关候选方案在 1.3.1 中进一步整理。本系列未采用隐藏 Attack/Release 作为动态修复。
+- English: Investigates persistent crackles on delay/reverb material with a comparison between the smaller and larger of past/future window peaks, alongside unity-ratio Display reference alignment. The larger-peak approach trades pre/post-attenuation for reduced rapid gain changes; the candidate designs are consolidated in 1.3.1. No hidden Attack/Release stage was introduced as the dynamics fix.
+
+---
+
 # QQ Super Compression 1.2.8 - 2026-09-28
 
 ## 中文
@@ -258,10 +277,8 @@ for evidence. Earlier headings below are historical, not the current spec.
 - Three themes share94px primary dials/216px spacing. Ratio arcs start at unity;
   Single origin.5, Dual UP origin1, Dual DOWN origin0. Mode button(380,620,60,21);
   Ratio LINK ST(278,644,36,17), LR/MS(281,636,30,14).
-- Source `D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown`; build remains
-  `D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown`; output
-  `D:\Codex\Outputs\QQ Super Compression 1.2.0 Rev3`.
-- Rev2 source checkpoint `D:\Codex\Archives\QQSuperCompression-1.2.0-Rev2-before-Rev3-20260910`.
+- Historical Rev3 source, build and output were stored in separate local directories.
+- A Rev2 source checkpoint was retained before Rev3.
 - Build targets QQSuperCompression_VST3, QQSCVisualCheck, QQSCDynamicsCheck.
   Actual installation status/hashes: Rev3 output `Verification/INSTALLATION.json`.
   Stable promotion and Plan B are the current scope; Plan C/D, remote publication,
@@ -296,7 +313,7 @@ and installation results must come from the Rev2 verification record.
   480-point history and shared final Output curve.
 - Mode rebinding during a drag now closes the old host parameter gesture;
   linked Ratio numeric commits also notify the target parameter's gesture.
-- Delivery directory: `D:\Codex\Outputs\QQ Super Compression 1.2.0 Rev2`.
+- Delivery directory: historical local working directory.
   No GitHub publication, macOS delivery, Stable promotion or multiband changes.
   Rev1 hashes, timings and installation results below are historical.
 
@@ -306,9 +323,9 @@ and installation results must come from the Rev2 verification record.
 
 2026-09-10. Candidate only; 1.1.9 remains the Stable rollback. Windows VST3 installed after two host-closure checks, with complete build/output/install SHA-256 parity. The previous installed 1.1.9 bundle is preserved and verified in the output rollback folder.
 
-- Source: D:\Codex\Workspaces\QQSuperCompression-1.2.0-UpDown
-- Build: D:\Codex\Temp\QQSuperCompression-1.2.0-UpDown
-- Output: D:\Codex\Outputs\QQ Super Compression 1.2.0 UpDown Experiment
+- Source: historical local working directory.
+- Build: historical local working directory.
+- Output: historical local working directory.
 - Installed: C:\Program Files\Common Files\VST3\QQ Super Compression.vst3
 - Windows binary SHA-256: 359ACBB47019DC70ED64A9321EA6C2983CA8F4E600D6CC6FFFF15DD9A67B0C09
 - Actual processor audio/state tests, actual-editor fader/ratio tests, three-theme ST/MS/LR/minimum screenshots and ten inherited source/math regressions pass. See VERIFICATION_1.2.0.md and output Verification/INSTALLATION.json.

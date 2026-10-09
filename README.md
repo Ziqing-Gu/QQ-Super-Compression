@@ -10,11 +10,11 @@
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 
-# QQ Super Compression 1.2.42 Stable
+# QQ Super Compression 1.3.2 Stable
 
-Qing Audio 的压缩/限制器插件，适用于人声、乐器、总线和母带。支持 Classic / Super 曲线、Single / Dual、ST / LR / MS、内外侧链、Limiter、0 ms Lookahead 下 1x / 4x / 8x / 16x 核心过采样，以及独立的 Hard Clip / TP Ceiling 过采样。
+Qing Audio 压缩/限制器，支持 Classic/Super、Single/Dual、ST/LR/MS、内外侧链与 Limiter。SAFE 默认关闭；Normal 使用 Distort，Safe 使用 Window；统一 1x/4x/8x/16x 过采样作用于所有 Lookahead。Lookahead 档位为 0/26/40/80/100 ms。
 
-Qing Audio compressor/limiter for vocals, instruments, buses and mastering. Features Classic / Super curves, Single / Dual compression, ST / LR / MS, internal/external sidechain, Limiter, 1x / 4x / 8x / 16x core oversampling at 0 ms Lookahead and independent Hard Clip / TP Ceiling oversampling.
+Qing Audio compressor/limiter with Classic/Super, Single/Dual, ST/LR/MS, internal/external sidechains and Limiter. SAFE defaults off; Normal uses Distort and Safe uses Window. Unified 1x/4x/8x/16x audio oversampling works at every Lookahead. Presets: 0/26/40/80/100 ms.
 
 ## 下载与安装 / Download and installation
 
@@ -38,13 +38,26 @@ No Linux build is provided. Save the session, quit the DAW and back up the old p
 
 ## 当前稳定版 / Current stable version
 
-**1.2.42 (2026-10-01).** FULL 在宿主明确停播且仅有极低残留时，经输入、增益、输出和尾音安全检查后暂停主要 DSP；普通底噪和实时监听继续处理。ECO 沿用停播即停止处理。播放、录音、离线渲染与宿主状态未知时完整处理；无插件主输出启停 Crossfade，延迟不变。
+**1.3.2 (2026-10-09).** SAFE 开关、Distort/Window、统一过采样与 Display 对齐更新；完整变化见下方逐版本记录及 [双语发行说明](RELEASE_NOTES_1.3.2.md)。Windows 复用已验证成品，macOS 由当前源码工作流生成；完整交付状态见 Release。
 
-**1.2.42 (2026-10-01).** On a known Stop, FULL suspends major DSP only after conservative low-residual input, gain, output and tail checks; normal noise and live monitoring keep processing. ECO retains transport-stop suspension. Playback, recording, offline rendering and unknown transport fully process. No new main-output Stop/Start crossfade or latency change.
-
-Windows automated checks and actual VST3 residual tests passed. Per-plugin CPU time does not equal Cubase ASIO-Guard percentage. See [release notes](RELEASE_NOTES_1.2.42.md), [validation record](Verification/1.2.42-Windows/validation-report.json) and [Stable record](STABLE_1.2.42.json).
+**1.3.2 (2026-10-09).** SAFE toggle, Distort/Window, unified oversampling and Display alignment updates. See the per-version history below and [bilingual release notes](RELEASE_NOTES_1.3.2.md). The verified Windows binary is reused; macOS artifacts are built from the current source workflow. See Release for delivery status.
 
 ## 版本记录 / Version history
+
+### 1.3.2 — Stable, 2026-10-09
+
+- 中文：检测切换统一为 SAFE 按钮，位于 Limiter 右侧。新实例默认关闭；点亮为黄色 Safe，关闭为 Normal。Normal 显示 Distort 百分比，Safe 显示 Window 毫秒；切换保持实际窗口长度。更新配套中英文 43 页手册。DSP 沿用已验证的 1.3.1 后续方案。
+- English: A fixed SAFE button sits to the right of Limiter, off by default in new instances. Lit yellow means Safe; unlit means Normal. Normal shows Distort percent, Safe shows Window in milliseconds; switching retains the actual window. Includes matching 43-page Chinese and English manuals. DSP retains the verified final 1.3.1 design.
+
+### 1.3.1 — Development series consolidated into 1.3.2
+
+- 中文：在固定 Lookahead 基础延迟内加入可调检测窗口。Normal 的 Distort 0% 对应全窗口，100% 对应零窗口；Safe 的 Window 为 0 至当前 Lookahead。手动切换 Lookahead 和 Alt 单击恢复全窗口，工程及 A/B 保留已存设置。过采样统一为 1x/4x/8x/16x，覆盖所有 Lookahead 的动态与 Ceiling；保留 1x 音频下的独立 TP 重建检测。移除 10 ms 档，旧 10/5 ms 状态迁移至 26 ms，最终档位为 0/26/40/80/100 ms。Limiter 上压阈值不再参与 Output/Makeup 联动，Super 最低 -inf、Classic 最低 -90 dB；下压和 Makeup 联动保留。修正 0 ms、Lookahead 切换及 A/B 的 Display 对齐。
+- English: Adds an adjustable detector window within the fixed Lookahead base delay. Normal Distort maps 0% to the full window and 100% to zero; Safe Window spans zero to the current Lookahead. Manual Lookahead changes and Alt-click restore the full window; projects and A/B retain saved settings. Unified 1x/4x/8x/16x audio oversampling covers dynamics and Ceiling at every Lookahead, including independent TP reconstruction at native 1x audio. Removes the 10 ms preset; old 10/5 ms states migrate to 26 ms. Final presets are 0/26/40/80/100 ms. Limiter UP Threshold no longer links to Output/Makeup; its Super floor is -inf and Classic floor is -90 dB. DOWN and Makeup linking remain. Corrects Display alignment at 0 ms and across Lookahead/A/B changes.
+
+### 1.3.0 — Detector investigation and comparison candidate
+
+- 中文：针对带 Delay/混响素材的持续噼啪声，引入前后窗口峰值取较小值与取较大值的对比方案，并排查 1:1 Display 参考对齐。较大峰值方案以提前压及峰后压为代价，帮助抑制快速增益变化；相关候选方案在 1.3.1 中进一步整理。本系列未采用隐藏 Attack/Release 作为动态修复。
+- English: Investigates persistent crackles on delay/reverb material with a comparison between the smaller and larger of past/future window peaks, alongside unity-ratio Display reference alignment. The larger-peak approach trades pre/post-attenuation for reduced rapid gain changes; the candidate designs are consolidated in 1.3.1. No hidden Attack/Release stage was introduced as the dynamics fix.
 
 ### 1.2.42 — Stable, 2026-10-01
 
@@ -89,20 +102,26 @@ Windows 10/11 x64 提供 VST3；macOS 11+ 提供 Apple Silicon VST3、Intel x86_
 
 Windows 10/11 x64 uses VST3. macOS 11+ has Apple Silicon VST3, Intel x86_64 VST3 and Universal 2 AU. Select one macOS VST3 architecture for the host. Close the host and back up the session and old bundle before upgrading.
 
-- [中文说明书，41 页](docs/manuals/QQ-Super-Compression-1.2.42-User-Manual-Chinese.pdf) / [English manual, 41 pages](docs/manuals/QQ-Super-Compression-1.2.42-User-Manual-English.pdf)
-- [中文安装指南](docs/QQ-Super-Compression-1.2.42-INSTALL-CN.txt) / [English installation guide](docs/QQ-Super-Compression-1.2.42-INSTALL-EN.txt)
+- [中文说明书，43 页](docs/manuals/QQ-Super-Compression-1.3.2-User-Manual-Chinese.pdf) / [English manual, 43 pages](docs/manuals/QQ-Super-Compression-1.3.2-User-Manual-English.pdf)
+- [中文安装指南](docs/QQ-Super-Compression-1.3.2-INSTALL-CN.txt) / [English installation guide](docs/QQ-Super-Compression-1.3.2-INSTALL-EN.txt)
 - [当前文档状态 / Current document status](docs/CURRENT_DOCUMENT_STATUS.md)
 
 ## 使用要点 / Basic use
 
-Limiter 通常从 Ratio 20:1–1000:1 开始，保持 Output LINK，缓慢降低阈值。0 ms Lookahead 可配合 4x / 8x / 16x 核心过采样试听响段与静段的动态对比。下压调好后，可适度加入 1:1–1:1.2 上压，并留意底鼓与军鼓延音。
+Limiter 通常从 Ratio 20:1–1000:1 开始，保持 Output LINK，缓慢降低阈值。0 ms Lookahead 可配合 4x / 8x / 16x 总过采样试听响段与静段的动态对比。下压调好后，可适度加入 1:1–1:1.2 上压，并留意底鼓与军鼓延音。
 
-For Limiter, start with Ratio 20:1–1000:1, keep Output LINK on and lower Threshold gradually. Try 0 ms Lookahead with 4x / 8x / 16x core oversampling for loud/quiet contrast. After downward compression, optional gentle 1:1–1:1.2 upward compression needs care with kick/snare sustain.
+For Limiter, start with Ratio 20:1–1000:1, keep Output LINK on and lower Threshold gradually. Try 0 ms Lookahead with 4x / 8x / 16x overall oversampling for loud/quiet contrast. After downward compression, optional gentle 1:1–1:1.2 upward compression needs care with kick/snare sustain.
 
 ## 编译 / Build
 
-JUCE is pinned to 8.0.15. Windows requires VS 2022 C++ Build Tools, Windows SDK and CMake 3.22+; run `BUILD_WINDOWS.cmd` in an x64 Native Tools environment. The helper builds under `D:\Codex\Temp\QQSC1242-Build` by default and does not install. CMake can use the included `Dependencies/JUCE-8.0.15` or fetch the pinned source. Manual macOS workflows build arm64 and x86_64 VST3 and Universal 2 AU with macOS deployment target 11.0.
+JUCE 固定为 8.0.15；CMake 3.22+。Windows 使用 VS 2022 C++ 工具与 Windows SDK，macOS 使用 Xcode Command Line Tools。macOS 最低部署版本为 11.0。详见 [复现说明 / reproduction](REPRODUCE_1.3.2.md)。Windows Actions 仅手动触发，本次交付复用已验证 Windows 成品。
+
+JUCE is pinned to 8.0.15. Use CMake 3.22+, VS 2022 C++ tools and Windows SDK on Windows, or Xcode Command Line Tools on macOS. The macOS deployment target is 11.0. See [reproduction instructions](REPRODUCE_1.3.2.md). Windows Actions remains manual; this release reuses its verified Windows build.
 
 ## 已知限制 / Known limits
+
+Safe 的较长 Window 会提前压及峰后压；较短窗口可能增加染色或噼啪声。统一过采样减少混叠但不保证所有素材无失真。旧工程升级后请核对 OS 和延迟补偿。
+
+Longer Safe windows can cause pre/post-attenuation. Shorter windows can increase coloration or crackles. Unified oversampling reduces aliasing but does not guarantee distortion-free processing. Check OS and host latency compensation after migrating old sessions.
 
 FULL may stay awake at extreme gain or with active input/selected sidechain. ECO cuts tails when the host reports Stop. Plugin CPU timings cannot be translated to an ASIO-Guard percentage; DAW scheduling and buffer conditions matter. macOS artifacts are ad-hoc signed and may require trusted-source quarantine handling as described in the installation guides. Commercial use is prohibited; redistributed binaries require free complete corresponding source and the required notices.

@@ -5,7 +5,13 @@ void algorithmStateChecks()
     QQSuperCompressionAudioProcessor p;
     check(get(p,"algorithmMode")==0,"New instances must default to Classic");
     auto* last=dynamic_cast<juce::AudioProcessorParameterWithID*>(p.getParameters().getLast());
-    check(last && last->paramID=="ceilingOversampling","Ceiling OS must be appended to host contract");
+    check(last && last->paramID=="detectorWindowMs","Window must be appended to host contract");
+    check(p.getParameters().indexOf(p.getAPVTS().getParameter("detectorWindowMs"))
+        ==p.getParameters().indexOf(p.getAPVTS().getParameter("detectorMode"))+1,
+        "Detector host index changed");
+    check(p.getParameters().indexOf(p.getAPVTS().getParameter("detectorMode"))
+        ==p.getParameters().indexOf(p.getAPVTS().getParameter("ceilingOversampling"))+1,
+        "Ceiling OS host index changed");
     check(p.getParameters().indexOf(p.getAPVTS().getParameter("algorithmMode"))
         ==p.getParameters().indexOf(p.getAPVTS().getParameter("inputOutputLink"))+1,"Algorithm legacy index changed");
     check(p.getParameters().indexOf(p.getAPVTS().getParameter("truePeakLimiting"))

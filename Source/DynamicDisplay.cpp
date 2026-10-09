@@ -22,9 +22,24 @@ float readParameter (QQSuperCompressionAudioProcessor& processor, const char* pa
                      float fallback = 0.0f) noexcept
 {
     if (auto* value = processor.getAPVTS().getRawParameterValue (processor.soundParameterID(parameterID)))
-        return value->load();
+        return processor.readSoundParameter(parameterID);
 
     return fallback;
+}
+
+float effectiveDisplayWindow (QQSuperCompressionAudioProcessor& processor, float lookaheadMs) noexcept
+{
+    return juce::jlimit (0.0f, lookaheadMs,
+        readParameter (processor, qqsc::params::detectorWindowMs, 100.0f));
+}
+
+int effectiveDisplayDetectorMode (QQSuperCompressionAudioProcessor& processor, float lookaheadMs) noexcept
+{
+    // At 0 ms both windows contain the same sample. Changing the stored
+    // choice must not replace the retained live block peaks with a redundant
+    // sample-point replay, or invalidate an otherwise valid HPF replay.
+    return effectiveDisplayWindow (processor, lookaheadMs) <= 0.0f ? 0
+        : juce::roundToInt (readParameter (processor, qqsc::params::detectorMode));
 }
 
 int displayProcessingMode (QQSuperCompressionAudioProcessor& processor) noexcept
@@ -83,14 +98,14 @@ struct ReplayHighPassState
 class ReplayPeakWindow
 {
 public:
-    explicit ReplayPeakWindow (int lookaheadSamplesIn)
-        : lookaheadSamples (juce::jmax (0, lookaheadSamplesIn))
+    ReplayPeakWindow (int lookaheadSamplesIn, bool bilateralIn)
+        : lookaheadSamples (juce::jmax (0, lookaheadSamplesIn)), bilateral (bilateralIn)
     {
     }
 
     void process (float sample, int64_t sampleIndex)
     {
-        const auto magnitude = std::abs (sample);
+        const auto magnitude = juce::jlimit (0.0f, 1.0f, std::abs (sample));
         while (! queue.empty() && queue.back().second <= magnitude)
             queue.pop_back();
 
@@ -101,10 +116,11 @@ public:
 
         const auto futurePeak = queue.empty() ? magnitude : queue.front().second;
         peakHistory.push_back (futurePeak);
-        currentLevel = 0.0f;
+        currentLevel = bilateral ? futurePeak : 0.0f;
         if (peakHistory.size() > static_cast<size_t> (lookaheadSamples))
         {
-            currentLevel = juce::jmin (futurePeak, peakHistory.front());
+            currentLevel = bilateral ? juce::jmax (futurePeak, peakHistory.front())
+                                     : juce::jmin (futurePeak, peakHistory.front());
             peakHistory.pop_front();
         }
     }
@@ -113,6 +129,7 @@ public:
 
 private:
     int lookaheadSamples = 0;
+    bool bilateral = true;
     std::deque<std::pair<int64_t, float>> queue;
     std::deque<float> peakHistory;
     float currentLevel = 0.0f;
@@ -241,6 +258,8 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
                                        qqsc::params::keyHpfOffHz);
     lastObservedLookaheadMs = qqsc::params::snapLookaheadMs (
         readParameter (processor, qqsc::params::lookaheadMs));
+    lastObservedDetectorMode = effectiveDisplayDetectorMode (processor, lastObservedLookaheadMs);
+    lastObservedDetectorWindowMs = effectiveDisplayWindow (processor, lastObservedLookaheadMs);
     hpfReplayWorker->startThread (juce::Thread::Priority::low);
     startTimerHz (displayRefreshHz);
 }
@@ -380,6 +399,7 @@ void DynamicDisplay::timerCallback()
         point0.capturedKeyGainDb = capturedKeyGainDb;
         point0.captureGeneration = position.generation;
         point0.captureCounter = position.counter;
+        point0.carrierDelaySeconds = processor.getDisplayCoreDelaySeconds();
         pushHistory (histories[0], point0);
 
         if (mode != qqsc::params::stereoLinked)
@@ -392,6 +412,7 @@ void DynamicDisplay::timerCallback()
             point1.capturedKeyGainDb = capturedKeyGainDb;
             point1.captureGeneration = position.generation;
             point1.captureCounter = position.counter;
+            point1.carrierDelaySeconds = point0.carrierDelaySeconds;
             pushHistory (histories[1], point1);
         }
         lastCapturedHistoryCounter = position.counter;
@@ -405,9 +426,27 @@ void DynamicDisplay::timerCallback()
                                              qqsc::params::keyHpfOffHz);
     const auto currentLookaheadMs = qqsc::params::snapLookaheadMs (
         readParameter (processor, qqsc::params::lookaheadMs));
+    const auto currentDetectorMode = effectiveDisplayDetectorMode (processor, currentLookaheadMs);
+    const auto currentWindowMs = effectiveDisplayWindow (processor, currentLookaheadMs);
+    const int currentOs=juce::roundToInt(readParameter(processor,qqsc::params::oversampling));
+    if (lastObservedOversampling>=0 && currentOs!=lastObservedOversampling)
+    { hpfStableTimerTicks=0; hpfRefreshPending=true; }
+    lastObservedOversampling=currentOs;
+    if (std::abs (currentWindowMs - lastObservedDetectorWindowMs) > 0.001f)
+    {
+        lastObservedDetectorWindowMs = currentWindowMs;
+        hpfStableTimerTicks = 0;
+        hpfRefreshPending = true;
+    }
     if (std::abs (currentLookaheadMs - lastObservedLookaheadMs) > 0.01f)
     {
         lastObservedLookaheadMs = currentLookaheadMs;
+        hpfStableTimerTicks = 0;
+        hpfRefreshPending = true;
+    }
+    if (currentDetectorMode != lastObservedDetectorMode)
+    {
+        lastObservedDetectorMode = currentDetectorMode;
         hpfStableTimerTicks = 0;
         hpfRefreshPending = true;
     }
@@ -517,7 +556,7 @@ juce::Rectangle<float> DynamicDisplay::getBoundaryPlotForDomain (int parameterDo
 
 float DynamicDisplay::getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb, bool upper) const noexcept
 {
-    if (processor.isClassicBoundary(upper)) detectorDb = juce::jmax (qqsc::classicThresholdMinimumDb, detectorDb);
+    detectorDb = juce::jmax (processor.boundaryMinimumDb(upper), detectorDb);
     const auto plot = getBoundaryPlotForDomain (parameterDomainIndex);
     // OFF is an unbounded Range, not a finite +1 dB threshold.
     if (! qqsc::params::isRangeEnabled (detectorDb))
@@ -544,7 +583,7 @@ float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY,
                                         : displayDb + readParameter (processor, qqsc::params::inputGainDb);
     // A drag maps finite values only. The fader explicitly chooses the OFF
     // endpoint, keeping it distinct from a finite 0 dB upper boundary.
-    return juce::jlimit (processor.isClassicBoundary(upper) ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb, 0.0f, detectorDb);
+    return juce::jlimit (processor.boundaryMinimumDb(upper), 0.0f, detectorDb);
 }
 
 void DynamicDisplay::updatePath (juce::Path& path,
@@ -720,6 +759,9 @@ void DynamicDisplay::rebuildDynamicsLut (RenderCache& cache, int domainIndex, in
         detectorLevelLut.data(), cache.dynamicsGainLut.data(),
         static_cast<size_t> (dynamicsLutSize), domain);
 
+    cache.dynamicsLutUnity = std::all_of (cache.dynamicsGainLut.begin(),
+                                          cache.dynamicsGainLut.end(),
+                                          [] (float gain) { return gain == 1.0f; });
     cache.dynamicsLutSignature = signature;
     cache.dynamicsLutValid = true;
 }
@@ -795,14 +837,14 @@ float DynamicDisplay::thresholdDbForDomain (int domainIndex, int mode) const noe
 {
     const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
     const auto db = processor.getBoundaryForDomainDb (dual, false, processorDomain (domainIndex, mode));
-    return processor.isClassicBoundary(false) ? juce::jmax (qqsc::classicThresholdMinimumDb, db) : db;
+    return juce::jmax (processor.boundaryMinimumDb(false), db);
 }
 
 float DynamicDisplay::upperBoundaryDbForDomain (int domainIndex, int mode) const noexcept
 {
     const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
     const auto db = processor.getBoundaryForDomainDb (dual, true, processorDomain (domainIndex, mode));
-    return processor.isClassicBoundary(true) ? juce::jmax (qqsc::classicThresholdMinimumDb, db) : db;
+    return juce::jmax (processor.boundaryMinimumDb(true), db);
 }
 
 float DynamicDisplay::makeupDbForDomain (int domainIndex, int mode) const noexcept
@@ -838,6 +880,7 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
     const auto keyGainDb = readParameter (processor, qqsc::params::keyGainDb);
     const auto inputGain = juce::Decibels::decibelsToGain (inputGainDb);
     const auto wetMix = mixForDomain (domainIndex, mode);
+    const bool dynamicsAreNeutral = bypassed || cache.dynamicsLutUnity || wetMix <= 0.0f;
     const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode), -180.0f);
     const auto activeOutputGainDb = processor.getActiveOutputGainDb();
     const auto outputGain = juce::Decibels::decibelsToGain (activeOutputGainDb);
@@ -893,8 +936,10 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         // EXT is intentionally different: key and carrier are unrelated, so the
         // captured carrier remains the display reference while the external key
         // supplies only gain control.
-        const auto transferInputDb = externalKey ? point.inputDb
-                                                 : detectorDb - inputGainDb;
+        // A neutral transfer must use the captured carrier for every trace:
+        // lookahead detector peaks do not change the audible sample at 1:1.
+        const auto transferInputDb = (externalKey || dynamicsAreNeutral)
+            ? point.inputDb : detectorDb - inputGainDb;
         const auto cutMixDb = bypassed ? transferInputDb
                                        : transferInputDb - dynamicsMixGrDb;
 
@@ -1017,6 +1062,9 @@ bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
                                    qqsc::params::keyHpfOffHz);
     request.lookaheadMs = qqsc::params::snapLookaheadMs (
         readParameter (processor, qqsc::params::lookaheadMs));
+    request.detectorMode = effectiveDisplayDetectorMode (processor, request.lookaheadMs);
+    request.detectorWindowMs = effectiveDisplayWindow (processor, request.lookaheadMs);
+    request.oversampling=juce::roundToInt(readParameter(processor,qqsc::params::oversampling));
     request.markers.reserve (histories[0].points.size());
 
     for (const auto& point : histories[0].points)
@@ -1027,6 +1075,7 @@ bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
             return false;
         }
         request.markers.push_back (point.captureCounter);
+        request.carrierDelays.push_back(point.carrierDelaySeconds);
     }
 
     if (request.captureGeneration == 0 || request.markers.empty())
@@ -1055,7 +1104,7 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
     if (request.markers.empty()
         || ! processor.copyDisplayKeyHistory (request.captureGeneration,
                                               request.requestedStartCounter,
-                                              request.markers.back(), snapshot)
+                                              request.markers.back()+9600, snapshot)
         || snapshot.keySource != request.keySource)
         return false;
 
@@ -1068,72 +1117,84 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
     const auto lookaheadSamples = juce::jlimit (0, maxLookaheadSamples, static_cast<int> (
         std::round (snapshot.sampleRate * static_cast<double> (request.lookaheadMs) * 0.001)));
 
-    ReplayPeakWindow primaryEngine (lookaheadSamples);
-    ReplayPeakWindow secondaryEngine (lookaheadSamples);
-    const bool needsSecondaryEngine = request.mode != qqsc::params::stereoLinked
-                                      || snapshot.stereoKey;
+    const int factor=qqsc::params::oversamplingFactorForChoiceIndex(request.oversampling);
+    const int stages=qqsc::params::oversamplingStageCountForChoiceIndex(request.oversampling);
+    const int windowSamples=juce::jlimit(0,lookaheadSamples*factor,
+        int(std::round(snapshot.sampleRate*factor*double(request.detectorWindowMs)*.001)));
+    ReplayPeakWindow primaryEngine(windowSamples,request.detectorMode!=0);
+    ReplayPeakWindow secondaryEngine(windowSamples,request.detectorMode!=0);
+    const bool needsSecondaryEngine=request.mode!=qqsc::params::stereoLinked || snapshot.stereoKey;
+    const bool hpfEnabled=qqsc::params::isKeyHpfEnabled(request.hpfHz);
+    const auto coefficients=replayHighPassCoefficients(snapshot.sampleRate,request.hpfHz);
+    ReplayHighPassState filterLeft,filterRight;
 
-    const bool hpfEnabled = qqsc::params::isKeyHpfEnabled (request.hpfHz);
-    const auto coefficients = replayHighPassCoefficients (snapshot.sampleRate, request.hpfHz);
-    ReplayHighPassState filterLeft;
-    ReplayHighPassState filterRight;
-
-    result.request = request;
-    result.detectorDb0.assign (request.markers.size(), silenceDb);
-    result.detectorDb1.assign (request.markers.size(), silenceDb);
-    size_t markerIndex = 0;
-
-    while (markerIndex < request.markers.size()
-           && request.markers[markerIndex] <= snapshot.firstCounter)
-        ++markerIndex;
-    result.firstValidMarkerIndex = markerIndex;
-
-    for (size_t i = 0; i < snapshot.left.size(); ++i)
+    // Replay on the same oversampled detector grid. Only this worker allocates.
+    juce::dsp::Oversampling<float> os(2,size_t(stages),
+        juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,true);
+    os.initProcessing(256);
+    juce::AudioBuffer<float> replayInput(2,256);replayInput.clear();
+    replayInput.setSample(0,0,1.0f);
+    const auto impulse=os.processSamplesUp(juce::dsp::AudioBlock<float>(replayInput));
+    int peakIndex=0;
+    for(int i=1;i<int(impulse.getNumSamples());++i)
+        if(std::abs(impulse.getSample(0,i))>std::abs(impulse.getSample(0,peakIndex)))peakIndex=i;
+    const double detectorDelay=double(windowSamples+peakIndex)/factor;
+    os.reset();
+    std::vector<std::array<float,2>> levels(snapshot.left.size());
+    for(size_t offset=0;offset<snapshot.left.size();offset+=256)
     {
-        if ((i & 4095u) == 0u
-            && (worker.threadShouldExit()
-                || ! processor.shouldRunUiAnalysis()
-                 || replayRequestGeneration->load (std::memory_order_relaxed) != request.requestGeneration))
-            return false;
-
-        auto left = snapshot.left[i];
-        auto right = snapshot.stereoKey ? snapshot.right[i] : left;
-        if (hpfEnabled)
+        if(worker.threadShouldExit() || !processor.shouldRunUiAnalysis()
+            || replayRequestGeneration->load()!=request.requestGeneration)return false;
+        const int count=int(std::min(size_t(256),snapshot.left.size()-offset));
+        for(int i=0;i<count;++i)
         {
-            left = filterLeft.process (left, coefficients);
-            right = snapshot.stereoKey ? filterRight.process (right, coefficients) : left;
+            float l=snapshot.left[offset+size_t(i)],r=snapshot.stereoKey?snapshot.right[offset+size_t(i)]:l;
+            if(hpfEnabled){l=filterLeft.process(l,coefficients);r=snapshot.stereoKey?filterRight.process(r,coefficients):l;}
+            if(request.mode==qqsc::params::midSide)
+            {const float m=snapshot.stereoKey?.5f*(l+r):l;
+             r=snapshot.stereoKey?.5f*(l-r):(request.keySource==qqsc::params::keyExternal?l:0.f);l=m;}
+            replayInput.setSample(0,i,l);replayInput.setSample(1,i,r);
         }
-
-        auto analysis0 = left;
-        auto analysis1 = right;
-        if (request.mode == qqsc::params::midSide)
+        const auto up=os.processSamplesUp(juce::dsp::AudioBlock<float>(replayInput).getSubBlock(0,size_t(count)));
+        for(int i=0;i<count;++i)
         {
-            analysis0 = snapshot.stereoKey ? 0.5f * (left + right) : left;
-            analysis1 = snapshot.stereoKey ? 0.5f * (left - right)
-                                           : (request.keySource == qqsc::params::keyExternal ? left : 0.0f);
-        }
-
-        const auto sampleIndex = static_cast<int64_t> (i);
-        primaryEngine.process (analysis0, sampleIndex);
-        if (needsSecondaryEngine)
-            secondaryEngine.process (analysis1, sampleIndex);
-
-        const auto completedCounter = snapshot.firstCounter + static_cast<uint64_t> (i) + 1;
-        while (markerIndex < request.markers.size()
-               && request.markers[markerIndex] <= completedCounter)
-        {
-            auto level0 = primaryEngine.getCurrentLevel();
-            auto level1 = needsSecondaryEngine ? secondaryEngine.getCurrentLevel() : 0.0f;
-            if (request.mode == qqsc::params::stereoLinked && snapshot.stereoKey)
-                level0 = juce::jmax (level0, level1);
-
-            result.detectorDb0[markerIndex] = detectorLevelToDb (level0);
-            result.detectorDb1[markerIndex] = detectorLevelToDb (level1);
-            ++markerIndex;
+            std::array<float,2> peak{};
+            for(int j=0;j<factor;++j)
+            {
+                const int k=i*factor+j;const auto index=int64_t((offset+size_t(i))*size_t(factor)+size_t(j));
+                primaryEngine.process(up.getSample(0,k),index);
+                if(needsSecondaryEngine)secondaryEngine.process(up.getSample(1,k),index);
+                peak[0]=juce::jmax(peak[0],primaryEngine.getCurrentLevel());
+                if(needsSecondaryEngine)peak[1]=juce::jmax(peak[1],secondaryEngine.getCurrentLevel());
+            }
+            levels[offset+size_t(i)]=peak;
         }
     }
-
-    return markerIndex == request.markers.size();
+    result.request=request;
+    result.firstValidMarkerIndex=0;
+    result.detectorDb0.assign(request.markers.size(),std::numeric_limits<float>::quiet_NaN());
+    result.detectorDb1=result.detectorDb0;
+    for(size_t marker=0;marker<request.markers.size();++marker)
+    {
+        // A retained input point belongs to the carrier delay at CAPTURE time.
+        // Replaying it with today's Lookahead was the horizontal displacement.
+        const double capturedDelay=marker<request.carrierDelays.size() && request.carrierDelays[marker]>=0
+            ? request.carrierDelays[marker]*snapshot.sampleRate : double(lookaheadSamples);
+        const auto span=marker>0 ? request.markers[marker]-request.markers[marker-1]
+            : request.markers.size()>1 ? request.markers[1]-request.markers[0]
+            : uint64_t(snapshot.sampleRate/displayRefreshHz);
+        const int64_t end=int64_t(request.markers[marker])-int64_t(snapshot.firstCounter)
+            +int64_t(std::llround(detectorDelay-capturedDelay));
+        const int64_t start=end-int64_t(span);
+        if(end>int64_t(levels.size()))continue; // No fabricated future audio at the live edge.
+        std::array<float,2> peak{};
+        for(int64_t i=std::max(int64_t(0),start);i<end;++i)
+        {peak[0]=juce::jmax(peak[0],levels[size_t(i)][0]);peak[1]=juce::jmax(peak[1],levels[size_t(i)][1]);}
+        if(request.mode==qqsc::params::stereoLinked && snapshot.stereoKey)peak[0]=juce::jmax(peak[0],peak[1]);
+        result.detectorDb0[marker]=detectorLevelToDb(peak[0]);
+        result.detectorDb1[marker]=detectorLevelToDb(peak[1]);
+    }
+    return true;
 }
 
 void DynamicDisplay::applyHpfReplay (ReplayResult result)
@@ -1142,15 +1203,18 @@ void DynamicDisplay::applyHpfReplay (ReplayResult result)
     if (result.request.requestGeneration != currentRequest)
         return;
 
+    const auto currentLookaheadMs = qqsc::params::snapLookaheadMs (
+        readParameter (processor, qqsc::params::lookaheadMs));
     if (result.request.captureGeneration != lastCaptureGeneration
         || result.request.mode != lastMode
         || result.request.keySource != lastKeySource
+        || result.request.oversampling != juce::roundToInt(readParameter(processor,qqsc::params::oversampling))
+        || result.request.detectorMode != effectiveDisplayDetectorMode (processor, currentLookaheadMs)
+        || std::abs (result.request.detectorWindowMs - effectiveDisplayWindow (processor, currentLookaheadMs)) > 0.001f
         || std::abs (result.request.hpfHz
                      - readParameter (processor, qqsc::params::keyHpfHz,
                                       qqsc::params::keyHpfOffHz)) > 0.01f
-        || std::abs (result.request.lookaheadMs
-                     - qqsc::params::snapLookaheadMs (
-                         readParameter (processor, qqsc::params::lookaheadMs))) > 0.01f)
+        || std::abs (result.request.lookaheadMs - currentLookaheadMs) > 0.01f)
     {
         scheduleHpfReplayRetry (result.request.markers.empty()
                                     ? 0 : result.request.markers.back());
@@ -1170,7 +1234,7 @@ void DynamicDisplay::applyHpfReplay (ReplayResult result)
                 continue;
 
             const auto index = static_cast<size_t> (std::distance (result.request.markers.begin(), marker));
-            if (index >= result.firstValidMarkerIndex && index < values.size())
+            if (index >= result.firstValidMarkerIndex && index < values.size() && std::isfinite(values[index]))
             {
                 point.replayedDetectorDb = values[index];
                 point.hasReplayedDetector = true;

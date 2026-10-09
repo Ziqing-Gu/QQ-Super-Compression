@@ -30,6 +30,11 @@ const char* QQSuperCompressionAudioProcessor::soundParameterID (const char* id) 
 }
 float QQSuperCompressionAudioProcessor::readSoundParameter (const char* id) const noexcept
 {
+    if (std::strcmp(id,qqsc::params::distort)==0)
+        return distortForAudio.load(std::memory_order_acquire);
+    if (std::strcmp(id,qqsc::params::detectorWindowMs)==0)
+        return qqsc::params::windowMsForDistort(readSoundParameter(qqsc::params::lookaheadMs),
+                                              distortForAudio.load(std::memory_order_acquire));
     const auto* mappedID = soundParameterID (id);
     if (std::strcmp (mappedID, "limiterCompressionMode") == 0)
         return static_cast<float> (limiterCompressionModeForAudio.load (std::memory_order_acquire));

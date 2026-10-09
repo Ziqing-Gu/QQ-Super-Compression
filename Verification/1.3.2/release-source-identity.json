@@ -1,0 +1,139 @@
+{
+  "version": "1.3.2",
+  "windows_binary_sha256": "6FDB152740B936C0919F662BC6440B3196DD540F0484A5690739F4EA22F7E776",
+  "cmake_sha256": "0557CD52ED7BE866A1C9BDAAC7CBBC1D65D1FBE8694022D9EE450CDA5C02CD97",
+  "source_files": [
+    {
+      "file": "Source\\ABTransfer.h",
+      "sha256": "F999188AAA350DE66BEDCA2972FC8070BDF60D923D3BD0DBBF3723FEB9FC88D7"
+    },
+    {
+      "file": "Source\\BS1770LoudnessMatch.h",
+      "sha256": "AEA420F4634C93A6C2E5D52F4BDCDA29C7E1EFCEF74E41EDEFD0A886A12291F7"
+    },
+    {
+      "file": "Source\\DarkMaterial.h",
+      "sha256": "01A9199659164F9A475A3481DD96721FBB4F7B4819C7EAFDFD256EE53ED8E5C7"
+    },
+    {
+      "file": "Source\\DarkPanelMaterial.h",
+      "sha256": "970CEFEDF1D23472AB7B6248EAF927C7BAC0B0E3C80B7E4A18D2A0DCD280CF4F"
+    },
+    {
+      "file": "Source\\DynamicDisplay.cpp",
+      "sha256": "F46CD172B3790D63174D45D510188AC4F4F6198382C199BFA613CADE25D5EB53"
+    },
+    {
+      "file": "Source\\DynamicDisplay.h",
+      "sha256": "D52B555722D6FBC0A56992DA335D630FEEB67BB6B2A6F82B102567F57182DB2D"
+    },
+    {
+      "file": "Source\\DynamicsLimits.h",
+      "sha256": "C1ED720345C41444871B383DAA09ED4EAF49DDFFB9D3393713CA8E2F6089FF2E"
+    },
+    {
+      "file": "Source\\ExactEnergyIndex.h",
+      "sha256": "952032CC55C388EF6C949E0BF3879A63B520D092F548E78EACD978024FBA4014"
+    },
+    {
+      "file": "Source\\IntegratedLoudnessMeter.h",
+      "sha256": "09EFAD60E18C9C5BB4FF0E3D990A061301C945FCB29ACF336E6633866ACFC3E7"
+    },
+    {
+      "file": "Source\\KnobLight.h",
+      "sha256": "5E77F1AAB99B5130B81286319434B9672D3A70E8372E89B85511BA405DDBC748"
+    },
+    {
+      "file": "Source\\KWeightingFilter.h",
+      "sha256": "EA1E4C922EA38B6E185E90BEB14F3EC5CD8FD60B03555617BF31A85F6ECA2825"
+    },
+    {
+      "file": "Source\\LevelMeters.cpp",
+      "sha256": "6BA7E3BBFAF6EB36FB0EF3C230F382BF17F003ECA6A150DEC84F84117CA759B4"
+    },
+    {
+      "file": "Source\\LevelMeters.h",
+      "sha256": "9AC7E9F287D160343B6349E2F8DFC4E81B069B118E7BA3B1349839407BE3531E"
+    },
+    {
+      "file": "Source\\LightKnobScale.h",
+      "sha256": "813C0F01EDE8F6DDB93D461F715E17C4BB10BA36D6AACBE6A33EB4E37AEB087D"
+    },
+    {
+      "file": "Source\\LimiterEditor.cpp",
+      "sha256": "4B641D21BF2A2630B7F96542963E0F23095F94608472DEF03746FD87A3E4CB74"
+    },
+    {
+      "file": "Source\\LimiterMode.cpp",
+      "sha256": "6C50260608E9B99BEE2F93AD7154A99DDFB3EE1B422A9DA78187EABBDA58EB03"
+    },
+    {
+      "file": "Source\\LimiterModeContinuity.h",
+      "sha256": "2CBDA51BF80DFC444BC982B61BDD32AFE8079357A12E49FFD26B83DAAC03CE66"
+    },
+    {
+      "file": "Source\\MeterState.h",
+      "sha256": "FAA8F812B9E4446A759222DBEC2A777A8DB6D4500E8F42584411157D807E8DE6"
+    },
+    {
+      "file": "Source\\OutputCeiling.h",
+      "sha256": "EC6A647C8D37B988149DB0B3C2CE7587BE33D1FB368AE0B79549278D89B018F9"
+    },
+    {
+      "file": "Source\\Parameters.h",
+      "sha256": "CC7242E6E90C608FEB96DECA44F645E930AB32C4FB02F342A33A968B609E29B4"
+    },
+    {
+      "file": "Source\\PerformanceDiagnosticsPanel.h",
+      "sha256": "5B28C1E26C2C7E201212AA23C58BE32BA6E7C9987CA173509ACEBAA1C1922F9F"
+    },
+    {
+      "file": "Source\\PluginEditor.cpp",
+      "sha256": "8772677EFC23863FA67B8D8085C3E2F602A7C5395ECEDD20CB391C31CD5680EB"
+    },
+    {
+      "file": "Source\\PluginEditor.h",
+      "sha256": "DCF64C47A177F75C89ACEF8D675885BF6E65DDF72DC078721B043AF9E851A24A"
+    },
+    {
+      "file": "Source\\PluginProcessor.cpp",
+      "sha256": "0DB377A8B565F7297578125A2ABFA0F172FFAD26B7C3AA83C1E54CA90D653266"
+    },
+    {
+      "file": "Source\\PluginProcessor.h",
+      "sha256": "8F1DD54A31286DD19DED50700CA8ED3842D8BC67892E97D17FE952C854809609"
+    },
+    {
+      "file": "Source\\RefinedDarkKnob.h",
+      "sha256": "8124D7CC94D5DE2459F2FDEB3A04E5D7152C42337639EEA69241257A5118C574"
+    },
+    {
+      "file": "Source\\StaticCompressionEngine.h",
+      "sha256": "3343746FE09D1275D8C4B8A320EC316337B623858A3B5DAA81BEBC6C5EA4A1F4"
+    },
+    {
+      "file": "Source\\UTF8LookAndFeel.h",
+      "sha256": "935982CF81B6D8F3A29BF87C9AD394F68C47A4C20658187B34F82A001736E98A"
+    },
+    {
+      "file": "Source\\WarmKnobAsset.h",
+      "sha256": "75BED09C5D7AA49BE759C67A15A72A3E11F0585A959496D1CC64BE3FEB9BACE0"
+    },
+    {
+      "file": "Source\\WarmMaterial.h",
+      "sha256": "940C14435C861307F87E9E29E198DAEA39C8DC86ADAC2AC125CE01461C925FF7"
+    }
+  ],
+  "assets": [
+    {
+      "file": "Assets/WarmKnob/approved-lit.png",
+      "sha256": "62679D71F86496168323B8CBD7780FBD197FEE7CDDCD79CDE0ECD17D00D172BE"
+    },
+    {
+      "file": "Assets/WarmKnob/unlit-base.png",
+      "sha256": "D5A6F0EF7827CDEE361FC8A8C06A524869D513EFDCC211D6B378B5B46DEBB125"
+    }
+  ],
+  "windows_status": "Previously verified build reused; not rebuilt during publication",
+  "source_verification": "Each production Source file and CMakeLists matched the accepted Windows record before publication"
+}

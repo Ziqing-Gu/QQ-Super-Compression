@@ -50,6 +50,7 @@ private:
         float replayedDetectorDb = -120.0f;
         uint64_t captureGeneration = 0;
         uint64_t captureCounter = 0;
+        float carrierDelaySeconds = -1.0f;
         bool hasReplayedDetector = false;
     };
 
@@ -62,7 +63,11 @@ private:
         int keySource = qqsc::params::keyInternal;
         float hpfHz = qqsc::params::keyHpfOffHz;
         float lookaheadMs = 0.0f;
+        float detectorWindowMs = 0.0f;
+        int detectorMode = 0;
         std::vector<uint64_t> markers;
+        std::vector<float> carrierDelays;
+        int oversampling = 0;
     };
 
     struct ReplayResult
@@ -103,6 +108,7 @@ private:
         std::array<float, dynamicsLutSize> dynamicsGainLut {};
         uint64_t dynamicsLutSignature = 0;
         bool dynamicsLutValid = false;
+        bool dynamicsLutUnity = false;
         bool valid = false;
     };
 
@@ -162,6 +168,9 @@ private:
     bool geometryDirty = true;
     float lastObservedHpfHz = qqsc::params::keyHpfOffHz;
     float lastObservedLookaheadMs = 26.0f;
+    float lastObservedDetectorWindowMs = 26.0f;
+    int lastObservedDetectorMode = 0;
+    int lastObservedOversampling = -1;
     int hpfStableTimerTicks = 0;
     int hpfRetryTimerTicks = 0;
     int hpfRetryAttempts = 0;

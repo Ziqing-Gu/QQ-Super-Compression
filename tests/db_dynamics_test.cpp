@@ -21,6 +21,136 @@ void setupDb(QQSuperCompressionAudioProcessor& p,int dual,int mode,float lower,f
         set(p,mixes[d],100);set(p,trims[d],0);
     }
 }
+void stereoLinkedWindowCheck()
+{
+    // A left peak and a later right echo must control the delayed quiet
+    // carrier before and after the peaks, without an added gain envelope.
+    constexpr int lookahead = 1248;
+    constexpr int firstPeak = 4000;
+    constexpr int probeBefore = firstPeak + lookahead / 2;
+    constexpr int probeAfter = firstPeak + 2 * lookahead + lookahead / 2;
+    constexpr int blockSize = 256;
+    constexpr int total = firstPeak + 3 * lookahead;
+    QQSuperCompressionAudioProcessor p;
+    setupDb (p, 0, 0, qqsc::params::thresholdOffDb, qqsc::params::rangeOffDb, 8.0f);
+    set (p, "algorithmMode", 1.0f);
+    set (p, qqsc::params::detectorMode, 1.0f);
+    set (p, "lookaheadMs", 26.0f);
+    set (p, "oversampling", 0.0f);
+    p.setRateAndBufferSizeDetails (48000.0, blockSize);
+    p.prepareToPlay (48000.0, blockSize);
+    float beforeL = 0.0f, beforeR = 0.0f, afterL = 0.0f, afterR = 0.0f;
+    juce::MidiBuffer midi;
+    for (int offset = 0; offset < total; offset += blockSize)
+    {
+        const int count = std::min (blockSize, total - offset);
+        juce::AudioBuffer<float> audio (2, count);
+        for (int i = 0; i < count; ++i)
+        {
+            audio.setSample (0, i, offset + i == firstPeak ? 0.8f : 0.05f);
+            audio.setSample (1, i, offset + i == firstPeak + lookahead ? 0.8f : 0.05f);
+        }
+        p.processBlock (audio, midi);
+        if (offset <= probeBefore && probeBefore < offset + count)
+        {
+            beforeL = audio.getSample (0, probeBefore - offset);
+            beforeR = audio.getSample (1, probeBefore - offset);
+        }
+        if (offset <= probeAfter && probeAfter < offset + count)
+        {
+            afterL = audio.getSample (0, probeAfter - offset);
+            afterR = audio.getSample (1, probeAfter - offset);
+        }
+    }
+    p.releaseResources();
+    const float expected = 0.05f / (1.0f + 7.0f * 0.8f);
+    check (std::abs (beforeL - expected) < 0.00001f
+        && std::abs (beforeR - expected) < 0.00001f
+        && std::abs (afterL - expected) < 0.00001f
+        && std::abs (afterR - expected) < 0.00001f,
+        "ST detector missed the approaching transient or departing echo");
+    std::cout << "PASS: bilateral stereo peak controls the delayed carrier on both sides of the echo.\n";
+}
+void detectorModeAudioCheck()
+{
+    QQSuperCompressionAudioProcessor original, bilateral, switching;
+    check (get (original, qqsc::params::detectorMode) == 0.0f,
+           "New instances must default to Original peak detection");
+    for (auto* p : { &original, &bilateral, &switching })
+    {
+        setupDb (*p, 0, 0, qqsc::params::thresholdOffDb, qqsc::params::rangeOffDb, 8.0f);
+        set (*p, "algorithmMode", 1.0f);
+        set (*p, "lookaheadMs", 26.0f);
+        p->setEditorOpen (true);
+        p->setRateAndBufferSizeDetails (48000.0, 256);
+    }
+    set (bilateral, qqsc::params::detectorMode, 1.0f);
+    for (auto* p : { &original, &bilateral, &switching })
+        p->prepareToPlay (48000.0, 256);
+
+    float originalAudio = 0.0f, bilateralAudio = 0.0f;
+    float originalDisplay = 0.0f, bilateralDisplay = 0.0f;
+    float previousSwitch = 0.0f, maxSwitchStep = 0.0f;
+    juce::MidiBuffer midi;
+    for (int offset = 0; offset < 8192; offset += 256)
+    {
+        if (offset == 5632)
+            set (switching, qqsc::params::detectorMode, 1.0f);
+        for (auto* p : { &original, &bilateral, &switching })
+        {
+            juce::AudioBuffer<float> audio (2, 256);
+            for (int i = 0; i < 256; ++i)
+            {
+                const auto sample = offset + i == 4000 ? 0.8f : 0.05f;
+                audio.setSample (0, i, sample);
+                audio.setSample (1, i, sample);
+            }
+            p->processBlock (audio, midi);
+            if (offset == 5888)
+            {
+                if (p == &original)
+                {
+                    originalAudio = audio.getSample (0, 6000 - offset);
+                    originalDisplay = p->getMeterState().displayDetectorDb0.load();
+                }
+                if (p == &bilateral)
+                {
+                    bilateralAudio = audio.getSample (0, 6000 - offset);
+                    bilateralDisplay = p->getMeterState().displayDetectorDb0.load();
+                }
+            }
+            if (p == &switching && offset >= 5632 && offset < 6144)
+                for (int i = 0; i < 256; ++i)
+                {
+                    const auto sample = audio.getSample (0, i);
+                    if (offset != 5632 || i != 0)
+                        maxSwitchStep = std::max (maxSwitchStep, std::abs (sample - previousSwitch));
+                    previousSwitch = sample;
+                }
+        }
+    }
+    check (originalAudio > bilateralAudio * 3.0f
+        && bilateralDisplay > originalDisplay + 15.0f,
+        "Original/Bilateral audio and Display detector do not follow the same selection");
+    check (maxSwitchStep < 0.001f, "Detector-mode control switch introduced a click");
+    juce::MemoryBlock saved;
+    bilateral.getStateInformation (saved);
+    QQSuperCompressionAudioProcessor restored;
+    restored.setStateInformation (saved.getData(), static_cast<int> (saved.getSize()));
+    check (get (restored, qqsc::params::detectorMode) == 1.0f,
+           "Project state lost the per-instance detector choice");
+    auto legacyXml = juce::AudioProcessor::getXmlFromBinary (saved.getData(), static_cast<int> (saved.getSize()));
+    auto legacyState = juce::ValueTree::fromXml (*legacyXml);
+    auto detectorNode = legacyState.getChildWithProperty ("id", qqsc::params::detectorMode);
+    check (detectorNode.isValid(), "Saved project lacks detector mode");
+    legacyState.removeChild (detectorNode, nullptr);
+    juce::AudioProcessor::copyXmlToBinary (*legacyState.createXml(), saved);
+    restored.setStateInformation (saved.getData(), static_cast<int> (saved.getSize()));
+    check (get (restored, qqsc::params::detectorMode) == 0.0f,
+           "Older projects must restore MIN even after this instance used BOTH");
+    for (auto* p : { &original, &bilateral, &switching }) p->releaseResources();
+    std::cout << "PASS: MIN default, BOTH audio/Display, mode-switch continuity, project recall and old-state migration.\n";
+}
 void fixedDbChecks()
 {
     for(auto threshold:{-10.0f,-30.0f,-80.0f,-90.0f})for(auto ratio:{2.0f,5.0f,6.75f,8.0f,qqsc::normalMaximumDownRatio})
@@ -106,12 +236,24 @@ void deepDownPrecisionChecks()
 #include "floor_checks.h"
 #include "ab_match_checks.h"
 #include "preview_detector_checks.h"
-int main()
+int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI initialiser;
     try
     {
+        if(argc==2 && std::string(argv[1])=="--stereo-linked-window")
+        {
+            stereoLinkedWindowCheck();
+            return 0;
+        }
+        if(argc==2 && std::string(argv[1])=="--detector-mode")
+        {
+            detectorModeAudioCheck();
+            return 0;
+        }
         previewDetectorChecks();
+        stereoLinkedWindowCheck();
+        detectorModeAudioCheck();
         fixedDbChecks();dbDomainChecks();dbLegacyAndSymmetryChecks();deepDownPrecisionChecks();
         algorithmStateChecks();superAudioChecks();algorithmFadeChecks();
         collisionChecks();stateChecks();blockChecks();domainChecks();

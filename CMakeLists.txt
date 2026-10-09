@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.2.42 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.3.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -85,6 +85,13 @@ if(QQSC_BUILD_DYNAMICS_CHECK)
     target_link_libraries(QQSCDynamicsCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
     if(MSVC)
         target_compile_options(QQSCDynamicsCheck PRIVATE /utf-8)
+    endif()
+    juce_add_console_app(QQSCClickReplay PRODUCT_NAME "QQSC Click Replay")
+    target_sources(QQSCClickReplay PRIVATE tests/click_replay.cpp)
+    target_include_directories(QQSCClickReplay PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_link_libraries(QQSCClickReplay PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCClickReplay PRIVATE /utf-8)
     endif()
 endif()
 

@@ -321,6 +321,9 @@ private:
     void commitLookaheadChoice();
     void cycleOversampling();
     void updateOversamplingUi();
+    void initialiseDetectorWindowControl();
+    void refreshDetectorWindowControl();
+    void setDetectorWindowValue (double);
     void cycleCeilingOversampling();
     void updateCeilingOversamplingUi();
     void togglePerformanceMode();
@@ -385,6 +388,7 @@ private:
     private:
         float lastY=0; bool dragging=false;
     };
+    juce::TextButton detectorModeButton { "SAFE" };
     juce::TextButton limiterButton { "LIMITER" }, limiterLinkButton { "LINK" };
     juce::TextButton unityMonitorButton;
     juce::TextButton truePeakButton { "TP" };
@@ -446,6 +450,9 @@ private:
     juce::Label monitorLabel;
     juce::Label lookaheadLabel;
     juce::ComboBox lookaheadCombo;
+    juce::Label detectorWindowLabel;
+    CeilingValueLabel detectorWindowValue;
+    double detectorWindowDragValue = 0.0;
     juce::Label oversamplingLabel;
     juce::TextButton oversamplingButton { "8x" };
     juce::Label ceilingOversamplingLabel;

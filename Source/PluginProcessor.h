@@ -75,6 +75,8 @@ public:
     // The audio-thread configuration follows from the same APVTS parameters on
     // the next process block.
     void notifyHostProcessingLatency();
+    void setLookaheadFromEditor(float ms);
+    float getDisplayCoreDelaySeconds() const noexcept { return displayCoreDelaySeconds.load(std::memory_order_acquire); }
 
     // Canonical pair reads include collision pushes immediately, including host
     // automation on the audio thread. Domain order: ST, L, R, M, S.
@@ -122,6 +124,11 @@ public:
     bool isClassicBoundary(bool upper) const noexcept
     { return readSoundParameter(qqsc::params::compressionMode)>=0.5f
         ? readSoundParameter(upper ? "downAlgorithmMode" : "upAlgorithmMode")<0.5f : isClassicAlgorithm(); }
+    float boundaryMinimumDb(bool upper) const noexcept
+    {
+        return isClassicBoundary(upper)
+            ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb;
+    }
 
 
     // Headphone-reference audition monitor for the independent LR/MS domains.
@@ -273,6 +280,9 @@ private:
         int ceilingOversampling = qqsc::params::ceiling8x;
         float ceilingDb = 0.0f, limiterOutputDb = 0.0f, limiterCalibrationDb = 0.0f;
         float lookaheadMs = 26.0f;
+        float distort = 0.0f;
+        float detectorWindowMs = 100.0f; // Effective value is capped by the active Lookahead.
+        int detectorMode = 0;
         int oversampling = qqsc::params::os8x;
         int mode = qqsc::params::stereoLinked;
         int keySource = qqsc::params::keyInternal;
@@ -390,6 +400,7 @@ private:
     int maxLookaheadSamplesInternal = 0;
     int currentLookaheadSamplesBase = -1;
     int currentLookaheadSamplesInternal = -1;
+    int currentDetectorWindowSamplesInternal = -1;
     int64_t detectorSampleCounter = 0;
 
     // Dry stays at host sample rate. It is delayed by Lookahead plus the exact
@@ -460,6 +471,7 @@ private:
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> downRatioSmoothers;
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> upEnableFades, downEnableFades;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> algorithmFade; // 0 Classic, 1 Super
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> detectorModeFade; // 0 Original, 1 Bilateral
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> upAlgorithmFade, downAlgorithmFade;
     juce::AudioBuffer<float> mixControlBuffer; // five Makeup, five Mix, Output, four Dry matrix coefficients
     juce::SpinLock abTransferLock;
@@ -499,6 +511,9 @@ private:
     std::atomic<uint64_t> displayKeyHistoryGenerationCounter { 0 };
 
     mutable juce::CriticalSection abLock;
+    std::atomic<float> distortForAudio { 0.0f };
+    std::array<std::atomic<float>,2> observedLookahead {{26.0f,26.0f}};
+    std::atomic<float> displayCoreDelaySeconds {0.026f};
     ParameterSnapshot snapshotA;
     ParameterSnapshot snapshotB;
     std::atomic<int> activeABSlot { 0 };

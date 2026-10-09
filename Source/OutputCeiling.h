@@ -213,11 +213,9 @@ private:
 class OutputCeiling
 {
 public:
-    // 1.2.34: Ceiling quality is independent from the 0 ms dynamics-core OS.
-    // Choice index follows the public 1x/4x/8x/16x convention. 8x remains the
-    // compatibility default. All 4x, 8x and 16x filters are prepared up-front;
-    // changing quality may reset the Ceiling state/PDC but never allocates an
-    // oversampler on the audio thread.
+    // Ceiling uses the same 1x/4x/8x/16x audio rate as the dynamics core.
+    // All filters are prepared up-front; changing quality may reset state/PDC
+    // but never allocates an oversampler on the audio thread.
     void prepare(double rate,bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto,
                  int osChoice=qqsc::params::ceiling8x,int maximumBlockSize=16384)
     {
@@ -245,6 +243,7 @@ public:
             if(std::abs(measured.getSample(0,i))>std::abs(measured.getSample(0,maximum)))maximum=i;
         analysisDelay=juce::roundToInt(double(maximum)/16.0);analysis.reset();
 
+        truePeak1.prepare(sampleRate,look);
         truePeak4.prepare(sampleRate*4.0,look*4);
         truePeak8.prepare(sampleRate*8.0,look*8);
         truePeak16.prepare(sampleRate*16.0,look*16);
@@ -294,7 +293,7 @@ public:
     { return selectedChoice==1 ? filterLatency4 : selectedChoice==2 ? filterLatency8 : selectedChoice==3 ? filterLatency16 : 0; }
 
     // Full latency includes the Ceiling's own audio up/down filter. When the
-    // 0 ms core already runs at the same factor the processor may share that
+    // core already runs at the same factor the processor may share that
     // filter; only the two safety windows + residual alignment remain extra.
     int latencySamples() const noexcept
     { return latencySamplesForChoice(selectedChoice); }
@@ -303,24 +302,24 @@ public:
     int latencySamplesForChoice(int choice) const noexcept
     {
         choice=juce::jlimit(0,3,choice);
-        if(choice==0) return 0;
+        if(choice==0) return 2*look+analysisDelay;
         const int filter=choice==1 ? filterLatency4 : choice==2 ? filterLatency8 : filterLatency16;
         return 2*look+filter+analysisDelay;
     }
     int sharedLatencySamplesForChoice(int choice) const noexcept
-    { return juce::jlimit(0,3,choice)==0 ? 0 : 2*look+analysisDelay; }
+    { juce::ignoreUnused(choice); return 2*look+analysisDelay; }
     bool canShareAudioOversampling(int factor) const noexcept
     { return selectedChoice>0 && factor==oversamplingFactor(); }
 
     void resetForLimiter(bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto) noexcept
     {
         oversampling4.reset();oversampling8.reset();oversampling16.reset();analysis.reset();
-        truePeak4.reset();truePeak8.reset();truePeak16.reset();post.reset();
+        truePeak1.reset();truePeak4.reset();truePeak8.reset();truePeak16.reset();post.reset();
         std::fill(hardOversampledAlignment.begin(),hardOversampledAlignment.end(),std::array<float,2>{});
         std::fill(analysisAlignment.begin(),analysisAlignment.end(),std::array<float,2>{});
         std::fill(hardPostAlignment.begin(),hardPostAlignment.end(),std::array<float,2>{});
         hardOversampledIndex=analysisIndex=hardPostIndex=0;
-        const bool effectiveTp=selectedChoice>0 && tp;
+        const bool effectiveTp=tp;
         truePeakBlend.setCurrentAndTargetValue(effectiveTp ? 1.f : 0.f);
         ceiling.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(juce::jlimit(-24.f,0.f,ceilingDb)));
         recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recovery);
@@ -330,16 +329,14 @@ public:
     bool isSilentAndSettled() const noexcept
     {
         if(ceiling.isSmoothing() || truePeakBlend.isSmoothing()) return false;
-        if(selectedChoice==0) return true;
-        return (selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16).isSilentAndSettled()
+        return (selectedChoice==0 ? truePeak1 : selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16).isSilentAndSettled()
             && post.isSilentAndSettled();
     }
 
     bool isQuietAndSettled(float floor) const noexcept
     {
         if(ceiling.isSmoothing() || truePeakBlend.isSmoothing()) return false;
-        if(selectedChoice==0) return true;
-        return (selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16).isQuietAndSettled(floor)
+        return (selectedChoice==0 ? truePeak1 : selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16).isQuietAndSettled(floor)
             && post.isQuietAndSettled(floor);
     }
 
@@ -358,9 +355,9 @@ public:
 
     void set(bool tp,float ceilingDb,int recovery=qqsc::params::tpAuto) noexcept
     {
-        // TP requires reconstructed samples. 1x therefore always means native
-        // Hard Clip; the editor/processor promotes TP+1x to an effective 8x.
-        const bool effectiveTp=selectedChoice>0 && tp;
+        // At 1x the audio remains native-rate. The independent reconstruction
+        // detector still supplies inter-sample peak protection when TP is on.
+        const bool effectiveTp=tp;
         truePeakBlend.setTargetValue(effectiveTp ? 1.f : 0.f);
         ceiling.setTargetValue(juce::Decibels::decibelsToGain(juce::jlimit(-24.f,0.f,ceilingDb)));
         recoveryMode=juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),recovery);
@@ -374,7 +371,7 @@ public:
     std::array<float,2> process(float l,float r) noexcept
     {
         const float c=ceiling.getNextValue();
-        const float t=(selectedChoice==0 ? 0.0f : truePeakBlend.getNextValue());
+        const float t=truePeakBlend.getNextValue();
         if(analysisEnabled)
         {
             inputSamplePeakLinear=juce::jmax(std::abs(l),std::abs(r));
@@ -383,12 +380,9 @@ public:
 
         if(selectedChoice==0)
         {
-            if(analysisEnabled)
-            {
-                const float peak=inputSamplePeakLinear;
-                displayGainLinear=peak>c ? c/juce::jmax(peak,1.0e-12f) : 1.0f;
-            }
-            return {juce::jlimit(-c,c,l),juce::jlimit(-c,c,r)};
+            HighStats stats;
+            const auto out=processHighSample(l,r,c,t,stats);
+            return processPostBaseSample(out[0],out[1],c,t,stats,inputSamplePeakLinear);
         }
 
         buffer.setSample(0,0,l);buffer.setSample(1,0,r);
@@ -407,11 +401,9 @@ public:
                                      inputSamplePeakLinear);
     }
 
-    // Shared path: the 0 ms dynamics core has already reconstructed the final
-    // mixed/output signal at the exact same 8x/16x factor. Apply only the
-    // Ceiling law in that domain, then let the core's one downsampling filter do
-    // the return to host rate. This removes the duplicate audio OS pair for the
-    // important 8x/8x and 16x/16x combinations.
+    // Shared path at every Lookahead: the dynamics core has already upsampled
+    // the mixed/output signal. Apply the Ceiling law at that same 4x/8x/16x
+    // rate, then use the core's single downsampler to return to host rate.
     void processSharedOversampledBlock(juce::dsp::AudioBlock<float> block,
                                        int hostSamples,int factor) noexcept
     {
@@ -470,7 +462,7 @@ private:
     juce::dsp::Oversampling<float>& currentOversampler() noexcept
     { return selectedChoice==1 ? oversampling4 : selectedChoice==2 ? oversampling8 : oversampling16; }
     SmoothPeakCap& currentTruePeak() noexcept
-    { return selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16; }
+    { return selectedChoice==0 ? truePeak1 : selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16; }
 
     std::array<float,2> processHighSample(float inL,float inR,float c,float t,HighStats& stats) noexcept
     {
@@ -541,6 +533,7 @@ private:
     juce::dsp::Oversampling<float> oversampling16{2,4,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,true};
     juce::dsp::Oversampling<float> analysis{2,4,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,false};
     juce::AudioBuffer<float> buffer;
+    SmoothPeakCap truePeak1;
     SmoothPeakCap truePeak4,truePeak8,truePeak16,post;
     std::vector<std::array<float,2>> hardOversampledAlignment,analysisAlignment,hardPostAlignment;
     std::vector<float> sharedCeiling,sharedBlend,sharedHardGain,sharedTpGain,sharedTruePeak,sharedSamplePeak;

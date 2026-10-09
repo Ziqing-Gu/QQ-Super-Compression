@@ -125,6 +125,11 @@ struct QQSCLimiterCheck
 #include "limiter_mode_continuity_checks.inc"
 #include "independent_banks_full_link_checks.inc"
 #include "strict_one_to_one_link_checks.inc"
+#include "algorithm_boundary_toggle_checks.inc"
+#include "detector_window_checks.inc"
+#include "distort_checks.inc"
+#include "lookahead_presets_checks.inc"
+#include "overall_os_checks.inc"
 #include "retrospective_tp_display_checks.inc"
 #include "tp_recovery_checks.inc"
 #include "revision1225_limiter_unity_link_checks.inc"
@@ -344,6 +349,16 @@ int main(int argc,char** argv)
     try
     {
         const juce::File root(argv[1]);root.createDirectory();
+        if(argc==3 && juce::String(argv[2])=="distort")
+        { QQSCLimiterCheck::distortChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="lookahead-presets")
+        { QQSCLimiterCheck::lookaheadPresetsChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="overall-os")
+        { QQSCLimiterCheck::overallOversamplingChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="detector-window")
+        { QQSCLimiterCheck::detectorWindowChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="algorithm-boundary-toggle")
+        { QQSCLimiterCheck::algorithmBoundaryToggleChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="dual")
         { QQSCLimiterCheck::dualAlgorithmChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="continuity")

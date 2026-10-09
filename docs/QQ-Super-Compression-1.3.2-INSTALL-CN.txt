@@ -1,0 +1,297 @@
+QQ Super Compression 1.3.2 - 安装说明
+厂商：Qing Audio | 版本：1.3.2 | 文档日期：2026-10-09
+
+适用系统：Windows 10/11 64 位；macOS 11.0 或更新版本。
+本包只有一个插件。VST3 与 AU 是两套独立格式，请只安装宿主实际需要的格式。
+已安装的各格式请一起升级到 1.3.2。本用户包不含源码；项目采用 Qing Audio 非商业源码共享许可证，禁止商业使用。分发时须同时免费公开完整对应源码，保留署名、许可证和来源，并注明修改。
+本产品是 QQ Super Compression（超级压缩），不是 QQ Super Multiband Compression（超级分段压缩）。
+源码和许可证公开于：https://github.com/Ziqing-Gu/QQ-Super-Compression
+升级前请备份工程和现有插件 bundle。随附中文和英文用户手册均为 1.3.2，各 43 页，包含本版本 Limiter 和过采样用法。
+本次提供 Windows x64 VST3、macOS Apple Silicon VST3、Intel VST3 和 Universal 2 AU 四类成品。
+
+一、选择正确的压缩包
+
+Windows 64 位宿主：
+Win/QQ Super Compression 1.3.2 Windows x64 VST3.zip
+
+Apple Silicon 原生宿主（arm64）：
+Mac/QQ Super Compression 1.3.2 macOS Apple Silicon VST3.zip
+
+Intel Mac，或 Apple Silicon 上以 Rosetta 运行的 Intel 宿主（x86_64）：
+Mac/QQ Super Compression 1.3.2 macOS Intel x86_64 VST3.zip
+
+Logic Pro 或其他 AU 宿主：
+Mac/QQ Super Compression 1.3.2 macOS Universal 2 AU.zip
+
+Universal 2 AU 同时包含 arm64 和 x86_64。两个 macOS VST3 架构包只能选择一个，以宿主的实际运行架构为准，不要同时安装 Apple Silicon 和 Intel VST3。
+
+二、Windows x64 VST3 安装与升级
+
+1. 完全退出 Cubase、Nuendo、REAPER、Studio One 以及其他会加载或扫描插件的宿主，并确认后台扫描进程已经结束。
+2. 解压 Win/QQ Super Compression 1.3.2 Windows x64 VST3.zip。
+3. 解压后应得到完整文件夹：
+   QQ Super Compression.vst3
+   这是一个 VST3 bundle。不要只复制 Contents 里的二进制文件，也不要改名。
+4. 打开系统 VST3 目录：
+   C:\Program Files\Common Files\VST3
+   写入此目录通常需要管理员确认。
+5. 升级时，先把扫描目录中旧的同名“QQ Super Compression.vst3”完整移出并保存为回滚副本，再把新版完整 bundle 复制进去。不要在任何扫描目录里同时保留旧版和新版，也不要在其他自定义 VST3 目录留下重复副本。
+6. 重新打开宿主，在插件管理器中执行完整 VST3 重新扫描；可在 Qing Audio 厂商分类或按产品名查找。
+7. 如果插件未出现：确认宿主为 64 位、bundle 复制完整且没有重复副本；在宿主中清除失败/黑名单记录后重新扫描。必要时重启宿主或 Windows。若提示缺少运行库，请安装 Microsoft 官方 Visual C++ 2015-2022 x64 Redistributable。
+
+三、macOS VST3 安装与升级
+
+1. 完全退出所有宿主和插件扫描程序。
+2. 按宿主架构选择一个 VST3 ZIP：原生 Apple Silicon 宿主使用 Apple Silicon 包；Intel Mac 或 Rosetta Intel 宿主使用 Intel x86_64 包。不要同时安装两套 VST3。
+3. 解压所选 ZIP，应得到完整 bundle：
+   QQ Super Compression.vst3
+4. Finder 中选择“前往 -> 前往文件夹”，输入：
+   ~/Library/Audio/Plug-Ins/VST3
+   用户 Library 默认隐藏；也可以按住 Option 打开 Finder 的“前往”菜单并选择“资源库”。目录不存在时可以创建。
+5. 把完整 bundle 复制到上述用户目录。若要供所有用户使用，可改装到：
+   /Library/Audio/Plug-Ins/VST3
+   系统目录通常需要管理员权限。用户目录和系统目录只能保留一份。
+6. 升级或切换原生/Rosetta 宿主时，先把旧的同名 bundle 移出所有扫描目录，再复制新版。不要把两种架构并排安装。
+7. 重新打开宿主并执行 VST3 重新扫描。仍未识别时，先检查宿主架构、重复副本和 macOS 安全提示，再重启宿主或电脑。
+
+四、macOS Audio Unit（AU）安装与升级
+
+1. 完全退出所有宿主和插件扫描程序，再解压 Mac/QQ Super Compression 1.3.2 macOS Universal 2 AU.zip。
+2. 解压后应得到完整 bundle：
+   QQ Super Compression.component
+3. 把完整 bundle 复制到：
+   ~/Library/Audio/Plug-Ins/Components
+   或供所有用户使用的：
+   /Library/Audio/Plug-Ins/Components
+   系统目录可能需要管理员权限。两个目录只能保留一份。
+4. Universal 2 AU 同时包含 Apple Silicon arm64 和 Intel x86_64。AU 与 VST3 相互独立；只使用 AU 的宿主不需要另外安装 VST3。
+5. 升级时先把旧的同名 .component 移出扫描目录并保存，再复制新版。
+6. 重新打开 Logic Pro，在“设置/偏好设置 -> 插件管理器”中选中本插件，执行“重置并重新扫描所选项”。其他 AU 宿主使用各自的重新扫描功能；必要时重启电脑。
+
+五、macOS 安全提示与加载失败处理
+
+本次 macOS 成品采用 ad-hoc 签名，未经过 Apple Developer ID 签名及 Apple 公证。下载隔离标记可能使 macOS 在首次加载时阻止插件。
+
+先在“系统设置 -> 隐私与安全性”查看是否出现允许加载提示。只有确认文件来自可信交付包时，才可在终端中针对已安装的单个 bundle 执行以下对应命令：
+
+用户 VST3 目录：
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/QQ Super Compression.vst3"
+
+用户 AU 目录：
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super Compression.component"
+
+若安装在系统目录，请把路径替换为实际的 /Library/Audio/Plug-Ins/VST3 或 /Library/Audio/Plug-Ins/Components，并仅在权限确实需要时使用 sudo。只对上面列明的完整 bundle 操作，不要对整个磁盘或 Library 目录解除隔离；来源不确定时不要执行。
+
+执行后重新打开宿主并重新扫描。仍失败时检查宿主架构、重复副本和安装路径，必要时重启电脑。不要关闭系统整体安全保护。
+
+六、升级到 1.3.2 Stable
+
+1. 升级前另存工程副本，并保存原版本的完整 .vst3 或 .component bundle，以便回滚。
+2. 按“关闭宿主 -> 移出旧同名 bundle -> 复制 1.3.2 bundle -> 重新扫描”的顺序操作。插件身份保持不变；升级后请确认旧工程加载、参数状态和自动化。
+3. FULL/ECO 按实例保存。ECO 在宿主明确停播时停止处理并输出静音，即使存在硬件底噪；播放、录音、离线渲染或切回 FULL 时恢复处理。FULL 保留停播实时监听。实际 ASIO-Guard 表现取决于宿主工程和设备。
+4. 总过采样统一为 1x / 4x / 8x / 16x，作用于所有 Lookahead 的动态处理与 Ceiling；1x 音频也保留独立 TP 重建检测。旧工程原先仅在 0 ms 生效的 OS 现在也作用于非零 Lookahead，音色与负载可能变化。
+5. SAFE 新实例默认关闭，点亮表示 Safe。Normal 使用 Distort 百分比（默认 0%）；Safe 使用 Window 毫秒（默认等于 Lookahead）。较长 Safe 窗口可以降低快速增益变化造成的噼啪声，代价为提前压与峰后压，不保证所有素材无失真。手动切换 Lookahead 或 Alt 单击恢复全窗口；A/B 和工程保留设置。Lookahead 为 0/26/40/80/100 ms，旧 10/5 ms 迁移为 26 ms。Limiter 上压阈值不再联动 Output/Makeup；Super 最低 -inf，Classic 最低 -90 dB。
+6. 随附两本 1.3.2 用户手册已更新 Limiter、0 ms Lookahead 和双压建议。请按手册检查 Limiter、Single/Dual、A/B、Output LINK 和已有自动化，并在自己的宿主中试听。
+7. 如需回滚，关闭宿主，移出 1.3.2 bundle，恢复先前保存的原版本 bundle，再执行完整重新扫描并打开升级前保存的工程副本。
+
+七、兼容性、首次扫描与排查
+
+- Windows 仅提供 x64 VST3；macOS 最低版本为 11.0。
+- Apple Silicon 原生宿主使用 arm64 VST3；Intel 或 Rosetta 宿主使用 x86_64 VST3；Universal 2 AU 同时包含两种架构。
+- 同一格式不要在用户目录、系统目录或自定义扫描目录中留下重复副本。
+- 插件未出现时，先核对 ZIP 文件名、bundle 名称、安装路径、宿主位数/架构和安全提示，再执行完整重新扫描；最后才重启宿主或电脑。
+- 不需要额外安装程序。不同宿主、设备路由和长期工程可能存在差异，本说明不替代用户在自己的宿主中试听和确认。
+- 禁止商业使用。分发原版或修改版时，须免费提供完整对应源码，保留作者、许可证和来源，并注明修改；具体条款以仓库许可证为准。
+- 对应公开源码与许可证：https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.3.2
+- Stable 发布页：https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.3.2
+
+许可证全文（分发时请保留）：
+
+QING AUDIO NON-COMMERCIAL SOURCE-SHARE LICENSE 1.0
+
+SPDX-License-Identifier: LicenseRef-Qing-Audio-NC-Source-Share-1.0
+
+Copyright (c) 2026 Qing Audio and the identified copyright holders.
+All rights are reserved except those expressly granted by this License.
+
+IMPORTANT: This is a source-available, non-commercial software license.
+It is not an Open Source Initiative approved open-source license.
+
+1. Acceptance
+
+By using, copying, modifying, or distributing the Software, You accept this
+License. If You do not accept it, You receive no permission under it.
+
+2. Definitions
+
+"Software" means the project-authored source code, object code, binaries,
+documentation, build files, assets, and other materials supplied with this
+License, excluding Third-Party Components.
+
+"You" means the individual or legal entity exercising rights under this
+License.
+
+"Commercial Use" means any use that is intended for, supports, or results in
+commercial advantage, monetary compensation, revenue, monetization, or benefit
+to a for-profit activity. Commercial Use includes, without limitation:
+
+* selling, licensing, renting, or charging for the Software or access to it;
+* using the Software in a paid product, paid service, subscription, hosted
+  service, consulting engagement, support offering, or commercial production;
+* integrating the Software into a product or service that is sold, licensed,
+  monetized by advertising, sponsorship, affiliate income, or other revenue;
+* using the Software internally by or on behalf of a for-profit organization;
+* distributing the Software to promote, market, or support a commercial
+  product, service, or business activity.
+
+Passive hosting, indexing, or transmission by a general-purpose source-code
+repository or network provider on behalf of a permitted non-commercial user is
+not Commercial Use solely because the provider is a commercial entity.
+
+"Non-Commercial Use" means use solely for personal study, education, academic
+or public-interest research, evaluation, hobby activity, charity, or another
+purpose without anticipated commercial application or commercial benefit.
+
+"Distribute" means to publish, provide, transfer, sublicense, share, make
+available, or convey any copy of the Software or a Modified Work, whether as
+source code, object code, binary, plug-in, installer, archive, service image,
+or any other form.
+
+"Modified Work" means any work based on, incorporating, translating, adapting,
+or modifying any part of the Software.
+
+"Corresponding Source" means the complete preferred form for making changes,
+including all project-authored source files, modifications, interface files,
+build and installation scripts, configuration files, and other materials
+reasonably necessary to build, install, and run the distributed version. It
+does not include generally available system components or Third-Party
+Components obtainable separately under their own licenses.
+
+"Required Notice" means each plain-text notice supplied with the Software that
+identifies the project, copyright holder, original author, or original source.
+
+"Third-Party Components" means materials identified as belonging to another
+copyright holder or supplied under another license.
+
+3. Non-Commercial License Grant
+
+Subject to full compliance with this License, the copyright holders grant You
+a worldwide, royalty-free, non-exclusive, non-transferable license to use,
+study, copy, modify, and Distribute the Software and Modified Works solely for
+Non-Commercial Use.
+
+No Commercial Use is permitted unless the relevant copyright holders provide a
+separate written commercial license. No right is granted by implication.
+
+4. Distribution and Source-Sharing Conditions
+
+Whenever You Distribute the Software or a Modified Work, You must:
+
+a. include this complete License and every Required Notice;
+
+b. preserve all copyright, authorship, attribution, license, and warranty
+   notices;
+
+c. state prominently that the work is based on the applicable Qing Audio
+   project, identify the original project and author, and provide the original
+   source repository URL when one was supplied;
+
+d. state prominently that You changed the Software, describe the material
+   changes, identify the modifier, and give the modification date;
+
+e. provide the complete Corresponding Source at the same time, without charge,
+   through the same distribution or a stable, publicly accessible URL;
+
+f. keep the Corresponding Source available for as long as the distributed form
+   remains available and for at least three years after the last distribution;
+
+g. license the entire Modified Work under this same License, with no additional
+   restriction that conflicts with it;
+
+h. ensure that every recipient can exercise the same Non-Commercial Use,
+   modification, and distribution rights under this License.
+
+Binary-only or source-incomplete distribution is prohibited.
+
+5. Attribution Format
+
+Attribution must be reasonably prominent in the README, About page, release
+notes, documentation, or another location ordinarily visible to recipients. It
+must use this form, adapted only to fill in the brackets:
+
+    Based on [Project Name] by Qing Audio / Ziqing Gu.
+    Original source: [Original Repository URL]
+    Modified by: [Modifier Name]
+    Modification date and summary: [Date and Summary]
+
+You may not remove Required Notices or imply endorsement by the original author.
+
+6. Third-Party Components
+
+This License does not replace or alter any license for a Third-Party Component.
+You must comply with all applicable third-party licenses. If a Third-Party
+Component's terms conflict with this License, You receive only the rights that
+can lawfully coexist, and You must not Distribute an unlawful combination.
+
+7. Trademarks and Branding
+
+No trademark, logo, product-name, trade-dress, or endorsement right is granted.
+Modified Works must not create confusion about their origin or official status.
+The copyright holders may require a Modified Work to use a different product
+name, identifier, or branding.
+
+8. Patent License
+
+Each copyright holder grants You a patent license covering patent claims that
+the holder can license and that are necessarily infringed by the permitted
+Non-Commercial Use of that holder's contribution. This patent license ends
+immediately if You or Your organization assert a patent claim alleging that the
+Software or a contribution infringes a patent.
+
+9. Termination and Cure
+
+Any breach automatically terminates Your rights under this License. For a first
+breach, Your rights may be reinstated if You fully cure the breach within 30
+days after receiving written notice. Repeated, willful, or uncured breaches are
+not automatically reinstated. Termination does not limit other legal remedies.
+
+10. Commercial Licensing
+
+Commercial permission may be available under a separate written agreement from
+the relevant copyright holders. A commercial license does not change the terms
+applicable to copies received only under this License.
+
+11. Disclaimer of Warranty
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" AND
+WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+12. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, NO COPYRIGHT HOLDER OR CONTRIBUTOR WILL
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+CONSEQUENTIAL, OR OTHER DAMAGES ARISING FROM THE SOFTWARE OR THIS LICENSE,
+REGARDLESS OF THE LEGAL THEORY AND EVEN IF ADVISED OF THE POSSIBILITY OF DAMAGE.
+
+13. Severability
+
+If any provision is held unenforceable, it will be limited to the minimum
+extent necessary, and the remaining provisions will continue in effect.
+
+14. Previously Distributed Copies
+
+This License applies to a copy only when the relevant copyright holders supply
+that copy under this License. Rights already granted for previously distributed
+copies under earlier license terms are not retroactively revoked.
+
+END OF LICENSE
+
+沿用的 FULL 行为：宿主明确停播时仍保留实时监听；只有主输入和所选侧链均为极低残留、考虑增益后输出与尾音稳定等条件满足，才暂停主要 DSP。普通硬件底噪仍处理；播放、录音、离线处理及宿主状态未知时保持完整处理。
+对应公开源码标签：v1.3.2。
+
+GitHub asset names / GitHub 远端文件名:
+QQ.Super.Compression.1.3.2.Windows.x64.VST3.zip
+QQ.Super.Compression.1.3.2.macOS.Apple.Silicon.VST3.zip
+QQ.Super.Compression.1.3.2.macOS.Intel.x86_64.VST3.zip
+QQ.Super.Compression.1.3.2.macOS.Universal.2.AU.zip

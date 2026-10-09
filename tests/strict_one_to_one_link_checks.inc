@@ -63,6 +63,9 @@
         auto runVisualMeter=[&](bool tp)
         {
             QQSuperCompressionAudioProcessor p;baseline(p);p.enterLimiterMode();
+            // Visual telemetry is intentionally disabled with the ECO editor
+            // closed. This test measures the open editor's meters/Display.
+            p.setEditorOpen(true);
             set(p,"limiterCompressionMode",0);set(p,"limiterProcessingMode",0);
             set(p,"limiterRatio",400);set(p,"limiterMix",100);set(p,"limiterMakeupGainDb",0);
             set(p,"limiterOutputDb",0);set(p,"ceilingDb",0);set(p,"truePeakLimiting",tp?1.f:0.f);

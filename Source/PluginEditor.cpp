@@ -310,8 +310,8 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureActionButton (sidechainListenButton);
 
     // Current Mode is always an active state, so it gets the subtle warm lamp
-    // treatment even though it is a cycle button rather than a toggle. The 0 ms
-    // Oversampling selector uses cyan as a technical/analysis accent.
+    // treatment even though it is a cycle button rather than a toggle.
+    // The overall Oversampling selector uses cyan as a technical accent.
     modeButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
     modeButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::warmAccent());
     oversamplingButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
@@ -618,6 +618,10 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
     modeLabel.setColour (juce::Label::textColourId, musical);
     monitorLabel.setColour (juce::Label::textColourId, technical);
     lookaheadLabel.setColour (juce::Label::textColourId, technical);
+    detectorWindowLabel.setColour (juce::Label::textColourId, technical);
+    detectorWindowValue.setColour (juce::Label::textColourId, qqsc::ui::text());
+    detectorWindowValue.setColour (juce::Label::backgroundColourId, qqsc::ui::panelAlt());
+    detectorWindowValue.setColour (juce::Label::outlineColourId, qqsc::ui::border());
     oversamplingLabel.setColour (juce::Label::textColourId, technical);
     ceilingOversamplingLabel.setColour (juce::Label::textColourId, technical);
     if (darkTheme)
@@ -655,7 +659,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
     for (auto* button : std::initializer_list<juce::TextButton*> { &modeButton, &linkButton, &dualRatioLinkButton, &inputOutputLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
-                          &limiterButton, &limiterLinkButton, &unityMonitorButton, &truePeakButton, &tpRecoveryButton, &algorithmButton, &upAlgorithmButton, &downAlgorithmButton, &themeButton, &oversamplingButton, &ceilingOversamplingButton, &performanceModeButton, &sidechainButton, &keyInternalButton,
+                          &detectorModeButton, &limiterButton, &limiterLinkButton, &unityMonitorButton, &truePeakButton, &tpRecoveryButton, &algorithmButton, &upAlgorithmButton, &downAlgorithmButton, &themeButton, &oversamplingButton, &ceilingOversamplingButton, &performanceModeButton, &sidechainButton, &keyInternalButton,
                           &keyExternalButton, &sidechainListenButton })
     {
         button->setColour (juce::TextButton::buttonColourId, qqsc::ui::panel());
@@ -1500,11 +1504,10 @@ void QQSuperCompressionAudioProcessorEditor::beginBoundaryGesture (int domain, b
     auto& source = upper ? *upperBoundarySliders[static_cast<size_t> (domain)] : *controls[static_cast<size_t> (domain)];
     const auto d=static_cast<size_t>(domain);
     const auto singleRatio=processor.effectiveSingleRatio(d);
-    const auto dualUpRatio=qqsc::params::upwardRatio(processor.readSoundParameter(qqsc::params::upRatioIds[d]),processor.isLimiterMode());
+
     const auto dualDownRatio=qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[d]),processor.isLimiterMode(),true);
     const bool limiterThresholdSource=processor.isLimiterMode() && (attachedCompressionMode==1
-        ? (upper ? (processor.readSoundParameter(qqsc::params::downEnabledIds[d])>=0.5f && dualDownRatio>1.0f+1.0e-6f)
-                 : (processor.readSoundParameter(qqsc::params::upEnabledIds[d])>=0.5f && dualUpRatio<1.0f-1.0e-6f))
+        ? (upper && processor.readSoundParameter(qqsc::params::downEnabledIds[d])>=0.5f && dualDownRatio>1.0f+1.0e-6f)
         : (!upper && std::abs(singleRatio-1.0f)>1.0e-6f));
     if (limiterThresholdSource) captureLimiterLinkAnchor(source);
     else limiterLinkAnchorValid=false;
@@ -1543,11 +1546,10 @@ void QQSuperCompressionAudioProcessorEditor::handleBoundaryChange (int domain, b
     const auto index = static_cast<size_t> (domain);
     auto& editedSource = upper ? *upperBoundarySliders[index] : *lower[index];
     const auto singleRatio=processor.effectiveSingleRatio(index);
-    const auto dualUpRatio=qqsc::params::upwardRatio(processor.readSoundParameter(qqsc::params::upRatioIds[index]),processor.isLimiterMode());
+
     const auto dualDownRatio=qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[index]),processor.isLimiterMode(),true);
     const bool limiterThresholdSource=processor.isLimiterMode() && (attachedCompressionMode==1
-        ? (upper ? (processor.readSoundParameter(qqsc::params::downEnabledIds[index])>=0.5f && dualDownRatio>1.0f+1.0e-6f)
-                 : (processor.readSoundParameter(qqsc::params::upEnabledIds[index])>=0.5f && dualUpRatio<1.0f-1.0e-6f))
+        ? (upper && processor.readSoundParameter(qqsc::params::downEnabledIds[index])>=0.5f && dualDownRatio>1.0f+1.0e-6f)
         : (!upper && std::abs(singleRatio-1.0f)>1.0e-6f));
     if(boundaryGestureActive && limiterThresholdSource && processor.isLimiterLinked() && limiterLinkAnchorValid)
     {
@@ -1642,9 +1644,8 @@ void QQSuperCompressionAudioProcessorEditor::updateCompressionUi()
     const juce::ScopedValueSetter<bool> guard (boundaryValueUpdateInProgress, true);
     for (size_t i = 0; i < lower.size(); ++i)
     {
-        const auto minimum = processor.isClassicBoundary(false) ? double(qqsc::classicThresholdMinimumDb)
-                                                           : double(qqsc::params::thresholdOffDb);
-        const auto upperMinimum=processor.isClassicBoundary(true) ? double(qqsc::classicThresholdMinimumDb) : double(qqsc::params::thresholdOffDb);
+        const auto minimum = double(processor.boundaryMinimumDb(false));
+        const auto upperMinimum = double(processor.boundaryMinimumDb(true));
         if (lower[i]->getMinimum() != minimum) lower[i]->setRange (minimum, 0.0, 0.01);
         if (upperBoundarySliders[i]->getMinimum() != upperMinimum)
             upperBoundarySliders[i]->setRange (upperMinimum, dual ? 0.0 : double(qqsc::params::rangeOffDb), 0.01);
@@ -1764,14 +1765,7 @@ void QQSuperCompressionAudioProcessorEditor::commitLookaheadChoice()
 
     if (std::abs (current - value) > 0.0001f)
     {
-        beginUndoTransaction ("Lookahead");
-        if (auto* parameter = processor.getAPVTS().getParameter (processor.soundParameterID(qqsc::params::lookaheadMs)))
-        {
-            parameter->beginChangeGesture();
-            parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
-            parameter->endChangeGesture();
-            processor.notifyHostProcessingLatency();
-        }
+        processor.setLookaheadFromEditor(value);
     }
 
     updateOversamplingUi();
@@ -1789,14 +1783,13 @@ void QQSuperCompressionAudioProcessorEditor::commitLookaheadChoice()
 
 void QQSuperCompressionAudioProcessorEditor::cycleOversampling()
 {
-    // Visible only at 0 ms: cycle 1x -> 4x -> 8x -> 16x -> 1x.
-    // 4x is the lower-cost intermediate option; the core and Ceiling retain
-    // independent choices, including separate Normal and Limiter core banks.
+    // Overall audio rate: 1x -> 4x -> 8x -> 16x -> 1x at every Lookahead.
+    // Compressor and Limiter banks retain their independent saved choices.
     const auto current = juce::jlimit (0, 3, juce::roundToInt (
         processor.readSoundParameter(qqsc::params::oversampling)));
     const auto next = (current + 1) % 4;
 
-    beginUndoTransaction ("0 ms Oversampling");
+    beginUndoTransaction ("Oversampling");
     setChoiceParameter (qqsc::params::oversampling, next);
     processor.notifyHostProcessingLatency();
     updateOversamplingUi();
@@ -1804,49 +1797,26 @@ void QQSuperCompressionAudioProcessorEditor::cycleOversampling()
 
 void QQSuperCompressionAudioProcessorEditor::updateOversamplingUi()
 {
-    const auto currentLookaheadMs = qqsc::params::snapLookaheadMs (
-        processor.readSoundParameter(qqsc::params::lookaheadMs));
-    const bool zeroMs = currentLookaheadMs < 0.0001f;
-
     const auto oversamplingIndex = juce::jlimit (0, 3, juce::roundToInt (
         processor.readSoundParameter(qqsc::params::oversampling)));
     oversamplingButton.setButtonText (qqsc::params::oversamplingNameForChoiceIndex (oversamplingIndex));
 
-    // Established transparent-engine rule: Oversampling is only meaningful at
-    // 0 ms. 10/26/40/80/100 ms run 1x internally and hide the control while
-    // preserving the user's remembered 0 ms choice.
-    oversamplingLabel.setVisible (zeroMs);
-    oversamplingButton.setVisible (zeroMs);
+    // Short detector windows can modulate gain even at nonzero Lookahead.
+    // Keep the common dynamics/Ceiling audio rate accessible in every mode.
+    oversamplingLabel.setVisible (true);
+    oversamplingButton.setVisible (true);
+    oversamplingButton.setTooltip("Overall audio oversampling: 1x / 4x / 8x / 16x, for dynamics and Ceiling at every Lookahead. Higher factors reduce aliasing and use more CPU; filter latency is reported to the host.");
+    refreshDetectorWindowControl();
 }
 
 void QQSuperCompressionAudioProcessorEditor::cycleCeilingOversampling()
-{
-    // TP requires reconstructed inter-sample information. While TP is active
-    // the user-facing selector cycles 4x -> 8x -> 16x. With TP off
-    // the complete native/4x/8x/16x Hard-Clip quality set is available.
-    const bool tp=processor.isTruePeakSelected();
-    const int current=processor.getEffectiveCeilingOversamplingChoice();
-    const int next=tp ? (current==3 ? 1 : current+1) : ((current+1)%4);
-
-    beginUndoTransaction ("Ceiling Oversampling");
-    setChoiceParameter (qqsc::params::ceilingOversampling,next);
-    processor.notifyHostProcessingLatency();
-    updateCeilingOversamplingUi();
-}
+{ cycleOversampling(); } // Legacy control is no longer exposed.
 
 void QQSuperCompressionAudioProcessorEditor::updateCeilingOversamplingUi()
 {
-    const bool limiter=processor.isLimiterMode();
-    const bool tp=processor.isTruePeakSelected();
-    const int effective=processor.getEffectiveCeilingOversamplingChoice();
-
-    ceilingOversamplingButton.setButtonText (qqsc::params::ceilingOversamplingChoices()[effective]);
-    ceilingOversamplingLabel.setVisible(limiter);
-    ceilingOversamplingButton.setVisible(limiter);
-    ceilingOversamplingButton.setEnabled(limiter);
-    ceilingOversamplingButton.setTooltip(tp
-        ? "Ceiling Oversampling: True Peak requires reconstruction, so TP cycles 4x / 8x / 16x. Changing quality may change PDC."
-        : "Ceiling Oversampling: 1x = native Hard Clip; 4x / 8x / 16x = oversampled Hard Clip. Changing quality may change PDC.");
+    ceilingOversamplingButton.setButtonText(qqsc::params::oversamplingNameForChoiceIndex(processor.getEffectiveCeilingOversamplingChoice()));
+    ceilingOversamplingLabel.setVisible(false);
+    ceilingOversamplingButton.setVisible(false);
 }
 
 void QQSuperCompressionAudioProcessorEditor::togglePerformanceMode()
@@ -2200,8 +2170,10 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     right -= 86 + smallGap;
     performanceModeButton.setBounds (right - 62, headerButtonY, 62, headerButtonH);
     right -= 62 + smallGap;
+    detectorModeButton.setBounds (right - 86, headerButtonY, 86, headerButtonH);
+    right -= 86 + smallGap;
     limiterButton.setBounds (right - 118, headerButtonY, 118, headerButtonH);
-    right -= 118 + 6;
+    right -= 118 + smallGap;
 
     // The existing sidechain popup grows
     // leftward from the Side Chain button and adds HPF beside Key Gain.
@@ -2454,23 +2426,27 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     linkButton.setBounds (choiceX + primaryChoiceW + linkChoiceGap,
                           modeButtonRow.getY() + 1, linkChoiceW, primaryChoiceH);
 
-    // 1.2.34: Lookahead and its special 0 ms OS share one compact row directly
-    // under MODE. This frees the previous OS row for Limiter Ceiling quality.
+    // Lookahead and the mode-specific Distort/Window field share a compact row.
+    // Overall OS occupies the next row in both compressor and Limiter modes.
     constexpr int compactOsW = 38;
     constexpr int compactGap = 4;
     constexpr int compactLookaheadW = primaryChoiceW - compactOsW - compactGap;
     auto lookaheadLabelArea = modeArea.removeFromTop (12);
     lookaheadLabel.setBounds (choiceX, lookaheadLabelArea.getY(), compactLookaheadW, lookaheadLabelArea.getHeight());
-    oversamplingLabel.setBounds (choiceX + compactLookaheadW + compactGap, lookaheadLabelArea.getY(),
-                                 compactOsW, lookaheadLabelArea.getHeight());
+    detectorWindowLabel.setBounds (choiceX + compactLookaheadW + compactGap, lookaheadLabelArea.getY(),
+                                  compactLookaheadW, lookaheadLabelArea.getHeight());
     auto lookaheadComboRow = modeArea.removeFromTop (25);
     lookaheadCombo.setBounds (choiceX, lookaheadComboRow.getY() + 1, compactLookaheadW, primaryChoiceH);
-    oversamplingButton.setBounds (choiceX + compactLookaheadW + compactGap, lookaheadComboRow.getY() + 1,
-                                  compactOsW, primaryChoiceH);
+    detectorWindowValue.setBounds (choiceX + compactLookaheadW + compactGap, lookaheadComboRow.getY() + 1,
+                                  compactLookaheadW, primaryChoiceH);
 
     auto monitorLabelArea = modeArea.removeFromTop (12);
+    oversamplingLabel.setBounds (choiceX + primaryChoiceW + linkChoiceGap, monitorLabelArea.getY(),
+                                linkChoiceW, monitorLabelArea.getHeight());
     monitorLabel.setBounds (choiceX, monitorLabelArea.getY(), primaryChoiceW, monitorLabelArea.getHeight());
     auto monitorButtonRow = modeArea.removeFromTop (25);
+    oversamplingButton.setBounds (choiceX + primaryChoiceW + linkChoiceGap, monitorButtonRow.getY() + 1,
+                                 linkChoiceW, primaryChoiceH);
     constexpr int monitorButtonW = 34;
     constexpr int monitorButtonGap = 3;
     monitorAllButton.setBounds (choiceX, monitorButtonRow.getY() + 1, monitorButtonW, primaryChoiceH);
@@ -2482,4 +2458,3 @@ void QQSuperCompressionAudioProcessorEditor::resized()
     auto ceilingOsButtonRow = modeArea.removeFromTop (25);
     ceilingOversamplingButton.setBounds (choiceX, ceilingOsButtonRow.getY() + 1, primaryChoiceW, primaryChoiceH);
 }
-

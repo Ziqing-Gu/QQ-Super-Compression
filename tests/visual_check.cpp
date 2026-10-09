@@ -6,6 +6,9 @@ struct QQSCVisualCheck
 {
     static void floorChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
     static void algorithmChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
+    static void unityDisplayCheck(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&);
+    static void zeroLookaheadDetectorCheck(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&);
+    static void windowReplayCheck(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&);
     static void revisionThreeChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
     static void revisionFourChecks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
     static void up1000Checks(QQSuperCompressionAudioProcessorEditor&, QQSuperCompressionAudioProcessor&, const juce::File&);
@@ -613,7 +616,7 @@ struct QQSCVisualCheck
         std::cout << "PASS: Dark Input active/inactive contrast, theme toggle/unchanged APVTS, numeric entry and sizes.\n";
     }
 
-    static int run (const juce::File& dir)
+    static int run (const juce::File& dir, bool displayUnityOnly = false, bool zeroDetectorOnly = false)
     {
         dir.createDirectory();
         QQSuperCompressionAudioProcessor processor;
@@ -629,6 +632,37 @@ struct QQSCVisualCheck
         editor.stopTimer();
         editor.display.stopTimer();
         editor.setSize (1200, 800);
+        if (zeroDetectorOnly)
+        {
+            zeroLookaheadDetectorCheck (editor, processor);
+            windowReplayCheck (editor, processor);
+            processor.releaseResources();
+            return 0;
+        }
+        if (displayUnityOnly)
+        {
+            unityDisplayCheck (editor, processor);
+            for (auto skinTheme : {qqsc::ui::Theme::light, qqsc::ui::Theme::dark, qqsc::ui::Theme::classic})
+            {
+                editor.theme = skinTheme;
+                editor.applyTheme();
+                const juce::String skin = skinTheme == qqsc::ui::Theme::dark ? "dark"
+                    : (skinTheme == qqsc::ui::Theme::classic ? "classic" : "light");
+                for (int size : {1008, 1200})
+                {
+                    editor.setSize (size, size * 2 / 3);
+                    for (int detector : {0, 1})
+                    {
+                        parameter (processor, qqsc::params::detectorMode, float (detector));
+                        editor.timerCallback();
+                        snapshot (editor, dir.getChildFile ("detector-" + skin + "-" + juce::String (size)
+                            + (detector == 0 ? "-Min.png" : "-Max.png")));
+                    }
+                }
+            }
+            processor.releaseResources();
+            return 0;
+        }
         parameter (processor, "ratio", 5.0f);
         parameter (processor, "thresholdDb", -28.0f);
         parameter (processor, "makeupGainDb", 3.4f);
@@ -804,7 +838,10 @@ struct QQSCVisualCheck
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI initialiser;
-    if (argc != 2) return 2;
-    try { return QQSCVisualCheck::run (juce::File (juce::String::fromUTF8 (argv[1]))); }
+    if (argc != 2 && argc != 3) return 2;
+    const bool displayUnityOnly = argc == 3 && juce::String (argv[2]) == "--display-unity";
+    const bool zeroDetectorOnly = argc == 3 && juce::String (argv[2]) == "--detector-zero-display";
+    if (argc == 3 && ! displayUnityOnly && ! zeroDetectorOnly) return 2;
+    try { return QQSCVisualCheck::run (juce::File (juce::String::fromUTF8 (argv[1])), displayUnityOnly, zeroDetectorOnly); }
     catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }
