@@ -3,6 +3,8 @@
     {
         QQSuperCompressionAudioProcessor p;p.setEcoMode(false);
         set(p,"thresholdLDb",-72);set(p,"rangeLDb",-6);set(p,"upThresholdLDb",-100);
+        const std::array<float,3> normalStored { get(p,"thresholdLDb"), get(p,"rangeLDb"), get(p,"upThresholdLDb") };
+        check(std::abs(normalStored[0]+72.f)<.00002f && std::abs(normalStored[1]+6.f)<.00002f && std::abs(normalStored[2]+100.f)<.00002f,"Normal test setup");
         p.enterLimiterMode();set(p,"limiterLink",0);set(p,"limiterKeySource",0);set(p,"limiterInputGainDb",0);
         QQSuperCompressionAudioProcessorEditor e(p,settings(root));e.setSize(1200,800);
         for(float algorithm:{0.f,1.f})for(int dual:{0,1})
@@ -39,16 +41,22 @@
             set(p,"limiterInputGainDb",0);
         }
         p.setCompressionModeFromEditor(0);set(p,"limiterThresholdLDb",-12);set(p,"limiterRatioL",8);
+        // Parameter normalization may round a decimal dB value differently
+        // across compilers. First validate the requested value, then require
+        // exact preservation of the stored value across Range edits and A/B.
+        const float thresholdStored=p.getBoundaryForDomainDb(false,false,1);
+        std::cout<<"THRESHOLD_STORED "<<std::setprecision(10)<<thresholdStored<<" requested -12\n";
+        check(std::abs(thresholdStored+12.f)<.00002f,"Threshold test setup");
         const float expected=p.getDynamicsGainForDomain(.8f,1);
         for(float range:{-120.f,-45.f,-6.f,0.f,1.f})
         {
             set(p,"limiterRangeLDb",range);
-            check(p.getBoundaryForDomainDb(false,false,1)==-12,"Legacy Range cannot push threshold");
+            check(p.getBoundaryForDomainDb(false,false,1)==thresholdStored,"Legacy Range cannot push threshold");
             check(p.readSoundParameter("rangeLDb")==1,"Range read neutral");
             check(p.getDynamicsGainForDomain(.8f,1)==expected,"Range automation cannot change gain");
         }
         p.copyAToB();set(p,"limiterThresholdLDb",-90);p.selectABSlot(1);
-        check(p.getBoundaryForDomainDb(false,false,1)==-12,"B restores finite threshold");
+        check(p.getBoundaryForDomainDb(false,false,1)==thresholdStored,"B restores finite threshold");
         p.selectABSlot(0);check(p.getBoundaryForDomainDb(false,false,1)==-45,"A clamps old threshold");
         juce::MemoryBlock state;p.getStateInformation(state);QQSuperCompressionAudioProcessor restored;
         restored.setStateInformation(state.getData(),int(state.getSize()));
@@ -58,10 +66,12 @@
         e.outputGainSlider.onGestureStart();e.outputGainSlider.setValue(20,juce::sendNotificationSync);e.outputGainSlider.onGestureEnd();sync(p,e);
         check(p.getBoundaryForDomainDb(false,false,1)>=-45,"Output LINK respects threshold floor");
         p.setCompressionModeFromEditor(1);set(p,"limiterUpThresholdLDb",-35);set(p,"limiterDownThresholdLDb",-12);sync(p,e);e.timerCallback();
+        const float upStored=p.getBoundaryForDomainDb(true,false,1);
+        check(std::abs(upStored+35.f)<.00002f,"UP test setup");
         e.outputGainSlider.onGestureStart();e.outputGainSlider.setValue(10,juce::sendNotificationSync);e.outputGainSlider.onGestureEnd();sync(p,e);
-        check(p.getBoundaryForDomainDb(true,false,1)==-35,"Output LINK leaves UP independent");
+        check(p.getBoundaryForDomainDb(true,false,1)==upStored,"Output LINK leaves UP independent");
         p.leaveLimiterMode();set(p,"processingMode",2);set(p,"compressionMode",0);sync(p,e);e.timerCallback();
-        check(get(p,"thresholdLDb")==-72 && get(p,"rangeLDb")==-6 && get(p,"upThresholdLDb")==-100,"Normal banks preserved");
+        check(get(p,"thresholdLDb")==normalStored[0] && get(p,"rangeLDb")==normalStored[1] && get(p,"upThresholdLDb")==normalStored[2],"Normal banks preserved");
         check(e.upperBoundarySliders[1]->isVisible(),"Normal Range remains");
         const auto plot=e.display.getBoundaryPlotForDomain(1);
         check(std::abs(e.display.getBoundaryDbForY(1,plot.getCentreY(),false)+45)<.01f,"Normal -90 Display retained");
