@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.3.4 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.3.5 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -111,6 +111,15 @@ juce_add_plugin(QQSuperCompression
     COPY_PLUGIN_AFTER_BUILD FALSE
     VST3_CATEGORIES Fx Dynamics
 )
+
+# JUCE 8.0.15 does not track Info.txt for its Windows resource command.
+# Regenerate version resources when reusing a build directory after a version bump.
+if(WIN32)
+    get_target_property(qqsc_generated_sources QQSuperCompression JUCE_GENERATED_SOURCES_DIRECTORY)
+    add_custom_command(
+        OUTPUT "${qqsc_generated_sources}/QQSuperCompression_resources.rc"
+        APPEND DEPENDS "${qqsc_generated_sources}/Info.txt")
+endif()
 
 juce_generate_juce_header(QQSuperCompression)
 

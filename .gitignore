@@ -23,3 +23,6 @@ Desktop.ini
 
 # Local user settings
 QQSuperCompression.settings
+
+# Local manual capture state
+documentation-only.settings

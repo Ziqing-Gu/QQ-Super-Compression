@@ -228,7 +228,6 @@ namespace qqsc::params
     // Keeping the per-algorithm mapping in the engine also preserves both
     // sides of the Classic/Super crossfade at this shared stored value.
     inline constexpr float thresholdOffDb = -120.0f;
-    inline constexpr float limiterThresholdMinimumDb = -45.0f;
     // Virtual Range endpoint: +1 is a stored OFF sentinel, never physical dB.
     // Finite 0 dB remains a distinct strict upper cutoff in saved projects.
     inline constexpr float rangeOffDb = 1.0f;

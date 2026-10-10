@@ -10,7 +10,7 @@
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 
-# QQ Super Compression 1.3.4 Stable
+# QQ Super Compression 1.3.5 Stable
 
 Qing Audio 压缩/限制器，支持 Classic/Super、Single/Dual、ST/LR/MS、内外侧链与 Limiter。SAFE 默认关闭；Normal 与 Safe 均使用 Window 毫秒；统一 1x/4x/8x/16x 过采样作用于所有 Lookahead。Lookahead 档位为 0/26/40/80/100 ms。
 
@@ -43,6 +43,11 @@ No Linux build is provided. Save a session copy, quit DAWs and retain the old pl
 **1.3.4 Stable (2026-10-11).** Window always uses milliseconds; Limiter combines an ST display with numeric L/R Link, and Match measures from playback start. Limiter's graph and all thresholds span -45 to 0 dB, with Range removed; normal compression retains its behavior. Includes matching 44-page Chinese and English manuals. This update covers 1.3.3 and 1.3.4; see the per-version entries below.
 
 ## 版本记录 / Version history
+
+### 1.3.5 — Stable, 2026-10-11
+
+- 中文：Display 新增 Scale 按钮，在 -30 / -60 / -90 dB 之间切换，普通模式与 Limiter 共用。图表、阈值推子和拖动精度同步刻度，保留实际阈值与声音；超出视野的阈值保留真实读数并以星号提示。取消 Limiter 固定 -45 dB 限制，继续移除其 Range。Scale 随工程保存，A/B 和 Limiter 切换保持一致。更新中英文 44 页说明书。修正复用 Windows 构建目录时版号资源未更新的问题。用户已确认并指定为 Stable；双语手册配套发行。
+- English: Adds a shared Display Scale button for -30 / -60 / -90 dB views in Normal and Limiter. Graphs, threshold faders and drag sensitivity follow the view without rewriting actual thresholds or changing audio; out-of-view readouts retain their value and show an asterisk. Removes the fixed Limiter -45 dB restriction while keeping Limiter Range disabled. Scale persists with the project and stays consistent across A/B and Limiter changes. Updates both 44-page manuals and fixes Windows resource-version refresh in reused build directories. Promoted to Stable by explicit user instruction, with matching bilingual manuals.
 
 ### 1.3.4 — Stable, 2026-10-11
 
@@ -136,14 +141,14 @@ Longer Safe windows can cause pre/post-attenuation. Shorter windows can increase
 
 FULL may stay awake at extreme gain or with active input/selected sidechain. ECO cuts tails when the host reports Stop. Plugin CPU timings cannot be translated to an ASIO-Guard percentage; DAW scheduling and buffer conditions matter. macOS artifacts are ad-hoc signed and may require trusted-source quarantine handling as described in the installation guides. Commercial use is prohibited; redistributed binaries require free complete corresponding source and the required notices.
 
-## 1.3.4 升级注意 / Upgrade notes
+## 1.3.5 升级注意 / Upgrade notes
 
-Limiter 旧 ST 设置迁移为 L/R Link 100%，旧 LR/MS 为 0%；旧 L（MS 为 M）参数成为共用值。旧阈值低于 -45 dB 时收至 -45 dB；Limiter 不再使用 Range。旧双组参数工程可能改变声音，请另存工程并试听。普通 LR/MS 与 Range 保留。
+Limiter 旧 ST 设置迁移为 L/R Link 100%，旧 LR/MS 为 0%；旧 L（MS 为 M）参数成为共用值。Limiter 不再使用 Range。Display Scale 不会改变阈值；Classic 最低 -90 dB，Super 最低 -inf。如果旧 1.3.4 已将阈值存为 -45 dB，本版无法恢复更早的数值。旧双组参数工程可能改变声音，请另存工程并试听。
 
-Older Limiter ST migrates to L/R Link 100%; LR/MS to 0%. The former L (M in MS) settings become shared. Thresholds below -45 dB clamp to -45 dB; Limiter Range is inactive. Old split-channel sessions may sound different. Save a session copy and audition it. Normal LR/MS and Range remain available.
+Older Limiter ST migrates to L/R Link 100%; LR/MS to 0%, with former L (M in MS) settings shared. Limiter Range is inactive. Display Scale does not change thresholds: Classic reaches -90 dB, Super -inf. If 1.3.4 already saved a clamped -45 dB value, earlier values cannot be reconstructed. Older split-channel sessions may sound different; save a session copy and audition it.
 
-Window 只改变检测时长，不改变选定延迟；SAFE 的代价是强音前后可能衰减。0 ms、较低 Window（尤其低于 10 ms）和 Limiter 推荐比较过采样。切换 Limiter 仍可能因 Ceiling 额外延迟触发宿主补偿；这次保留该行为。
+Window 只改变检测时长，不改变选定延迟；SAFE 可能衰减强音前后的声音。0 ms、较低 Window（尤其低于 10 ms）和 Limiter 推荐比较过采样。切换 Limiter 仍可能因 Ceiling 额外延迟触发宿主补偿。
 
-Window changes detection duration at fixed latency. SAFE may attenuate audio around loud events. Compare OS at 0 ms, short Window (especially below 10 ms), and in Limiter. Limiter switching can still trigger host compensation because Ceiling adds latency; this behavior is retained.
+Window changes detection duration at fixed latency. SAFE may attenuate audio around loud events. Compare OS at 0 ms, short Window (especially below 10 ms), and in Limiter. Limiter switching can still trigger host compensation because Ceiling adds latency.
 
-当前构建说明 / Current build instructions: [REPRODUCE_1.3.4.md](REPRODUCE_1.3.4.md).
+当前构建说明 / Current build instructions: [REPRODUCE_1.3.5.md](REPRODUCE_1.3.5.md).

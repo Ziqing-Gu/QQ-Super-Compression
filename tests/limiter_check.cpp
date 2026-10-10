@@ -202,6 +202,7 @@ struct QQSCLimiterCheck
 #include "window_link_checks.inc"
 #include "shared_controls_checks.inc"
 #include "limiter_45_checks.inc"
+#include "display_scale_checks.inc"
 #include "lookahead_presets_checks.inc"
 #include "overall_os_checks.inc"
 #include "retrospective_tp_display_checks.inc"
@@ -425,6 +426,8 @@ int main(int argc,char** argv)
         const juce::File root(argv[1]);root.createDirectory();
         if(argc==3 && juce::String(argv[2])=="cumulative-match")
         { QQSCReviewCheck::cumulativeMatchChecks();return 0; }
+        if(argc==3 && juce::String(argv[2])=="display-scale")
+        { QQSCLimiterCheck::displayScaleChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="limiter-45")
         { QQSCLimiterCheck::limiter45Checks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="shared-controls")

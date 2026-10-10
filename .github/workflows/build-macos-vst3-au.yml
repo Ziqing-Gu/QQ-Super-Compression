@@ -1,4 +1,4 @@
-name: Build macOS VST3 and AU 1.3.4
+name: Build macOS VST3 and AU 1.3.5
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.vst3_arch == 'arm64' && '[{"name":"Apple Silicon (arm64)","runner":"macos-14","expected_arch":"arm64","artifact_name":"QQ-Super-Compression-1.3.4-macOS-Apple-Silicon-VST3"}]' || inputs.vst3_arch == 'x86_64' && '[{"name":"Intel (x86_64)","runner":"macos-15-intel","expected_arch":"x86_64","artifact_name":"QQ-Super-Compression-1.3.4-macOS-Intel-VST3"}]' || '[{"name":"Apple Silicon (arm64)","runner":"macos-14","expected_arch":"arm64","artifact_name":"QQ-Super-Compression-1.3.4-macOS-Apple-Silicon-VST3"},{"name":"Intel (x86_64)","runner":"macos-15-intel","expected_arch":"x86_64","artifact_name":"QQ-Super-Compression-1.3.4-macOS-Intel-VST3"}]') }}
+        include: ${{ fromJSON(inputs.vst3_arch == 'arm64' && '[{"name":"Apple Silicon (arm64)","runner":"macos-14","expected_arch":"arm64","artifact_name":"QQ-Super-Compression-1.3.5-macOS-Apple-Silicon-VST3"}]' || inputs.vst3_arch == 'x86_64' && '[{"name":"Intel (x86_64)","runner":"macos-15-intel","expected_arch":"x86_64","artifact_name":"QQ-Super-Compression-1.3.5-macOS-Intel-VST3"}]' || '[{"name":"Apple Silicon (arm64)","runner":"macos-14","expected_arch":"arm64","artifact_name":"QQ-Super-Compression-1.3.5-macOS-Apple-Silicon-VST3"},{"name":"Intel (x86_64)","runner":"macos-15-intel","expected_arch":"x86_64","artifact_name":"QQ-Super-Compression-1.3.5-macOS-Intel-VST3"}]') }}
 
     steps:
       - name: Check out source
@@ -40,15 +40,15 @@ jobs:
           -DQQSC_BUILD_DYNAMICS_CHECK=ON
           -DQQSC_BUILD_VISUAL_CHECK=ON
 
-      - name: Build VST3 and 1.3.4 release checks
+      - name: Build VST3 and 1.3.5 release checks
         run: cmake --build build-macos --target QQSuperCompression_VST3 QQSCLimiterCheck QQSCReviewCheck QQSCVisualCheck --config Release --parallel 3
 
       - name: Verify current SAFE, window, oversampling, Display and transport contracts
         shell: bash
         run: |
           set -euo pipefail
-          check_root="$RUNNER_TEMP/qqsc-1.3.4-checks"
-          for profile in limiter-45 shared-controls cumulative-match window-link lookahead-presets overall-os; do
+          check_root="$RUNNER_TEMP/qqsc-1.3.5-checks"
+          for profile in display-scale shared-controls cumulative-match window-link lookahead-presets overall-os; do
             build-macos/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck "$check_root/$profile" "$profile"
           done
           build-macos/QQSCVisualCheck_artefacts/Release/QQSCVisualCheck "$check_root/display" --detector-zero-display
@@ -61,7 +61,7 @@ jobs:
           vst3='build-macos/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3'
           codesign --force --deep --sign - "$vst3"
           codesign --verify --deep --strict --verbose=2 "$vst3"
-          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$vst3/Contents/Info.plist")" = "1.3.4"
+          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$vst3/Contents/Info.plist")" = "1.3.5"
           vst3_binary=$(find "$vst3/Contents/MacOS" -type f -print -quit)
           test -n "$vst3_binary"
           lipo -archs "$vst3_binary" | tr ' ' '\n' | grep -Fx '${{ matrix.expected_arch }}'
@@ -100,7 +100,7 @@ jobs:
         shell: bash
         run: |
           au='build-macos-au/QQSuperCompression_artefacts/Release/AU/QQ Super Compression.component'
-          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$au/Contents/Info.plist")" = "1.3.4"
+          test "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$au/Contents/Info.plist")" = "1.3.5"
           codesign --force --deep --sign - "$au"
           codesign --verify --deep --strict --verbose=2 "$au"
           mkdir -p "$HOME/Library/Audio/Plug-Ins/Components"
@@ -118,12 +118,12 @@ jobs:
           printf '%s\n' "$archs"
           printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx arm64
           printf '%s\n' "$archs" | tr ' ' '\n' | grep -Fx x86_64
-          ditto -c -k --keepParent "$au" 'QQ-Super-Compression-1.3.4-macOS-Universal-AU.zip'
+          ditto -c -k --keepParent "$au" 'QQ-Super-Compression-1.3.5-macOS-Universal-AU.zip'
 
       - name: Upload packaged AU
         uses: actions/upload-artifact@v4
         with:
-          name: QQ-Super-Compression-1.3.4-macOS-Universal-AU
-          path: QQ-Super-Compression-1.3.4-macOS-Universal-AU.zip
+          name: QQ-Super-Compression-1.3.5-macOS-Universal-AU
+          path: QQ-Super-Compression-1.3.5-macOS-Universal-AU.zip
           if-no-files-found: error
           retention-days: 7

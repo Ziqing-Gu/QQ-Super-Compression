@@ -56,6 +56,9 @@ public:
     // FULL keeps background analysis running; ECO sleeps this instance's
     // UI-only analysis whenever its editor is closed. New instances load the
     // last explicit user choice (first-run fallback FULL); project state wins.
+    int getDisplayScaleDb() const noexcept { return displayScaleDb.load(std::memory_order_acquire); }
+    void setDisplayScaleDb(int value) noexcept
+    { displayScaleDb.store(value == 30 || value == 60 ? value : 90, std::memory_order_release); }
     bool isEcoMode() const noexcept { return ecoMode.load (std::memory_order_acquire); }
     void setEcoMode (bool eco);
     void setEditorOpen (bool open) noexcept { editorOpen.store (open, std::memory_order_release); }
@@ -126,7 +129,6 @@ public:
         ? readSoundParameter(upper ? "downAlgorithmMode" : "upAlgorithmMode")<0.5f : isClassicAlgorithm(); }
     float boundaryMinimumDb(bool upper) const noexcept
     {
-        if (isLimiterMode()) return qqsc::params::limiterThresholdMinimumDb;
         return isClassicBoundary(upper)
             ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb;
     }
@@ -421,6 +423,7 @@ private:
     bool currentLimiterCeilingActive = false;
     int configuredMaximumBlockSize = 1;
     double currentSampleRate = 44100.0;
+    std::atomic<int> displayScaleDb { 90 };
     std::atomic<bool> ecoMode { false };
     std::atomic<bool> editorOpen { false };
     bool previousUiAnalysisEnabled = true;

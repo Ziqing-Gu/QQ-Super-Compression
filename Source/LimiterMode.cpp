@@ -169,7 +169,7 @@ float QQSuperCompressionAudioProcessor::getLimiterReferencePeakDb (float shift, 
     {
         // Reference carrier: post-Input peak <= 1, matched/unfiltered internal
         // key. No signal-dependent gain is introduced by this calculation.
-        const auto floor = qqsc::params::limiterThresholdMinimumDb;
+        const auto floor = qqsc::params::thresholdOffDb;
         if (shift != 0.0f && t.dual && s.downEnabled[d])
             t.upper[d] = qqsc::params::thresholdLinear (juce::jlimit (juce::jmax (floor,juce::jmin(0.0f,getBoundaryForDomainDb(true,false,int(d))+0.01f)), 0.0f, getBoundaryForDomainDb(true,true,int(d))+shift));
         else if (shift != 0.0f && !t.dual && t.ratio[d]>1.0f)

@@ -54,6 +54,7 @@ private:
         std::function<juce::Rectangle<float>()> boundaryPlotBounds;
         std::function<float(float)> boundaryDbToY;
         std::function<float(float)> boundaryYToDb;
+        std::function<double()> boundaryDbSpan;
         float getBoundaryThumbY() const
         {
             return boundaryDbToY ? boundaryDbToY (static_cast<float> (getValue())) : 0.0f;
@@ -155,15 +156,13 @@ private:
                 const auto fineScale = event.mods.isShiftDown() ? 8.0 : 1.0;
                 const auto plot = boundaryPlotBounds ? boundaryPlotBounds() : getLocalBounds().toFloat();
                 const auto pixelSpan = static_cast<double> (juce::jmax (1.0f, plot.getHeight()));
-                const auto deltaValue = deltaY * (boundaryPlotBounds ? 90.0 : getMaximum() - getMinimum()) / (pixelSpan * fineScale);
+                const auto deltaValue = deltaY * (boundaryDbSpan ? boundaryDbSpan() : getMaximum() - getMinimum()) / (pixelSpan * fineScale);
                 auto current = getValue();
-                if (boundaryYToDb && deltaY > 0.0 && current <= boundaryYToDb (plot.getBottom()))
-                    current = boundaryYToDb (plot.getBottom());
                 if (current > 0.0 && deltaY < 0.0)
                     current = 0.0; // Leave Range OFF through its finite 0 dB endpoint.
                 auto requested = current + deltaValue;
-                if (boundaryYToDb && deltaY < 0.0 && requested <= boundaryYToDb (plot.getBottom()))
-                    requested = getMinimum(); // The visible bottom detent remains -infinity.
+                if (boundaryYToDb && deltaY < 0.0 && current >= boundaryYToDb(plot.getBottom()))
+                    requested = juce::jmax(double(boundaryYToDb(plot.getBottom())), requested);
                 if (getMaximum() > 0.0 && requested > 0.0)
                     requested = getMaximum(); // Range's extra top detent is OFF, not +1 dB.
                 setValue (juce::jlimit (getMinimum(), getMaximum(), requested),

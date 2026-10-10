@@ -1,4 +1,4 @@
-name: Build Windows VST3 1.3.4
+name: Build Windows VST3 1.3.5
 
 on:
   workflow_dispatch:
@@ -38,8 +38,8 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $checkRoot = Join-Path $env:RUNNER_TEMP 'qqsc-1.3.4-checks'
-          foreach ($profile in @('limiter-45','shared-controls','cumulative-match','window-link','lookahead-presets','overall-os')) {
+          $checkRoot = Join-Path $env:RUNNER_TEMP 'qqsc-1.3.5-checks'
+          foreach ($profile in @('display-scale','shared-controls','cumulative-match','window-link','lookahead-presets','overall-os')) {
             & 'build-windows/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck.exe' "$checkRoot/$profile" $profile
             if ($LASTEXITCODE -ne 0) { throw "Limiter checks failed: $profile" }
           }
@@ -56,13 +56,13 @@ jobs:
           $vst3 = "build-windows/QQSuperCompression_artefacts/Release/VST3/QQ Super Compression.vst3"
           if (-not (Test-Path -LiteralPath $vst3)) { throw "Missing VST3 bundle: $vst3" }
           $module = Get-Content -LiteralPath "$vst3/Contents/Resources/moduleinfo.json" -Raw | ConvertFrom-Json
-          if ($module.Version -ne '1.3.4') { throw 'Wrong VST3 version' }
-          Compress-Archive -LiteralPath $vst3 -DestinationPath "QQ-Super-Compression-1.3.4-Windows-x64.zip"
+          if ($module.Version -ne '1.3.5') { throw 'Wrong VST3 version' }
+          Compress-Archive -LiteralPath $vst3 -DestinationPath "QQ-Super-Compression-1.3.5-Windows-x64.zip"
 
       - name: Upload packaged VST3
         uses: actions/upload-artifact@v4
         with:
-          name: QQ-Super-Compression-1.3.4-Windows-x64
-          path: QQ-Super-Compression-1.3.4-Windows-x64.zip
+          name: QQ-Super-Compression-1.3.5-Windows-x64
+          path: QQ-Super-Compression-1.3.5-Windows-x64.zip
           if-no-files-found: error
           retention-days: 7

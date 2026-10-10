@@ -26,9 +26,11 @@ public:
     juce::Rectangle<float> getBoundaryPlotForDomain (int parameterDomainIndex) const noexcept;
     float getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb, bool upper=false) const noexcept;
     float getBoundaryDbForY (int parameterDomainIndex, float localY, bool upper=false) const noexcept;
+    std::function<void()> onScaleChanged;
 
 private:
     friend struct QQSCVisualCheck;
+    friend struct QQSCLimiterCheck;
     void drawLoudnessReadout(juce::Graphics&);
     class HpfReplayWorker;
 
@@ -150,6 +152,9 @@ private:
     void clearHistories();
 
     QQSuperCompressionAudioProcessor& processor;
+    juce::TextButton scaleButton;
+    int lastScaleDb = -1;
+    void refreshScale();
     std::array<HistorySet, 2> histories;
     std::array<RenderCache, 2> renderCaches;
     RenderCache stereoLimiterCache; // One ST presentation of independent L/R results.

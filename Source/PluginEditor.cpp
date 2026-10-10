@@ -1285,6 +1285,12 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
         updateModeUi();
     };
     linkButton.setTooltip ("Relative Link: Ratio / Threshold / Range / Makeup / Mix");
+    display.onScaleChanged = [this]
+    {
+        refreshBoundaryReadouts();
+        for(auto* slider:lowerBoundaryControls()) slider->repaint();
+        for(auto& slider:upperBoundarySliders) if(slider) slider->repaint();
+    };
     const auto lower = lowerBoundaryControls();
     const auto mainRatios = mainRatioControls();
     for (size_t i = 0; i < lower.size(); ++i)
@@ -1301,6 +1307,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
             slider->setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
             slider->setLookAndFeel (&boundaryLookAndFeel);
             slider->getProperties().set ("qqscUpperBoundary", slider == &upper);
+            slider->boundaryDbSpan = [this] { return double(processor.getDisplayScaleDb()); };
             slider->boundaryPlotBounds = [this, i, slider]
             {
                 return display.getBoundaryPlotForDomain (static_cast<int> (i)).translated (
@@ -1618,8 +1625,13 @@ void QQSuperCompressionAudioProcessorEditor::refreshBoundaryReadouts()
                 return juce::String ("OFF");
             if (! processor.isClassicBoundary(upper) && ! qqsc::params::isThresholdEnabled (static_cast<float> (db)))
                 return juce::String (attachedCompressionMode == 0 && ! upper ? "OFF" : "-inf");
-            return juce::String (db, (i == 0 || processor.isLimiterMode()) ? 2 : 1) + ((i == 0 || processor.isLimiterMode()) ? " dB" : "");
+            const auto plot = display.getBoundaryPlotForDomain(int(i));
+            const bool below = db < display.getBoundaryDbForY(int(i), plot.getBottom(), upper) - 0.005f;
+            return juce::String (db, (i == 0 || processor.isLimiterMode()) ? 2 : 1)
+                + (below ? " *" : ((i == 0 || processor.isLimiterMode()) ? " dB" : ""));
         };
+        lowerBoundaryValues[i].setTooltip("Actual threshold in dB. * means below the visible Scale; value is retained. Double-click to edit.");
+        upperBoundaryValues[i].setTooltip("Actual boundary in dB. * means below the visible Scale; value is retained. Double-click to edit.");
         if (! lowerBoundaryValues[i].isBeingEdited())
             lowerBoundaryValues[i].setText (formatBoundary (lower[i]->getValue(), false), juce::dontSendNotification);
         if (! upperBoundaryValues[i].isBeingEdited())

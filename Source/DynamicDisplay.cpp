@@ -8,7 +8,6 @@
 
 namespace
 {
-constexpr float minDb = -90.0f;
 constexpr float maxDb = 0.0f;
 constexpr float silenceDb = -120.0f;
 
@@ -231,6 +230,17 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
       replayRequestGeneration (std::make_shared<std::atomic<uint64_t>> (0))
 {
     setOpaque (true);
+    addAndMakeVisible(scaleButton);
+    scaleButton.setTooltip("Display scale: -30 / -60 / -90 dB. Faders follow the scale; existing thresholds and audio stay unchanged.");
+    scaleButton.setMouseClickGrabsKeyboardFocus(false);
+    scaleButton.onClick = [this]
+    {
+        const int current = processor.getDisplayScaleDb();
+        processor.setDisplayScaleDb(current == 90 ? 30 : current == 30 ? 60 : 90);
+        processor.updateHostDisplay(juce::AudioProcessor::ChangeDetails{}.withNonParameterStateChanged(true));
+        refreshScale();
+    };
+    refreshScale();
 
     // The 4097-point detector grid never changes. Precompute the dB->linear
     // conversion once so parameter drags do not spend message-thread time
@@ -278,8 +288,20 @@ DynamicDisplay::~DynamicDisplay()
     processor.setDisplayKeyHistoryCaptureEnabled (false);
 }
 
+void DynamicDisplay::refreshScale()
+{
+    const int current = processor.getDisplayScaleDb();
+    if (lastScaleDb == current) return;
+    lastScaleDb = current;
+    scaleButton.setButtonText("Scale: -" + juce::String(current) + " dB");
+    geometryDirty = true;
+    if (onScaleChanged) onScaleChanged();
+    repaint();
+}
+
 void DynamicDisplay::resized()
 {
+    scaleButton.setBounds(juce::jmax(190, getWidth() - 230), 5, 108, 22);
     geometryDirty = true;
     if (! isShowing())
         return;
@@ -337,6 +359,7 @@ void DynamicDisplay::clearHistories()
 
 void DynamicDisplay::timerCallback()
 {
+    refreshScale();
     if (processor.isEcoMode() && ! isShowing())
     {
         replayRequestGeneration->fetch_add(1, std::memory_order_relaxed);
@@ -507,7 +530,7 @@ void DynamicDisplay::pushHistory (HistorySet& history, HistoryPoint point)
 
 float DynamicDisplay::dbToY (float db, juce::Rectangle<float> plot) const noexcept
 {
-    const auto floor=processor.isLimiterMode() ? qqsc::params::limiterThresholdMinimumDb : minDb;
+    const auto floor=-float(processor.getDisplayScaleDb());
     return juce::jmap (juce::jlimit (floor, maxDb, db), maxDb, floor, plot.getY(), plot.getBottom());
 }
 
@@ -578,7 +601,7 @@ float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY,
 
     const auto displayDb = juce::jmap (juce::jlimit (plot.getY(), plot.getBottom(), localY),
                                       plot.getY(), plot.getBottom(), maxDb,
-                                      processor.isLimiterMode() ? qqsc::params::limiterThresholdMinimumDb : minDb);
+                                      -float(processor.getDisplayScaleDb()));
     const bool externalKey = juce::roundToInt (readParameter (processor, qqsc::params::keySource))
                              == qqsc::params::keyExternal;
     const auto detectorDb = externalKey ? displayDb
@@ -1390,8 +1413,8 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
 
     const auto plot = plotBoundsForPanel (panel);
 
-    const auto gridFloor=processor.isLimiterMode() ? qqsc::params::limiterThresholdMinimumDb : minDb;
-    const auto gridStep=processor.isLimiterMode() ? 5.0f : 15.0f;
+    const auto gridFloor=-float(processor.getDisplayScaleDb());
+    const auto gridStep=float(processor.getDisplayScaleDb()) / 6.0f;
     for (float db=0.0f; db>=gridFloor; db-=gridStep)
     {
         const auto y = dbToY (db, plot);
@@ -1542,6 +1565,9 @@ void DynamicDisplay::drawLoudnessReadout(juce::Graphics& g)
 
 void DynamicDisplay::paint (juce::Graphics& g)
 {
+    refreshScale();
+    scaleButton.setColour(juce::TextButton::buttonColourId, qqsc::ui::panel());
+    scaleButton.setColour(juce::TextButton::textColourOffId, qqsc::ui::textMuted());
     const auto bounds = getLocalBounds().toFloat();
     g.fillAll (qqsc::ui::canvas());
     g.setColour (qqsc::ui::panel().withAlpha (0.97f));
@@ -1563,7 +1589,7 @@ void DynamicDisplay::paint (juce::Graphics& g)
     const auto headerStatus = (hpfReplayBusy ? juce::String ("HPF UPDATING   ") : juce::String())
                             + (readParameter (processor, qqsc::params::compressionMode) >= 0.5f ? "DUAL  " : "SINGLE  ")
                             + qqsc::params::modeName (processor.isLimiterMode() ? qqsc::params::stereoLinked : mode);
-    g.drawFittedText (headerStatus, header.toNearestInt(),
+    g.drawFittedText (headerStatus, header.removeFromRight(110.0f).toNearestInt(),
                       juce::Justification::centredRight, 1);
 
     if (mode == qqsc::params::stereoLinked || processor.isLimiterMode())
