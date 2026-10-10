@@ -181,6 +181,8 @@ void QQSCVisualCheck::zeroLookaheadDetectorCheck(QQSuperCompressionAudioProcesso
 void QQSCVisualCheck::unityDisplayCheck(QQSuperCompressionAudioProcessorEditor& e,
                                         QQSuperCompressionAudioProcessor& p)
 {
+    // SAFE is interactive only with a nonzero Lookahead in 1.3.3.
+    parameter(p,"lookaheadMs",26);parameter(p,"detectorMode",0);
     e.timerCallback();
     if (e.detectorModeButton.getButtonText() != "SAFE" || e.detectorModeButton.getToggleState()
         || e.detectorModeButton.getBounds().intersects (e.title.getBounds())

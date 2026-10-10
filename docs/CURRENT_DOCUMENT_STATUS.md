@@ -1,7 +1,8 @@
-# 1.3.2 Stable documentation
+# Current manuals — QQ Super Compression 1.3.4 Stable
 
-中文完整手册已获用户确认；英文版按该中文版完成。两本均为 43 页，含 43 个书签和 13 个目录链接。中文版保留已核准 PDF 的原审阅版封面标注，内容未变更。1.2.42 手册保留为历史资料。
+Chinese and English manuals are available, 44 pages each, with 44 bookmarks and 14 contents links. Chinese is the user-approved edition, retained unchanged, including its review-cover wording. English follows the same structure and content. Both are included in the user package and Release.
 
-The Chinese manual is user-approved; the matching English translation is complete. Both have 43 pages, 43 bookmarks and 13 contents links. The approved Chinese PDF retains its original review-edition cover label without a content change. Older 1.2.42 manuals are historical references.
+- [Chinese](manuals/QQ-Super-Compression-1.3.4-User-Manual-Chinese.pdf)
+- [English](manuals/QQ-Super-Compression-1.3.4-User-Manual-English.pdf)
 
-Current manuals: [中文](manuals/QQ-Super-Compression-1.3.2-User-Manual-Chinese.pdf), [English](manuals/QQ-Super-Compression-1.3.2-User-Manual-English.pdf).
+The chapters explain Lookahead and Window before Limiter, SAFE separately, Range before its OFF state, crackle tradeoffs, cumulative Match, L/R Link, oversampling and upward/downward compression symmetry. Historical manuals are revision references, not matching guides for this version.

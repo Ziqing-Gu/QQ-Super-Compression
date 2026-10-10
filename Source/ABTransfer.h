@@ -1,5 +1,6 @@
 #pragma once
 #include "StaticCompressionEngine.h"
+#include "Parameters.h"
 #include <array>
 
 namespace qqsc
@@ -9,6 +10,7 @@ namespace qqsc
 struct ABTransfer
 {
     std::array<float,5> lower{}, upper{}, ratio{}, upRatio{}, downRatio{}, makeup{}, mix{};
+    float stereoLink = 0;
     float output = 1;
     float unityOutput = 1;
     int mode = 0;
@@ -19,7 +21,7 @@ struct ABTransfer
     {
         return lower==b.lower && upper==b.upper && ratio==b.ratio && upRatio==b.upRatio
             && downRatio==b.downRatio && makeup==b.makeup && mix==b.mix
-            && output==b.output && unityOutput==b.unityOutput && mode==b.mode && dual==b.dual && algorithm==b.algorithm
+            && stereoLink==b.stereoLink && output==b.output && unityOutput==b.unityOutput && mode==b.mode && dual==b.dual && algorithm==b.algorithm
             && upAlgorithm==b.upAlgorithm && downAlgorithm==b.downAlgorithm;
     }
     using Matrix = std::array<float,4>; // L<-L, L<-R, R<-L, R<-R
@@ -47,8 +49,10 @@ struct ABTransfer
             const float core = externalKey && levels[d]<=1e-9f ? 1.f : dual
                 ? StaticCompressionEngine::dualGainForLevel(levels[d],upRatio[d],downRatio[d],lower[d],upper[d],upAlgorithm,downAlgorithm)
                 : StaticCompressionEngine::singleGainForLevel(levels[d],ratio[d],lower[d],upper[d],algorithm);
-            g[d]=core*makeup[d]*mix[d]*output;
+            g[d]=core;
         }
+        if(mode==2 && stereo) params::coupleLimiterGains(g[1],g[2],stereoLink);
+        for(size_t d=first;d<end;++d) g[d]*=makeup[d]*mix[d]*output;
         return matrix(g,mode,stereo);
     }
 };

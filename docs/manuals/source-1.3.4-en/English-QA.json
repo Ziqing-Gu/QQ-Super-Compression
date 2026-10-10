@@ -1,0 +1,15 @@
+{
+  "version": "1.3.4",
+  "language": "English",
+  "status": "complete",
+  "pages": 44,
+  "bookmarks": 44,
+  "contents_links": 14,
+  "bytes": 6779290,
+  "sha256": "C54B4E068A00CF854BEB98AA4520627C3C2AEDE8F411A62F512F94F83831D113",
+  "matching_Chinese_sha256": "382530610B74010AD2AA2AB384744E0D0D9D2BC1EBC2349F5AB43690DBF77C64",
+  "text_and_bounds": "passed",
+  "visual_review": "All 44 pages reviewed on six contact sheets; page 10 final wording rendered separately. No clipping or overlap.",
+  "translation": "Approved Chinese structure and all 302 changed/new strings translated; prior matching text reused.",
+  "created": "2026-10-11T06:14:50.617209+08:00"
+}

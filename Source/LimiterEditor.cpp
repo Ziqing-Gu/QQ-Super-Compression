@@ -4,16 +4,18 @@ void QQSuperCompressionAudioProcessorEditor::refreshDetectorWindowControl()
 {
     const auto maximum = qqsc::params::snapLookaheadMs (processor.readSoundParameter (qqsc::params::lookaheadMs));
     const bool safe = processor.readSoundParameter(qqsc::params::detectorMode) >= 0.5f;
-    const auto value = safe ? processor.readSoundParameter(qqsc::params::detectorWindowMs)
-        : juce::jlimit (0.0f, 100.0f, processor.readSoundParameter (qqsc::params::distort));
-    detectorWindowLabel.setText(safe ? "WINDOW" : "DISTORT",juce::dontSendNotification);
+    const auto value = processor.readSoundParameter(qqsc::params::detectorWindowMs);
+    detectorWindowLabel.setText("WINDOW",juce::dontSendNotification);
+    detectorModeButton.setToggleState(safe && maximum>0.0f,juce::dontSendNotification);
+    detectorModeButton.setEnabled(maximum > 0.0f);
+    detectorModeButton.setAlpha(maximum > 0.0f ? 1.0f : 0.35f);
     detectorWindowValue.setTooltip(safe
-        ? "Safe Window: 0 ms to Lookahead. A longer window helps prevent gain-modulation crackles at the cost of pre/post attenuation. Double-click: type ms. Drag vertically; Shift: fine. Alt-click: full Lookahead. Window 0 equals Normal at Distort 100%."
-        : "Normal Distort: 0% = full detection window; 100% = sample detection. Higher settings can add coloration or crackles. This is not measured THD; 0% is not zero distortion. Double-click: type %. Drag vertically; Shift: fine. Alt-click: 0%.");
+        ? "Safe Window: 0 ms to Lookahead. Longer windows help prevent gain-modulation crackles, with pre/post attenuation. Double-click: type ms. Drag vertically; Shift: fine. Alt-click: full Lookahead."
+        : "Window: 0 ms to Lookahead. Shorter windows can increase coloration or crackles. Lookahead delay stays fixed. Double-click: type ms. Drag vertically; Shift: fine. Alt-click: full Lookahead.");
     detectorWindowValue.setEnabled (maximum > 0.0f);
     detectorWindowLabel.setAlpha (maximum > 0.0f ? 1.0f : 0.45f);
     if (! detectorWindowValue.isBeingEdited())
-        detectorWindowValue.setText (juce::String (value, 2) + (safe ? " ms" : " %"), juce::dontSendNotification);
+        detectorWindowValue.setText (juce::String (value, 2) + " ms", juce::dontSendNotification);
 }
 
 void QQSuperCompressionAudioProcessorEditor::setDetectorWindowValue (double value)
@@ -22,9 +24,7 @@ void QQSuperCompressionAudioProcessorEditor::setDetectorWindowValue (double valu
     if (std::isfinite (value))
     {
         auto* parameter = processor.getAPVTS().getParameter (qqsc::params::distort);
-        const auto percent=processor.readSoundParameter(qqsc::params::detectorMode)>=0.5f
-            ? qqsc::params::distortForWindowMs(maximum,float(juce::jlimit(0.0,double(maximum),value)))
-            : float(juce::jlimit(0.0,100.0,value));
+        const auto percent=qqsc::params::distortForWindowMs(maximum,float(juce::jlimit(0.0,double(maximum),value)));
         parameter->setValueNotifyingHost (parameter->convertTo0to1(percent));
     }
     refreshDetectorWindowControl();
@@ -32,7 +32,7 @@ void QQSuperCompressionAudioProcessorEditor::setDetectorWindowValue (double valu
 
 void QQSuperCompressionAudioProcessorEditor::initialiseDetectorWindowControl()
 {
-    configureLabel (detectorWindowLabel, "DISTORT");
+    configureLabel (detectorWindowLabel, "WINDOW");
     configureLabel (detectorWindowValue, {});
     detectorWindowValue.setFont (juce::Font (juce::FontOptions (11.0f)));
     detectorWindowValue.setEditable (false, true, false);
@@ -45,22 +45,20 @@ void QQSuperCompressionAudioProcessorEditor::initialiseDetectorWindowControl()
     }
     detectorWindowValue.start = [this]
     {
-        beginUndoTransaction ("Distort");
-        detectorWindowDragValue = processor.readSoundParameter(processor.readSoundParameter(qqsc::params::detectorMode)>=0.5f
-            ? qqsc::params::detectorWindowMs : qqsc::params::distort);
+        beginUndoTransaction ("Window");
+        detectorWindowDragValue = processor.readSoundParameter(qqsc::params::detectorWindowMs);
         processor.getAPVTS().getParameter (qqsc::params::distort)->beginChangeGesture();
     };
     detectorWindowValue.move = [this] (float delta, bool fine)
     {
-        const auto maximum=processor.readSoundParameter(qqsc::params::detectorMode)>=0.5f
-            ? qqsc::params::snapLookaheadMs(processor.readSoundParameter(qqsc::params::lookaheadMs)) : 100.0f;
+        const auto maximum=qqsc::params::snapLookaheadMs(processor.readSoundParameter(qqsc::params::lookaheadMs));
         detectorWindowDragValue = juce::jlimit (0.0, double(maximum), detectorWindowDragValue + double(delta) * (fine ? 0.01 : 0.1));
         setDetectorWindowValue (detectorWindowDragValue);
     };
     detectorWindowValue.finish = [this] { processor.getAPVTS().getParameter (qqsc::params::distort)->endChangeGesture(); };
     detectorWindowValue.reset = [this]
     {
-        beginUndoTransaction ("Reset Distort");
+        beginUndoTransaction ("Reset Window");
         auto* parameter = processor.getAPVTS().getParameter (qqsc::params::distort);
         parameter->beginChangeGesture();
         parameter->setValueNotifyingHost(parameter->convertTo0to1(0.0f));
@@ -69,13 +67,13 @@ void QQSuperCompressionAudioProcessorEditor::initialiseDetectorWindowControl()
     detectorWindowValue.onEditorShow = [this]
     {
         if (auto* editor = detectorWindowValue.getCurrentTextEditor())
-        { editor->setInputRestrictions (16, "0123456789+-. %msMS"); registerKeyboardListener (*editor); }
+        { editor->setInputRestrictions (16, "0123456789+-. msMS"); registerKeyboardListener (*editor); }
     };
     detectorWindowValue.onTextChange = [this]
     {
         const auto text = detectorWindowValue.getText().trim();
         if (! text.containsAnyOf ("0123456789")) { refreshDetectorWindowControl(); return; }
-        beginUndoTransaction ("Distort");
+        beginUndoTransaction ("Window");
         auto* parameter = processor.getAPVTS().getParameter (qqsc::params::distort);
         parameter->beginChangeGesture(); setDetectorWindowValue (text.getDoubleValue()); parameter->endChangeGesture();
     };
@@ -98,14 +96,16 @@ void QQSuperCompressionAudioProcessorEditor::refreshCeilingValue()
 void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
 {
     initialiseDetectorWindowControl();
+    initialiseLimiterStereoLinkControl();
     configureActionButton (detectorModeButton);
     contentRoot.addAndMakeVisible (detectorModeButton);
     registerKeyboardListener (detectorModeButton);
     detectorModeButton.setComponentID (qqsc::params::detectorMode);
-    detectorModeButton.setTooltip ("SAFE: lit = Safe detection with Window in ms; unlit = Normal detection with Distort in %. Safe uses the larger surrounding peak to help prevent gain-modulation crackles, at the cost of pre/post attenuation. At Window 0 ms both detectors are identical. No extra Attack/Release envelope.");
+    detectorModeButton.setTooltip ("SAFE: lit = Safe detection; unlit = Normal detection. Window is always in ms. Disabled at 0 ms Lookahead. Safe uses the larger surrounding peak to help prevent gain-modulation crackles, at the cost of pre/post attenuation. At Window 0 ms both detectors are identical. No extra Attack/Release envelope.");
     detectorModeButton.onClick = [this]
     {
         beginUndoTransaction ("Detector Mode");
+        if (!detectorModeButton.isEnabled()) return;
         const auto next = processor.readSoundParameter (qqsc::params::detectorMode) >= 0.5f ? 0 : 1;
         setChoiceParameter (qqsc::params::detectorMode, next);
         updateLimiterUi();
@@ -284,6 +284,7 @@ void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
     refreshDetectorWindowControl();
     limiterButton.setToggleState(limiter,juce::dontSendNotification);
     limiterLinkButton.setToggleState(processor.isLimiterLinked(),juce::dontSendNotification);
+    refreshLimiterStereoLinkControl();
     unityMonitorButton.setToggleState(processor.isUnityMonitorEnabled(),juce::dontSendNotification);
     unityMonitorButton.setVisible(limiter);
     truePeakButton.setToggleState(processor.isTruePeakSelected(),juce::dontSendNotification);
@@ -489,7 +490,7 @@ void QQSuperCompressionAudioProcessorEditor::beginLimiterOutputGesture()
     {
         limiterStartLowerThresholds[d]=processor.getBoundaryForDomainDb(dual,false,int(d));
         limiterStartUpperThresholds[d]=processor.getBoundaryForDomainDb(dual,true,int(d));
-        const bool active=mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
+        const bool active=processor.isLimiterMode() ? d==1 : mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
         if(!active) continue;
 
         const auto openGesture=[&](const char* normalID)
@@ -520,9 +521,8 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
     if(std::abs(requestedDelta)<1.e-5f) return limiterStartOutput;
 
     // Output and every active non-unity Threshold move by the same absolute dB
-    // amount in opposite directions. When both Dual branches are active, both
-    // boundaries move together so their width is preserved. A unity branch is
-    // intentionally ignored: it produces no dynamics and must not lock Output.
+    // amount in opposite directions. Dual links DOWN only; UP stays independent.
+    // A unity branch produces no dynamics and must not lock Output.
     float minDelta=-120.0f-limiterStartOutput;
     float maxDelta= 120.0f-limiterStartOutput;
     const auto mode=juce::roundToInt(processor.readSoundParameter(qqsc::params::processingMode));
@@ -530,14 +530,14 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
     std::array<bool,5> moveLower {}, moveUpper {};
     for(int d=0; d<5; ++d)
     {
-        const bool active=mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
+        const bool active=processor.isLimiterMode() ? d==1 : mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
         if(!active) continue;
 
         if(!dual)
         {
             if(std::abs(processor.effectiveSingleRatio(size_t(d))-1.0f)<=1.0e-6f) continue;
             moveLower[size_t(d)]=true;
-            const auto floor=processor.isClassicBoundary(false) ? -90.0f : -120.0f;
+            const auto floor=processor.boundaryMinimumDb(false);
             const auto minimum=floor;
             const auto maximum=juce::jmin(0.0f,limiterStartUpperThresholds[size_t(d)]);
             const auto start=limiterStartLowerThresholds[size_t(d)];
@@ -551,7 +551,7 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
         const bool downActive=processor.readSoundParameter(qqsc::params::downEnabledIds[size_t(d)])>=0.5f && downRatio>1.0f+1.0e-6f;
         moveLower[size_t(d)]=false; moveUpper[size_t(d)]=downActive;
 
-        const auto upperFloor=processor.isClassicBoundary(true) ? -90.0f : -120.0f;
+        const auto upperFloor=processor.boundaryMinimumDb(true);
         if(downActive)
         {
             const auto minimum=juce::jmax(upperFloor,limiterStartLowerThresholds[size_t(d)]);
@@ -568,4 +568,50 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
         if(moveUpper[size_t(d)]) processor.setBoundaryForDomainDb(dual,true,d,limiterStartUpperThresholds[size_t(d)]-appliedDelta);
     }
     return double(limiterStartOutput+appliedDelta);
+}
+
+void QQSuperCompressionAudioProcessorEditor::refreshLimiterStereoLinkControl()
+{
+    limiterStereoLinkValue.setVisible(processor.isLimiterMode());
+    if (!limiterStereoLinkValue.isBeingEdited())
+        limiterStereoLinkValue.setText(juce::String(processor.readSoundParameter(qqsc::params::limiterStereoLink),2)+" %",juce::dontSendNotification);
+}
+
+void QQSuperCompressionAudioProcessorEditor::initialiseLimiterStereoLinkControl()
+{
+    configureLabel(limiterStereoLinkValue,{});
+    limiterStereoLinkValue.setFont(juce::Font(juce::FontOptions(11.0f)));
+    limiterStereoLinkValue.setEditable(false,true,false);
+    limiterStereoLinkValue.setComponentID(qqsc::params::limiterStereoLink);
+    limiterStereoLinkValue.setTooltip("L/R Link: 0% independent limiting; 100% shares the stronger gain reduction. Includes Ceiling. Does not mix channel audio. Double-click: type %. Drag vertically; Shift: fine. Alt-click: 0%.");
+    contentRoot.addAndMakeVisible(limiterStereoLinkValue);
+    registerKeyboardListener(limiterStereoLinkValue);
+    limiterStereoLinkValue.start=[this] {
+        beginUndoTransaction("Limiter L/R Link");
+        limiterStereoLinkDragValue=processor.readSoundParameter(qqsc::params::limiterStereoLink);
+        processor.getAPVTS().getParameter(qqsc::params::limiterStereoLink)->beginChangeGesture();
+    };
+    limiterStereoLinkValue.move=[this](float delta,bool fine) {
+        limiterStereoLinkDragValue=juce::jlimit(0.0,100.0,limiterStereoLinkDragValue+delta*(fine ? .01 : .1));
+        setLimiterParameter(qqsc::params::limiterStereoLink,float(limiterStereoLinkDragValue));
+        refreshLimiterStereoLinkControl();
+    };
+    limiterStereoLinkValue.finish=[this] { processor.getAPVTS().getParameter(qqsc::params::limiterStereoLink)->endChangeGesture(); };
+    limiterStereoLinkValue.reset=[this] {
+        limiterStereoLinkValue.start();setLimiterParameter(qqsc::params::limiterStereoLink,0);
+        limiterStereoLinkValue.finish();refreshLimiterStereoLinkControl();
+    };
+    limiterStereoLinkValue.onEditorShow=[this] {
+        if(auto* ed=limiterStereoLinkValue.getCurrentTextEditor())
+        {ed->setInputRestrictions(16,"0123456789+-. %");registerKeyboardListener(*ed);}
+    };
+    limiterStereoLinkValue.onTextChange=[this] {
+        const auto text=limiterStereoLinkValue.getText().trim();
+        if(text.containsAnyOf("0123456789")) {
+            limiterStereoLinkValue.start();
+            setLimiterParameter(qqsc::params::limiterStereoLink,juce::jlimit(0.f,100.f,text.getFloatValue()));
+            limiterStereoLinkValue.finish();
+        }
+        refreshLimiterStereoLinkControl();
+    };
 }

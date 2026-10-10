@@ -1,5 +1,34 @@
 # QQ Super Compression changelog
 
+### 1.3.4 — Stable, 2026-10-11
+
+- 中文：Limiter 的 Display 与 Single / UP / DOWN 阈值统一为 -45 至 0 dB；移除 Limiter 的 Range 控件及其处理作用，普通压缩保持原行为。按用户要求保留切换 Limiter 时原有的延迟变化。中文手册重新整理 Lookahead / Window、独立 SAFE 章节、Range 的功能与操作顺序、噼啪声提示，以及上压和下压的对称关系。用户已确认并指定为 Stable；配套 44 页英文手册已完成。
+- English: Limiter Display and Single / UP / DOWN thresholds now span -45 to 0 dB. Removes Limiter Range controls and processing while preserving normal compression behavior. Existing Limiter-switch latency behavior is retained at the user's request. The approved Chinese manual clarifies Lookahead / Window, SAFE, Range operation and crackles, and the upward/downward compression relationship. Promoted to Stable by explicit user instruction; matching 44-page English manual is included.
+
+
+#### 1.3.4 发布说明 / Release details
+
+- 新增 / Added: 配套 44 页英文说明书，独立讲解 Lookahead/Window、SAFE、Range 及上压/下压对称关系。 Matching 44-page English manual with separate timing, SAFE, Range and upward/downward chapters.
+- 修复与行为 / Fixes and behavior: Limiter 全部阈值范围与图表统一为 -45..0 dB；不再使用 Range。旧低阈值收至 -45 dB，UP 不与 Output/Makeup 联动。 Limiter thresholds/display use -45..0 dB; Range is inactive; old lower thresholds clamp to -45 dB, and UP stays independent of Output/Makeup.
+- 性能 / Performance: 本次没有额外性能功能；复用已验收的 Windows 二进制。 No additional performance feature; the accepted Windows binary is reused.
+- 兼容与升级 / Compatibility and upgrade: 插件身份和已有宿主参数保留；普通压缩范围不变。保存工程副本并试听旧 Limiter 工程。 Plugin identity and existing host parameters remain; normal compression ranges stay unchanged. Save a session copy and audition old Limiter settings.
+- 已知限制 / Known limits: SAFE 可能提前压及峰后压；OS 减少混叠而非所有谐波；切换 Limiter 的 Ceiling 额外延迟保留。 SAFE may cause pre/post-attenuation; OS reduces aliasing, not all harmonics; Ceiling-related latency changes on Limiter switching remain.
+
+### 1.3.3 — Stable, 2026-10-11
+
+- 中文：统一 Window 毫秒控件；SAFE 移至右下，0 ms 禁用。Limiter 采用完整 ST 界面、单张 Display、一组共用阈值和 Ratio/Makeup/Mix/ON，内部保留可调关联的左右独立检测；移除参数 LINK、双压 Ratio LINK 和声道 Monitor（Limiter 固定完整立体声输出），保留 0–100% 音频 L/R Link（覆盖动态及 Ceiling）。普通 LR/MS 参数 LINK 同步对应 Dual ON。MATCH 支持播放中累计匹配，点击不清空、不重复叠加补偿；停止保留，下次播放重置。ECO 缺失分析时不提供不完整播放的 MATCH。详见新版双语用户手册。
+- English: Window in ms; relocated SAFE disabled at zero Lookahead. Limiter has a full ST presentation with a single history panel and common boundaries/Ratio/Makeup/Mix/enables, while retaining independent L/R detection with adjustable gain coupling, no parameter LINK, UP/DOWN Ratio LINK or channel Monitor (always stereo output), and a numeric 0–100% audio link through dynamics and Ceiling. Normal LR/MS parameter LINK pairs matching Dual enables. MATCH retains the playback capture across clicks without re-adding correction; stop retains it and restart resets it. ECO skips are not treated as a complete capture. Promoted to Stable after user acceptance.
+
+
+#### 1.3.3 行为与升级 / Behavior and upgrade
+
+- 新增 / Added: 数值 L/R Link、统一 Window 和播放累计 Match。 Numeric stereo linking, unified Window and cumulative playback Match.
+- 修复 / Fixes: 普通 LR/MS 的 Mode LINK 同步 Dual ON；重复 Match 不清空记录、不叠加旧补偿。 Normal LR/MS Mode LINK synchronizes Dual enables; repeated Match retains data without stacking correction.
+- 行为 / Behavior: Limiter 一组共用控制、ST Display，无 Mode/Monitor/参数 LINK/Ratio LINK；SAFE 移到右下，0 ms 禁用。 Limiter uses shared controls and ST Display without Mode, Monitor, parameter LINK or Ratio LINK; SAFE moves to the lower right and is disabled at 0 ms.
+- 性能 / Performance: FULL 后台累计，ECO 关窗暂停分析；未改变音频 OS 质量。 FULL keeps measuring with the editor closed; ECO pauses analysis there without reducing OS quality.
+- 兼容与注意 / Compatibility: 旧 ST Link 100%，旧 LR/MS 0%；原 L/M 参数成为共用值，可能改变旧双组/MS 工程声音。 Old ST migrates to 100% Link and LR/MS to 0%; L/M settings become shared and may change older split-channel/MS sessions.
+- 已知限制 / Known limits: ECO 中缺失分析的播放需重新开始才能完整 Match；不同延迟设置切换可能触发宿主补偿。 Restart playback after missed ECO analysis for a complete Match; latency changes may trigger host compensation.
+
 ### 1.3.2 — Stable, 2026-10-09
 
 - 中文：检测切换统一为 SAFE 按钮，位于 Limiter 右侧。新实例默认关闭；点亮为黄色 Safe，关闭为 Normal。Normal 显示 Distort 百分比，Safe 显示 Window 毫秒；切换保持实际窗口长度。更新配套中英文 43 页手册。DSP 沿用已验证的 1.3.1 后续方案。

@@ -210,6 +210,34 @@ private:
     bool rising=false;
 };
 
+// Independent protection histories; coupling only adds attenuation after each
+// channel has computed its own safe gain. At zero no detector or recovery
+// state from one channel can affect the other. Existing TP timing is retained.
+class StereoPeakCap
+{
+public:
+    void prepare(double rate,int look) { for(auto& c:channels)c.prepare(rate,look); }
+    void reset() noexcept { for(auto& c:channels)c.reset();gain={1,1}; }
+    bool isSilentAndSettled() const noexcept {return channels[0].isSilentAndSettled() && channels[1].isSilentAndSettled();}
+    bool isQuietAndSettled(float floor) const noexcept {return channels[0].isQuietAndSettled(floor) && channels[1].isQuietAndSettled(floor);}
+    uint8_t conservativeMask(int recovery) const noexcept
+    {return uint8_t((channels[0].useConservativeTiming(recovery)?1:0)|(channels[1].useConservativeTiming(recovery)?2:0));}
+    float gainForDisplay() const noexcept {return juce::jmin(gain[0],gain[1]);}
+    float gainForDisplay(int channel) const noexcept {return gain[size_t(channel)];}
+    std::array<float,2> process(float l,float r,float ceiling,float link,
+        std::array<float,2> detected={},uint8_t hint=0,float trigger=-1,int recovery=params::tpAuto) noexcept
+    {
+        auto a=channels[0].process(l,0,ceiling,detected[0],(hint&1)!=0,trigger,recovery);
+        auto b=channels[1].process(r,0,ceiling,detected[1],(hint&2)!=0,trigger,recovery);
+        const float gl=channels[0].gainForDisplay(),gr=channels[1].gainForDisplay();
+        gain={gl,gr};params::coupleLimiterGains(gain[0],gain[1],link);
+        return {a[0]*(gl>0 ? gain[0]/gl : 0),b[0]*(gr>0 ? gain[1]/gr : 0)};
+    }
+private:
+    std::array<SmoothPeakCap,2> channels;
+    std::array<float,2> gain {1,1};
+};
+
 class OutputCeiling
 {
 public:
@@ -262,6 +290,9 @@ public:
         sharedSamplePeak.assign(size_t(maxBlock),0.0f);
         sharedConservative.assign(size_t(maxBlock),0u);
 
+        linkSmoother.reset(sampleRate,.010);linkSmoother.setCurrentAndTargetValue(stereoLink);
+        sharedLink.assign(size_t(maxBlock),stereoLink);
+        sharedHardLR.assign(size_t(maxBlock),{1,1});sharedTpLR.assign(size_t(maxBlock),{1,1});
         truePeakBlend.reset(sampleRate,.010);
         ceiling.reset(sampleRate,.010);
         selectedChoice=juce::jlimit(0,3,osChoice);
@@ -287,6 +318,7 @@ public:
         resetForLimiter(tp,ceilingDb,recovery);
     }
 
+    void setStereoLink(float amount) noexcept { stereoLink=juce::jlimit(0.0f,1.0f,amount);linkSmoother.setTargetValue(stereoLink); }
     int oversamplingChoice() const noexcept { return selectedChoice; }
     int oversamplingFactor() const noexcept { return qqsc::params::ceilingOversamplingFactorForChoiceIndex(selectedChoice); }
     int filterLatencySamples() const noexcept
@@ -319,6 +351,8 @@ public:
         std::fill(analysisAlignment.begin(),analysisAlignment.end(),std::array<float,2>{});
         std::fill(hardPostAlignment.begin(),hardPostAlignment.end(),std::array<float,2>{});
         hardOversampledIndex=analysisIndex=hardPostIndex=0;
+        linkSmoother.setCurrentAndTargetValue(stereoLink);activeStereoLink=stereoLink;
+        displayGainLR={1,1};
         const bool effectiveTp=tp;
         truePeakBlend.setCurrentAndTargetValue(effectiveTp ? 1.f : 0.f);
         ceiling.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(juce::jlimit(-24.f,0.f,ceilingDb)));
@@ -350,6 +384,7 @@ public:
     float inputSamplePeakForDisplayLinear() const noexcept { return inputSamplePeakLinear; }
     float inputTruePeakForDisplayLinear() const noexcept { return inputTruePeakLinear; }
     float gainForDisplayLinear() const noexcept { return displayGainLinear; }
+    float gainForDisplayLinear(int channel) const noexcept {return displayGainLR[size_t(channel)];}
     float gainReductionDbForDisplay() const noexcept
     { return -juce::Decibels::gainToDecibels(juce::jmax(displayGainLinear,1.0e-9f),-180.0f); }
 
@@ -370,6 +405,7 @@ public:
     // 16x is the same law at a 16x audible reconstruction rate.
     std::array<float,2> process(float l,float r) noexcept
     {
+        activeStereoLink=linkSmoother.getNextValue();
         const float c=ceiling.getNextValue();
         const float t=truePeakBlend.getNextValue();
         if(analysisEnabled)
@@ -411,7 +447,8 @@ public:
         hostSamples=juce::jlimit(0,juce::jmin(maxBlock,int(block.getNumSamples()/size_t(factor))),hostSamples);
         for(int b=0;b<hostSamples;++b)
         {
-            const float c=ceiling.getNextValue();
+            activeStereoLink=linkSmoother.getNextValue();
+        const float c=ceiling.getNextValue();
             const float t=truePeakBlend.getNextValue();
             HighStats stats;
             // Measure the complete incoming signal on its host-rate sample grid.
@@ -424,13 +461,14 @@ public:
                 const auto out=processHighSample(block.getSample(0,i),block.getSample(1,i),c,t,stats);
                 block.setSample(0,i,out[0]);block.setSample(1,i,out[1]);
             }
-            sharedCeiling[size_t(b)]=c;sharedBlend[size_t(b)]=t;
+            sharedCeiling[size_t(b)]=c;sharedBlend[size_t(b)]=t;sharedLink[size_t(b)]=activeStereoLink;
             if(analysisEnabled)
             {
                 sharedHardGain[size_t(b)]=stats.hardGain;sharedTpGain[size_t(b)]=stats.tpGain;
+                sharedHardLR[size_t(b)]=stats.hardLR;sharedTpLR[size_t(b)]=stats.tpLR;
                 sharedTruePeak[size_t(b)]=stats.truePeak;
             }
-            sharedConservative[size_t(b)]=currentTruePeak().useConservativeTiming(recoveryMode) ? 1u : 0u;
+            sharedConservative[size_t(b)]=currentTruePeak().conservativeMask(recoveryMode);
         }
     }
 
@@ -447,21 +485,31 @@ public:
             inputSamplePeakLinear=samplePeakLinear;
             inputTruePeakLinear=juce::jmax(samplePeakLinear,stats.truePeak);
         }
-        stats.conservative=sharedConservative[size_t(baseSample)]!=0;
+        stats.conservative=sharedConservative[size_t(baseSample)];
+        stats.hardLR=sharedHardLR[size_t(baseSample)];stats.tpLR=sharedTpLR[size_t(baseSample)];
+        activeStereoLink=sharedLink[size_t(baseSample)];
         return processPostBaseSample(l,r,sharedCeiling[size_t(baseSample)],sharedBlend[size_t(baseSample)],stats,
                                      samplePeakLinear);
     }
 
 private:
+    static std::array<float,2> clipStereo(float l,float r,float ceiling,float link) noexcept
+    {
+        float gl=std::abs(l)>ceiling ? ceiling/std::abs(l) : 1.0f;
+        float gr=std::abs(r)>ceiling ? ceiling/std::abs(r) : 1.0f;
+        params::coupleLimiterGains(gl,gr,link);
+        return {l*gl,r*gr};
+    }
     struct HighStats
     {
         float hardGain=1.0f,tpGain=1.0f,truePeak=0.0f;
-        bool conservative=false;
+        std::array<float,2> hardLR {1,1},tpLR {1,1};
+        uint8_t conservative=0;
     };
 
     juce::dsp::Oversampling<float>& currentOversampler() noexcept
     { return selectedChoice==1 ? oversampling4 : selectedChoice==2 ? oversampling8 : oversampling16; }
-    SmoothPeakCap& currentTruePeak() noexcept
+    StereoPeakCap& currentTruePeak() noexcept
     { return selectedChoice==0 ? truePeak1 : selectedChoice==1 ? truePeak4 : selectedChoice==2 ? truePeak8 : truePeak16; }
 
     std::array<float,2> processHighSample(float inL,float inR,float c,float t,HighStats& stats) noexcept
@@ -475,11 +523,18 @@ private:
         }
 
         auto& tp=currentTruePeak();
-        const auto tpLimited=tp.process(inL,inR,c,0,false,-1.0f,recoveryMode);
-        if(analysisEnabled) stats.tpGain=juce::jmin(stats.tpGain,tp.gainForDisplay());
-        stats.conservative=tp.useConservativeTiming(recoveryMode);
+        const auto tpLimited=tp.process(inL,inR,c,activeStereoLink,{},0,-1.0f,recoveryMode);
+        if(analysisEnabled)
+        {
+            stats.tpGain=juce::jmin(stats.tpGain,tp.gainForDisplay());
+            float hl=std::abs(inL)>c ? c/std::abs(inL) : 1.f,hr=std::abs(inR)>c ? c/std::abs(inR) : 1.f;
+            params::coupleLimiterGains(hl,hr,activeStereoLink);
+            stats.hardLR[0]=juce::jmin(stats.hardLR[0],hl);stats.hardLR[1]=juce::jmin(stats.hardLR[1],hr);
+            for(int ch=0;ch<2;++ch)stats.tpLR[size_t(ch)]=juce::jmin(stats.tpLR[size_t(ch)],tp.gainForDisplay(ch));
+        }
+        stats.conservative=tp.conservativeMask(recoveryMode);
 
-        const std::array<float,2> hardClipped{juce::jlimit(-c,c,inL),juce::jlimit(-c,c,inR)};
+        const auto hardClipped=clipStereo(inL,inR,c,activeStereoLink);
         const int delay=look*oversamplingFactor();
         hardOversampledAlignment[hardOversampledIndex]=hardClipped;
         int read=int(hardOversampledIndex)-delay;
@@ -496,9 +551,9 @@ private:
         buffer.setSample(0,0,l);buffer.setSample(1,0,r);
         auto block=juce::dsp::AudioBlock<float>(buffer);
         const auto reconstructed=analysis.processSamplesUp(block);
-        float detected=0.0f;
+        std::array<float,2> detected {};
         for(int ch=0;ch<2;++ch)for(int i=0;i<int(reconstructed.getNumSamples());++i)
-            detected=juce::jmax(detected,std::abs(reconstructed.getSample(ch,i)));
+            detected[size_t(ch)]=juce::jmax(detected[size_t(ch)],std::abs(reconstructed.getSample(ch,i)));
 
         analysisAlignment[analysisIndex]={l,r};
         if(++analysisIndex==analysisAlignment.size()) analysisIndex=0;
@@ -506,13 +561,13 @@ private:
 
         constexpr float residualSafetyDb=-0.01f;
         const float residualTarget=c*juce::Decibels::decibelsToGain(residualSafetyDb);
-        const auto corrected=post.process(aligned[0],aligned[1],residualTarget,detected,
+        const auto corrected=post.process(aligned[0],aligned[1],residualTarget,activeStereoLink,detected,
             stats.conservative,c,recoveryMode);
 
         hardPostAlignment[hardPostIndex]=aligned;
         if(++hardPostIndex==hardPostAlignment.size()) hardPostIndex=0;
         const auto hardFinal=hardPostAlignment[hardPostIndex];
-        const std::array<float,2> hardFinalClipped{juce::jlimit(-c,c,hardFinal[0]),juce::jlimit(-c,c,hardFinal[1])};
+        const auto hardFinalClipped=clipStereo(hardFinal[0],hardFinal[1],c,activeStereoLink);
 
         if(analysisEnabled)
         {
@@ -521,6 +576,16 @@ private:
                 stats.hardGain=juce::jmin(stats.hardGain,c/juce::jmax(hardFinalPeak,1.0e-12f));
             const float tpDisplayGain=juce::jlimit(0.0f,1.0f,stats.tpGain*post.gainForDisplay());
             displayGainLinear=juce::jlimit(0.0f,1.0f,stats.hardGain+t*(tpDisplayGain-stats.hardGain));
+            float hl=std::abs(hardFinal[0])>c ? c/std::abs(hardFinal[0]) : 1.f;
+            float hr=std::abs(hardFinal[1])>c ? c/std::abs(hardFinal[1]) : 1.f;
+            params::coupleLimiterGains(hl,hr,activeStereoLink);
+            const std::array<float,2> hard {hl,hr};
+            for(int ch=0;ch<2;++ch)
+            {
+                const auto h=juce::jmin(stats.hardLR[size_t(ch)],hard[size_t(ch)]);
+                const auto tpGain=stats.tpLR[size_t(ch)]*post.gainForDisplay(ch);
+                displayGainLR[size_t(ch)]=juce::jlimit(0.f,1.f,h+t*(tpGain-h));
+            }
             inputSamplePeakLinear=samplePeakLinear;
             inputTruePeakLinear=juce::jmax(inputTruePeakLinear,stats.truePeak);
         }
@@ -533,8 +598,8 @@ private:
     juce::dsp::Oversampling<float> oversampling16{2,4,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,true};
     juce::dsp::Oversampling<float> analysis{2,4,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,false};
     juce::AudioBuffer<float> buffer;
-    SmoothPeakCap truePeak1;
-    SmoothPeakCap truePeak4,truePeak8,truePeak16,post;
+    StereoPeakCap truePeak1;
+    StereoPeakCap truePeak4,truePeak8,truePeak16,post;
     std::vector<std::array<float,2>> hardOversampledAlignment,analysisAlignment,hardPostAlignment;
     std::vector<float> sharedCeiling,sharedBlend,sharedHardGain,sharedTpGain,sharedTruePeak,sharedSamplePeak;
     std::vector<uint8_t> sharedConservative;
@@ -543,6 +608,11 @@ private:
     int recoveryMode=qqsc::params::tpAuto;
     double sampleRate=48000.0;
     juce::SmoothedValue<float> truePeakBlend,ceiling;
+    std::vector<float> sharedLink;
+    std::vector<std::array<float,2>> sharedHardLR,sharedTpLR;
+    std::array<float,2> displayGainLR {1,1};
+    juce::SmoothedValue<float> linkSmoother;
+    float stereoLink=1.0f,activeStereoLink=1.0f;
     bool analysisEnabled=true;
     float displayGainLinear=1.0f,inputSamplePeakLinear=0.0f,inputTruePeakLinear=0.0f;
 };

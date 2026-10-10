@@ -30,6 +30,24 @@ const char* QQSuperCompressionAudioProcessor::soundParameterID (const char* id) 
 }
 float QQSuperCompressionAudioProcessor::readSoundParameter (const char* id) const noexcept
 {
+    if (isLimiterMode() && std::strcmp(id,qqsc::params::processingMode)==0)
+        return float(qqsc::params::leftRight);
+    if (isLimiterMode())
+    {
+        // Retain legacy host IDs for project compatibility; Range no longer
+        // participates in Limiter processing, automation or display.
+        for (const auto* rangeID : qqsc::params::rangeIds)
+            if (std::strcmp(id,rangeID)==0) return qqsc::params::rangeOffDb;
+        // One shared control set drives both independent detectors. Keep the
+        // legacy R parameter IDs/state, but do not let hidden R values sound.
+        constexpr const char* right[] = {"ratioR","upRatioR","downRatioR",
+            "makeupGainRDb","mixR","upEnabledR","downEnabledR",
+            "thresholdRDb","rangeRDb","upThresholdRDb","downThresholdRDb"};
+        constexpr const char* shared[] = {"ratioL","upRatioL","downRatioL",
+            "makeupGainLDb","mixL","upEnabledL","downEnabledL",
+            "thresholdLDb","rangeLDb","upThresholdLDb","downThresholdLDb"};
+        for(size_t i=0;i<std::size(right);++i) if(std::strcmp(id,right[i])==0) {id=shared[i];break;}
+    }
     if (std::strcmp(id,qqsc::params::distort)==0)
         return distortForAudio.load(std::memory_order_acquire);
     if (std::strcmp(id,qqsc::params::detectorWindowMs)==0)
@@ -151,7 +169,7 @@ float QQSuperCompressionAudioProcessor::getLimiterReferencePeakDb (float shift, 
     {
         // Reference carrier: post-Input peak <= 1, matched/unfiltered internal
         // key. No signal-dependent gain is introduced by this calculation.
-        const auto floor = (t.dual ? s.downAlgorithmMode : s.algorithmMode) == 0 ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb;
+        const auto floor = qqsc::params::limiterThresholdMinimumDb;
         if (shift != 0.0f && t.dual && s.downEnabled[d])
             t.upper[d] = qqsc::params::thresholdLinear (juce::jlimit (juce::jmax (floor,juce::jmin(0.0f,getBoundaryForDomainDb(true,false,int(d))+0.01f)), 0.0f, getBoundaryForDomainDb(true,true,int(d))+shift));
         else if (shift != 0.0f && !t.dual && t.ratio[d]>1.0f)

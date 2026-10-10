@@ -36,7 +36,7 @@ constexpr auto monitorLRProperty = "qqscMonitorLRSelection";
 constexpr auto monitorMSProperty = "qqscMonitorMSSelection";
 constexpr auto performanceEcoProperty = "qqscPerformanceEco";
 constexpr int oversamplingSchemaVersion = 2; // v0.1.10: 0 ms-only 1x/8x/16x Oversampling schema
-constexpr int currentStateSchemaVersion = 29; // Core/Ceiling add 4x; migrate old 1x/8x/16x indices
+constexpr int currentStateSchemaVersion = 30; // Core/Ceiling add 4x; migrate old 1x/8x/16x indices
 constexpr float centeredChannelMonitorGain = 0.70710678118654752440f; // 1/sqrt(2), -3.0103 dB
 
 juce::Identifier abProperty (const juce::String& suffix)
@@ -242,11 +242,12 @@ void QQSuperCompressionAudioProcessor::rebuildBoundaryPairs() noexcept
         {
             const auto& lowerIds = qqsc::params::boundaryBankIds(bank,false);
             const auto& upperIds = qqsc::params::boundaryBankIds(bank,true);
-            const auto lower = juce::jlimit (bank==3 && apvts.getRawParameterValue("limiterUpAlgorithmMode")->load()<.5f ? -90.0f : -120.0f,
+            const auto lower = juce::jlimit (bank>=2 ? qqsc::params::limiterThresholdMinimumDb : -120.0f,
                                            0.0f, apvts.getRawParameterValue (lowerIds[d])->load());
             const auto rawUpper = apvts.getRawParameterValue (upperIds[d])->load();
-            const auto upper = juce::jmax (lower, bank % 2 == 0 ? qqsc::params::clampRangeDb (rawUpper)
-                                                          : juce::jlimit (-120.0f, 0.0f, rawUpper));
+            const auto upper = bank == 2 ? qqsc::params::rangeOffDb
+                : juce::jmax (lower, bank == 0 ? qqsc::params::clampRangeDb (rawUpper)
+                                             : juce::jlimit (bank >= 2 ? qqsc::params::limiterThresholdMinimumDb : -120.0f, 0.0f, rawUpper));
             boundaryPairs[static_cast<size_t> (bank) * 5 + d].store (packDisplayStereoSample (lower, upper), std::memory_order_release);
         }
     // Initialisation, A/B recall and project restore preserve stored banks;
@@ -273,9 +274,10 @@ void QQSuperCompressionAudioProcessor::continueLimiterCompressionMode (bool dest
             qqsc::LimiterModeBoundaryPair previous;
             unpackDisplayStereoSample (old, previous.lowerDb, previous.upperDb);
             const auto continued = qqsc::continueLimiterModeBoundaries (destinationIsDual, source, previous);
-            const auto floor=destinationIsDual && apvts.getRawParameterValue("limiterUpAlgorithmMode")->load()<.5f ? -90.0f : -120.0f;
-            next = packDisplayStereoSample (juce::jmax(floor,continued.lowerDb),
-                                            juce::jmax(floor,continued.upperDb));
+            const auto floor=qqsc::params::limiterThresholdMinimumDb;
+            const auto lower=juce::jlimit(floor,0.0f,continued.lowerDb);
+            const auto upper=destinationIsDual ? juce::jlimit(lower,0.0f,continued.upperDb) : qqsc::params::rangeOffDb;
+            next = packDisplayStereoSample (lower,upper);
         }
         while (! destination.compare_exchange_weak (old, next, std::memory_order_release, std::memory_order_acquire));
     }
@@ -322,7 +324,8 @@ void QQSuperCompressionAudioProcessor::parameterChanged (const juce::String& id,
         for(const auto* bankID : qqsc::params::limiterSoundIds)
             if(id==bankID) limiterBankInitialised.store(true,std::memory_order_release);
     }
-    if(isUnityMonitorEnabled() || id==qqsc::params::limiterMode)
+    if(!applyingCumulativeMatch.load(std::memory_order_acquire)
+        && id==qqsc::params::limiterMode)
     {
         matchReady.store(false,std::memory_order_relaxed);
         resetMatchOnNextPlaybackBlock.store(true,std::memory_order_relaxed);
@@ -370,8 +373,9 @@ void QQSuperCompressionAudioProcessor::parameterChanged (const juce::String& id,
             const auto& upperIds = qqsc::params::boundaryBankIds(bank,true);
             const bool isLower = id == lowerIds[d];
             if (! isLower && id != upperIds[d]) continue;
-            value = bank % 2 == 0 && ! isLower ? qqsc::params::clampRangeDb (value)
-                                          : juce::jlimit (bank==3 && apvts.getRawParameterValue("limiterUpAlgorithmMode")->load()<.5f ? -90.0f : -120.0f, 0.0f, value);
+            value = bank == 2 && !isLower ? qqsc::params::rangeOffDb
+                  : bank % 2 == 0 && ! isLower ? qqsc::params::clampRangeDb (value)
+                                          : juce::jlimit (bank>=2 ? qqsc::params::limiterThresholdMinimumDb : -120.0f, 0.0f, value);
             auto& pair = boundaryPairs[static_cast<size_t> (bank) * 5 + d];
             auto old = pair.load (std::memory_order_acquire);
             uint64_t next;
@@ -381,6 +385,7 @@ void QQSuperCompressionAudioProcessor::parameterChanged (const juce::String& id,
                 unpackDisplayStereoSample (old, lower, upper);
                 if (isLower) { lower = value; upper = juce::jmax (upper, lower); }
                 else         { upper = value; lower = juce::jmin (lower, upper); }
+                if (bank == 2) upper = qqsc::params::rangeOffDb;
                 next = packDisplayStereoSample (lower, upper);
             }
             while (! pair.compare_exchange_weak (old, next, std::memory_order_release, std::memory_order_acquire));
@@ -394,6 +399,7 @@ float QQSuperCompressionAudioProcessor::getBoundaryForDomainDb (bool dual, bool 
 }
 float QQSuperCompressionAudioProcessor::getBoundaryForBankDb (int bank, bool upper, int domain) const noexcept
 {
+    if(bank>=2 && domain==2) domain=1; // Common stereo Limiter boundary.
     float lowerValue,upperValue;
     unpackDisplayStereoSample(boundaryPairs[size_t(bank*5+juce::jlimit(0,4,domain))].load(std::memory_order_acquire),lowerValue,upperValue);
     return upper ? upperValue : lowerValue;
@@ -412,7 +418,7 @@ float QQSuperCompressionAudioProcessor::getDynamicsGainForDomain (float level, i
 {
     if (level <= 1.0e-9f && readSoundParameter(qqsc::params::keySource) >= 0.5f)
         return 1.0f; // Missing/silent external key leaves the carrier unchanged.
-    const auto d = static_cast<size_t> (juce::jlimit (0, 4, domain));
+    const auto d = static_cast<size_t> (isLimiterMode() && domain==2 ? 1 : juce::jlimit (0, 4, domain));
     const bool dual = readSoundParameter(qqsc::params::compressionMode) >= 0.5f;
     float lower, upper;
     unpackDisplayStereoSample (boundaryPairs[(isLimiterMode() ? 10u : 0u) + (dual ? 5u : 0u) + d].load (std::memory_order_acquire), lower, upper);
@@ -436,7 +442,7 @@ void QQSuperCompressionAudioProcessor::fillDynamicsGainForDomain (
     if (detectorLevels == nullptr || gains == nullptr || count == 0)
         return;
 
-    const auto d = static_cast<size_t> (juce::jlimit (0, 4, domain));
+    const auto d = static_cast<size_t> (isLimiterMode() && domain==2 ? 1 : juce::jlimit (0, 4, domain));
     const bool limiter = isLimiterMode();
     const bool externalKey = readSoundParameter (qqsc::params::keySource) >= 0.5f;
     const bool dual = readSoundParameter (qqsc::params::compressionMode) >= 0.5f;
@@ -500,7 +506,7 @@ void QQSuperCompressionAudioProcessor::fillDynamicsGainForDomain (
 
 void QQSuperCompressionAudioProcessor::setBoundaryForDomainDb (bool dual, bool upper, int domain, float value)
 {
-    const auto d = static_cast<size_t> (juce::jlimit (0, 4, domain));
+    const auto d = static_cast<size_t> (isLimiterMode() && domain==2 ? 1 : juce::jlimit (0, 4, domain));
     const auto& ids = dual ? (upper ? qqsc::params::downThresholdIds : qqsc::params::upThresholdIds)
                           : (upper ? qqsc::params::rangeIds : qqsc::params::thresholdIds);
     const auto* mappedID=soundParameterID(ids[d]);
@@ -894,17 +900,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
             : group==1 ? qqsc::params::dynamicsRatioRange(qqsc::limiterDualMinimumUpRatio,1.0f)
             : group==2 ? qqsc::params::dynamicsRatioRange(qqsc::limiterMinimumDownRatio,qqsc::maximumDownRatio)
             : group==4 ? qqsc::params::rangeParameterRange() : juce::NormalisableRange<float>{-120.0f,0.0f,0.01f};
-        // Keep host normalisation. Super UP exposes the -inf endpoint again.
-        const float initial=(group<=2) ? 1.0f : group==4 ? 1.0f : (group==3||group==6) ? 0.0f : -120.0f;
+        // Preserve legacy host normalisation/IDs; canonical Limiter bounds are -45..0.
+        const float initial=(group<=2) ? 1.0f : group==4 ? 1.0f : (group==3||group==6) ? 0.0f : qqsc::params::limiterThresholdMinimumDb;
         layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{qqsc::params::limiterSoundIds[i],1},
             "Limiter "+juce::String(qqsc::params::normalSoundIds[i]),range,initial,
             group<3 ? juce::AudioParameterFloatAttributes()
                 .withStringFromValueFunction([](float v,int){return qqsc::params::dynamicsRatioText(v);})
                 .withValueFromStringFunction(qqsc::params::dynamicsRatioFromText)
-                : group==5 ? juce::AudioParameterFloatAttributes().withLabel("dB")
-                    .withStringFromValueFunction([](float v,int){return v<=-119.99f ? juce::String("-inf") : juce::String(v,2);})
+                : (group==3 || group==5 || group==6) ? juce::AudioParameterFloatAttributes().withLabel("dB")
+                    .withStringFromValueFunction([](float v,int){return juce::String(juce::jlimit(qqsc::params::limiterThresholdMinimumDb,0.0f,v),2);})
                     .withValueFromStringFunction([](const juce::String& s){return s.containsIgnoreCase("-inf")
-                        ? -120.0f : juce::jlimit(-120.0f,0.0f,s.getFloatValue());})
+                        ? qqsc::params::limiterThresholdMinimumDb : juce::jlimit(qqsc::params::limiterThresholdMinimumDb,0.0f,s.getFloatValue());})
                 : juce::AudioParameterFloatAttributes()));
     }
     layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { qqsc::params::truePeakLimiting, 1 }, "True Peak Limiting", true));
@@ -923,7 +929,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
                 : i==12 ? juce::StringArray{"Single","Dual"}
                 : i==13 ? qqsc::params::modeChoices()
                 : i==26 ? qqsc::params::keySourceChoices() : qqsc::params::oversamplingChoices();
-            layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{id,1},name,choices,i==29?int(qqsc::params::os8x):0));
+            layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{id,1},name,choices,i==29?int(qqsc::params::os8x):i==13?int(qqsc::params::leftRight):0));
         }
         else if(i==30)
             layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{id,1},name,
@@ -967,6 +973,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
         juce::AudioParameterFloatAttributes().withLabel("ms")));
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{qqsc::params::distort,1},"Distort",
+        juce::NormalisableRange<float>{0.0f,100.0f,0.01f},0.0f,
+        juce::AudioParameterFloatAttributes().withLabel("%")));
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{qqsc::params::limiterStereoLink,1},"Limiter L/R Link",
         juce::NormalisableRange<float>{0.0f,100.0f,0.01f},0.0f,
         juce::AudioParameterFloatAttributes().withLabel("%")));
     return layout;
@@ -1074,6 +1084,7 @@ void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int sam
     truePeakOversampler.reset();
     truePeakBuffer.setSize(2,configuredMaximumBlockSize);
     const auto initialCeilingChoice=getEffectiveCeilingOversamplingChoice();
+    outputCeiling.setStereoLink(readSoundParameter(qqsc::params::limiterStereoLink)*.01f);
     outputCeiling.prepare(currentSampleRate,isTruePeakSelected(),readSoundParameter(qqsc::params::ceilingDb),
                           getTpRecoveryMode(),initialCeilingChoice,configuredMaximumBlockSize);
     // Fixed-capacity reference ring prevents quality changes from allocating on
@@ -1481,6 +1492,8 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
     abFade.reset (currentSampleRate * currentOversamplingFactor, 0.020);
     abFade.setCurrentAndTargetValue (1.0f);
     abActive = false;
+    resetRatioSmoother(limiterStereoLinkSmoother,limiterStereoLinkSmoother.getCurrentValue(),
+                       readSoundParameter(qqsc::params::limiterStereoLink)*.01f);
     resetRatioSmoother (algorithmFade, algorithmFade.getCurrentValue(),
                        readSoundParameter(qqsc::params::algorithmMode));
     resetRatioSmoother (detectorModeFade, detectorModeFade.getCurrentValue(),
@@ -1563,7 +1576,7 @@ void QQSuperCompressionAudioProcessor::updateProcessingConfiguration (bool force
         if (! ceilingOversamplingChanged)
             outputCeiling.resetForLimiter(isTruePeakSelected(),readSoundParameter(qqsc::params::ceilingDb),getTpRecoveryMode());
         ceilingReferenceDelaySamples=getCurrentCeilingAdditionalLatency();
-        std::fill (ceilingReferenceDelay.begin(), ceilingReferenceDelay.end(), std::array<float,9>{});
+        std::fill (ceilingReferenceDelay.begin(), ceilingReferenceDelay.end(), std::array<float,10>{});
         ceilingReferenceIndex = 0;
     }
 
@@ -1691,19 +1704,24 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         discontinuity = std::llabs (transportSample - expected) > static_cast<int64_t> (juce::jmax (8, numSamples * 2));
     }
 
-    // Playback defines the LUFS session. A seek/loop starts a fresh pass,
-    // matching the established transport behaviour of MATCH. Hosts with no
-    // transport information are metered continuously while Limiter is on.
+    // Output LUFS retains its seek/loop reset. MATCH below instead keeps
+    // the complete uninterrupted playback capture. Hosts with no transport
+    // information are metered continuously while Limiter is on.
     const bool measureOutputLoudness = uiAnalysisEnabled && isLimiterMode() && (!transportAvailable || transportPlaying);
     if (measureOutputLoudness && (!lufsWasMeasuring || discontinuity))
         outputLoudness.reset();
     lufsWasMeasuring = measureOutputLoudness;
     meterState.outputLoudnessMeasuring.store(measureOutputLoudness,std::memory_order_relaxed);
 
-    if (uiAnalysisEnabled && transportPlaying
-        && (! lastTransportPlaying
-            || discontinuity
-            || resetMatchOnNextPlaybackBlock.exchange (false, std::memory_order_relaxed)))
+    // A Match click never starts a new measurement pass. Seeking/looping
+    // inside uninterrupted playback remains part of that playback capture.
+    if(transportPlaying && !lastTransportPlaying)
+        matchPassComplete.store(uiAnalysisEnabled,std::memory_order_release);
+    else if(transportPlaying && !uiAnalysisEnabled)
+        matchPassComplete.store(false,std::memory_order_release);
+    const bool matchResetRequested=uiAnalysisEnabled && transportPlaying
+        && resetMatchOnNextPlaybackBlock.exchange(false,std::memory_order_relaxed);
+    if (uiAnalysisEnabled && transportPlaying && (!lastTransportPlaying || matchResetRequested))
     {
         resetMatchAccumulator();
         matchReady.store (false, std::memory_order_relaxed);
@@ -1828,7 +1846,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
     for (size_t d = 0; d < 5; ++d)
     {
         float lower, upper;
-        unpackDisplayStereoSample (boundaryPairs[(isLimiterMode() ? 10u : 0u) + (dualCompression ? 5u : 0u) + d].load (std::memory_order_acquire), lower, upper);
+        unpackDisplayStereoSample (boundaryPairs[(isLimiterMode() ? 10u : 0u) + (dualCompression ? 5u : 0u) + (isLimiterMode() && d==2 ? 1u : d)].load (std::memory_order_acquire), lower, upper);
         lowerBoundaries[d] = qqsc::params::thresholdLinear (lower);
         upperBoundaries[d] = dualCompression ? qqsc::params::thresholdLinear (upper)
                                              : qqsc::params::rangeLinear (upper);
@@ -1992,7 +2010,10 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
     }
     const bool abOutputForBlock = abActive;
     if (currentLimiterCeilingActive)
+    {
+        outputCeiling.setStereoLink(readSoundParameter(qqsc::params::limiterStereoLink)*.01f);
         outputCeiling.set(isTruePeakSelected(),readSoundParameter(qqsc::params::ceilingDb),getTpRecoveryMode());
+    }
 
     // Keep the HPF and output tail advancing until both have remained quiet
     // for a full second. Zero and sub-floor blocks share the same settling
@@ -2047,6 +2068,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         ? 2 * getOversamplingLatencySamples(currentOversamplingIndex) + 64 : 0;
     const int fullDomainStart = uiAnalysisEnabled ? 0
         : juce::jmax(0, numSamples - warmHostSamples) * currentOversamplingFactor;
+    limiterStereoLinkSmoother.setTargetValue(readSoundParameter(qqsc::params::limiterStereoLink)*.01f);
     const size_t audibleFirst = mode == qqsc::params::midSide ? 3u
                              : mode == qqsc::params::leftRight ? 1u : 0u;
     const size_t audibleEnd = audibleFirst + (mode == qqsc::params::stereoLinked ? 1u : 2u);
@@ -2156,6 +2178,9 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             }
             if (useExternalKey && levels[d] <= 1.0e-9f) gains[d] = 1.0f;
         }
+        const float limiterStereoLinkAmount=limiterStereoLinkSmoother.getNextValue();
+        if (currentLimiterCeilingActive && stereoBus)
+            qqsc::params::coupleLimiterGains(gains[1],gains[2],limiterStereoLinkAmount);
         const auto linkedGain = gains[0];
         const auto gainL = gains[1], gainR = gains[2], gainM = gains[3], gainS = gains[4];
 
@@ -2305,6 +2330,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
     float meterInputPeak[2]  { 0.0f, 0.0f };
     float meterOutputPeak[2] { 0.0f, 0.0f };
     float displayInputPeak[2]  { 0.0f, 0.0f };
+    std::array<float,2> displayCeilingGainLR {1,1};
     float displayCeilingGainLinear = 1.0f;
     float displayPreCeilingSamplePeakLinear = 0.0f;
     float displayPreCeilingTruePeakLinear = 0.0f;
@@ -2351,7 +2377,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         if (uiAnalysisEnabled && transportPlaying && !isUnityMonitorActive())
         {
             loudnessMatch.processSample (dryL, stereoBus ? dryR : 0.0f,
-                                         wetLinkedL, stereoBus ? wetLinkedR : 0.0f,
+                                         isLimiterMode() ? wetIndependentL : wetLinkedL,
+                                         stereoBus ? (isLimiterMode() ? wetIndependentR : wetLinkedR) : 0.0f,
                                          wetIndependentL, stereoBus ? wetIndependentR : 0.0f,
                                          dryM, stereoBus ? dryS : 0.0f,
                                          wetM, stereoBus ? wetS : 0.0f);
@@ -2417,8 +2444,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         // Limiter mode inserts the fixed-latency 8x Ceiling pipeline; TP OFF/ON
         // are two already-warm branches inside that same pipeline.
         std::array<float,2> finalOutput { activeOutL, stereoBus ? activeOutR : 0.0f };
-        std::array<float,9> reference { displayDryL,displayDryR,delayedKeyL,delayedKeyR,
-            mixControlBuffer.getSample(15,i),mixDryL,mixDryR,mixedL-mixDryL,mixedR-mixDryR };
+        std::array<float,10> reference { displayDryL,displayDryR,delayedKeyL,delayedKeyR,
+            mixControlBuffer.getSample(15,i),mixDryL,mixDryR,mixedL-mixDryL,mixedR-mixDryR,makeupL };
 
         if (currentLimiterCeilingActive)
         {
@@ -2433,6 +2460,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             {
                 finalOutput=outputCeiling.process(activeOutL,stereoBus ? activeOutR : 0.0f);
             }
+            for(int ch=0;ch<2;++ch)displayCeilingGainLR[size_t(ch)]=juce::jmin(displayCeilingGainLR[size_t(ch)],outputCeiling.gainForDisplayLinear(ch));
             displayCeilingGainLinear=juce::jmin(displayCeilingGainLinear,
                                                  outputCeiling.gainForDisplayLinear());
             displayPreCeilingSamplePeakLinear=juce::jmax(displayPreCeilingSamplePeakLinear,
@@ -2463,17 +2491,29 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         const float outL=bypassAmount==1 ? reference[0] : monitoredL+bypassAmount*(reference[0]-monitoredL);
         const float outR=stereoBus ? (bypassAmount==1 ? reference[1] : monitoredR+bypassAmount*(reference[1]-monitoredR)) : 0.f;
         if(unityMatchSettling>0)--unityMatchSettling;
-        if(uiAnalysisEnabled && transportPlaying && isUnityMonitorActive() && unityMatchSettling==0
+        if(uiAnalysisEnabled && transportPlaying && isUnityMonitorActive()
             && !forceBypass && !bypassFade.isSmoothing() && unityAmount==1 && !abOutputForBlock)
         {
             // Compare the same aligned source against the actual post-TP,
             // post-monitor stereo signal. No Bypass samples enter the result.
+            // Store a unit-Makeup basis, including observed Ceiling gain.
+            // Retained frames can then yield an absolute Makeup target on
+            // every click; prior Match gain is never added a second time.
+            const float invMakeup=1.f/juce::jmax(1.e-6f,reference[9]);
+            const auto split=[&](float dry,float wet,float measured)
+            {
+                const float sum=dry+wet;
+                const float observedGain=std::abs(sum)>1.e-12f ? measured/sum : 0.f;
+                return std::array<float,2>{dry*observedGain,wet*observedGain*invMakeup};
+            };
+            const auto left=split(reference[5],reference[7],monitoredL);
+            const auto right=split(reference[6],reference[8],stereoBus ? monitoredR : 0.f);
+            const float unitL=left[0]+left[1],unitR=right[0]+right[1];
             loudnessMatch.processSample(reference[0],stereoBus ? reference[1] : 0.f,
-                monitoredL,stereoBus ? monitoredR : 0.f,monitoredL,stereoBus ? monitoredR : 0.f,
+                unitL,unitR,unitL,unitR,
                 .5f*(reference[0]+reference[1]),.5f*(reference[0]-reference[1]),
-                .5f*(monitoredL+monitoredR),.5f*(monitoredL-monitoredR));
-            unityMixMatch.processSample(reference[5],reference[6],reference[7],reference[8],
-                reference[5]+reference[7],reference[6]+reference[8],0,0,0,0);
+                .5f*(unitL+unitR),.5f*(unitL-unitR));
+            unityMixMatch.processSample(left[0],right[0],left[1],right[1],unitL,unitR,0,0,0,0);
         }
 
         // v1.0.3 centered domain monitor: audition affects only what reaches the
@@ -2495,8 +2535,10 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             audibleOutL = reference[2];
             audibleOutR = reference[3];
         }
-        else if (! forceBypass && stereoBus)
+        else if (! forceBypass && stereoBus && !isLimiterMode())
         {
+            // Limiter always returns both channels. Preserve the separate
+            // Normal LR/MS audition selection for when that mode is restored.
             const auto monitorSelection = getDomainMonitorSelection (mode);
 
             if (mode == qqsc::params::leftRight)
@@ -2617,8 +2659,12 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         // attenuation. TP/Sample-Peak switching is already represented by the
         // OutputCeiling telemetry's 10 ms audio crossfade.
         const auto ceilingGrForVisuals = forceBypass ? 0.0f : juce::jmax (0.0f, displayCeilingGainReductionDb);
-        const auto totalEffectiveGr0 = effectiveGr0 + ceilingGrForVisuals;
-        const auto totalEffectiveGr1 = effectiveGr1 + ceilingGrForVisuals;
+        const auto ceilingGrForChannel=[&](size_t ch) {
+            return forceBypass ? 0.0f : currentLimiterCeilingActive && mode==qqsc::params::leftRight
+                ? -juce::Decibels::gainToDecibels(juce::jmax(displayCeilingGainLR[ch],1.e-9f),-180.f) : ceilingGrForVisuals;
+        };
+        const auto totalEffectiveGr0 = effectiveGr0 + ceilingGrForChannel(0);
+        const auto totalEffectiveGr1 = effectiveGr1 + ceilingGrForChannel(1);
     
         updateTruePeakMeter(numSamples);
         meterState.inputDb0.store  (peakToDb (meterInputPeak[0]), std::memory_order_relaxed);
@@ -2825,6 +2871,7 @@ QQSuperCompressionAudioProcessor::ParameterSnapshot QQSuperCompressionAudioProce
     snapshot.lookaheadMs = qqsc::params::snapLookaheadMs (apvts.getRawParameterValue (qqsc::params::lookaheadMs)->load());
     snapshot.detectorWindowMs = readSoundParameter (qqsc::params::detectorWindowMs);
     snapshot.distort = readSoundParameter(qqsc::params::distort);
+    snapshot.limiterStereoLink=readSoundParameter(qqsc::params::limiterStereoLink);
     snapshot.detectorMode = juce::roundToInt (readSoundParameter (qqsc::params::detectorMode));
     snapshot.oversampling = juce::jlimit (0, 3, juce::roundToInt (apvts.getRawParameterValue (qqsc::params::oversampling)->load()));
     snapshot.mode = juce::roundToInt (apvts.getRawParameterValue (qqsc::params::processingMode)->load());
@@ -2876,27 +2923,50 @@ void QQSuperCompressionAudioProcessor::setActualParameterValue (const char* para
     }
 }
 
+void QQSuperCompressionAudioProcessor::migrateLimiterStereoSnapshot(ParameterSnapshot& s) noexcept
+{
+    const int oldMode=juce::roundToInt(s.limiterSettings[13]);
+    if(oldMode!=qqsc::params::leftRight)
+    {
+        const size_t l=oldMode==qqsc::params::midSide ? 3u : 0u;
+        const size_t r=oldMode==qqsc::params::midSide ? 4u : 0u;
+        for(size_t first=0;first<35;first+=5)
+        {
+            s.limiterSound[first+1]=s.limiterSound[first+l];
+            s.limiterSound[first+2]=s.limiterSound[first+r];
+        }
+        for(size_t first:{1u,6u,16u,21u})
+        {
+            s.limiterSettings[first+1]=s.limiterSettings[first+l];
+            s.limiterSettings[first+2]=s.limiterSettings[first+r];
+        }
+    }
+    s.limiterStereoLink=oldMode==qqsc::params::stereoLinked ? 100.0f : 0.0f;
+    s.limiterSettings[13]=float(qqsc::params::leftRight);
+}
+
 QQSuperCompressionAudioProcessor::ParameterSnapshot QQSuperCompressionAudioProcessor::activeSnapshot(ParameterSnapshot s) noexcept
 {
     if(!s.limiterMode) return s;
     s.inputGainDb=float(s.limiterSettings[0]);
     s.makeupST=float(s.limiterSettings[1]);
     s.makeupL=float(s.limiterSettings[2]);
-    s.makeupR=float(s.limiterSettings[3]);
+    s.makeupR=s.makeupL; // Shared Limiter controls; independent audio detectors.
     s.makeupM=float(s.limiterSettings[4]);
     s.makeupS=float(s.limiterSettings[5]);
     s.mix=float(s.limiterSettings[6]);
     s.mixL=float(s.limiterSettings[7]);
-    s.mixR=float(s.limiterSettings[8]);
+    s.mixR=s.mixL;
     s.mixM=float(s.limiterSettings[9]);
     s.mixS=float(s.limiterSettings[10]);
     s.algorithmMode=int(s.limiterSettings[11]);
     s.upAlgorithmMode=int(s.limiterSettings[31]);s.downAlgorithmMode=int(s.limiterSettings[32]);
     s.compressionMode=int(s.limiterSettings[12]);
-    s.mode=int(s.limiterSettings[13]);
+    s.mode=qqsc::params::leftRight;
     s.domainLink=bool(s.limiterSettings[14]);
     s.dualRatioLink=bool(s.limiterSettings[15]);
     for(size_t d=0;d<5;++d) { s.upEnabled[d]=s.limiterSettings[16+d]>=.5f; s.downEnabled[d]=s.limiterSettings[21+d]>=.5f; }
+    s.upEnabled[2]=s.upEnabled[1];s.downEnabled[2]=s.downEnabled[1];
     s.keySource=int(s.limiterSettings[26]);s.keyGainDb=s.limiterSettings[27];s.keyHpfHz=s.limiterSettings[28];s.oversampling=int(s.limiterSettings[29]);s.lookaheadMs=qqsc::params::snapLookaheadMs(s.limiterSettings[30]);
     return s;
 }
@@ -2910,9 +2980,13 @@ qqsc::ABTransfer QQSuperCompressionAudioProcessor::makeABTransfer (const Paramet
         s.thresholdDb=s.limiterSound[15];s.thresholdLDb=s.limiterSound[16];s.thresholdRDb=s.limiterSound[17];s.thresholdMDb=s.limiterSound[18];s.thresholdSDb=s.limiterSound[19];
         for(size_t d=0;d<5;++d)
         {s.upRatio[d]=s.limiterSound[5+d];s.downRatio[d]=s.limiterSound[10+d];s.range[d]=s.limiterSound[20+d];s.upThreshold[d]=s.limiterSound[25+d];s.downThreshold[d]=s.limiterSound[30+d];}
+        s.ratioR=s.ratioL;s.upRatio[2]=s.upRatio[1];s.downRatio[2]=s.downRatio[1];
+        s.thresholdRDb=s.thresholdLDb;s.range[2]=s.range[1];
+        s.upThreshold[2]=s.upThreshold[1];s.downThreshold[2]=s.downThreshold[1];
     }
     qqsc::ABTransfer t;
     t.dual=s.compressionMode==1; t.mode=s.mode;
+    t.stereoLink=s.limiterMode ? s.limiterStereoLink*.01f : 0.0f;
     t.algorithm=s.algorithmMode==0 ? qqsc::CompressionAlgorithm::classic : qqsc::CompressionAlgorithm::super;
     t.upAlgorithm=s.upAlgorithmMode==0 ? qqsc::CompressionAlgorithm::classic : qqsc::CompressionAlgorithm::super;
     t.downAlgorithm=s.downAlgorithmMode==0 ? qqsc::CompressionAlgorithm::classic : qqsc::CompressionAlgorithm::super;
@@ -2926,11 +3000,12 @@ qqsc::ABTransfer QQSuperCompressionAudioProcessor::makeABTransfer (const Paramet
     {
         t.lower[d]=qqsc::params::thresholdLinear(t.dual?s.upThreshold[d]:t.lower[d]);
         t.upper[d]=t.dual?qqsc::params::thresholdLinear(s.downThreshold[d]):qqsc::params::rangeLinear(s.range[d]);
-        if(s.limiterMode && t.dual && t.upAlgorithm==qqsc::CompressionAlgorithm::classic)
+        if(s.limiterMode)
         {
-            const auto floor=qqsc::params::thresholdLinear(qqsc::classicThresholdMinimumDb);
-            t.lower[d]=juce::jmax(floor,t.lower[d]);
-            t.upper[d]=juce::jmax(t.lower[d],t.upper[d]);
+            const auto floor=qqsc::params::thresholdLinear(qqsc::params::limiterThresholdMinimumDb);
+            t.lower[d]=juce::jlimit(floor,1.0f,t.lower[d]);
+            t.upper[d]=t.dual ? juce::jlimit(t.lower[d],1.0f,t.upper[d])
+                               : qqsc::params::rangeLinear(qqsc::params::rangeOffDb);
         }
         t.upRatio[d]=s.upEnabled[d]?qqsc::params::upwardRatio(s.upRatio[d],s.limiterMode):1.f;
         t.downRatio[d]=s.downEnabled[d]?qqsc::params::limiterRatio(s.downRatio[d],s.limiterMode,true):1.f;
@@ -3009,6 +3084,7 @@ void QQSuperCompressionAudioProcessor::applySnapshot (const ParameterSnapshot& s
     setActualParameterValue (qqsc::params::lookaheadMs, snapshotLookaheadMs);
     setActualParameterValue (qqsc::params::detectorWindowMs, snapshot.detectorWindowMs);
     setActualParameterValue (qqsc::params::distort, snapshot.distort);
+    setActualParameterValue(qqsc::params::limiterStereoLink,snapshot.limiterStereoLink);
     distortForAudio.store(snapshot.distort,std::memory_order_release);
     setActualParameterValue (qqsc::params::detectorMode, float(snapshot.detectorMode));
     setActualParameterValue (qqsc::params::oversampling, static_cast<float> (juce::jlimit (0, 3, snapshot.oversampling)));
@@ -3162,6 +3238,7 @@ void QQSuperCompressionAudioProcessor::writeABStateTo (juce::ValueTree& state)
         state.setProperty (abProperty (prefix + "lookaheadMs"), s.lookaheadMs, nullptr);
         state.setProperty (abProperty (prefix + "detectorWindowMs"), s.detectorWindowMs, nullptr);
         state.setProperty(abProperty(prefix + "distort"),s.distort,nullptr);
+        state.setProperty(abProperty(prefix+"limiterStereoLink"),s.limiterStereoLink,nullptr);
         state.setProperty (abProperty (prefix + "detectorMode"), s.detectorMode, nullptr);
         state.setProperty (abProperty (prefix + "oversampling"), s.oversampling, nullptr);
         state.setProperty (abProperty (prefix + "mode"), s.mode, nullptr);
@@ -3320,6 +3397,9 @@ void QQSuperCompressionAudioProcessor::readABStateFrom (const juce::ValueTree& s
     {
         auto& saved=*entry.second;
         const auto legacy=qqsc::params::distortForWindowMs(activeSnapshot(saved).lookaheadMs,saved.detectorWindowMs);
+        if(!state.hasProperty(abProperty(juce::String(entry.first)+"limiterStereoLink")))
+            migrateLimiterStereoSnapshot(saved);
+        saved.limiterStereoLink=juce::jlimit(0.0f,100.0f,float(state.getProperty(abProperty(juce::String(entry.first)+"limiterStereoLink"),saved.limiterStereoLink)));
         saved.distort=juce::jlimit(0.0f,100.0f,float(state.getProperty(abProperty(juce::String(entry.first)+"distort"),legacy)));
     }
     snapshotA = newA;
@@ -3349,7 +3429,8 @@ void QQSuperCompressionAudioProcessor::refreshMatchResults()
     if(loudnessMatch.isQueueOverloaded() || unityMixMatch.isQueueOverloaded())
     {
         matchReady.store(false,std::memory_order_relaxed);
-        resetMatchOnNextPlaybackBlock.store(true,std::memory_order_release);
+        // Missing queued history cannot be labelled a complete playback pass.
+        matchPassComplete.store(false,std::memory_order_release);
         return;
     }
     if (! resetMatchOnNextPlaybackBlock.load(std::memory_order_acquire))
@@ -3388,7 +3469,7 @@ void QQSuperCompressionAudioProcessor::updateMatchResults() noexcept
                                    juce::roundToInt (readSoundParameter(qqsc::params::processingMode)));
 
     bool ready = result.validST;
-    if (isUnityMonitorActive())
+    if (isUnityMonitorActive() || isLimiterMode())
         ready=result.validST;
     else if (mode == qqsc::params::leftRight)
         ready = result.validL || result.validR;
@@ -3401,6 +3482,7 @@ void QQSuperCompressionAudioProcessor::updateMatchResults() noexcept
 
 bool QQSuperCompressionAudioProcessor::hasMatchData() const noexcept
 {
+    if(!matchPassComplete.load(std::memory_order_acquire)) return false;
     if(loudnessMatch.isQueueOverloaded() || (isUnityMonitorActive() && unityMixMatch.isQueueOverloaded()))
         return false;
     if(resetMatchOnNextPlaybackBlock.load(std::memory_order_acquire)
@@ -3409,7 +3491,7 @@ bool QQSuperCompressionAudioProcessor::hasMatchData() const noexcept
     if (! matchReady.load (std::memory_order_relaxed))
         return false;
 
-    if(isUnityMonitorActive()) return matchSTValid.load(std::memory_order_relaxed);
+    if(isUnityMonitorActive() || isLimiterMode()) return matchSTValid.load(std::memory_order_relaxed);
 
     const int mode = juce::jlimit (static_cast<int> (qqsc::params::stereoLinked),
                                    static_cast<int> (qqsc::params::leftRight),
@@ -3424,6 +3506,7 @@ bool QQSuperCompressionAudioProcessor::hasMatchData() const noexcept
 
 bool QQSuperCompressionAudioProcessor::applyMatchForCurrentMode()
 {
+    refreshMatchResults(); // Include pending analysis blocks up to this click.
     if (! hasMatchData())
         return false;
 
@@ -3431,6 +3514,12 @@ bool QQSuperCompressionAudioProcessor::applyMatchForCurrentMode()
                                    static_cast<int> (qqsc::params::leftRight),
                                    juce::roundToInt (readSoundParameter(qqsc::params::processingMode)));
 
+    struct MatchWriteScope
+    {
+        std::atomic<bool>& active;
+        explicit MatchWriteScope(std::atomic<bool>& flag):active(flag){active.store(true,std::memory_order_release);}
+        ~MatchWriteScope(){active.store(false,std::memory_order_release);}
+    } scope(applyingCumulativeMatch);
     undoManager.beginNewTransaction ("Match Makeup Gain");
 
     // MATCH is a Makeup edit, not a new absolute Output calibration. Preserve
@@ -3446,6 +3535,16 @@ bool QQSuperCompressionAudioProcessor::applyMatchForCurrentMode()
                 outputBefore+referenceBefore-getLimiterReferencePeakDb());
     };
 
+    if(isLimiterMode())
+    {
+        // Both ordinary and unity-monitor statistics now publish an
+        // absolute shared Makeup target from the complete retained capture.
+        const float target=matchSTDb.load(std::memory_order_relaxed);
+        setActualParameterValue(soundParameterID(qqsc::params::makeupGainLDb),
+            juce::jlimit(-qqsc::maximumMakeupDb,qqsc::maximumMakeupDb,target));
+        linkMakeupChange();
+        return true;
+    }
     if(isUnityMonitorActive())
     {
         // A common correction preserves existing L/R or M/S balance. When
@@ -3466,8 +3565,6 @@ bool QQSuperCompressionAudioProcessor::applyMatchForCurrentMode()
         else if(mode==qqsc::params::midSide) {correct(qqsc::params::makeupGainMDb);correct(qqsc::params::makeupGainSDb);}
         else correct(qqsc::params::makeupGainDb);
         linkMakeupChange();
-        matchReady.store(false,std::memory_order_relaxed);
-        resetMatchOnNextPlaybackBlock.store(true,std::memory_order_relaxed);
         return true;
     }
 
@@ -3491,8 +3588,6 @@ bool QQSuperCompressionAudioProcessor::applyMatchForCurrentMode()
     }
 
     linkMakeupChange();
-    matchReady.store (false, std::memory_order_relaxed);
-    resetMatchOnNextPlaybackBlock.store (true, std::memory_order_relaxed);
     return true;
 }
 
@@ -3556,6 +3651,7 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
             const bool stateHasAlgorithm = stateContainsParameter (state, qqsc::params::algorithmMode);
             const bool stateHasCeilingOs = stateContainsParameter (state, qqsc::params::ceilingOversampling);
             const bool stateHasDetectorMode = stateContainsParameter (state, qqsc::params::detectorMode);
+            const bool stateHasStereoLink=stateContainsParameter(state,qqsc::params::limiterStereoLink);
             const bool stateHasDistort = stateContainsParameter(state,qqsc::params::distort);
             const bool stateHasDetectorWindow = stateContainsParameter (state, qqsc::params::detectorWindowMs);
             const bool stateHasTpRecovery = stateContainsParameter (state, qqsc::params::tpRecoveryMode);
@@ -3772,6 +3868,20 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
                         : parameter->convertFrom0to1(parameter->getDefaultValue());
                     setActualParameterValue(qqsc::params::limiterModeIds[i],value);
                 }
+            if(!stateHasStereoLink)
+            {
+                ParameterSnapshot legacy;
+                for(size_t i=0;i<legacy.limiterSound.size();++i)
+                    legacy.limiterSound[i]=apvts.getRawParameterValue(qqsc::params::limiterSoundIds[i])->load();
+                for(size_t i=0;i<legacy.limiterSettings.size();++i)
+                    legacy.limiterSettings[i]=apvts.getRawParameterValue(qqsc::params::limiterModeIds[i])->load();
+                migrateLimiterStereoSnapshot(legacy);
+                for(size_t i=0;i<legacy.limiterSound.size();++i)
+                    setActualParameterValue(qqsc::params::limiterSoundIds[i],legacy.limiterSound[i]);
+                for(size_t i=0;i<legacy.limiterSettings.size();++i)
+                    setActualParameterValue(qqsc::params::limiterModeIds[i],legacy.limiterSettings[i]);
+                setActualParameterValue(qqsc::params::limiterStereoLink,legacy.limiterStereoLink);
+            }
             setActualParameterValue("limiterLookaheadMs",qqsc::params::snapLookaheadMs(
                 apvts.getRawParameterValue("limiterLookaheadMs")->load()));
             limiterBankInitialised.store(bool(state.getProperty("qqscLimiterBankInitialised",hadLimiterBank)),std::memory_order_release);

@@ -126,6 +126,7 @@ public:
         ? readSoundParameter(upper ? "downAlgorithmMode" : "upAlgorithmMode")<0.5f : isClassicAlgorithm(); }
     float boundaryMinimumDb(bool upper) const noexcept
     {
+        if (isLimiterMode()) return qqsc::params::limiterThresholdMinimumDb;
         return isClassicBoundary(upper)
             ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb;
     }
@@ -280,6 +281,7 @@ private:
         int ceilingOversampling = qqsc::params::ceiling8x;
         float ceilingDb = 0.0f, limiterOutputDb = 0.0f, limiterCalibrationDb = 0.0f;
         float lookaheadMs = 26.0f;
+        float limiterStereoLink = 0.0f;
         float distort = 0.0f;
         float detectorWindowMs = 100.0f; // Effective value is capped by the active Lookahead.
         int detectorMode = 0;
@@ -305,6 +307,7 @@ private:
     float effectiveDualRatio (size_t domain, bool upward) const noexcept;
 
     ParameterSnapshot captureCurrentSnapshot() const noexcept;
+    static void migrateLimiterStereoSnapshot(ParameterSnapshot&) noexcept;
     static ParameterSnapshot activeSnapshot(ParameterSnapshot) noexcept;
     static qqsc::ABTransfer makeABTransfer (const ParameterSnapshot&) noexcept;
     void queueABTransfer (const ParameterSnapshot&, const ParameterSnapshot&);
@@ -353,7 +356,7 @@ private:
     juce::dsp::Oversampling<float> truePeakOversampler { 2, 2, juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple, true, false };
     juce::AudioBuffer<float> truePeakBuffer;
     qqsc::OutputCeiling outputCeiling;
-    std::vector<std::array<float,9>> ceilingReferenceDelay;
+    std::vector<std::array<float,10>> ceilingReferenceDelay;
     size_t ceilingReferenceIndex=0;
     int ceilingReferenceDelaySamples=0;
     bool currentCeilingSharesCoreOversampling=false;
@@ -471,6 +474,7 @@ private:
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> downRatioSmoothers;
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> upEnableFades, downEnableFades;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> algorithmFade; // 0 Classic, 1 Super
+    juce::SmoothedValue<float> limiterStereoLinkSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> detectorModeFade; // 0 Original, 1 Bilateral
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> upAlgorithmFade, downAlgorithmFade;
     juce::AudioBuffer<float> mixControlBuffer; // five Makeup, five Mix, Output, four Dry matrix coefficients
@@ -542,6 +546,8 @@ private:
     std::atomic<bool> matchSValid  { false };
     std::atomic<bool> matchReady { false };
     std::atomic<bool> resetMatchOnNextPlaybackBlock { true };
+    std::atomic<bool> applyingCumulativeMatch { false };
+    std::atomic<bool> matchPassComplete { true };
     bool lastTransportPlaying = false;
     int64_t lastTransportSample = -1;
     int lastTransportBlockSize = 0;

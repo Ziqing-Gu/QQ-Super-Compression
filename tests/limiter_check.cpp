@@ -99,6 +99,75 @@ struct QQSCVisualCheck
         return display.histories[0].points.size();
     }
 
+    static void verifyStereoLimiterPresentation()
+    {
+        QQSuperCompressionAudioProcessor p;p.enterLimiterMode();
+        set(p,"limiterRatioL",4);set(p,"limiterThresholdLDb",-12);
+        set(p,"limiterThresholdRDb",-60);set(p,"limiterKeySource",1);
+        set(p,"truePeakLimiting",0);set(p,"ceilingDb",0);
+        DynamicDisplay d(p);d.setSize(1000,530);d.clearHistories();
+        d.renderReferenceCounter=300;d.renderReferenceSampleRate=48000;
+        for(int ch=0;ch<2;++ch)for(uint64_t counter:{100u,200u,300u})
+        {
+            DynamicDisplay::HistoryPoint point;
+            point.inputDb=ch==0?-2.f:-8.f;point.detectorDb=ch==0?0.f:-30.f;
+            point.captureCounter=counter;point.captureGeneration=1;
+            d.histories[size_t(ch)].points.push_back(point);
+        }
+        for(float link:{0.f,50.f,100.f})
+        {
+            set(p,"limiterStereoLink",link);d.refreshRenderCaches(qqsc::params::leftRight);
+            const auto& c=d.stereoLimiterCache.projected;
+            check(c.size==3,"Single ST view retains stereo timestamps");
+            for(size_t i=0;i<c.size;++i)
+            {
+                const auto& l=d.renderCaches[0].projected;const auto& r=d.renderCaches[1].projected;
+                check(c.captureCounter[i]==l.captureCounter[i] && c.captureCounter[i]==r.captureCounter[i],"ST aligned counters");
+                check(std::abs(c.output[i]-std::max(l.output[i],r.output[i]))<.001f,"ST combines processed peaks, not detectors");
+                check(std::abs(c.input[i]+2)<.001f,"ST combines input peaks");
+            }
+            if(link==0)check(std::abs(c.output[0]+8)<.002f,"Independent limiting shown in ST");
+            if(link==100)check(std::abs(c.output[0]+11)<.002f,"Fully coupled limiting shown in ST");
+        }
+        for(float look:{0.f,26.f,100.f})
+        {
+            set(p,"limiterLookaheadMs",look);set(p,"limiterRatioL",1);
+            d.refreshRenderCaches(qqsc::params::leftRight);
+            const auto& c=d.stereoLimiterCache.projected;
+            check(std::abs(c.output[0]-c.input[0])<.001f,"Unity ST curves coincide at every Lookahead");
+        }
+        check(d.domainPanelBounds(0,qqsc::params::leftRight)==d.domainPanelBounds(0,qqsc::params::stereoLinked),"Full ST panel");
+        check(d.getBoundaryPlotForDomain(1)==d.getBoundaryPlotForDomain(0),"Shared boundary uses ST scale");
+        p.leaveLimiterMode();
+        check(d.domainPanelBounds(0,qqsc::params::leftRight)!=d.domainPanelBounds(1,qqsc::params::leftRight),"Normal LR stays split");
+        std::cout<<"PASS: stereo Limiter single display, aligned independent/coupled peak projection and unity at 0/26/100 ms.\n";
+    }
+
+    static void verifyStereoLinkProjection()
+    {
+        QQSuperCompressionAudioProcessor p;p.enterLimiterMode();
+        set(p,"limiterRatioL",4);set(p,"limiterRatioR",1);set(p,"limiterThresholdLDb",-12);
+        set(p,"truePeakLimiting",0);set(p,"ceilingDb",0);
+        DynamicDisplay display(p);display.setSize(1000,500);display.clearHistories();
+        for(int ch=0;ch<2;++ch)
+        {
+            DynamicDisplay::HistoryPoint point;
+            point.inputDb=point.detectorDb=ch==0 ? -2.f : -30.f;
+            point.captureCounter=100;point.captureGeneration=1;
+            display.histories[size_t(ch)].points={point};
+        }
+        set(p,"limiterStereoLink",0);display.refreshRenderCaches(qqsc::params::leftRight);
+        const float right0=display.renderCaches[1].projected.output[0];
+        set(p,"limiterStereoLink",100);display.refreshRenderCaches(qqsc::params::leftRight);
+        const float right100=display.renderCaches[1].projected.output[0];
+        // Classic 4:1 above -12 dB: at -2 dB the cut is exactly 7.5 dB.
+        check(std::abs(right0+30)<.002f && std::abs(right100+37.5f)<.002f,"Linked display uses peer gain, including a unity local curve");
+        check(std::abs(display.renderCaches[1].projected.effectiveGainReduction[0]-7.5f)<.002f,"Linked display GR");
+        set(p,"limiterStereoLink",0);display.refreshRenderCaches(qqsc::params::leftRight);
+        check(std::abs(display.renderCaches[1].projected.output[0]-right0)<.002f,"Display link return");
+        std::cout<<"PASS: asymmetric LR display, unity local curve and link changes.\n";
+    }
+
     static ProjectedView projectRetrospectiveTpHistory (DynamicDisplay& display, int mode)
     {
         display.refreshRenderCaches (mode);
@@ -115,6 +184,8 @@ struct QQSCVisualCheck
     }
 };
 
+#include "shared_snapshot_match_checks.h"
+
 struct QQSCLimiterCheck
 {
 #include "output_link_checks.inc"
@@ -128,6 +199,9 @@ struct QQSCLimiterCheck
 #include "algorithm_boundary_toggle_checks.inc"
 #include "detector_window_checks.inc"
 #include "distort_checks.inc"
+#include "window_link_checks.inc"
+#include "shared_controls_checks.inc"
+#include "limiter_45_checks.inc"
 #include "lookahead_presets_checks.inc"
 #include "overall_os_checks.inc"
 #include "retrospective_tp_display_checks.inc"
@@ -349,6 +423,14 @@ int main(int argc,char** argv)
     try
     {
         const juce::File root(argv[1]);root.createDirectory();
+        if(argc==3 && juce::String(argv[2])=="cumulative-match")
+        { QQSCReviewCheck::cumulativeMatchChecks();return 0; }
+        if(argc==3 && juce::String(argv[2])=="limiter-45")
+        { QQSCLimiterCheck::limiter45Checks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="shared-controls")
+        { QQSCLimiterCheck::sharedControlsChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="window-link")
+        { QQSCLimiterCheck::windowLinkChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="distort")
         { QQSCLimiterCheck::distortChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="lookahead-presets")

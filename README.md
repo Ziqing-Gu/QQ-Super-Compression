@@ -10,11 +10,11 @@
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 
-# QQ Super Compression 1.3.2 Stable
+# QQ Super Compression 1.3.4 Stable
 
-Qing Audio 压缩/限制器，支持 Classic/Super、Single/Dual、ST/LR/MS、内外侧链与 Limiter。SAFE 默认关闭；Normal 使用 Distort，Safe 使用 Window；统一 1x/4x/8x/16x 过采样作用于所有 Lookahead。Lookahead 档位为 0/26/40/80/100 ms。
+Qing Audio 压缩/限制器，支持 Classic/Super、Single/Dual、ST/LR/MS、内外侧链与 Limiter。SAFE 默认关闭；Normal 与 Safe 均使用 Window 毫秒；统一 1x/4x/8x/16x 过采样作用于所有 Lookahead。Lookahead 档位为 0/26/40/80/100 ms。
 
-Qing Audio compressor/limiter with Classic/Super, Single/Dual, ST/LR/MS, internal/external sidechains and Limiter. SAFE defaults off; Normal uses Distort and Safe uses Window. Unified 1x/4x/8x/16x audio oversampling works at every Lookahead. Presets: 0/26/40/80/100 ms.
+Qing Audio compressor/limiter with Classic/Super, Single/Dual, ST/LR/MS, internal/external sidechains and Limiter. SAFE defaults off; Normal and Safe both use Window in milliseconds. Unified 1x/4x/8x/16x audio oversampling works at every Lookahead. Presets: 0/26/40/80/100 ms.
 
 ## 下载与安装 / Download and installation
 
@@ -38,11 +38,21 @@ No Linux build is provided. Save a session copy, quit DAWs and retain the old pl
 
 ## 当前稳定版 / Current stable version
 
-**1.3.2 (2026-10-09).** SAFE 开关、Distort/Window、统一过采样与 Display 对齐更新；完整变化见下方逐版本记录及 [双语发行说明](RELEASE_NOTES_1.3.2.md)。Windows 复用已验证成品，macOS 由当前源码工作流生成；完整交付状态见 Release。
+**1.3.4 Stable (2026-10-11).** Window 统一为毫秒，Limiter 改为 ST 显示与 L/R Link，Match 按整段播放累计。Limiter 图表与全部阈值为 -45 至 0 dB，移除 Range；普通压缩保留原行为。随附 44 页[中文手册](docs/manuals/QQ-Super-Compression-1.3.4-User-Manual-Chinese.pdf)与[英文手册](docs/manuals/QQ-Super-Compression-1.3.4-User-Manual-English.pdf)。本次覆盖 1.3.3、1.3.4，完整变化见下方逐版记录。
 
-**1.3.2 (2026-10-09).** SAFE toggle, Distort/Window, unified oversampling and Display alignment updates. See the per-version history below and [bilingual release notes](RELEASE_NOTES_1.3.2.md). The verified Windows binary is reused; macOS artifacts are built from the current source workflow. See Release for delivery status.
+**1.3.4 Stable (2026-10-11).** Window always uses milliseconds; Limiter combines an ST display with numeric L/R Link, and Match measures from playback start. Limiter's graph and all thresholds span -45 to 0 dB, with Range removed; normal compression retains its behavior. Includes matching 44-page Chinese and English manuals. This update covers 1.3.3 and 1.3.4; see the per-version entries below.
 
 ## 版本记录 / Version history
+
+### 1.3.4 — Stable, 2026-10-11
+
+- 中文：Limiter 的 Display 与 Single / UP / DOWN 阈值统一为 -45 至 0 dB；移除 Limiter 的 Range 控件及其处理作用，普通压缩保持原行为。按用户要求保留切换 Limiter 时原有的延迟变化。中文手册重新整理 Lookahead / Window、独立 SAFE 章节、Range 的功能与操作顺序、噼啪声提示，以及上压和下压的对称关系。用户已确认并指定为 Stable；配套 44 页英文手册已完成。
+- English: Limiter Display and Single / UP / DOWN thresholds now span -45 to 0 dB. Removes Limiter Range controls and processing while preserving normal compression behavior. Existing Limiter-switch latency behavior is retained at the user's request. The approved Chinese manual clarifies Lookahead / Window, SAFE, Range operation and crackles, and the upward/downward compression relationship. Promoted to Stable by explicit user instruction; matching 44-page English manual is included.
+
+### 1.3.3 — Stable, 2026-10-11
+
+- 中文：统一 Window 毫秒控件；SAFE 移至右下，0 ms 禁用。Limiter 采用完整 ST 界面、单张 Display、一组共用阈值和 Ratio/Makeup/Mix/ON，内部保留可调关联的左右独立检测；移除参数 LINK、双压 Ratio LINK 和声道 Monitor（Limiter 固定完整立体声输出），保留 0–100% 音频 L/R Link（覆盖动态及 Ceiling）。普通 LR/MS 参数 LINK 同步对应 Dual ON。MATCH 支持播放中累计匹配，点击不清空、不重复叠加补偿；停止保留，下次播放重置。ECO 缺失分析时不提供不完整播放的 MATCH。详见新版双语用户手册。
+- English: Window in ms; relocated SAFE disabled at zero Lookahead. Limiter has a full ST presentation with a single history panel and common boundaries/Ratio/Makeup/Mix/enables, while retaining independent L/R detection with adjustable gain coupling, no parameter LINK, UP/DOWN Ratio LINK or channel Monitor (always stereo output), and a numeric 0–100% audio link through dynamics and Ceiling. Normal LR/MS parameter LINK pairs matching Dual enables. MATCH retains the playback capture across clicks without re-adding correction; stop retains it and restart resets it. ECO skips are not treated as a complete capture. Promoted to Stable after user acceptance.
 
 ### 1.3.2 — Stable, 2026-10-09
 
@@ -125,3 +135,15 @@ Safe 的较长 Window 会提前压及峰后压；较短窗口可能增加染色�
 Longer Safe windows can cause pre/post-attenuation. Shorter windows can increase coloration or crackles. Unified oversampling reduces aliasing but does not guarantee distortion-free processing. Check OS and host latency compensation after migrating old sessions.
 
 FULL may stay awake at extreme gain or with active input/selected sidechain. ECO cuts tails when the host reports Stop. Plugin CPU timings cannot be translated to an ASIO-Guard percentage; DAW scheduling and buffer conditions matter. macOS artifacts are ad-hoc signed and may require trusted-source quarantine handling as described in the installation guides. Commercial use is prohibited; redistributed binaries require free complete corresponding source and the required notices.
+
+## 1.3.4 升级注意 / Upgrade notes
+
+Limiter 旧 ST 设置迁移为 L/R Link 100%，旧 LR/MS 为 0%；旧 L（MS 为 M）参数成为共用值。旧阈值低于 -45 dB 时收至 -45 dB；Limiter 不再使用 Range。旧双组参数工程可能改变声音，请另存工程并试听。普通 LR/MS 与 Range 保留。
+
+Older Limiter ST migrates to L/R Link 100%; LR/MS to 0%. The former L (M in MS) settings become shared. Thresholds below -45 dB clamp to -45 dB; Limiter Range is inactive. Old split-channel sessions may sound different. Save a session copy and audition it. Normal LR/MS and Range remain available.
+
+Window 只改变检测时长，不改变选定延迟；SAFE 的代价是强音前后可能衰减。0 ms、较低 Window（尤其低于 10 ms）和 Limiter 推荐比较过采样。切换 Limiter 仍可能因 Ceiling 额外延迟触发宿主补偿；这次保留该行为。
+
+Window changes detection duration at fixed latency. SAFE may attenuate audio around loud events. Compare OS at 0 ms, short Window (especially below 10 ms), and in Limiter. Limiter switching can still trigger host compensation because Ceiling adds latency; this behavior is retained.
+
+当前构建说明 / Current build instructions: [REPRODUCE_1.3.4.md](REPRODUCE_1.3.4.md).

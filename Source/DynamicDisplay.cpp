@@ -507,7 +507,8 @@ void DynamicDisplay::pushHistory (HistorySet& history, HistoryPoint point)
 
 float DynamicDisplay::dbToY (float db, juce::Rectangle<float> plot) const noexcept
 {
-    return juce::jmap (juce::jlimit (minDb, maxDb, db), maxDb, minDb, plot.getY(), plot.getBottom());
+    const auto floor=processor.isLimiterMode() ? qqsc::params::limiterThresholdMinimumDb : minDb;
+    return juce::jmap (juce::jlimit (floor, maxDb, db), maxDb, floor, plot.getY(), plot.getBottom());
 }
 
 float DynamicDisplay::historyXForCounter (uint64_t captureCounter,
@@ -576,7 +577,8 @@ float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY,
         return qqsc::params::thresholdOffDb;
 
     const auto displayDb = juce::jmap (juce::jlimit (plot.getY(), plot.getBottom(), localY),
-                                      plot.getY(), plot.getBottom(), maxDb, minDb);
+                                      plot.getY(), plot.getBottom(), maxDb,
+                                      processor.isLimiterMode() ? qqsc::params::limiterThresholdMinimumDb : minDb);
     const bool externalKey = juce::roundToInt (readParameter (processor, qqsc::params::keySource))
                              == qqsc::params::keyExternal;
     const auto detectorDb = externalKey ? displayDb
@@ -685,7 +687,7 @@ juce::Rectangle<float> DynamicDisplay::domainPanelBounds (int domainIndex, int m
     content.removeFromTop (24.0f);
     content.removeFromBottom (23.0f);
 
-    if (mode == qqsc::params::stereoLinked)
+    if (mode == qqsc::params::stereoLinked || processor.isLimiterMode())
         return content;
 
     constexpr float gap = 6.0f;
@@ -789,6 +791,15 @@ void DynamicDisplay::refreshRenderCaches (int mode)
     const bool bypassed = readParameter (processor, qqsc::params::bypass) >= 0.5f;
     const auto domainCount = mode == qqsc::params::stereoLinked ? 1 : 2;
 
+    // Both channel LUTs must be current before either linked projection uses
+    // its partner. Otherwise the first panel could use the previous A/B bank.
+    for(int domain=0;domain<domainCount;++domain)
+    {
+        auto& cache=renderCaches[size_t(domain)];
+        const auto signature=dynamicsLutSignatureForDomain(domain,mode);
+        if(!cache.dynamicsLutValid || cache.dynamicsLutSignature!=signature)
+            rebuildDynamicsLut(cache,domain,mode,signature);
+    }
     for (int domain = 0; domain < static_cast<int> (renderCaches.size()); ++domain)
     {
         auto& cache = renderCaches[static_cast<size_t> (domain)];
@@ -830,6 +841,43 @@ void DynamicDisplay::refreshRenderCaches (int mode)
         cache.currentGainReductionDb = cache.projected.size == 0
             ? 0.0f : cache.projected.effectiveGainReduction[cache.projected.size - 1];
         cache.valid = true;
+    }
+    if(processor.isLimiterMode())
+    {
+        // Project both independent detectors first, including audio Link and
+        // Ceiling, then combine equal-time peaks into the single ST view.
+        // Taking max(detector) before compression would silently depict 100%
+        // linking even when the user selected independent limiting.
+        auto& cache=stereoLimiterCache;
+        auto& combined=cache.projected;combined.size=0;
+        const auto& left=renderCaches[0].projected;
+        const auto& right=renderCaches[1].projected;
+        size_t l=0,r=0;
+        while(l<left.size && r<right.size && combined.size<size_t(historyLength))
+        {
+            if(left.captureCounter[l]<right.captureCounter[r]) {++l;continue;}
+            if(right.captureCounter[r]<left.captureCounter[l]) {++r;continue;}
+            const auto i=combined.size++;
+            combined.captureCounter[i]=left.captureCounter[l];
+            combined.input[i]=juce::jmax(left.input[l],right.input[r]);
+            combined.output[i]=juce::jmax(left.output[l],right.output[r]);
+            combined.gainReductionBoundary[i]=juce::jmax(left.gainReductionBoundary[l],right.gainReductionBoundary[r]);
+            combined.externalKey[i]=juce::jmax(left.externalKey[l],right.externalKey[r]);
+            // Reference the same dominant level as the per-channel GR traces.
+            const auto reference=juce::jmax(left.gainReductionBoundary[l]+left.effectiveGainReduction[l],
+                                           right.gainReductionBoundary[r]+right.effectiveGainReduction[r]);
+            combined.effectiveGainReduction[i]=reference-combined.gainReductionBoundary[i];
+            ++l;++r;
+        }
+        const auto plot=plotBoundsForPanel(domainPanelBounds(0,mode));
+        updatePath(cache.inputPath,combined.input,combined.captureCounter,combined.size,plot);
+        updateGainChangePaths(cache.gainReductionPath,cache.gainIncreasePath,combined,plot);
+        updatePath(cache.outputPath,combined.output,combined.captureCounter,combined.size,plot);
+        updatePath(cache.externalKeyPath,combined.externalKey,combined.captureCounter,combined.size,plot);
+        updateGainReductionShadePath(cache.gainReductionShadePath,cache.gainIncreaseShadePath,
+            combined.input,combined.gainReductionBoundary,combined.effectiveGainReduction,combined.captureCounter,combined.size,plot);
+        cache.currentGainReductionDb=combined.size==0 ? 0.f : combined.effectiveGainReduction[combined.size-1];
+        cache.valid=true;
     }
 }
 
@@ -880,7 +928,8 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
     const auto keyGainDb = readParameter (processor, qqsc::params::keyGainDb);
     const auto inputGain = juce::Decibels::decibelsToGain (inputGainDb);
     const auto wetMix = mixForDomain (domainIndex, mode);
-    const bool dynamicsAreNeutral = bypassed || cache.dynamicsLutUnity || wetMix <= 0.0f;
+    const bool canLink=processor.isLimiterMode() && mode==qqsc::params::leftRight;
+    const float link=canLink ? readParameter(processor,qqsc::params::limiterStereoLink)*.01f : 0.0f;
     const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode), -180.0f);
     const auto activeOutputGainDb = processor.getActiveOutputGainDb();
     const auto outputGain = juce::Decibels::decibelsToGain (activeOutputGainDb);
@@ -897,7 +946,16 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
     const float recoverySeconds = tpRecovery == qqsc::params::tpTight ? .015f
         : tpRecovery == qqsc::params::tpSmooth ? .140f : .050f;
     const float recoveryStep = 1.0f / (1.0f + float (displayRefreshHz) * recoverySeconds);
-    float retrospectiveTpGain = 1.0f;
+    float retrospectiveTpGain = 1.0f, peerRetrospectiveTpGain=1.0f;
+    const int peerIndex=1-domainIndex;
+    const auto& peerPoints=histories[size_t(peerIndex)].points;
+    auto peerCursor=peerPoints.begin();
+    const auto detectorForPoint=[&](const HistoryPoint& p) {
+        float db=p.hasReplayedDetector ? p.replayedDetectorDb : p.detectorDb;
+        db+=p.hasReplayedDetector ? (externalKey ? keyGainDb : inputGainDb)
+            : externalKey ? keyGainDb-p.capturedKeyGainDb : inputGainDb-p.capturedInputGainDb;
+        return juce::jlimit(silenceDb,maxDb,db);
+    };
 
     for (const auto& point : histories[static_cast<size_t> (domainIndex)].points)
     {
@@ -920,7 +978,22 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         // Stable playback therefore reprojects 8 seconds of history with only
         // interpolation; expensive Classic/Super pow/rational evaluation is
         // rebuilt once when a parameter revision changes.
-        const auto compressedGain = dynamicsGainFromLut (cache, detectorDb);
+        auto compressedGain = dynamicsGainFromLut (cache, detectorDb);
+        const HistoryPoint* peerPoint=nullptr;
+        float peerGain=1.0f,peerDetectorDb=silenceDb;
+        if(link>0.0f)
+        {
+            while(peerCursor!=peerPoints.end() && peerCursor->captureCounter<point.captureCounter) ++peerCursor;
+            if(peerCursor!=peerPoints.end() && peerCursor->captureCounter==point.captureCounter
+                && peerCursor->captureGeneration==point.captureGeneration)
+            {
+                peerPoint=&*peerCursor;peerDetectorDb=detectorForPoint(*peerPoint);
+                peerGain=dynamicsGainFromLut(renderCaches[size_t(peerIndex)],peerDetectorDb);
+                qqsc::params::coupleLimiterGains(compressedGain,peerGain,link);
+            }
+        }
+        const bool dynamicsAreNeutral=bypassed || wetMix<=0.0f
+            || (cache.dynamicsLutUnity && (peerPoint==nullptr || compressedGain==1.0f));
         const auto dynamicsMixGrDb = bypassed ? 0.0f
             : qqsc::StaticCompressionEngine::effectiveGainReductionDb (compressedGain, wetMix);
 
@@ -985,6 +1058,26 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
 
                 projectedCeilingGrDb = -juce::Decibels::gainToDecibels (
                     juce::jmax (retrospectiveTpGain, 1.0e-9f), -180.0f);
+            }
+            if(peerPoint!=nullptr)
+            {
+                const auto peerMix=mixForDomain(peerIndex,mode);
+                const auto peerMakeup=juce::Decibels::decibelsToGain(makeupDbForDomain(peerIndex,mode),-180.0f);
+                const auto peerInput=(externalKey || (renderCaches[size_t(peerIndex)].dynamicsLutUnity && peerGain==1.0f) || peerMix<=0)
+                    ? peerPoint->inputDb : peerDetectorDb-inputGainDb;
+                const auto peerTotal=inputGain*((1-peerMix)+peerGain*peerMakeup*peerMix)*outputGain;
+                const auto peerPre=peerInput+juce::Decibels::gainToDecibels(juce::jmax(peerTotal,1.e-9f),-180.f);
+                const auto peerOvershoot=peerPre+juce::jmax(0.0f,peerPoint->truePeakExcessDb)-ceilingDb;
+                float peerCeilingGain=juce::Decibels::decibelsToGain(-juce::jmax(0.f,peerOvershoot+(peerOvershoot>0 && truePeak ? .01f : 0.f)));
+                if(truePeak)
+                {
+                    if(peerCeilingGain<=peerRetrospectiveTpGain) peerRetrospectiveTpGain=peerCeilingGain;
+                    else peerRetrospectiveTpGain+=recoveryStep*(peerCeilingGain-peerRetrospectiveTpGain);
+                    peerCeilingGain=peerRetrospectiveTpGain;
+                }
+                auto ownCeilingGain=juce::Decibels::decibelsToGain(-projectedCeilingGrDb);
+                qqsc::params::coupleLimiterGains(ownCeilingGain,peerCeilingGain,link);
+                projectedCeilingGrDb=-juce::Decibels::gainToDecibels(juce::jmax(ownCeilingGain,1.e-9f),-180.f);
             }
             projectedPostCeilingDb -= projectedCeilingGrDb;
         }
@@ -1262,7 +1355,7 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     const auto keySource = juce::roundToInt (readParameter (processor, qqsc::params::keySource));
     const bool externalKey = keySource == qqsc::params::keyExternal;
     const bool externalAvailable = processor.isExternalSidechainBusAvailable();
-    const auto& cache = renderCaches[static_cast<size_t> (domainIndex)];
+    const auto& cache = processor.isLimiterMode() ? stereoLimiterCache : renderCaches[static_cast<size_t> (domainIndex)];
     const auto currentGr = cache.currentGainReductionDb;
 
     if (qqsc::ui::isDarkTheme())
@@ -1297,7 +1390,9 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
 
     const auto plot = plotBoundsForPanel (panel);
 
-    for (float db : { 0.0f, -15.0f, -30.0f, -45.0f, -60.0f, -75.0f, -90.0f })
+    const auto gridFloor=processor.isLimiterMode() ? qqsc::params::limiterThresholdMinimumDb : minDb;
+    const auto gridStep=processor.isLimiterMode() ? 5.0f : 15.0f;
+    for (float db=0.0f; db>=gridFloor; db-=gridStep)
     {
         const auto y = dbToY (db, plot);
         g.setColour (qqsc::ui::text().withAlpha (0.065f));
@@ -1397,14 +1492,14 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     g.strokePath (cache.outputPath, juce::PathStrokeType (1.5f));
     g.restoreState();
     drawBoundary (lowerDb, false);
-    drawBoundary (upperDb, true);
+    if (dual || !processor.isLimiterMode()) drawBoundary (upperDb, true);
 }
 
 juce::Rectangle<float> DynamicDisplay::getLoudnessReadoutBounds() const noexcept
 {
     if (!processor.isLimiterMode()) return {};
     const auto mode = displayProcessingMode(processor);
-    const bool split = mode != qqsc::params::stereoLinked;
+    const bool split = mode != qqsc::params::stereoLinked && !processor.isLimiterMode();
     const auto plot = plotBoundsForPanel(domainPanelBounds(split ? 1 : 0, mode));
     const auto width = juce::jmin(380.0f, plot.getWidth() * .48f);
     const auto height = juce::jmin(split ? 103.0f : 150.0f, plot.getHeight() * .68f);
@@ -1467,11 +1562,11 @@ void DynamicDisplay::paint (juce::Graphics& g)
     g.setFont (9.5f);
     const auto headerStatus = (hpfReplayBusy ? juce::String ("HPF UPDATING   ") : juce::String())
                             + (readParameter (processor, qqsc::params::compressionMode) >= 0.5f ? "DUAL  " : "SINGLE  ")
-                            + qqsc::params::modeName (mode);
+                            + qqsc::params::modeName (processor.isLimiterMode() ? qqsc::params::stereoLinked : mode);
     g.drawFittedText (headerStatus, header.toNearestInt(),
                       juce::Justification::centredRight, 1);
 
-    if (mode == qqsc::params::stereoLinked)
+    if (mode == qqsc::params::stereoLinked || processor.isLimiterMode())
     {
         drawDomainPanel (g, domainPanelBounds (0, mode), 0, "ST", mode);
     }

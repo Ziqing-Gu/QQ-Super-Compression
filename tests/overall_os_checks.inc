@@ -6,6 +6,7 @@
             set(p,"limiterMode",limiter?1.f:0.f);
             auto put=[&](const char* id,float v){set(p,p.soundParameterID(id),v);};
             put("algorithmMode",1);put("ratio",5);put("thresholdDb",-120);put("rangeDb",1);
+            if(limiter)for(int d:{1,2}) {set(p,qqsc::params::limiterRatioIds[size_t(d)],5);set(p,qqsc::params::limiterThresholdIds[size_t(d)],-120);set(p,qqsc::params::limiterRangeIds[size_t(d)],1);}
             put("lookaheadMs",look);put("oversampling",float(os));set(p,"distort",100);set(p,"detectorMode",float(detector));
             set(p,"truePeakLimiting",0);
             p.setRateAndBufferSizeDetails(rate,block);p.prepareToPlay(rate,block);

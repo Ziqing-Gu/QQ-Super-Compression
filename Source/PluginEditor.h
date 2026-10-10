@@ -453,6 +453,10 @@ private:
     juce::Label detectorWindowLabel;
     CeilingValueLabel detectorWindowValue;
     double detectorWindowDragValue = 0.0;
+    CeilingValueLabel limiterStereoLinkValue;
+    double limiterStereoLinkDragValue = 0.0;
+    void initialiseLimiterStereoLinkControl();
+    void refreshLimiterStereoLinkControl();
     juce::Label oversamplingLabel;
     juce::TextButton oversamplingButton { "8x" };
     juce::Label ceilingOversamplingLabel;

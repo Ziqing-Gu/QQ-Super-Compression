@@ -152,6 +152,7 @@ private:
     QQSuperCompressionAudioProcessor& processor;
     std::array<HistorySet, 2> histories;
     std::array<RenderCache, 2> renderCaches;
+    RenderCache stereoLimiterCache; // One ST presentation of independent L/R results.
     std::array<float, dynamicsLutSize> detectorLevelLut {};
     std::unique_ptr<HpfReplayWorker> hpfReplayWorker;
     std::shared_ptr<std::atomic<uint64_t>> replayRequestGeneration;

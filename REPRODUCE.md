@@ -1,3 +1,7 @@
+# Current build instructions
+
+For 1.3.4 Stable, see [REPRODUCE_1.3.4.md](REPRODUCE_1.3.4.md). Historical notes follow.
+
 # Reproduce 1.2.8
 
 Requires Windows x64, Visual Studio 2022 C++ Build Tools and Windows SDK, CMake 3.22+, and JUCE 8.0.15. Use a local JUCE 8.0.15 checkout or the repository's pinned FetchContent option.
