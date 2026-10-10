@@ -18,23 +18,26 @@ Qing Audio compressor/limiter with Classic/Super, Single/Dual, ST/LR/MS, interna
 
 ## 下载与安装 / Download and installation
 
-**当前正式版 / Latest stable:** [全部 Release / All releases](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [QQ Super Compression 1.3.2](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.3.2)
+**当前正式版 / Latest stable:** [全部 Release / All releases](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [QQ Super Compression 1.3.5](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.3.5)
 
-请按操作系统、宿主架构与插件格式选择文件。Mac VST3 只选与宿主架构相符的一包；AU 为独立格式。 / Choose by OS, host architecture and format. Install only the matching Mac VST3 architecture; AU is a separate format.
+两本 44 页中英文手册已随 Release 提供，可独立下载。 / Both 44-page Chinese and English manuals are separate Release downloads.
 
-- Windows 10/11 x64 · VST3: [QQ.Super.Compression.1.3.2.Windows.x64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.Windows.x64.VST3.zip)
-- macOS 11+ · Apple Silicon arm64 · VST3: [QQ.Super.Compression.1.3.2.macOS.Apple.Silicon.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.macOS.Apple.Silicon.VST3.zip)
-- macOS 11+ · Intel / Rosetta x86_64 · VST3: [QQ.Super.Compression.1.3.2.macOS.Intel.x86_64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.macOS.Intel.x86_64.VST3.zip)
-- macOS 11+ · Universal 2 · AU: [QQ.Super.Compression.1.3.2.macOS.Universal.2.AU.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.macOS.Universal.2.AU.zip)
-- 中文安装说明 / Chinese installation guide: [QQ.Super.Compression.1.3.2.Installation.Guide.Chinese.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.Installation.Guide.Chinese.txt)
-- English installation guide / 英文安装说明: [QQ.Super.Compression.1.3.2.Installation.Guide.English.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.Installation.Guide.English.txt)
-- 中文用户手册 / Chinese user manual: [QQ.Super.Compression.1.3.2.User.Manual.Chinese.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.User.Manual.Chinese.pdf)
-- English user manual / 英文用户手册: [QQ.Super.Compression.1.3.2.User.Manual.English.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.User.Manual.English.pdf)
+请按系统、宿主架构和格式选择。Mac VST3 只装一套匹配架构；AU 为独立格式。 / Choose by OS, host architecture and format. Install only one matching Mac VST3 architecture; AU is a separate format.
 
-本版不提供 Linux 成品。升级前保存工程副本、退出 DAW 并备份旧插件。Mac 包为临时签名、未经公证，遇到安全提示请阅读安装说明。
-No Linux build is provided. Save a session copy, quit DAWs and retain the old plugin before upgrading. Mac bundles are ad-hoc signed, not notarized; consult the installation guide for security prompts.
+- Windows 10/11 x64 · VST3: [QQ.Super.Compression.1.3.5.Windows.x64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.Windows.x64.VST3.zip)
+- macOS 11+ · Apple Silicon arm64 · VST3: [QQ.Super.Compression.1.3.5.macOS.Apple.Silicon.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.macOS.Apple.Silicon.VST3.zip)
+- macOS 11+ · Intel / Rosetta x86_64 · VST3: [QQ.Super.Compression.1.3.5.macOS.Intel.x86_64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.macOS.Intel.x86_64.VST3.zip)
+- macOS 11+ · Universal 2 · AU: [QQ.Super.Compression.1.3.5.macOS.Universal.2.AU.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.macOS.Universal.2.AU.zip)
+- 中文安装说明 / Chinese installation guide: [QQ.Super.Compression.1.3.5.Installation.Guide.Chinese.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.Installation.Guide.Chinese.txt)
+- English installation guide / 英文安装说明: [QQ.Super.Compression.1.3.5.Installation.Guide.English.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.Installation.Guide.English.txt)
+- 中文用户手册 · 44 页 / Chinese manual · 44 pages: [QQ.Super.Compression.1.3.5.User.Manual.Chinese.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.User.Manual.Chinese.pdf)
+- English user manual · 44 pages / 英文手册 · 44 页: [QQ.Super.Compression.1.3.5.User.Manual.English.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.User.Manual.English.pdf)
 
-**注意 / Note:** GitHub 自动生成的 Source code (zip) 与 Source code (tar.gz) 是源码快照，不能直接安装为插件。 / GitHub-generated Source code (zip) and Source code (tar.gz) are source snapshots, not installable plugins.
+本版不提供 Linux 成品。升级前另存工程并退出 DAW；Mac 包为 ad-hoc 签名、未经公证。安装步骤、工程迁移和安全处理见随附双语安装说明。
+
+No Linux build is provided. Save a session copy and quit DAWs before upgrading. Mac packages are ad-hoc signed, not notarized. See the guides for installation, migration and security instructions.
+
+**注意 / Note:** GitHub 自动生成的 `Source code (zip)` 和 `Source code (tar.gz)` 是源码快照，不是可安装插件。 / GitHub-generated source archives are source snapshots, not installable plug-ins.
 
 ## 当前稳定版 / Current stable version
 
