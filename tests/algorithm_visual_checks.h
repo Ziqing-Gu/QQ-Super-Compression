@@ -166,15 +166,45 @@ void QQSCVisualCheck::zeroLookaheadDetectorCheck(QQSuperCompressionAudioProcesso
             throw std::runtime_error ("Stopped 0 ms switching queued a replay");
         reference.releaseResources();
     }
-    // With real lookahead, the detector choice still has to re-project history.
+    // Real history refresh is asynchronous and rate-limited. Repeated direct
+    // timer calls without dispatching the message loop cannot complete a replay.
+    // Wait for actual application, including the final queued parameter state.
+    auto settleReplay = [&]
+    {
+        const auto deadline = juce::Time::getMillisecondCounterHiRes() + 10000.0;
+        do
+        {
+            display.timerCallback();
+           #if JUCE_MAC
+            CFRunLoopRunInMode (kCFRunLoopDefaultMode, 0.01, false);
+           #elif JUCE_WINDOWS
+            MSG message;
+            while (PeekMessageW (&message, nullptr, 0, 0, PM_REMOVE))
+            {
+                TranslateMessage (&message);
+                DispatchMessageW (&message);
+            }
+            juce::Thread::sleep (10);
+           #else
+            juce::Thread::sleep (10);
+           #endif
+            if (juce::Time::getMillisecondCounterHiRes() > deadline)
+                throw std::runtime_error ("Nonzero detector history replay did not settle");
+        }
+        while (display.hpfReplayBusy || display.hpfRefreshPending || display.hpfReplayRetryPending);
+    };
     parameter (p, "lookaheadMs", 26);
     parameter (p, "detectorWindowMs", 100);
-    for (int tick = 0; tick < 8; ++tick) display.timerCallback();
+    parameter (p, "detectorMode", 1);
+    settleReplay();
     const auto beforeNonzeroSwitch = display.replayRequestGeneration->load();
+    const auto beforeApplied = display.hpfReplayAppliedCount;
     parameter (p, "detectorMode", 0);
-    for (int tick = 0; tick < 8; ++tick) display.timerCallback();
-    if (display.replayRequestGeneration->load() <= beforeNonzeroSwitch)
-        throw std::runtime_error ("Nonzero lookahead lost detector history refresh");
+    settleReplay();
+    if (display.replayRequestGeneration->load() <= beforeNonzeroSwitch
+        || display.hpfReplayAppliedCount <= beforeApplied
+        || display.lastObservedDetectorMode != 0)
+        throw std::runtime_error ("Nonzero lookahead lost applied detector history refresh");
     std::cout << "PASS: 0 ms Min/Max audio and live/stopped Display invariant at 1x/4x/8x/16x, ST/LR/MS; 26 ms refresh retained.\n";
 }
 

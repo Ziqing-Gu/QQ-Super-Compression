@@ -1,6 +1,15 @@
 #include "PluginEditor.h"
 #include <iostream>
 #include <fstream>
+#if JUCE_MAC
+#include <CoreFoundation/CoreFoundation.h>
+#elif JUCE_WINDOWS
+#include <windows.h>
+#undef min
+#undef max
+#undef near
+#undef far
+#endif
 
 struct QQSCVisualCheck
 {

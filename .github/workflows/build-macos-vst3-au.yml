@@ -7,6 +7,10 @@ on:
         description: Reuse an already verified AU with identical production inputs
         type: boolean
         default: false
+      resume_display_checks:
+        description: Reuse verified limiter checks and resume Display, tooltip and transport checks
+        type: boolean
+        default: false
       vst3_arch:
         description: VST3 architecture to build
         type: choice
@@ -41,16 +45,24 @@ jobs:
           -DQQSC_BUILD_VISUAL_CHECK=ON
 
       - name: Build VST3 and 1.3.6 release checks
-        run: cmake --build build-macos --target QQSuperCompression_VST3 QQSCLimiterCheck QQSCReviewCheck QQSCVisualCheck --config Release --parallel 3
+        shell: bash
+        run: |
+          targets="QQSuperCompression_VST3 QQSCReviewCheck QQSCVisualCheck"
+          if [ "${{ inputs.resume_display_checks }}" != "true" ]; then
+            targets="$targets QQSCLimiterCheck"
+          fi
+          cmake --build build-macos --target $targets --config Release --parallel 3
 
       - name: Verify current SAFE, window, oversampling, Display and transport contracts
         shell: bash
         run: |
           set -euo pipefail
           check_root="$RUNNER_TEMP/qqsc-1.3.6-checks"
-          for profile in display-scale shared-controls cumulative-match window-link lookahead-presets overall-os; do
-            build-macos/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck "$check_root/$profile" "$profile"
-          done
+          if [ "${{ inputs.resume_display_checks }}" != "true" ]; then
+            for profile in display-scale shared-controls cumulative-match window-link lookahead-presets overall-os; do
+              build-macos/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck "$check_root/$profile" "$profile"
+            done
+          fi
           build-macos/QQSCVisualCheck_artefacts/Release/QQSCVisualCheck "$check_root/display" --detector-zero-display
           build-macos/QQSCVisualCheck_artefacts/Release/QQSCVisualCheck "$check_root/chinese-tooltips" --chinese-tooltips
           build-macos/QQSCReviewCheck_artefacts/Release/QQSCReviewCheck "$check_root/transport" --transport-1241
