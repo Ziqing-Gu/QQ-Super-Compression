@@ -133,8 +133,8 @@ Windows 10/11 x64 提供 VST3；macOS 11+ 提供 Apple Silicon VST3、Intel x86_
 
 Windows 10/11 x64 uses VST3. macOS 11+ has Apple Silicon VST3, Intel x86_64 VST3 and Universal 2 AU. Select one macOS VST3 architecture for the host. Close the host and back up the session and old bundle before upgrading.
 
-- [中文说明书，43 页](docs/manuals/QQ-Super-Compression-1.3.2-User-Manual-Chinese.pdf) / [English manual, 43 pages](docs/manuals/QQ-Super-Compression-1.3.2-User-Manual-English.pdf)
-- [中文安装指南](docs/QQ-Super-Compression-1.3.2-INSTALL-CN.txt) / [English installation guide](docs/QQ-Super-Compression-1.3.2-INSTALL-EN.txt)
+- [中文说明书，44 页](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-Chinese.pdf) / [English manual, 44 pages](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-English.pdf)
+- [中文安装指南](docs/QQ-Super-Compression-1.3.6-INSTALL-CN.txt) / [English installation guide](docs/QQ-Super-Compression-1.3.6-INSTALL-EN.txt)
 - [当前文档状态 / Current document status](docs/CURRENT_DOCUMENT_STATUS.md)
 
 ## 使用要点 / Basic use
