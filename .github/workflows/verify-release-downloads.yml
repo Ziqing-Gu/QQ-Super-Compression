@@ -1,0 +1,45 @@
+name: Verify public Release downloads
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release tag
+        required: true
+        default: v1.3.6
+permissions:
+  contents: read
+jobs:
+  public-downloads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check anonymous public download URLs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, concurrent.futures
+          repo=os.environ['REPO']; tag=os.environ['RELEASE_TAG']
+          release=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/releases/tags/{tag}']))
+          assert not release['draft'] and not release['prerelease'] and len(release['assets'])==8
+          def check(asset):
+              url=asset['browser_download_url']
+              assert url.startswith(f'https://github.com/{repo}/releases/download/{tag}/')
+              r=subprocess.run(['curl','--fail','--head','--location','--retry','2','--connect-timeout','10','--max-time','60','--silent','--show-error','--output','/dev/null','--write-out','%{http_code}',url],capture_output=True,text=True)
+              status=r.stdout.strip()
+              return {'name':asset['name'],'url':url,'http_status':int(status) if status.isdigit() else 0,'curl_exit':r.returncode,'error':r.stderr.strip(),'bytes':asset['size'],'digest':asset['digest'],'route':'anonymous curl on GitHub-hosted Ubuntu; no Authorization header sent'}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool: checks=list(pool.map(check,release['assets']))
+          open('release-download-checks.json','w').write(json.dumps({'tag':tag,'release_id':release['id'],'checks':checks},indent=2))
+          for c in checks: print(c['name'],c['http_status'],c['curl_exit'])
+          assert all(c['curl_exit']==0 and c['http_status'] in [200,206] for c in checks)
+          PY
+      - name: Upload download verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-download-verification-${{ inputs.tag }}
+          path: release-download-checks.json
+          if-no-files-found: error
+          retention-days: 7
