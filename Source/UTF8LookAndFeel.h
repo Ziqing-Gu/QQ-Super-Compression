@@ -174,6 +174,51 @@ public:
         return juce::LookAndFeel_V4::getTypefaceForFont (font);
     }
 
+    // Explicit CJK typeface: tooltip text must not inherit the theme's Latin font.
+    static juce::TextLayout tooltipLayout (const juce::String& text, float width, juce::Colour colour)
+    {
+       #if JUCE_MAC
+        const juce::String family = "PingFang SC";
+       #elif JUCE_WINDOWS
+        const juce::String family = "Microsoft YaHei";
+       #else
+        const juce::String family = "Noto Sans CJK SC";
+       #endif
+        const juce::Font requested (juce::FontOptions (family, 15.0f, juce::Font::plain));
+        const auto face = juce::Typeface::createSystemTypefaceFor (requested);
+        const auto options = face != nullptr ? juce::FontOptions (face).withHeight (15.0f)
+                                             : juce::FontOptions (15.0f).withName (family);
+        const juce::Font font (options.withFallbacks ({family}).withFallbackEnabled());
+        juce::AttributedString content;
+        content.setJustification (juce::Justification::topLeft);
+        content.setWordWrap (juce::AttributedString::byChar);
+        content.setLineSpacing (3.0f);
+        content.append (text, font, colour);
+        juce::TextLayout layout;
+        layout.createLayout (content, juce::jmax (1.0f, width));
+        return layout;
+    }
+
+    juce::Rectangle<int> getTooltipBounds (const juce::String& text, juce::Point<int> position,
+                                          juce::Rectangle<int> parent) override
+    {
+        const auto layout = tooltipLayout (text, float (juce::jmin (440, juce::jmax (1, parent.getWidth() - 24))), ui::text());
+        const int width = int (std::ceil (layout.getWidth())) + 20;
+        const int height = int (std::ceil (layout.getHeight())) + 16;
+        return juce::Rectangle<int> (position.x > parent.getCentreX() ? position.x - width - 12 : position.x + 24,
+                                     position.y > parent.getCentreY() ? position.y - height - 6 : position.y + 6,
+                                     width, height).constrainedWithin (parent);
+    }
+
+    void drawTooltip (juce::Graphics& g, const juce::String& text, int width, int height) override
+    {
+        g.fillAll (ui::panel());
+        g.setColour (ui::border());
+        g.drawRect (0, 0, width, height);
+        tooltipLayout (text, float (width - 20), ui::text())
+            .draw (g, juce::Rectangle<float> (10.0f, 8.0f, float (width - 20), float (height - 16)));
+    }
+
     juce::Font getTextButtonFont (juce::TextButton& button, int buttonHeight) override
     {
         if (static_cast<bool> (button.getProperties().getWithDefault ("qqscSmallLink", false)))

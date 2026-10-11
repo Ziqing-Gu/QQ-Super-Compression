@@ -10,8 +10,8 @@ void QQSuperCompressionAudioProcessorEditor::refreshDetectorWindowControl()
     detectorModeButton.setEnabled(maximum > 0.0f);
     detectorModeButton.setAlpha(maximum > 0.0f ? 1.0f : 0.35f);
     detectorWindowValue.setTooltip(safe
-        ? "Safe Window: 0 ms to Lookahead. Longer windows help prevent gain-modulation crackles, with pre/post attenuation. Double-click: type ms. Drag vertically; Shift: fine. Alt-click: full Lookahead."
-        : "Window: 0 ms to Lookahead. Shorter windows can increase coloration or crackles. Lookahead delay stays fixed. Double-click: type ms. Drag vertically; Shift: fine. Alt-click: full Lookahead.");
+        ? juce::String::fromUTF8 (u8"Window：0 ms 至当前 Lookahead。保持延迟不变，调整实际检测时长，便于连续比较声音。Safe 开启时，较大的 Window 有助于减少噼啪声，也会带来峰值前后的压低。双击输入毫秒数；上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 Lookahead 的数值。")
+        : juce::String::fromUTF8 (u8"Window：0 ms 至当前 Lookahead。保持延迟不变，调整实际检测时长，便于连续比较声音。较小的 Window 可能增加染色或噼啪声，尤其低于 10 ms 时可考虑开启 OS 过采样。双击输入毫秒数；上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 Lookahead 的数值。"));
     detectorWindowValue.setEnabled (maximum > 0.0f);
     detectorWindowLabel.setAlpha (maximum > 0.0f ? 1.0f : 0.45f);
     if (! detectorWindowValue.isBeingEdited())
@@ -37,7 +37,6 @@ void QQSuperCompressionAudioProcessorEditor::initialiseDetectorWindowControl()
     detectorWindowValue.setFont (juce::Font (juce::FontOptions (11.0f)));
     detectorWindowValue.setEditable (false, true, false);
     detectorWindowValue.setComponentID (qqsc::params::distort);
-    detectorWindowValue.setTooltip ("Distort: 0% uses the full detection window; 100% uses sample detection. Higher values shorten Safe's pre/post attenuation and may add coloration or crackles. The percentage is not measured THD. Lookahead delay stays fixed. Double-click: type %. Drag vertically; Shift: fine. Alt-click: 0%. At 0 ms this control has no effect.");
     for (auto* component : { &detectorWindowLabel, static_cast<juce::Label*>(&detectorWindowValue) })
     {
         contentRoot.addAndMakeVisible (*component);
@@ -46,6 +45,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseDetectorWindowControl()
     detectorWindowValue.start = [this]
     {
         beginUndoTransaction ("Window");
+        display.beginHistoryGesture();
         detectorWindowDragValue = processor.readSoundParameter(qqsc::params::detectorWindowMs);
         processor.getAPVTS().getParameter (qqsc::params::distort)->beginChangeGesture();
     };
@@ -55,7 +55,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseDetectorWindowControl()
         detectorWindowDragValue = juce::jlimit (0.0, double(maximum), detectorWindowDragValue + double(delta) * (fine ? 0.01 : 0.1));
         setDetectorWindowValue (detectorWindowDragValue);
     };
-    detectorWindowValue.finish = [this] { processor.getAPVTS().getParameter (qqsc::params::distort)->endChangeGesture(); };
+    detectorWindowValue.finish = [this] { processor.getAPVTS().getParameter (qqsc::params::distort)->endChangeGesture(); display.endHistoryGesture(); };
     detectorWindowValue.reset = [this]
     {
         beginUndoTransaction ("Reset Window");
@@ -101,7 +101,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     contentRoot.addAndMakeVisible (detectorModeButton);
     registerKeyboardListener (detectorModeButton);
     detectorModeButton.setComponentID (qqsc::params::detectorMode);
-    detectorModeButton.setTooltip ("SAFE: lit = Safe detection; unlit = Normal detection. Window is always in ms. Disabled at 0 ms Lookahead. Safe uses the larger surrounding peak to help prevent gain-modulation crackles, at the cost of pre/post attenuation. At Window 0 ms both detectors are identical. No extra Attack/Release envelope.");
+    detectorModeButton.setTooltip (juce::String::fromUTF8 (u8"Safe：点亮时使用前后两侧较大的检测峰值，帮助减少噼啪声，代价是峰值前后的声音也可能被压低。使用 Range 出现噼啪声时也可尝试开启。关闭时使用正常检测。Lookahead 为 0 ms 时不可用；Window 为 0 ms 时开关效果相同。不额外加入 Attack / Release。"));
     detectorModeButton.onClick = [this]
     {
         beginUndoTransaction ("Detector Mode");
@@ -116,10 +116,10 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     }
     limiterButton.setComponentID ("limiterMode");
     limiterLinkButton.getProperties().set ("qqscSmallLink",true);
-    limiterButton.setTooltip ("Classic/Super dynamics followed by final Ceiling protection. Down Ratio 1:1-1000:1; Up Ratio 1:8-1:1. The compression stage shapes character; Ceiling/TP performs final limiting.");
+    limiterButton.setTooltip (juce::String::fromUTF8 (u8"Limiter：先进行 Classic / Super 压缩，再由 Ceiling 限制最终峰值。下压 Ratio 为 1:1 至 1000:1，上压为 1:8 至 1:1。可用 L/R Link 调整左右声道的相互影响，用 Window 比较响度与动态。"));
     truePeakButton.setComponentID("truePeakLimiting");
     truePeakButton.getProperties().set("qqscSmallLink",true);
-    truePeakButton.setTooltip("True Peak: lit = reconstructed true-peak Ceiling; unlit = Hard Clip at the selected Ceiling OS. TP supports 4x, 8x or 16x; enabling TP from 1x promotes Ceiling OS to 8x. TP switching at a fixed OS keeps the same PDC.");
+    truePeakButton.setTooltip(juce::String::fromUTF8 (u8"TP：点亮时启用真峰值限制；关闭时在 Ceiling 处硬削波。与压缩共用 OS 过采样设置，开启 TP 不会自动改变 OS 倍率。"));
     truePeakButton.onClick=[this]
     {
         beginUndoTransaction("True Peak Limiting");
@@ -134,7 +134,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     };
     tpRecoveryButton.setComponentID("tpRecoveryMode");
     tpRecoveryButton.getProperties().set("qqscSmallLink",true);
-    tpRecoveryButton.setTooltip("TP Recovery: TIGHT = fastest recovery / maximum loudness; AUTO = adaptive 1.2.17 timing (default); SMOOTH = slower, calmer gain recovery. True-Peak Ceiling protection remains active in all modes.");
+    tpRecoveryButton.setTooltip(juce::String::fromUTF8 (u8"真峰值限制的恢复方式：TIGHT 恢复较快，便于提升响度；AUTO 自动适应信号，为默认选项；SMOOTH 恢复较慢，变化更平缓。三种方式均保留真峰值保护。"));
     tpRecoveryButton.onClick=[this]
     {
         beginUndoTransaction("TP Recovery");
@@ -148,13 +148,13 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     unityMonitorButton.setTitle("1:1 Monitor");
     unityMonitorButton.getProperties().set("qqscSmallLink",true);
     unityMonitorButton.getProperties().set("qqscHeadphones",true);
-    unityMonitorButton.setTooltip("1:1 Monitor: cancel Output Gain after the complete limiter and Ceiling. DOWN Threshold and Makeup 1:1 links remain active; UP is independent. Use MATCH, then Bypass for a loudness comparison. Saved with this project, independent of A/B.");
+    unityMonitorButton.setTooltip(juce::String::fromUTF8 (u8"等音量监听：在完整 Limiter 和 Ceiling 处理后抵消 Output Gain，便于比较声音。下压 Threshold 和 Makeup 与 Output 的联动仍有效，上压阈值保持独立。可先按 Match，再用 Bypass 对比。此开关随工程保存，不随 A/B 切换。"));
     unityMonitorButton.onClick=[this]
     {
         processor.setUnityMonitorEnabled(!processor.isUnityMonitorEnabled());
         updateLimiterUi();
     };
-    limiterLinkButton.setTooltip ("Strict 1:1 dB Link: the active DOWN Threshold and Makeup move Output Gain by the same dB amount in the opposite direction; editing Output moves active DOWN Thresholds oppositely 1:1. UP Threshold is independent. Ratio, Mix, Input and algorithms never adjust Output.");
+    limiterLinkButton.setTooltip (juce::String::fromUTF8 (u8"Output 联动：调整下压 Threshold 或 Makeup 时，Output Gain 按相同 dB 数反向变化；调整 Output 时，下压 Threshold 按相同 dB 数反向变化。上压阈值独立。Ratio、Mix、Input 和算法切换不参与此联动。"));
     limiterButton.onClick = [this]
     {
         finishCompressionControlGestures(); beginUndoTransaction ("Limiter Mode");
@@ -177,13 +177,13 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     ceilingLabel.setFont(juce::Font(juce::FontOptions(8.0f,juce::Font::bold)));
     configureLabel(monitorCeilingLabel,{});
     monitorCeilingLabel.setFont(juce::Font(juce::FontOptions(8.0f)));
-    monitorCeilingLabel.setTooltip("Ceiling at the 1:1 monitoring level: Ceiling minus Output Gain. The normal Ceiling setting and TP/Peak selection are unchanged.");
+    monitorCeilingLabel.setTooltip(juce::String::fromUTF8 (u8"MON：等音量监听时的峰值上限，等于 Ceiling 减去 Output Gain。不会改写 Ceiling 数值或 TP 开关。"));
     contentRoot.addAndMakeVisible(monitorCeilingLabel);
     configureLabel (ceilingValue,{});
     ceilingValue.setFont (juce::Font (juce::FontOptions (11.0f)));
     ceilingValue.setEditable (false,true,false);
     ceilingValue.setComponentID ("ceilingValue");
-    ceilingValue.setTooltip ("Final ceiling, -24 to 0 dB, default 0. TP on: true peak at 4x/8x/16x; TP off: Hard Clip at the selected 1x/4x/8x/16x Ceiling OS. MON shows the converted 1:1 listening ceiling. Alt-click resets to 0. Double-click to type; drag vertically; Shift = 10x finer. Ctrl+Z / Ctrl+Shift+Z.");
+    ceilingValue.setTooltip (juce::String::fromUTF8 (u8"Ceiling：最终峰值上限，范围 -24 至 0 dB，默认为 0。TP 开启时限制真峰值，关闭时硬削波；两者均使用统一的 OS 设置。MON 显示等音量监听时的峰值上限。双击输入，上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 0 dB。"));
     for (auto* c : { static_cast<juce::Component*>(&ceilingLabel),static_cast<juce::Component*>(&ceilingValue) })
     { contentRoot.addAndMakeVisible (*c); registerKeyboardListener (*c); }
     // Hidden attachment target: the only visible Ceiling control is the number.
@@ -353,7 +353,7 @@ void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
         }
         down.setValue(qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[d]),limiter,true),juce::dontSendNotification);
         down.setResetValue(min);
-        down.setTooltip(limiter ? "Downward Ratio: 1:1 to 1000:1" : "Downward Ratio: 1:1 to 200:1");
+        down.setTooltip(limiter ? juce::String::fromUTF8 (u8"下压 Ratio：1:1 至 1000:1。数值越大，下压越强；1:1 不下压。") : juce::String::fromUTF8 (u8"下压 Ratio：1:1 至 200:1。数值越大，下压越强；1:1 不下压。"));
         const int kind=(dual ? 2 : 0)+(limiter ? 1 : 0);
         if(int(main[d]->getProperties().getWithDefault("limiterRangeKind",-1))!=kind)
         {
@@ -375,9 +375,9 @@ void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
         // stage to 1:1 instead of forcing a high downward ratio.
         main[d]->setResetValue(1.0);
         main[d]->setTooltip(dual
-            ? (limiter ? "Upward Ratio: 1:8 to 1:1" : "Upward Ratio: 1:200 to 1:1")
-            : (limiter ? "Up 1:8 to 1:1; Down 1:1 to 1000:1. Alt-click resets to 1:1."
-                       : "Ratio: 1:200 to 200:1. Below 1:1 boosts; above 1:1 reduces."));
+            ? (limiter ? juce::String::fromUTF8 (u8"上压 Ratio：1:8 至 1:1。数值越接近 1:8，提升越强；1:1 不提升。") : juce::String::fromUTF8 (u8"上压 Ratio：1:200 至 1:1。数值越接近 1:200，提升越强；1:1 不提升。"))
+            : (limiter ? juce::String::fromUTF8 (u8"Ratio：上压为 1:8 至 1:1，下压为 1:1 至 1000:1。Alt 单击（Mac：Option）恢复为 1:1，不作动态压缩。")
+                       : juce::String::fromUTF8 (u8"Ratio：1:200 至 200:1。小于 1:1 为上压，大于 1:1 为下压，1:1 不作动态压缩。")));
     }
     ceilingValue.setColour(juce::Label::textColourId,qqsc::ui::text());
     ceilingValue.setColour(juce::Label::backgroundColourId,qqsc::ui::panelAlt());
@@ -583,7 +583,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterStereoLinkControl(
     limiterStereoLinkValue.setFont(juce::Font(juce::FontOptions(11.0f)));
     limiterStereoLinkValue.setEditable(false,true,false);
     limiterStereoLinkValue.setComponentID(qqsc::params::limiterStereoLink);
-    limiterStereoLinkValue.setTooltip("L/R Link: 0% independent limiting; 100% shares the stronger gain reduction. Includes Ceiling. Does not mix channel audio. Double-click: type %. Drag vertically; Shift: fine. Alt-click: 0%.");
+    limiterStereoLinkValue.setTooltip(juce::String::fromUTF8 (u8"L/R Link：左右声道限制量的相互影响。0% 各自独立，100% 共同采用较强的衰减量，Ceiling 也参与联动；不会混合左右声道的音频。追求响度可从 0% 开始，保留声像细节可适当调高。双击输入百分比，上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 0%。"));
     contentRoot.addAndMakeVisible(limiterStereoLinkValue);
     registerKeyboardListener(limiterStereoLinkValue);
     limiterStereoLinkValue.start=[this] {

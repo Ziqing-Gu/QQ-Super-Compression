@@ -46,21 +46,15 @@
         const auto classic = QQSCVisualCheck::projectRetrospectiveTpHistory(e.display,0);
         check(classic.blue.size()==4,"Retrospective transfer history size");
 
-        // The first two points deliberately contain unrelated captured carrier
-        // peaks but identical detector evidence. INT projection must use the
-        // detector-aligned transfer level, so those points cannot create fake
-        // upward spikes.
-        check(std::abs(classic.blue[0]-classic.blue[1])<.001f,
-              "INT Display paired an unrelated carrier peak with detector GR");
-
-        // With no Ceiling overshoot, TP OFF still shows only the ordinary QQ
-        // compression transfer. Once the signal is driven above Ceiling later in
-        // this test, TP OFF is allowed to move Blue further down because 1.2.28
-        // makes it an actual 8x Hard Clipper rather than the old native guard.
+        // Equal detector evidence means equal gain, not equal output level.
+        // The 47 dB carrier valley must survive the projection.
+        check(std::abs((classic.blue[0]-classic.blue[1])-47.f)<.002f,
+              "INT Display filled an input valley with a detector peak");
         constexpr float visualThreshold=-18.0f;
-        for(const auto blue:classic.blue)
-            check(blue>=visualThreshold-.02f,
-                  "Undriven 8x Hard Clip unexpectedly changed the QQ transfer");
+        const float carrierDb[]={-3.f,-50.f,-14.f,-22.f};
+        for(size_t i=0;i<classic.blue.size();++i)
+            check(classic.blue[i]<=carrierDb[i]+.002f,
+                  "Downward compression displayed a gain increase");
 
         // Classic/Super are the original QQ transfer laws even in Limiter mode.
         // Changing the CURRENT algorithm must immediately reshape old history.

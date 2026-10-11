@@ -1,5 +1,16 @@
 # QQ Super Compression changelog
 
+### 1.3.6 — Stable, 2026-10-12
+
+- 中文：所有悬停说明改为中文，并补齐 Input、Output、Makeup、Mix、Key Gain、模式切换和 A/B 等控件及数值栏的说明。统一 UTF-8 与中西文字体回退，覆盖 Windows 和 macOS；Alt/Option 复位说明保持一致。
+- English: Converts hover help to Chinese and fills missing tips for Input, Output, Makeup, Mix, Key Gain, mode and A/B controls, including numeric readouts. Uses explicit UTF-8 and CJK font fallback on Windows and macOS, with consistent Alt/Option reset guidance.
+- 中文：外部侧链曲线独立显示经过 HPF 和 Key Gain 后的信号，与主音频对齐，不再随 Window、SAFE 或 OS 改变。内部侧链的输出预览与原始曲线使用相同输入基准，修正低谷被填平、看似压缩后反而抬升的问题；未改变 Classic/Super 压缩规则。
+- English: EXT history displays aligned post-HPF/Key-Gain audio independently of Window, SAFE and OS. INT output projections share the captured input reference, correcting filled valleys and apparent gain increases without changing the Classic/Super compression law.
+- 中文：拖动 Window 和侧链 HPF 时可更新历史曲线；后台重算按耗时限制刷新频率，松开后完成最终刷新。高倍 OS 下显示刷新可能较慢。新实例普通模式和 Limiter 均默认 1x OS；已保存的工程、预设、A/B 和模式选择继续恢复。
+- English: Window and sidechain HPF drags refresh history with bounded, adaptively paced background replay and a final refresh on release; higher OS may refresh more slowly. New Normal and Limiter instances default to 1x OS while saved project, preset, A/B and mode settings are retained.
+- 中文：更新配套中英文用户手册，各 44 页。经用户确认设为 Stable；复用已验证并安装的 Windows 成品，macOS 从相同对应源码构建。
+- English: Includes updated 44-page Chinese and English manuals. Promoted to Stable by user approval, reusing the verified installed Windows product and building macOS from the corresponding source.
+
 ### 1.3.5 — Stable, 2026-10-11
 
 - 中文：Display 新增 Scale 按钮，在 -30 / -60 / -90 dB 之间切换，普通模式与 Limiter 共用。图表、阈值推子和拖动精度同步刻度，保留实际阈值与声音；超出视野的阈值保留真实读数并以星号提示。取消 Limiter 固定 -45 dB 限制，继续移除其 Range。Scale 随工程保存，A/B 和 Limiter 切换保持一致。更新中英文 44 页说明书。修正复用 Windows 构建目录时版号资源未更新的问题。用户已确认并指定为 Stable；双语手册配套发行。

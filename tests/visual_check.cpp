@@ -616,7 +616,113 @@ struct QQSCVisualCheck
         std::cout << "PASS: Dark Input active/inactive contrast, theme toggle/unchanged APVTS, numeric entry and sizes.\n";
     }
 
-    static int run (const juce::File& dir, bool displayUnityOnly = false, bool zeroDetectorOnly = false)
+    static void tooltipPreview (QQSuperCompressionAudioProcessorEditor& editor,
+                                QQSuperCompressionAudioProcessor& processor, const juce::File& dir)
+    {
+        juce::StringArray tips;
+        int controlsChecked = 0;
+        std::function<void(juce::Component&)> requireHelp = [&] (juce::Component& component)
+        {
+            if (! component.isVisible()) return;
+            auto* knob = dynamic_cast<QQSuperCompressionAudioProcessorEditor::FineKnob*> (&component);
+            const bool control = knob != nullptr || dynamic_cast<juce::Button*> (&component) != nullptr
+                || dynamic_cast<juce::ComboBox*> (&component) != nullptr;
+            if (control)
+            {
+                auto* client = dynamic_cast<juce::TooltipClient*> (&component);
+                if (client == nullptr || client->getTooltip().isEmpty())
+                {
+                    auto* button = dynamic_cast<juce::Button*> (&component);
+                    const auto name = button != nullptr ? button->getButtonText()
+                        : component.getProperties()["qqscParameterID"].toString();
+                    throw std::runtime_error (("Missing control tooltip: " + name).toStdString());
+                }
+                ++controlsChecked;
+                if (knob != nullptr)
+                    for (auto* child : knob->getChildren())
+                        if (auto* label = dynamic_cast<juce::Label*> (child))
+                            if (label->getTooltip() != knob->getTooltip())
+                                throw std::runtime_error ("Numeric readout tooltip differs from knob");
+                return; // Composite controls own their internal labels/buttons.
+            }
+            for (auto* child : component.getChildren()) requireHelp (*child);
+        };
+        std::function<void(juce::Component&)> collect = [&] (juce::Component& component)
+        {
+            if (auto* client = dynamic_cast<juce::TooltipClient*> (&component))
+            {
+                const auto tip = client->getTooltip();
+                if (tip.isNotEmpty()) tips.addIfNotAlreadyThere (tip);
+            }
+            for (auto* child : component.getChildren()) collect (*child);
+        };
+        for (bool limiter : {false, true})
+        {
+            if (limiter) processor.enterLimiterMode();
+            for (int dual : {0, 1}) for (int mode : {0, 1, 2}) for (int safe : {0, 1})
+            {
+                processor.setCompressionModeFromEditor (dual);
+                parameter (processor, processor.soundParameterID (qqsc::params::processingMode), float (mode));
+                parameter (processor, processor.soundParameterID (qqsc::params::detectorMode), float (safe));
+                editor.updateModeUi();
+                requireHelp (editor.contentRoot);
+                // The sidechain popup is hidden in the default view, but its
+                // gain/filter knobs are required controls too.
+                for (auto* key : { &editor.keyGainSlider, &editor.keyHpfSlider })
+                    if (key->getTooltip().isEmpty()) throw std::runtime_error ("Missing sidechain knob tooltip");
+                collect (editor);
+            }
+        }
+        auto manifest = output (dir.getChildFile ("runtime-tooltips.txt"));
+        for (const auto& tip : tips) manifest->writeText (tip + "\n", false, false, "\n");
+        int glyphCount = 0;
+        for (auto theme : {qqsc::ui::Theme::light, qqsc::ui::Theme::dark, qqsc::ui::Theme::classic})
+        {
+            editor.theme = theme;
+            editor.applyTheme();
+            for (int page = 0; page * 8 < tips.size(); ++page)
+            {
+                juce::Image atlas (juce::Image::RGB, 1000, 850, true);
+                {
+                juce::Graphics graphics (atlas);
+                graphics.fillAll (qqsc::ui::canvas());
+                for (int item = 0; item < 8 && page * 8 + item < tips.size(); ++item)
+                {
+                    const auto& tip = tips[page * 8 + item];
+                    bool hasChinese = false;
+                    for (const auto character : tip)
+                    {
+                        hasChinese |= character >= 0x4e00 && character <= 0x9fff;
+                        if (character == 0xfffd) throw std::runtime_error ("Invalid tooltip encoding");
+                    }
+                    if (!hasChinese) throw std::runtime_error ("Untranslated tooltip");
+                    const auto bounds = editor.utf8LookAndFeel.getTooltipBounds (tip, {200, 100}, {0, 0, 1008, 672});
+                    const auto layout = qqsc::UTF8LookAndFeel::tooltipLayout (tip, float (bounds.getWidth() - 20), qqsc::ui::text());
+                    if (layout.getHeight() > bounds.getHeight() - 16.0f + .1f)
+                        throw std::runtime_error ("Tooltip layout clipped");
+                    for (const auto& line : layout) for (const auto* run : line.runs)
+                        for (const auto& glyph : run->glyphs)
+                        {
+                            if (glyph.glyphCode == 0) throw std::runtime_error ("Missing tooltip glyph");
+                            ++glyphCount;
+                        }
+                    juce::Graphics::ScopedSaveState saved (graphics);
+                    graphics.setOrigin (15 + item % 2 * 495, 15 + item / 2 * 205);
+                    graphics.reduceClipRegion (0, 0, bounds.getWidth(), bounds.getHeight());
+                    editor.utf8LookAndFeel.drawTooltip (graphics, tip, bounds.getWidth(), bounds.getHeight());
+                }
+                }
+                auto stream = output (dir.getChildFile (juce::String (qqsc::ui::themeKey (theme)) + "-tooltips-" + juce::String (page + 1) + ".png"));
+                if (!juce::PNGImageFormat().writeImageToStream (atlas, *stream)) throw std::runtime_error ("Tooltip PNG failed");
+            }
+        }
+        if (controlsChecked < 500) throw std::runtime_error ("Tooltip coverage did not visit all mode combinations");
+        std::cout << "PASS: control tooltip coverage=" << controlsChecked << "; numeric readouts match; modes=24\n";
+        std::cout << "PASS: Chinese tooltip previews; unique runtime texts=" << tips.size()
+                  << "; rendered glyphs=" << glyphCount << "; themes=3; missing glyphs=0; clipped layouts=0\n";
+    }
+
+    static int run (const juce::File& dir, bool displayUnityOnly = false, bool zeroDetectorOnly = false, bool tooltipsOnly = false)
     {
         dir.createDirectory();
         QQSuperCompressionAudioProcessor processor;
@@ -632,6 +738,12 @@ struct QQSCVisualCheck
         editor.stopTimer();
         editor.display.stopTimer();
         editor.setSize (1200, 800);
+        if (tooltipsOnly)
+        {
+            tooltipPreview (editor, processor, dir);
+            processor.releaseResources();
+            return 0;
+        }
         if (zeroDetectorOnly)
         {
             zeroLookaheadDetectorCheck (editor, processor);
@@ -841,7 +953,8 @@ int main (int argc, char** argv)
     if (argc != 2 && argc != 3) return 2;
     const bool displayUnityOnly = argc == 3 && juce::String (argv[2]) == "--display-unity";
     const bool zeroDetectorOnly = argc == 3 && juce::String (argv[2]) == "--detector-zero-display";
-    if (argc == 3 && ! displayUnityOnly && ! zeroDetectorOnly) return 2;
-    try { return QQSCVisualCheck::run (juce::File (juce::String::fromUTF8 (argv[1])), displayUnityOnly, zeroDetectorOnly); }
+    const bool tooltipsOnly = argc == 3 && juce::String (argv[2]) == "--chinese-tooltips";
+    if (argc == 3 && ! displayUnityOnly && ! zeroDetectorOnly && ! tooltipsOnly) return 2;
+    try { return QQSCVisualCheck::run (juce::File (juce::String::fromUTF8 (argv[1])), displayUnityOnly, zeroDetectorOnly, tooltipsOnly); }
     catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }

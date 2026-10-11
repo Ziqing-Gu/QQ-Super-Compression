@@ -1,5 +1,9 @@
 # Current build instructions
 
+For 1.3.6 Stable, see [REPRODUCE_1.3.6.md](REPRODUCE_1.3.6.md). Historical notes follow.
+
+# Current build instructions
+
 For 1.3.5 Stable, see [REPRODUCE_1.3.5.md](REPRODUCE_1.3.5.md). Historical notes follow.
 
 # Current build instructions

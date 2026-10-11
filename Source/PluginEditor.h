@@ -32,6 +32,17 @@ private:
     public:
         explicit FineKnob (double defaultValueIn) : defaultValue (defaultValueIn) {}
 
+        // JUCE copies the tooltip when creating the value label. Keep existing
+        // numeric readouts in sync when a mode changes the knob's help text.
+        void setTooltip (const juce::String& text)
+        {
+            juce::Slider::setTooltip (text);
+            for (auto* child : getChildren())
+                if (auto* label = dynamic_cast<juce::Label*> (child))
+                    label->setTooltip (text);
+        }
+
+
         // Runs before JUCE/attachments commit a native or typed value. Kept
         // separate from domain gesture handlers so parameter rebinding preserves it.
         std::function<void()> onBeforeValueEdit;

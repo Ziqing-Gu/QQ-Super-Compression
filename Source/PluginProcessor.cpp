@@ -708,7 +708,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
             })));
 
     // Keep Oversampling appended after the 0.1.8 parameter sequence. v1.2.36
-    // adds 4x to 1x/8x/16x and retains the 8x default. The candidate applies
+    // adds 4x to 1x/8x/16x. New instances default to native 1x. Apply
     // the selected overall audio rate at every Lookahead.
     layout.add (std::make_unique<juce::AudioParameterChoice> (
         juce::ParameterID { qqsc::params::processingMode, 1 }, "Processing Mode",
@@ -719,7 +719,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
 
     layout.add (std::make_unique<juce::AudioParameterChoice> (
         juce::ParameterID { qqsc::params::oversampling, 1 }, "Oversampling",
-        qqsc::params::oversamplingChoices(), qqsc::params::os8x));
+        qqsc::params::oversamplingChoices(), qqsc::params::osNative));
 
     // v0.9.2 appends new trim parameters after the complete legacy parameter
     // sequence so existing candidate-project parameter order/IDs are not disturbed.
@@ -929,7 +929,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
                 : i==12 ? juce::StringArray{"Single","Dual"}
                 : i==13 ? qqsc::params::modeChoices()
                 : i==26 ? qqsc::params::keySourceChoices() : qqsc::params::oversamplingChoices();
-            layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{id,1},name,choices,i==29?int(qqsc::params::os8x):i==13?int(qqsc::params::leftRight):0));
+            layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{id,1},name,choices,i==29?int(qqsc::params::osNative):i==13?int(qqsc::params::leftRight):0));
         }
         else if(i==30)
             layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{id,1},name,
@@ -955,10 +955,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
         juce::ParameterID{qqsc::params::tpRecoveryMode,1},"TP Recovery",
         juce::StringArray{"Tight","Auto","Smooth"},qqsc::params::tpAuto));
     // 1.2.34 append-only Limiter Ceiling quality selector. 8x is the
-    // compatibility default; TP promotes 1x to 8x.
+    // legacy ID is retained; new instances default to native 1x.
     layout.add(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID{qqsc::params::ceilingOversampling,2},"Ceiling Oversampling",
-        qqsc::params::ceilingOversamplingChoices(),qqsc::params::ceiling8x));
+        qqsc::params::ceilingOversamplingChoices(),qqsc::params::ceilingNative));
     // Append-only: both modes use the same static transfer law. MIN retains
     // the min-of-windows behaviour for saved projects.
     layout.add(std::make_unique<juce::AudioParameterChoice>(
@@ -1810,6 +1810,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             meterState.displayInputDb1.store(-120.f,std::memory_order_relaxed);
             meterState.displayDetectorDb0.store(-120.f,std::memory_order_relaxed);
             meterState.displayDetectorDb1.store(-120.f,std::memory_order_relaxed);
+            meterState.displayExternalKeyDb0.store(-120.f,std::memory_order_relaxed);
+            meterState.displayExternalKeyDb1.store(-120.f,std::memory_order_relaxed);
             meterState.keyInputDb.store(-120.f,std::memory_order_relaxed);
             meterState.gainReductionDb0.store(0.f,std::memory_order_relaxed);
             meterState.gainReductionDb1.store(0.f,std::memory_order_relaxed);
@@ -2330,6 +2332,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
     float meterInputPeak[2]  { 0.0f, 0.0f };
     float meterOutputPeak[2] { 0.0f, 0.0f };
     float displayInputPeak[2]  { 0.0f, 0.0f };
+    float displayExternalKeyPeak[2] { 0.0f, 0.0f };
     std::array<float,2> displayCeilingGainLR {1,1};
     float displayCeilingGainLinear = 1.0f;
     float displayPreCeilingSamplePeakLinear = 0.0f;
@@ -2564,6 +2567,23 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
             }
         }
 
+        // Read-only sidechain waveform measurement. The existing listen
+        // reference already includes Filter/Key Gain and the carrier delay,
+        // including Ceiling latency. Do not use the Window/Safe detector here.
+        if (uiAnalysisEnabled && useExternalKey)
+        {
+            float key0 = reference[2], key1 = reference[3];
+            if (mode == qqsc::params::midSide)
+            {
+                key0 = detectorKeyIsStereo ? .5f * (reference[2] + reference[3]) : reference[2];
+                key1 = detectorKeyIsStereo ? .5f * (reference[2] - reference[3]) : reference[2];
+            }
+            else if (mode == qqsc::params::stereoLinked)
+                key0 = maxAbs(key0, key1);
+            displayExternalKeyPeak[0] = juce::jmax(displayExternalKeyPeak[0], std::abs(key0));
+            displayExternalKeyPeak[1] = juce::jmax(displayExternalKeyPeak[1], std::abs(key1));
+        }
+
         // Read-only measurement after Ceiling, 1:1 monitoring and audition.
         // Mono contributes one channel, never a duplicated +3 LU reading.
         if (measureOutputLoudness)
@@ -2676,6 +2696,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         meterState.displayInputDb1.store  (peakToDb (displayInputPeak[1]), std::memory_order_relaxed);
         meterState.displayDetectorDb0.store (peakToDb (displayDetectorPeak[0]), std::memory_order_relaxed);
         meterState.displayDetectorDb1.store (peakToDb (displayDetectorPeak[1]), std::memory_order_relaxed);
+        meterState.displayExternalKeyDb0.store (peakToDb (displayExternalKeyPeak[0]), std::memory_order_relaxed);
+        meterState.displayExternalKeyDb1.store (peakToDb (displayExternalKeyPeak[1]), std::memory_order_relaxed);
     
         meterState.gainReductionDb0.store (totalEffectiveGr0, std::memory_order_relaxed);
         meterState.gainReductionDb1.store (totalEffectiveGr1, std::memory_order_relaxed);

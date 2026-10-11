@@ -2,6 +2,13 @@
 #include "updown_processor_test.cpp"
 #undef main
 #include "PluginEditor.h"
+#if JUCE_WINDOWS
+#include <windows.h>
+#undef min
+#undef max
+#undef near
+#undef far
+#endif
 
 // Test-only friend accessor for DynamicDisplay. DynamicDisplay already grants
 // QQSCVisualCheck friendship for the existing visual test target, so keep the
@@ -55,8 +62,8 @@ struct QQSCVisualCheck
         a.inputDb=-3.0f; a.detectorDb=-10.0f; a.capturedInputGainDb=0.0f; a.truePeakExcessDb=0.0f;
         DynamicDisplay::HistoryPoint b=a;
         // Same detector evidence but a wildly different captured carrier peak.
-        // INT transfer projection must not turn this unrelated block peak into
-        // a fake processed-output spike.
+        // The waveform valley must remain visible; equal detector gain is
+        // applied to each carrier point without substituting the detector level.
         b.inputDb=-50.0f;
         DynamicDisplay::HistoryPoint c=a;
         c.inputDb=-14.0f; c.detectorDb=-6.0f; c.truePeakExcessDb=3.0103f;
@@ -203,6 +210,10 @@ struct QQSCLimiterCheck
 #include "shared_controls_checks.inc"
 #include "limiter_45_checks.inc"
 #include "display_scale_checks.inc"
+#include "display_replay_reference_checks.inc"
+#include "display_replay_drag_checks.inc"
+#include "external_key_display_checks.inc"
+#include "carrier_display_checks.inc"
 #include "lookahead_presets_checks.inc"
 #include "overall_os_checks.inc"
 #include "retrospective_tp_display_checks.inc"
@@ -424,6 +435,12 @@ int main(int argc,char** argv)
     try
     {
         const juce::File root(argv[1]);root.createDirectory();
+        if(argc==3 && juce::String(argv[2])=="carrier-display")
+        { QQSCLimiterCheck::carrierDisplayChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="external-key-display")
+        { QQSCLimiterCheck::externalKeyDisplayChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="display-replay-drag")
+        { QQSCLimiterCheck::displayReplayDragChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="cumulative-match")
         { QQSCReviewCheck::cumulativeMatchChecks();return 0; }
         if(argc==3 && juce::String(argv[2])=="display-scale")

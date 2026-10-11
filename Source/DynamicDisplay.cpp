@@ -94,44 +94,23 @@ struct ReplayHighPassState
     }
 };
 
+// Use the preallocated detector rings for replay as well. The old deque
+// implementation allocated/deallocated blocks continuously at 8x/16x.
+// This is the same two-window peak operation, including zero-window/startup.
 class ReplayPeakWindow
 {
 public:
-    ReplayPeakWindow (int lookaheadSamplesIn, bool bilateralIn)
-        : lookaheadSamples (juce::jmax (0, lookaheadSamplesIn)), bilateral (bilateralIn)
+    ReplayPeakWindow (int lookaheadSamples, bool bilateralIn) : bilateral(bilateralIn)
     {
+        engine.prepare(juce::jmax(0, lookaheadSamples));
+        engine.setLookaheadSamples(lookaheadSamples);
     }
-
-    void process (float sample, int64_t sampleIndex)
-    {
-        const auto magnitude = juce::jlimit (0.0f, 1.0f, std::abs (sample));
-        while (! queue.empty() && queue.back().second <= magnitude)
-            queue.pop_back();
-
-        queue.emplace_back (sampleIndex, magnitude);
-        const auto oldestAllowed = sampleIndex - static_cast<int64_t> (lookaheadSamples);
-        while (! queue.empty() && queue.front().first < oldestAllowed)
-            queue.pop_front();
-
-        const auto futurePeak = queue.empty() ? magnitude : queue.front().second;
-        peakHistory.push_back (futurePeak);
-        currentLevel = bilateral ? futurePeak : 0.0f;
-        if (peakHistory.size() > static_cast<size_t> (lookaheadSamples))
-        {
-            currentLevel = bilateral ? juce::jmax (futurePeak, peakHistory.front())
-                                     : juce::jmin (futurePeak, peakHistory.front());
-            peakHistory.pop_front();
-        }
-    }
-
-    float getCurrentLevel() const noexcept { return currentLevel; }
-
+    void process(float sample, int64_t index) noexcept { engine.processLevelSample(sample,index); }
+    float getCurrentLevel() const noexcept
+    { return bilateral ? engine.getCurrentBilateralPeak() : engine.getCurrentLevel(); }
 private:
-    int lookaheadSamples = 0;
-    bool bilateral = true;
-    std::deque<std::pair<int64_t, float>> queue;
-    std::deque<float> peakHistory;
-    float currentLevel = 0.0f;
+    qqsc::StaticCompressionEngine engine;
+    bool bilateral;
 };
 
 ReplayHighPassCoefficients replayHighPassCoefficients (double sampleRate, float cutoffHz) noexcept
@@ -198,6 +177,7 @@ public:
 
             ReplayResult result;
             juce::Component::SafePointer<DynamicDisplay> safeOwner (&owner);
+            const auto started = juce::Time::getMillisecondCounterHiRes();
             if (! owner.buildHpfReplay (*request, result, *this))
             {
                 const auto failedGeneration = request->requestGeneration;
@@ -210,6 +190,7 @@ public:
                 continue;
             }
 
+            result.workMilliseconds = juce::Time::getMillisecondCounterHiRes() - started;
             juce::MessageManager::callAsync ([safeOwner, completed = std::move (result)] () mutable
             {
                 if (safeOwner != nullptr)
@@ -231,7 +212,7 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
 {
     setOpaque (true);
     addAndMakeVisible(scaleButton);
-    scaleButton.setTooltip("Display scale: -30 / -60 / -90 dB. Faders follow the scale; existing thresholds and audio stay unchanged.");
+    scaleButton.setTooltip(juce::String::fromUTF8 (u8"Display 显示范围：-30 / -60 / -90 dB。阈值推子随显示范围缩放，已有阈值和声音处理不变。"));
     scaleButton.setMouseClickGrabsKeyboardFocus(false);
     scaleButton.onClick = [this]
     {
@@ -313,19 +294,21 @@ void DynamicDisplay::resized()
     geometryDirty = false;
 }
 
-void DynamicDisplay::beginKeyHpfGesture() noexcept
+void DynamicDisplay::beginHistoryGesture() noexcept
 {
-    keyHpfGestureActive = true;
+    historyGestureActive = true;
 }
 
-void DynamicDisplay::endKeyHpfGesture()
+void DynamicDisplay::endHistoryGesture()
 {
-    keyHpfGestureActive = false;
-    hpfRefreshPending = false;
-    hpfStableTimerTicks = 0;
-    lastObservedHpfHz = readParameter (processor, qqsc::params::keyHpfHz,
-                                       qqsc::params::keyHpfOffHz);
-    requestHpfHistoryRefresh();
+    historyGestureActive = false;
+    hpfRefreshPending = true;
+    hpfFinalRefreshPending = true;
+    hpfStableTimerTicks = hpfAutomationStableTicks;
+    // Do not cancel a running job on every mouse event. Finish it, then run
+    // the latest settled value once; never queue an entire drag's positions.
+    if (! hpfReplayBusy)
+        requestHpfHistoryRefresh();
 }
 
 void DynamicDisplay::clearHistories()
@@ -355,6 +338,8 @@ void DynamicDisplay::clearHistories()
     hpfReplayBusy = false;
     hpfRetryTimerTicks = 0;
     hpfRetryAttempts = 0;
+    hpfFinalRefreshPending = false;
+    hpfNextReplayMs = 0.0;
 }
 
 void DynamicDisplay::timerCallback()
@@ -417,6 +402,7 @@ void DynamicDisplay::timerCallback()
         HistoryPoint point0;
         point0.inputDb = m.displayInputDb0.load (std::memory_order_relaxed);
         point0.detectorDb = m.displayDetectorDb0.load (std::memory_order_relaxed);
+        point0.externalKeyDb = m.displayExternalKeyDb0.load (std::memory_order_relaxed);
         point0.truePeakExcessDb = capturedTruePeakExcessDb;
         point0.capturedInputGainDb = capturedInputGainDb;
         point0.capturedKeyGainDb = capturedKeyGainDb;
@@ -430,6 +416,7 @@ void DynamicDisplay::timerCallback()
             HistoryPoint point1;
             point1.inputDb = m.displayInputDb1.load (std::memory_order_relaxed);
             point1.detectorDb = m.displayDetectorDb1.load (std::memory_order_relaxed);
+            point1.externalKeyDb = m.displayExternalKeyDb1.load (std::memory_order_relaxed);
             point1.truePeakExcessDb = capturedTruePeakExcessDb;
             point1.capturedInputGainDb = capturedInputGainDb;
             point1.capturedKeyGainDb = capturedKeyGainDb;
@@ -452,44 +439,43 @@ void DynamicDisplay::timerCallback()
     const auto currentDetectorMode = effectiveDisplayDetectorMode (processor, currentLookaheadMs);
     const auto currentWindowMs = effectiveDisplayWindow (processor, currentLookaheadMs);
     const int currentOs=juce::roundToInt(readParameter(processor,qqsc::params::oversampling));
+    bool replaySettingsChanged = false;
     if (lastObservedOversampling>=0 && currentOs!=lastObservedOversampling)
-    { hpfStableTimerTicks=0; hpfRefreshPending=true; }
+    { replaySettingsChanged=true; hpfRefreshPending=true; }
     lastObservedOversampling=currentOs;
     if (std::abs (currentWindowMs - lastObservedDetectorWindowMs) > 0.001f)
     {
         lastObservedDetectorWindowMs = currentWindowMs;
-        hpfStableTimerTicks = 0;
+        replaySettingsChanged = true;
         hpfRefreshPending = true;
     }
     if (std::abs (currentLookaheadMs - lastObservedLookaheadMs) > 0.01f)
     {
         lastObservedLookaheadMs = currentLookaheadMs;
-        hpfStableTimerTicks = 0;
+        replaySettingsChanged = true;
         hpfRefreshPending = true;
     }
     if (currentDetectorMode != lastObservedDetectorMode)
     {
         lastObservedDetectorMode = currentDetectorMode;
-        hpfStableTimerTicks = 0;
+        replaySettingsChanged = true;
         hpfRefreshPending = true;
     }
     if (std::abs (currentHpfHz - lastObservedHpfHz) > 0.01f)
     {
         lastObservedHpfHz = currentHpfHz;
-        hpfStableTimerTicks = 0;
+        replaySettingsChanged = true;
         hpfRefreshPending = true;
     }
-    else if (hpfRefreshPending && ! keyHpfGestureActive)
-    {
-        if (++hpfStableTimerTicks >= hpfAutomationStableTicks)
-        {
-            hpfRefreshPending = false;
-            hpfStableTimerTicks = 0;
-            requestHpfHistoryRefresh();
-        }
-    }
+    hpfStableTimerTicks = replaySettingsChanged ? 0
+        : juce::jmin(hpfAutomationStableTicks, hpfStableTimerTicks + 1);
+    const auto now = juce::Time::getMillisecondCounterHiRes();
+    if (hpfRefreshPending && ! hpfReplayBusy
+        && (hpfFinalRefreshPending || now >= hpfNextReplayMs))
+        requestHpfHistoryRefresh();
 
-    if (hpfReplayRetryPending && ! keyHpfGestureActive && ! hpfRefreshPending)
+    if (hpfReplayRetryPending && ! hpfReplayBusy && ! hpfRefreshPending
+        && now >= hpfNextReplayMs)
     {
         if (position.counter > hpfRetryAfterCounter
             || ++hpfRetryTimerTicks >= hpfRetryDelayTicks)
@@ -1015,27 +1001,14 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
                 qqsc::params::coupleLimiterGains(compressedGain,peerGain,link);
             }
         }
-        const bool dynamicsAreNeutral=bypassed || wetMix<=0.0f
-            || (cache.dynamicsLutUnity && (peerPoint==nullptr || compressedGain==1.0f));
         const auto dynamicsMixGrDb = bypassed ? 0.0f
             : qqsc::StaticCompressionEngine::effectiveGainReductionDb (compressedGain, wetMix);
 
-        // IMPORTANT DISPLAY CONTRACT
-        // --------------------------
-        // The blue trace is a calculated transfer/history view, not a measured
-        // post-compressor waveform. For INT, the detector peak is the level to
-        // which the current static Classic/Super transfer law actually applies.
-        // Convert it back to the pre-Input-Gain Display reference. This keeps the
-        // curve monotonic, makes finite-Ratio TP-OFF output stay on/above the
-        // displayed DOWN threshold, and prevents impossible spikes caused by
-        // pairing an unrelated carrier-block peak with a lookahead detector peak.
-        // EXT is intentionally different: key and carrier are unrelated, so the
-        // captured carrier remains the display reference while the external key
-        // supplies only gain control.
-        // A neutral transfer must use the captured carrier for every trace:
-        // lookahead detector peaks do not change the audible sample at 1:1.
-        const auto transferInputDb = (externalKey || dynamicsAreNeutral)
-            ? point.inputDb : detectorDb - inputGainDb;
+        // Every audio trace shares the captured carrier reference. Window/Safe
+        // levels select gain only; substituting a detector peak as the source
+        // would fill input valleys and falsely imply upward compression.
+        // This remains a retrospective level projection, not sample-exact audio.
+        const auto transferInputDb = point.inputDb;
         const auto cutMixDb = bypassed ? transferInputDb
                                        : transferInputDb - dynamicsMixGrDb;
 
@@ -1086,8 +1059,7 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
             {
                 const auto peerMix=mixForDomain(peerIndex,mode);
                 const auto peerMakeup=juce::Decibels::decibelsToGain(makeupDbForDomain(peerIndex,mode),-180.0f);
-                const auto peerInput=(externalKey || (renderCaches[size_t(peerIndex)].dynamicsLutUnity && peerGain==1.0f) || peerMix<=0)
-                    ? peerPoint->inputDb : peerDetectorDb-inputGainDb;
+                const auto peerInput=peerPoint->inputDb;
                 const auto peerTotal=inputGain*((1-peerMix)+peerGain*peerMakeup*peerMix)*outputGain;
                 const auto peerPre=peerInput+juce::Decibels::gainToDecibels(juce::jmax(peerTotal,1.e-9f),-180.f);
                 const auto peerOvershoot=peerPre+juce::jmax(0.0f,peerPoint->truePeakExcessDb)-ceilingDb;
@@ -1123,7 +1095,11 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         projected.output[index] = limiter && ! bypassed
             ? projectedPostCeilingDb
             : (bypassed ? point.inputDb : projectedPreCeilingDb);
-        projected.externalKey[index] = detectorDb;
+        // Show the sidechain signal, not its Window/Safe peak envelope.
+        const auto keySignalDb = point.hasReplayedExternalKey
+            ? point.replayedExternalKeyDb + keyGainDb
+            : point.externalKeyDb + keyGainDb - point.capturedKeyGainDb;
+        projected.externalKey[index] = juce::jlimit(silenceDb, maxDb, keySignalDb);
         projected.captureCounter[index] = point.captureCounter;
     }
 }
@@ -1141,7 +1117,7 @@ void DynamicDisplay::scheduleHpfReplayRetry (uint64_t failedEndCounter)
     hpfRetryAfterCounter = failedEndCounter;
     hpfRetryTimerTicks = 0;
     hpfReplayRetryPending = true;
-    hpfReplayBusy = true;
+    hpfReplayBusy = false;
     repaint();
 }
 
@@ -1161,6 +1137,11 @@ bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
         hpfRefreshPending = true;
         return false;
     }
+    if (hpfReplayBusy)
+    {
+        hpfRefreshPending = true;
+        return false;
+    }
     if (! retrying)
         hpfRetryAttempts = 0;
 
@@ -1173,6 +1154,8 @@ bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
     ReplayRequest request;
     request.captureGeneration = histories[0].points.front().captureGeneration;
     request.mode = lastMode;
+    request.abSlot = processor.getActiveABSlot();
+    request.limiter = processor.isLimiterMode();
     request.keySource = lastKeySource;
     request.hpfHz = readParameter (processor, qqsc::params::keyHpfHz,
                                    qqsc::params::keyHpfOffHz);
@@ -1207,6 +1190,12 @@ bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
     hpfReplayRetryPending = false;
     hpfRetryTimerTicks = 0;
     hpfReplayBusy = true;
+    hpfRefreshPending = false;
+    hpfFinalRefreshPending = false;
+    hpfReplayStartedMs = juce::Time::getMillisecondCounterHiRes();
+    hpfNextReplayMs = hpfReplayStartedMs + juce::jmax(hpfMinimumReplayIntervalMs,
+        hpfLastReplayWorkMs * hpfReplayDutyMultiplier);
+    ++hpfReplaySubmittedCount;
     repaint();
     hpfReplayWorker->submit (std::move (request));
     return true;
@@ -1257,6 +1246,9 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
     const double detectorDelay=double(windowSamples+peakIndex)/factor;
     os.reset();
     std::vector<std::array<float,2>> levels(snapshot.left.size());
+    const bool externalKey = request.keySource == qqsc::params::keyExternal;
+    // Host-rate post-Filter samples: independent of Window, Safe and OS.
+    std::vector<std::array<float,2>> keySignal(externalKey ? snapshot.left.size() : 0);
     for(size_t offset=0;offset<snapshot.left.size();offset+=256)
     {
         if(worker.threadShouldExit() || !processor.shouldRunUiAnalysis()
@@ -1269,6 +1261,7 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
             if(request.mode==qqsc::params::midSide)
             {const float m=snapshot.stereoKey?.5f*(l+r):l;
              r=snapshot.stereoKey?.5f*(l-r):(request.keySource==qqsc::params::keyExternal?l:0.f);l=m;}
+            if (externalKey) keySignal[offset+size_t(i)] = { std::abs(l), std::abs(r) };
             replayInput.setSample(0,i,l);replayInput.setSample(1,i,r);
         }
         const auto up=os.processSamplesUp(juce::dsp::AudioBlock<float>(replayInput).getSubBlock(0,size_t(count)));
@@ -1290,6 +1283,11 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
     result.firstValidMarkerIndex=0;
     result.detectorDb0.assign(request.markers.size(),std::numeric_limits<float>::quiet_NaN());
     result.detectorDb1=result.detectorDb0;
+    if (externalKey)
+    {
+        result.externalKeyDb0=result.detectorDb0;
+        result.externalKeyDb1=result.detectorDb0;
+    }
     for(size_t marker=0;marker<request.markers.size();++marker)
     {
         // A retained input point belongs to the carrier delay at CAPTURE time.
@@ -1299,6 +1297,23 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
         const auto span=marker>0 ? request.markers[marker]-request.markers[marker-1]
             : request.markers.size()>1 ? request.markers[1]-request.markers[0]
             : uint64_t(snapshot.sampleRate/displayRefreshHz);
+        if (externalKey)
+        {
+            // Use the carrier time at capture, with no detector anticipation.
+            const int64_t keyEnd = int64_t(request.markers[marker]) - int64_t(snapshot.firstCounter)
+                - int64_t(std::llround(capturedDelay));
+            if (keyEnd <= int64_t(keySignal.size()))
+            {
+                std::array<float,2> keyPeak {};
+                for (int64_t i=std::max(int64_t(0),keyEnd-int64_t(span)); i<keyEnd; ++i)
+                    for (size_t channel=0; channel<2; ++channel)
+                        keyPeak[channel]=juce::jmax(keyPeak[channel],keySignal[size_t(i)][channel]);
+                if (request.mode==qqsc::params::stereoLinked)
+                    keyPeak[0]=juce::jmax(keyPeak[0],keyPeak[1]);
+                result.externalKeyDb0[marker]=detectorLevelToDb(keyPeak[0]);
+                result.externalKeyDb1[marker]=detectorLevelToDb(keyPeak[1]);
+            }
+        }
         const int64_t end=int64_t(request.markers[marker])-int64_t(snapshot.firstCounter)
             +int64_t(std::llround(detectorDelay-capturedDelay));
         const int64_t start=end-int64_t(span);
@@ -1319,28 +1334,46 @@ void DynamicDisplay::applyHpfReplay (ReplayResult result)
     if (result.request.requestGeneration != currentRequest)
         return;
 
+    hpfReplayBusy = false;
+    hpfLastReplayWorkMs = result.workMilliseconds;
+    hpfNextReplayMs = hpfReplayStartedMs + juce::jmax(hpfMinimumReplayIntervalMs,
+        hpfLastReplayWorkMs * hpfReplayDutyMultiplier);
     const auto currentLookaheadMs = qqsc::params::snapLookaheadMs (
         readParameter (processor, qqsc::params::lookaheadMs));
+    const bool movingPreview = ! hpfFinalRefreshPending
+        && (historyGestureActive || hpfStableTimerTicks < hpfAutomationStableTicks);
+    const bool softSettingsChanged =
+        std::abs(result.request.detectorWindowMs - effectiveDisplayWindow(processor, currentLookaheadMs)) > 0.001f
+        || std::abs(result.request.hpfHz - readParameter(processor, qqsc::params::keyHpfHz,
+                                                        qqsc::params::keyHpfOffHz)) > 0.01f;
     if (result.request.captureGeneration != lastCaptureGeneration
+        || result.request.captureGeneration != processor.getDisplayKeyHistoryPosition().generation
         || result.request.mode != lastMode
+        || result.request.mode != displayProcessingMode(processor)
         || result.request.keySource != lastKeySource
+        || result.request.keySource != juce::roundToInt(readParameter(processor, qqsc::params::keySource))
+        || result.request.abSlot != processor.getActiveABSlot()
+        || result.request.limiter != processor.isLimiterMode()
         || result.request.oversampling != juce::roundToInt(readParameter(processor,qqsc::params::oversampling))
         || result.request.detectorMode != effectiveDisplayDetectorMode (processor, currentLookaheadMs)
-        || std::abs (result.request.detectorWindowMs - effectiveDisplayWindow (processor, currentLookaheadMs)) > 0.001f
-        || std::abs (result.request.hpfHz
-                     - readParameter (processor, qqsc::params::keyHpfHz,
-                                      qqsc::params::keyHpfOffHz)) > 0.01f
         || std::abs (result.request.lookaheadMs - currentLookaheadMs) > 0.01f)
     {
-        scheduleHpfReplayRetry (result.request.markers.empty()
-                                    ? 0 : result.request.markers.back());
+        hpfRefreshPending = true;
         return;
+    }
+    if (softSettingsChanged)
+    {
+        hpfRefreshPending = true;
+        // A completed intermediate position is useful while moving. At rest,
+        // and after mouse-up, only the exact final position is allowed through.
+        if (! movingPreview) return;
     }
 
     for (size_t domain = 0; domain < histories.size(); ++domain)
     {
         auto& points = histories[domain].points;
         const auto& values = domain == 0 ? result.detectorDb0 : result.detectorDb1;
+        const auto& keyValues = domain == 0 ? result.externalKeyDb0 : result.externalKeyDb1;
         for (auto& point : points)
         {
             const auto marker = std::lower_bound (result.request.markers.begin(),
@@ -1355,6 +1388,11 @@ void DynamicDisplay::applyHpfReplay (ReplayResult result)
                 point.replayedDetectorDb = values[index];
                 point.hasReplayedDetector = true;
             }
+            if (index >= result.firstValidMarkerIndex && index < keyValues.size() && std::isfinite(keyValues[index]))
+            {
+                point.replayedExternalKeyDb = keyValues[index];
+                point.hasReplayedExternalKey = true;
+            }
         }
     }
 
@@ -1362,6 +1400,7 @@ void DynamicDisplay::applyHpfReplay (ReplayResult result)
     hpfReplayBusy = false;
     hpfRetryAttempts = 0;
     hpfRetryTimerTicks = 0;
+    ++hpfReplayAppliedCount;
     ++historyRevision;
     if (isShowing())
     {
@@ -1586,7 +1625,7 @@ void DynamicDisplay::paint (juce::Graphics& g)
     g.setColour ((hpfReplayBusy ? qqsc::ui::cyanAccent() : qqsc::ui::textMuted())
                     .withAlpha (0.82f));
     g.setFont (9.5f);
-    const auto headerStatus = (hpfReplayBusy ? juce::String ("HPF UPDATING   ") : juce::String())
+    const auto headerStatus = (hpfReplayBusy ? juce::String ("UPDATING   ") : juce::String())
                             + (readParameter (processor, qqsc::params::compressionMode) >= 0.5f ? "DUAL  " : "SINGLE  ")
                             + qqsc::params::modeName (processor.isLimiterMode() ? qqsc::params::stereoLinked : mode);
     g.drawFittedText (headerStatus, header.removeFromRight(110.0f).toNearestInt(),

@@ -18,8 +18,8 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
     juce::Rectangle<float> getLoudnessReadoutBounds() const noexcept;
-    void beginKeyHpfGesture() noexcept;
-    void endKeyHpfGesture();
+    void beginHistoryGesture() noexcept;
+    void endHistoryGesture();
 
     // Shared geometry for boundary lines and the adjacent fader thumbs.
     // Domain indices: 0 ST, 1 L, 2 R, 3 M, 4 S. Coordinates are Display-local.
@@ -50,10 +50,13 @@ private:
         float capturedInputGainDb = 0.0f;
         float capturedKeyGainDb = 0.0f;
         float replayedDetectorDb = -120.0f;
+        float externalKeyDb = -120.0f;
+        float replayedExternalKeyDb = -120.0f;
         uint64_t captureGeneration = 0;
         uint64_t captureCounter = 0;
         float carrierDelaySeconds = -1.0f;
         bool hasReplayedDetector = false;
+        bool hasReplayedExternalKey = false;
     };
 
     struct ReplayRequest
@@ -70,6 +73,8 @@ private:
         std::vector<uint64_t> markers;
         std::vector<float> carrierDelays;
         int oversampling = 0;
+        int abSlot = 0;
+        bool limiter = false;
     };
 
     struct ReplayResult
@@ -77,7 +82,10 @@ private:
         ReplayRequest request;
         std::vector<float> detectorDb0;
         std::vector<float> detectorDb1;
+        std::vector<float> externalKeyDb0;
+        std::vector<float> externalKeyDb1;
         size_t firstValidMarkerIndex = 0;
+        double workMilliseconds = 0.0;
     };
 
     struct HistorySet
@@ -181,11 +189,19 @@ private:
     int hpfRetryTimerTicks = 0;
     int hpfRetryAttempts = 0;
     uint64_t hpfRetryAfterCounter = 0;
-    bool keyHpfGestureActive = false;
+    bool historyGestureActive = false;
     bool hpfRefreshPending = false;
     bool hpfReplayRetryPending = false;
     bool hpfReplayBusy = false;
-    // Four 60 Hz ticks retain the v1.1.4 two-tick/30 Hz debounce duration.
+    bool hpfFinalRefreshPending = false;
+    double hpfReplayStartedMs = 0.0, hpfNextReplayMs = 0.0;
+    double hpfLastReplayWorkMs = 0.0;
+    uint64_t hpfReplayAppliedCount = 0, hpfReplaySubmittedCount = 0;
+    // At most 10 history replays/sec; slower jobs get a 20% wall-time duty
+    // budget for this worker. Audio and ordinary 60 Hz scrolling are unchanged.
+    static constexpr double hpfMinimumReplayIntervalMs = 100.0;
+    static constexpr double hpfReplayDutyMultiplier = 5.0;
+    // Four stable 60 Hz ticks distinguish moving automation from settled values.
     static constexpr int hpfAutomationStableTicks = 4;
     static constexpr int hpfRetryDelayTicks = 4;
     static constexpr int hpfMaxRetryAttempts = 3;

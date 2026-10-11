@@ -10,7 +10,7 @@
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 
-# QQ Super Compression 1.3.5 Stable
+# QQ Super Compression 1.3.6 Stable
 
 Qing Audio 压缩/限制器，支持 Classic/Super、Single/Dual、ST/LR/MS、内外侧链与 Limiter。SAFE 默认关闭；Normal 与 Safe 均使用 Window 毫秒；统一 1x/4x/8x/16x 过采样作用于所有 Lookahead。Lookahead 档位为 0/26/40/80/100 ms。
 
@@ -41,11 +41,24 @@ No Linux build is provided. Save a session copy and quit DAWs before upgrading. 
 
 ## 当前稳定版 / Current stable version
 
-**1.3.4 Stable (2026-10-11).** Window 统一为毫秒，Limiter 改为 ST 显示与 L/R Link，Match 按整段播放累计。Limiter 图表与全部阈值为 -45 至 0 dB，移除 Range；普通压缩保留原行为。随附 44 页[中文手册](docs/manuals/QQ-Super-Compression-1.3.4-User-Manual-Chinese.pdf)与[英文手册](docs/manuals/QQ-Super-Compression-1.3.4-User-Manual-English.pdf)。本次覆盖 1.3.3、1.3.4，完整变化见下方逐版记录。
+**1.3.6 Stable (2026-10-12).** 补齐全部中文悬停说明及数值栏提示；修正 INT 曲线的输入基准和 EXT 曲线的独立显示；拖动 Window / HPF 时刷新历史。普通模式与 Limiter 的新实例 OS 均默认 1x，保留已保存的选择。压缩算法保持原规则。附 44 页[中文手册](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-Chinese.pdf)和[英文手册](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-English.pdf)。
 
-**1.3.4 Stable (2026-10-11).** Window always uses milliseconds; Limiter combines an ST display with numeric L/R Link, and Match measures from playback start. Limiter's graph and all thresholds span -45 to 0 dB, with Range removed; normal compression retains its behavior. Includes matching 44-page Chinese and English manuals. This update covers 1.3.3 and 1.3.4; see the per-version entries below.
+**1.3.6 Stable (2026-10-12).** Completes Chinese hover help and numeric-readout tips; fixes the INT input reference and independent EXT history; refreshes history during Window/HPF drags. New Normal and Limiter instances default to 1x OS while saved settings remain intact. Compression laws are unchanged. Includes matching 44-page Chinese and English manuals.
+
+源码与 Release 变化范围：1.3.5 → 1.3.6；包含 1.3.6，遗漏版本：无。 / Source and Release changes: 1.3.5 → 1.3.6; covers 1.3.6, missing versions: none. Shared Display Scale remains -30/-60/-90 dB and does not change actual thresholds or audio.
 
 ## 版本记录 / Version history
+
+### 1.3.6 — Stable, 2026-10-12
+
+- 中文：所有悬停说明改为中文，并补齐 Input、Output、Makeup、Mix、Key Gain、模式切换和 A/B 等控件及数值栏的说明。统一 UTF-8 与中西文字体回退，覆盖 Windows 和 macOS；Alt/Option 复位说明保持一致。
+- English: Converts hover help to Chinese and fills missing tips for Input, Output, Makeup, Mix, Key Gain, mode and A/B controls, including numeric readouts. Uses explicit UTF-8 and CJK font fallback on Windows and macOS, with consistent Alt/Option reset guidance.
+- 中文：外部侧链曲线独立显示经过 HPF 和 Key Gain 后的信号，与主音频对齐，不再随 Window、SAFE 或 OS 改变。内部侧链的输出预览与原始曲线使用相同输入基准，修正低谷被填平、看似压缩后反而抬升的问题；未改变 Classic/Super 压缩规则。
+- English: EXT history displays aligned post-HPF/Key-Gain audio independently of Window, SAFE and OS. INT output projections share the captured input reference, correcting filled valleys and apparent gain increases without changing the Classic/Super compression law.
+- 中文：拖动 Window 和侧链 HPF 时可更新历史曲线；后台重算按耗时限制刷新频率，松开后完成最终刷新。高倍 OS 下显示刷新可能较慢。新实例普通模式和 Limiter 均默认 1x OS；已保存的工程、预设、A/B 和模式选择继续恢复。
+- English: Window and sidechain HPF drags refresh history with bounded, adaptively paced background replay and a final refresh on release; higher OS may refresh more slowly. New Normal and Limiter instances default to 1x OS while saved project, preset, A/B and mode settings are retained.
+- 中文：更新配套中英文用户手册，各 44 页。经用户确认设为 Stable；复用已验证并安装的 Windows 成品，macOS 从相同对应源码构建。
+- English: Includes updated 44-page Chinese and English manuals. Promoted to Stable by user approval, reusing the verified installed Windows product and building macOS from the corresponding source.
 
 ### 1.3.5 — Stable, 2026-10-11
 
@@ -144,7 +157,7 @@ Longer Safe windows can cause pre/post-attenuation. Shorter windows can increase
 
 FULL may stay awake at extreme gain or with active input/selected sidechain. ECO cuts tails when the host reports Stop. Plugin CPU timings cannot be translated to an ASIO-Guard percentage; DAW scheduling and buffer conditions matter. macOS artifacts are ad-hoc signed and may require trusted-source quarantine handling as described in the installation guides. Commercial use is prohibited; redistributed binaries require free complete corresponding source and the required notices.
 
-## 1.3.5 升级注意 / Upgrade notes
+## 1.3.6 升级注意 / Upgrade notes
 
 Limiter 旧 ST 设置迁移为 L/R Link 100%，旧 LR/MS 为 0%；旧 L（MS 为 M）参数成为共用值。Limiter 不再使用 Range。Display Scale 不会改变阈值；Classic 最低 -90 dB，Super 最低 -inf。如果旧 1.3.4 已将阈值存为 -45 dB，本版无法恢复更早的数值。旧双组参数工程可能改变声音，请另存工程并试听。
 
@@ -154,4 +167,8 @@ Window 只改变检测时长，不改变选定延迟；SAFE 可能衰减强音�
 
 Window changes detection duration at fixed latency. SAFE may attenuate audio around loud events. Compare OS at 0 ms, short Window (especially below 10 ms), and in Limiter. Limiter switching can still trigger host compensation because Ceiling adds latency.
 
-当前构建说明 / Current build instructions: [REPRODUCE_1.3.5.md](REPRODUCE_1.3.5.md).
+当前构建说明 / Current build instructions: [REPRODUCE_1.3.6.md](REPRODUCE_1.3.6.md).
+
+新实例 OS 默认 1x，由用户按声音和 CPU 选择；已保存工程不会被强制改为 1x。悬停帮助现为中文，英文操作说明见随附英文手册。
+
+New instances start at 1x OS; choose the factor to suit the sound and CPU budget. Existing saved projects are not forced to 1x. Hover help is now Chinese; the included English manual explains all controls in English.
