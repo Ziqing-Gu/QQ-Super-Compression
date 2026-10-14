@@ -58,7 +58,17 @@ public:
     // last explicit user choice (first-run fallback FULL); project state wins.
     int getDisplayScaleDb() const noexcept { return displayScaleDb.load(std::memory_order_acquire); }
     void setDisplayScaleDb(int value) noexcept
-    { displayScaleDb.store(value == 30 || value == 60 ? value : 90, std::memory_order_release); }
+    { displayScaleDb.store(value == 30 || value == 60 ? value : 90, std::memory_order_release);
+      setDisplayZoom(-float(getDisplayScaleDb()),0,8,0); }
+    std::array<float,4> getDisplayZoom() const noexcept
+    {return {displayZoom[0].load(),displayZoom[1].load(),displayZoom[2].load(),displayZoom[3].load()};}
+    void setDisplayZoom(float floor,float top,float seconds,float endAge) noexcept
+    {
+        if(!std::isfinite(floor)||!std::isfinite(top)||!std::isfinite(seconds)||!std::isfinite(endAge))return;
+        top=juce::jlimit(-89.f,0.f,top);floor=juce::jlimit(-90.f,top-1.f,floor);
+        seconds=juce::jlimit(.1f,8.f,seconds);endAge=juce::jlimit(0.f,8.f-seconds,endAge);
+        displayZoom[0].store(floor);displayZoom[1].store(top);displayZoom[2].store(seconds);displayZoom[3].store(endAge);
+    }
     bool isEcoMode() const noexcept { return ecoMode.load (std::memory_order_acquire); }
     void setEcoMode (bool eco);
     void setEditorOpen (bool open) noexcept { editorOpen.store (open, std::memory_order_release); }
@@ -71,6 +81,7 @@ public:
     uint64_t getDisplayProjectionRevision() const noexcept
     { return displayProjectionRevision.load (std::memory_order_relaxed); }
     void resetTruePeakHold() noexcept;
+    void resetClipperGainReductionHold() noexcept;
     juce::UndoManager& getUndoManager() noexcept { return undoManager; }
 
     // UI/state changes can tell the host about the combined Lookahead +
@@ -94,7 +105,13 @@ public:
     void initialiseInputOutputLinkPreference (bool enabled);
     void initialiseAlgorithmPreference (int algorithm);
     void initialiseDualAlgorithmPreferences (int up, int down);
-    bool isLimiterMode() const noexcept { return apvts.getRawParameterValue (qqsc::params::limiterMode)->load() >= 0.5f; }
+    bool isLimiterMode() const noexcept { return limiterModeValue->load() >= 0.5f; }
+    bool isClipperMode() const noexcept { return !isLimiterMode() && clipperModeValue->load() >= 0.5f; }
+    bool isMasteringMode() const noexcept { return isLimiterMode() || clipperModeValue->load() >= 0.5f; }
+    int getProcessorMode() const noexcept { return isLimiterMode() ? 2 : isClipperMode() ? 1 : 0; }
+    int activeBoundaryBank() const noexcept { return isLimiterMode() ? 2 : isClipperMode() ? 4 : 0; }
+    void setProcessorModeFromEditor(int mode);
+    void enterClipperMode() { setProcessorModeFromEditor(1); }
     // Selection is saved with the sound; the output guard only acts in Limiter.
     bool isTruePeakSelected() const noexcept { return apvts.getRawParameterValue (qqsc::params::truePeakLimiting)->load() >= 0.5f; }
     int getTpRecoveryMode() const noexcept
@@ -106,7 +123,7 @@ public:
     bool isUnityMonitorActive() const noexcept { return isLimiterMode() && isUnityMonitorEnabled(); }
     void setUnityMonitorEnabled(bool enabled);
     float getUnityMonitorCeilingDb() const noexcept;
-    bool isLimiterLinked() const noexcept { return isLimiterMode() && apvts.getRawParameterValue (qqsc::params::limiterLink)->load() >= 0.5f; }
+    bool isLimiterLinked() const noexcept { return isMasteringMode() && readSoundParameter(qqsc::params::limiterLink) >= 0.5f; }
     const char* soundParameterID (const char*) const noexcept;
     float readSoundParameter (const char*) const noexcept;
     void enterLimiterMode();
@@ -127,10 +144,9 @@ public:
     bool isClassicBoundary(bool upper) const noexcept
     { return readSoundParameter(qqsc::params::compressionMode)>=0.5f
         ? readSoundParameter(upper ? "downAlgorithmMode" : "upAlgorithmMode")<0.5f : isClassicAlgorithm(); }
-    float boundaryMinimumDb(bool upper) const noexcept
+    float boundaryMinimumDb(bool) const noexcept
     {
-        return isClassicBoundary(upper)
-            ? qqsc::classicThresholdMinimumDb : qqsc::params::thresholdOffDb;
+        return qqsc::params::thresholdMinimumDb;
     }
 
 
@@ -204,12 +220,12 @@ private:
     void parameterChanged (const juce::String&, float) override;
     void timerCallback() override;
     void rebuildBoundaryPairs() noexcept;
-    void continueLimiterCompressionMode (bool destinationIsDual) noexcept;
+    void continueLimiterCompressionMode (bool destinationIsDual, bool clipper = false) noexcept;
     void writeCanonicalBoundariesTo (juce::ValueTree&) const;
 
     // Packed float pairs allow one atomic transition for both boundaries, with
     // no allocations, locks or recursive host calls on an automation callback.
-    std::array<std::atomic<uint64_t>, 20> boundaryPairs {};
+    std::array<std::atomic<uint64_t>, 30> boundaryPairs {};
     // Every host/UI parameter change advances one cheap revision. DynamicDisplay
     // uses it to invalidate retrospective projection caches without polling and
     // re-rendering the full history unconditionally at 60 Hz.
@@ -217,6 +233,7 @@ private:
     // Publish a new Limiter Single/Dual selection only after its destination
     // boundaries are ready. Host automation never waits for an editor/timer.
     std::atomic<int> limiterCompressionModeForAudio { 0 };
+    std::atomic<int> clipperCompressionModeForAudio { 0 };
     std::atomic<bool> restoringDynamicsState { false };
     std::atomic<bool> limiterBankInitialised { false };
     std::atomic<bool> dualRatioLinkPreferenceInitialised { false };
@@ -258,11 +275,11 @@ private:
         float ratioR = 1.0f;
         float ratioM = 1.0f;
         float ratioS = 1.0f;
-        float thresholdDb = qqsc::params::thresholdOffDb;
-        float thresholdLDb = qqsc::params::thresholdOffDb;
-        float thresholdRDb = qqsc::params::thresholdOffDb;
-        float thresholdMDb = qqsc::params::thresholdOffDb;
-        float thresholdSDb = qqsc::params::thresholdOffDb;
+        float thresholdDb = qqsc::params::thresholdMinimumDb;
+        float thresholdLDb = qqsc::params::thresholdMinimumDb;
+        float thresholdRDb = qqsc::params::thresholdMinimumDb;
+        float thresholdMDb = qqsc::params::thresholdMinimumDb;
+        float thresholdSDb = qqsc::params::thresholdMinimumDb;
         float makeupST = 0.0f;
         float makeupL = 0.0f;
         float makeupR = 0.0f;
@@ -277,6 +294,10 @@ private:
         std::array<float,35> limiterSound {};
         std::array<float,33> limiterSettings {};
         bool limiterInitialised = false;
+        std::array<float,35> clipperSound {};
+        std::array<float,33> clipperSettings {};
+        bool clipperMode = false, clipperLink = false;
+        float clipperOutputDb = 0.0f, clipperStereoLink = 0.0f;
         bool domainLink = true, dualRatioLink = true, inputOutputLink = true;
         bool limiterMode = false, limiterLink = true, truePeakLimiting = true;
         int tpRecoveryMode = qqsc::params::tpAuto;
@@ -284,6 +305,7 @@ private:
         float ceilingDb = 0.0f, limiterOutputDb = 0.0f, limiterCalibrationDb = 0.0f;
         float lookaheadMs = 26.0f;
         float limiterStereoLink = 0.0f;
+        float stLRLink = 100.f, stMSLink = 100.f;
         float distort = 0.0f;
         float detectorWindowMs = 100.0f; // Effective value is capped by the active Lookahead.
         int detectorMode = 0;
@@ -296,7 +318,7 @@ private:
         int upAlgorithmMode = 0, downAlgorithmMode = 0;
         int compressionMode = qqsc::params::singleCompression;
         std::array<float, 5> range { qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb, qqsc::params::rangeOffDb };
-        std::array<float, 5> upThreshold { -120, -120, -120, -120, -120 };
+        std::array<float, 5> upThreshold { -90, -90, -90, -90, -90 };
         std::array<float, 5> downThreshold { 0, 0, 0, 0, 0 };
         std::array<float, 5> upRatio { 1, 1, 1, 1, 1 };
         std::array<float, 5> downRatio { 1, 1, 1, 1, 1 };
@@ -337,6 +359,7 @@ private:
     void updateMatchResults() noexcept;
 
     void resetGainReductionHold (int mode = -1) noexcept;
+    void finishDisplayMeterCapture(DisplayKeyHistoryPosition start, int mode) noexcept;
     void updateGainReductionHoldChannel (int channel, float blockPeakGrDb, int blockSamples) noexcept;
     std::shared_ptr<DisplayKeyHistoryStorage> createDisplayKeyHistoryStorage();
 
@@ -345,6 +368,10 @@ private:
     // constructed parameter tree, and never take locks on the audio thread.
     std::atomic<bool> classicAlgorithmForText { true };
     juce::AudioProcessorValueTreeState apvts;
+    // APVTS parameters keep their addresses through state replacement. Mode is
+    // read often during audio/Display work; avoid repeated string-map lookups.
+    std::atomic<float>* const limiterModeValue = apvts.getRawParameterValue(qqsc::params::limiterMode);
+    std::atomic<float>* const clipperModeValue = apvts.getRawParameterValue("clipperMode");
 
     // All four future-window peak analysers run continuously so ST/MS/LR
     // switching uses the same transparent detector semantics in every domain.
@@ -358,7 +385,9 @@ private:
     juce::dsp::Oversampling<float> truePeakOversampler { 2, 2, juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple, true, false };
     juce::AudioBuffer<float> truePeakBuffer;
     qqsc::OutputCeiling outputCeiling;
-    std::vector<std::array<float,10>> ceilingReferenceDelay;
+    // Last two values carry Display detector evidence through the same delay
+    // as the original carrier. They never feed the audio gain calculation.
+    std::vector<std::array<float,12>> ceilingReferenceDelay;
     size_t ceilingReferenceIndex=0;
     int ceilingReferenceDelaySamples=0;
     bool currentCeilingSharesCoreOversampling=false;
@@ -381,6 +410,7 @@ private:
     // linear-phase FIR stages with integer latency compensation enabled.
     std::array<std::unique_ptr<juce::dsp::Oversampling<float>>, 4> oversamplers;
     juce::AudioBuffer<float> wetBaseBuffer;
+    juce::AudioBuffer<float> displayDetectorBuffer;
     // Six-channel staging keeps main L/R and optional Key L/R explicit before
     // the shared 1x/4x/8x/16x Oversampling stage. Key channels are overwritten by
     // wet variants only after the detector has consumed them.
@@ -423,7 +453,8 @@ private:
     bool currentLimiterCeilingActive = false;
     int configuredMaximumBlockSize = 1;
     double currentSampleRate = 44100.0;
-    std::atomic<int> displayScaleDb { 90 };
+    std::atomic<int> displayScaleDb { 90 }; // Legacy project view migration only.
+    std::array<std::atomic<float>,4> displayZoom {{-90.f,0.f,8.f,0.f}};
     std::atomic<bool> ecoMode { false };
     std::atomic<bool> editorOpen { false };
     bool previousUiAnalysisEnabled = true;
@@ -478,6 +509,7 @@ private:
     std::array<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear>, 5> upEnableFades, downEnableFades;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> algorithmFade; // 0 Classic, 1 Super
     juce::SmoothedValue<float> limiterStereoLinkSmoother;
+    juce::SmoothedValue<float> stLRLinkSmoother, stMSLinkSmoother;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> detectorModeFade; // 0 Original, 1 Bilateral
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> upAlgorithmFade, downAlgorithmFade;
     juce::AudioBuffer<float> mixControlBuffer; // five Makeup, five Mix, Output, four Dry matrix coefficients
@@ -519,7 +551,7 @@ private:
 
     mutable juce::CriticalSection abLock;
     std::atomic<float> distortForAudio { 0.0f };
-    std::array<std::atomic<float>,2> observedLookahead {{26.0f,26.0f}};
+    std::array<std::atomic<float>,3> observedLookahead {{26.0f,26.0f,26.0f}};
     std::atomic<float> displayCoreDelaySeconds {0.026f};
     ParameterSnapshot snapshotA;
     ParameterSnapshot snapshotB;

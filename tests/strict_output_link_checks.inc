@@ -105,14 +105,16 @@
             fixed("LINK toggle back",[&]{e.limiterLinkButton.onClick();});
             ++cases;
         }
-        // Unity or an inactive downward branch must not lock Output itself.
+        // Unity still links Output and the current shared Threshold. The
+        // unconditional-link profile also covers DOWN OFF and numeric edits.
         QQSuperCompressionAudioProcessor p;baseline(p);p.enterLimiterMode();set(p,"limiterLink",1);
-        set(p,"limiterCompressionMode",0);set(p,"limiterProcessingMode",0);set(p,"limiterRatio",1);
-        set(p,"limiterOutputDb",8.24f);p.setBoundaryForDomainDb(false,false,0,-18);
+        set(p,"limiterCompressionMode",0);set(p,"limiterProcessingMode",2);set(p,"limiterRatioL",1);
+        set(p,"limiterOutputDb",8.24f);p.setBoundaryForDomainDb(false,false,1,-18);
         QQSuperCompressionAudioProcessorEditor e(p,settings(root));sync(p,e);
         drag(e.outputGainSlider,10.24);check(std::abs(get(p,"limiterOutputDb")-10.24f)<.001,"Unity Ratio locked Output");
+        check(std::abs(p.getBoundaryForDomainDb(false,false,1)+20)<.02,"Unity Output failed to link Threshold");
         type(e.outputGainSlider,"6.24");check(std::abs(get(p,"limiterOutputDb")-6.24f)<.001,"Unity Ratio locked typed Output");
-        check(std::abs(p.getBoundaryForDomainDb(false,false,0)+18)<.001,"Unity Output fabricated threshold movement");
+        check(std::abs(p.getBoundaryForDomainDb(false,false,1)+16)<.02,"Unity typed Output failed to link Threshold");
         std::cout<<"PASS: strict Output whitelist, "<<cases<<" Classic/Super + ST/LR/MS + LINK on/off + Ratio Link on/off cases; "
                  <<unlinkedEdits<<" unrelated control edits left both Output banks/calibration exactly unchanged; unity Output remains usable.\n";
     }

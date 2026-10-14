@@ -211,16 +211,7 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
       replayRequestGeneration (std::make_shared<std::atomic<uint64_t>> (0))
 {
     setOpaque (true);
-    addAndMakeVisible(scaleButton);
-    scaleButton.setTooltip(juce::String::fromUTF8 (u8"Display 显示范围：-30 / -60 / -90 dB。阈值推子随显示范围缩放，已有阈值和声音处理不变。"));
-    scaleButton.setMouseClickGrabsKeyboardFocus(false);
-    scaleButton.onClick = [this]
-    {
-        const int current = processor.getDisplayScaleDb();
-        processor.setDisplayScaleDb(current == 90 ? 30 : current == 30 ? 60 : 90);
-        processor.updateHostDisplay(juce::AudioProcessor::ChangeDetails{}.withNonParameterStateChanged(true));
-        refreshScale();
-    };
+    setTooltip(juce::String::fromUTF8(u8"Display：按住鼠标左键拖动框选，放大所选的时间和音量范围。放大后继续随播放滚动，保持放大比例；可再次框选进一步放大。鼠标右键恢复完整视图。阈值推子与图表保持对齐，框选不会改变阈值或声音。调整声音参数仍会实时更新已有曲线。"));
     refreshScale();
 
     // The 4097-point detector grid never changes. Precompute the dB->linear
@@ -233,8 +224,9 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
         detectorLevelLut[static_cast<size_t> (i)] = dbToDetectorLevel (db);
     }
 
-    for (auto& cache : renderCaches)
+    for (auto* item : { &renderCaches[0], &renderCaches[1], &stereoLimiterCache })
     {
+        auto& cache = *item;
         cache.inputPath.preallocateSpace (historyLength * 3);
         cache.gainReductionPath.preallocateSpace (historyLength * 6);
         cache.gainIncreasePath.preallocateSpace (historyLength * 6);
@@ -271,10 +263,9 @@ DynamicDisplay::~DynamicDisplay()
 
 void DynamicDisplay::refreshScale()
 {
-    const int current = processor.getDisplayScaleDb();
-    if (lastScaleDb == current) return;
-    lastScaleDb = current;
-    scaleButton.setButtonText("Scale: -" + juce::String(current) + " dB");
+    const auto current = processor.getDisplayZoom();
+    if (view == current) return;
+    view = current;
     geometryDirty = true;
     if (onScaleChanged) onScaleChanged();
     repaint();
@@ -282,7 +273,7 @@ void DynamicDisplay::refreshScale()
 
 void DynamicDisplay::resized()
 {
-    scaleButton.setBounds(juce::jmax(190, getWidth() - 230), 5, 108, 22);
+    zoomDragActive=false;
     geometryDirty = true;
     if (! isShowing())
         return;
@@ -378,7 +369,7 @@ void DynamicDisplay::timerCallback()
     const auto capturedTruePeakExcessDb = juce::jmax (0.0f,
         m.displayTruePeakExcessDb.exchange (0.0f, std::memory_order_acq_rel));
 
-    const int limiter = processor.isLimiterMode() ? 1 : 0;
+    const int limiter = processor.isMasteringMode() ? 1 : 0;
     // Limiter ON/OFF is a projection choice, not a new history source. Keep
     // the evidence so switching Limiter also reshapes the already-visible past.
     if (mode != lastMode || keySource != lastKeySource
@@ -395,25 +386,31 @@ void DynamicDisplay::timerCallback()
     // Host audio may be stopped when the user switches ST/LR/MS. Geometry
     // follows the current parameter immediately; never relabel old-domain
     // meter data as a new-domain history while waiting for the audio callback.
-    const bool hasNewAudioEvidence = position.counter != lastCapturedHistoryCounter;
-    if (mode == m.processingMode.load (std::memory_order_relaxed)
+    const auto captureRevision=m.displayCaptureRevision.load(std::memory_order_acquire);
+    const auto captureCounter=m.displayCaptureCounter.load(std::memory_order_relaxed);
+    const bool hasNewAudioEvidence = captureCounter != lastCapturedHistoryCounter;
+    if ((captureRevision&1u)==0 && mode == m.displayCaptureMode.load (std::memory_order_relaxed)
+        && position.generation==m.displayCaptureGeneration.load(std::memory_order_relaxed)
         && (hasNewAudioEvidence || histories[0].points.empty()))
     {
         HistoryPoint point0;
         point0.inputDb = m.displayInputDb0.load (std::memory_order_relaxed);
         point0.detectorDb = m.displayDetectorDb0.load (std::memory_order_relaxed);
+        if(mode==qqsc::params::stereoLinked)for(size_t d=0;d<4;++d)
+        {point0.stInputDb[d]=m.displaySTInputDb[d].load(std::memory_order_relaxed);point0.stDetectorDb[d]=m.displaySTDetectorDb[d].load(std::memory_order_relaxed);}
         point0.externalKeyDb = m.displayExternalKeyDb0.load (std::memory_order_relaxed);
         point0.truePeakExcessDb = capturedTruePeakExcessDb;
         point0.capturedInputGainDb = capturedInputGainDb;
         point0.capturedKeyGainDb = capturedKeyGainDb;
         point0.captureGeneration = position.generation;
-        point0.captureCounter = position.counter;
+        point0.captureCounter = captureCounter;
         point0.carrierDelaySeconds = processor.getDisplayCoreDelaySeconds();
-        pushHistory (histories[0], point0);
+        point0.captureBlockSamples = m.displayBlockSamples.load(std::memory_order_relaxed);
+        for(size_t i=0;i<5;++i)point0.capturedDetectorSettings[i]=m.displayDetectorSettings[i].load(std::memory_order_relaxed);
+        HistoryPoint point1=point0;
 
         if (mode != qqsc::params::stereoLinked)
         {
-            HistoryPoint point1;
             point1.inputDb = m.displayInputDb1.load (std::memory_order_relaxed);
             point1.detectorDb = m.displayDetectorDb1.load (std::memory_order_relaxed);
             point1.externalKeyDb = m.displayExternalKeyDb1.load (std::memory_order_relaxed);
@@ -421,15 +418,22 @@ void DynamicDisplay::timerCallback()
             point1.capturedInputGainDb = capturedInputGainDb;
             point1.capturedKeyGainDb = capturedKeyGainDb;
             point1.captureGeneration = position.generation;
-            point1.captureCounter = position.counter;
+            point1.captureCounter = captureCounter;
             point1.carrierDelaySeconds = point0.carrierDelaySeconds;
-            pushHistory (histories[1], point1);
+            point1.captureBlockSamples = point0.captureBlockSamples;
         }
-        lastCapturedHistoryCounter = position.counter;
-        trimHistoryToVisibleWindow (histories[0], position.counter);
-        if (mode != qqsc::params::stereoLinked)
-            trimHistoryToVisibleWindow (histories[1], position.counter);
-        ++historyRevision;
+        // Never combine a completed meter block with a newer raw-ring cursor,
+        // or fields from two blocks while the audio thread publishes them.
+        if(captureRevision==m.displayCaptureRevision.load(std::memory_order_acquire))
+        {
+            pushHistory(histories[0],point0);
+            if(mode!=qqsc::params::stereoLinked)pushHistory(histories[1],point1);
+            lastCapturedHistoryCounter = captureCounter;
+            trimHistoryToVisibleWindow (histories[0], position.counter);
+            if (mode != qqsc::params::stereoLinked)
+                trimHistoryToVisibleWindow (histories[1], position.counter);
+            ++historyRevision;
+        }
     }
 
     const auto currentHpfHz = readParameter (processor, qqsc::params::keyHpfHz,
@@ -516,8 +520,7 @@ void DynamicDisplay::pushHistory (HistorySet& history, HistoryPoint point)
 
 float DynamicDisplay::dbToY (float db, juce::Rectangle<float> plot) const noexcept
 {
-    const auto floor=-float(processor.getDisplayScaleDb());
-    return juce::jmap (juce::jlimit (floor, maxDb, db), maxDb, floor, plot.getY(), plot.getBottom());
+    return juce::jmap (juce::jlimit (view[0], view[1], db), view[1], view[0], plot.getY(), plot.getBottom());
 }
 
 float DynamicDisplay::historyXForCounter (uint64_t captureCounter,
@@ -529,8 +532,9 @@ float DynamicDisplay::historyXForCounter (uint64_t captureCounter,
     const auto ageSamples = renderReferenceCounter > captureCounter
         ? renderReferenceCounter - captureCounter : uint64_t { 0 };
     const auto ageSeconds = static_cast<double> (ageSamples) / renderReferenceSampleRate;
-    const auto ageNormalised = juce::jlimit (
-        0.0, 1.0, ageSeconds / static_cast<double> (historyWindowSeconds));
+    const auto ageNormalised = view[2]==historyWindowSeconds && view[3]==0.f
+        ? juce::jlimit(0.0,1.0,ageSeconds/double(historyWindowSeconds))
+        : (ageSeconds-double(view[3]))/double(view[2]);
     return plot.getRight() - plot.getWidth() * static_cast<float> (ageNormalised);
 }
 
@@ -583,11 +587,10 @@ float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY,
 {
     const auto plot = getBoundaryPlotForDomain (parameterDomainIndex);
     if (plot.getHeight() <= 0.0f)
-        return qqsc::params::thresholdOffDb;
+        return qqsc::params::thresholdMinimumDb;
 
     const auto displayDb = juce::jmap (juce::jlimit (plot.getY(), plot.getBottom(), localY),
-                                      plot.getY(), plot.getBottom(), maxDb,
-                                      -float(processor.getDisplayScaleDb()));
+                                      plot.getY(), plot.getBottom(), view[1], view[0]);
     const bool externalKey = juce::roundToInt (readParameter (processor, qqsc::params::keySource))
                              == qqsc::params::keyExternal;
     const auto detectorDb = externalKey ? displayDb
@@ -696,7 +699,7 @@ juce::Rectangle<float> DynamicDisplay::domainPanelBounds (int domainIndex, int m
     content.removeFromTop (24.0f);
     content.removeFromBottom (23.0f);
 
-    if (mode == qqsc::params::stereoLinked || processor.isLimiterMode())
+    if (mode == qqsc::params::stereoLinked || processor.isMasteringMode())
         return content;
 
     constexpr float gap = 6.0f;
@@ -733,7 +736,7 @@ uint64_t DynamicDisplay::dynamicsLutSignatureForDomain (int domainIndex, int mod
 
     const auto domain = processorDomain (domainIndex, mode);
     const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
-    mixWord (static_cast<uint64_t> (processor.isLimiterMode()));
+    mixWord (static_cast<uint64_t> (processor.isMasteringMode()));
     mixWord (static_cast<uint64_t> (dual));
     mixWord (static_cast<uint64_t> (juce::roundToInt (readParameter (processor, qqsc::params::keySource))));
     mixFloat (processor.getBoundaryForDomainDb (dual, false, domain));
@@ -799,6 +802,7 @@ void DynamicDisplay::refreshRenderCaches (int mode)
     const bool externalKey = keySource == qqsc::params::keyExternal;
     const bool bypassed = readParameter (processor, qqsc::params::bypass) >= 0.5f;
     const auto domainCount = mode == qqsc::params::stereoLinked ? 1 : 2;
+    const bool limiter = processor.isMasteringMode();
 
     // Both channel LUTs must be current before either linked projection uses
     // its partner. Otherwise the first panel could use the previous A/B bank.
@@ -827,11 +831,14 @@ void DynamicDisplay::refreshRenderCaches (int mode)
             continue;
         }
 
-        const auto dynamicsSignature = dynamicsLutSignatureForDomain (domain, mode);
-        if (! cache.dynamicsLutValid || cache.dynamicsLutSignature != dynamicsSignature)
-            rebuildDynamicsLut (cache, domain, mode, dynamicsSignature);
-
         projectHistory (domain, mode, externalKey, bypassed, cache, cache.projected);
+        cache.currentGainReductionDb = cache.projected.size == 0
+            ? 0.0f : cache.projected.effectiveGainReduction[cache.projected.size - 1];
+        cache.valid = true;
+        // Limiter displays only the combined ST paths below. Keep both channel
+        // projections for linking, but do not build two invisible sets of paths.
+        if (limiter)
+            continue;
         const auto plot = plotBoundsForPanel (domainPanelBounds (domain, mode));
         updatePath (cache.inputPath, cache.projected.input,
                     cache.projected.captureCounter, cache.projected.size, plot);
@@ -847,11 +854,8 @@ void DynamicDisplay::refreshRenderCaches (int mode)
                                       cache.projected.effectiveGainReduction,
                                       cache.projected.captureCounter,
                                       cache.projected.size, plot);
-        cache.currentGainReductionDb = cache.projected.size == 0
-            ? 0.0f : cache.projected.effectiveGainReduction[cache.projected.size - 1];
-        cache.valid = true;
     }
-    if(processor.isLimiterMode())
+    if(limiter)
     {
         // Project both independent detectors first, including audio Link and
         // Ceiling, then combine equal-time peaks into the single ST view.
@@ -937,7 +941,9 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
     const auto keyGainDb = readParameter (processor, qqsc::params::keyGainDb);
     const auto inputGain = juce::Decibels::decibelsToGain (inputGainDb);
     const auto wetMix = mixForDomain (domainIndex, mode);
-    const bool canLink=processor.isLimiterMode() && mode==qqsc::params::leftRight;
+    const float stLR=readParameter(processor,"stLRLink")*.01f, stMS=readParameter(processor,"stMSLink")*.01f;
+    const bool combinedST=!processor.isMasteringMode() && mode==qqsc::params::stereoLinked && (stLR<1 || stMS<1);
+    const bool canLink=processor.isMasteringMode() && mode==qqsc::params::leftRight;
     const float link=canLink ? readParameter(processor,qqsc::params::limiterStereoLink)*.01f : 0.0f;
     const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode), -180.0f);
     const auto activeOutputGainDb = processor.getActiveOutputGainDb();
@@ -957,6 +963,12 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
     const float recoveryStep = 1.0f / (1.0f + float (displayRefreshHz) * recoverySeconds);
     float retrospectiveTpGain = 1.0f, peerRetrospectiveTpGain=1.0f;
     const int peerIndex=1-domainIndex;
+    // These controls are constant over the current projection. Reading the
+    // parameter bank inside every historical point used to repeat these two
+    // lookups up to 960 times per frame while Limiter linking was active.
+    const auto peerMix = link > 0.f ? mixForDomain(peerIndex,mode) : 0.f;
+    const auto peerMakeup = link > 0.f
+        ? juce::Decibels::decibelsToGain(makeupDbForDomain(peerIndex,mode),-180.0f) : 1.f;
     const auto& peerPoints=histories[size_t(peerIndex)].points;
     auto peerCursor=peerPoints.begin();
     const auto detectorForPoint=[&](const HistoryPoint& p) {
@@ -988,6 +1000,24 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         // interpolation; expensive Classic/Super pow/rational evaluation is
         // rebuilt once when a parameter revision changes.
         auto compressedGain = dynamicsGainFromLut (cache, detectorDb);
+        if(combinedST)
+        {
+            std::array<float,4> g {}, carrier {};
+            for(size_t d=0;d<4;++d)
+            {
+                float db=point.hasSTReplay ? point.stReplayedDetectorDb[d] : point.stDetectorDb[d];
+                db+=point.hasSTReplay ? (externalKey ? keyGainDb : inputGainDb)
+                    : externalKey ? keyGainDb-point.capturedKeyGainDb : inputGainDb-point.capturedInputGainDb;
+                g[d]=dynamicsGainFromLut(cache,juce::jlimit(silenceDb,maxDb,db));
+                carrier[d]=juce::Decibels::decibelsToGain(point.stInputDb[d],-120.f);
+            }
+            // Retrospective envelope projection: normalise both domains to the
+            // same captured carrier. M/S peaks are not a second input waveform.
+            const float lrGain=juce::jmax(carrier[0]*g[0],carrier[1]*g[1])/juce::jmax(1e-9f,juce::jmax(carrier[0],carrier[1]));
+            const float msGain=(carrier[2]*g[2]+carrier[3]*g[3])/juce::jmax(1e-9f,carrier[2]+carrier[3]);
+            if(juce::jmax(carrier[0],carrier[1])>1e-9f)
+                compressedGain=stLR*stMS*compressedGain+.5f*(1-stLR)*(1+stMS)*lrGain+.5f*(1-stMS)*(1+stLR)*msGain;
+        }
         const HistoryPoint* peerPoint=nullptr;
         float peerGain=1.0f,peerDetectorDb=silenceDb;
         if(link>0.0f)
@@ -1057,8 +1087,6 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
             }
             if(peerPoint!=nullptr)
             {
-                const auto peerMix=mixForDomain(peerIndex,mode);
-                const auto peerMakeup=juce::Decibels::decibelsToGain(makeupDbForDomain(peerIndex,mode),-180.0f);
                 const auto peerInput=peerPoint->inputDb;
                 const auto peerTotal=inputGain*((1-peerMix)+peerGain*peerMakeup*peerMix)*outputGain;
                 const auto peerPre=peerInput+juce::Decibels::gainToDecibels(juce::jmax(peerTotal,1.e-9f),-180.f);
@@ -1155,7 +1183,8 @@ bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
     request.captureGeneration = histories[0].points.front().captureGeneration;
     request.mode = lastMode;
     request.abSlot = processor.getActiveABSlot();
-    request.limiter = processor.isLimiterMode();
+    request.limiter = processor.isMasteringMode();
+    request.clipper = processor.isClipperMode();
     request.keySource = lastKeySource;
     request.hpfHz = readParameter (processor, qqsc::params::keyHpfHz,
                                    qqsc::params::keyHpfOffHz);
@@ -1175,6 +1204,7 @@ bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
         }
         request.markers.push_back (point.captureCounter);
         request.carrierDelays.push_back(point.carrierDelaySeconds);
+        request.captureBlockSamples.push_back(point.captureBlockSamples);
     }
 
     if (request.captureGeneration == 0 || request.markers.empty())
@@ -1228,6 +1258,7 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
         int(std::round(snapshot.sampleRate*factor*double(request.detectorWindowMs)*.001)));
     ReplayPeakWindow primaryEngine(windowSamples,request.detectorMode!=0);
     ReplayPeakWindow secondaryEngine(windowSamples,request.detectorMode!=0);
+    ReplayPeakWindow midReplay(windowSamples,request.detectorMode!=0),sideReplay(windowSamples,request.detectorMode!=0);
     const bool needsSecondaryEngine=request.mode!=qqsc::params::stereoLinked || snapshot.stereoKey;
     const bool hpfEnabled=qqsc::params::isKeyHpfEnabled(request.hpfHz);
     const auto coefficients=replayHighPassCoefficients(snapshot.sampleRate,request.hpfHz);
@@ -1245,7 +1276,7 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
         if(std::abs(impulse.getSample(0,i))>std::abs(impulse.getSample(0,peakIndex)))peakIndex=i;
     const double detectorDelay=double(windowSamples+peakIndex)/factor;
     os.reset();
-    std::vector<std::array<float,2>> levels(snapshot.left.size());
+    std::vector<std::array<float,4>> levels(snapshot.left.size());
     const bool externalKey = request.keySource == qqsc::params::keyExternal;
     // Host-rate post-Filter samples: independent of Window, Safe and OS.
     std::vector<std::array<float,2>> keySignal(externalKey ? snapshot.left.size() : 0);
@@ -1267,10 +1298,17 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
         const auto up=os.processSamplesUp(juce::dsp::AudioBlock<float>(replayInput).getSubBlock(0,size_t(count)));
         for(int i=0;i<count;++i)
         {
-            std::array<float,2> peak{};
+            std::array<float,4> peak{};
             for(int j=0;j<factor;++j)
             {
                 const int k=i*factor+j;const auto index=int64_t((offset+size_t(i))*size_t(factor)+size_t(j));
+                if(request.mode==qqsc::params::stereoLinked)
+                {
+                    const float l=up.getSample(0,k),r=up.getSample(1,k);
+                    midReplay.process(snapshot.stereoKey ? .5f*(l+r) : l,index);
+                    sideReplay.process(snapshot.stereoKey ? .5f*(l-r) : (externalKey ? l : 0.f),index);
+                    peak[2]=juce::jmax(peak[2],midReplay.getCurrentLevel());peak[3]=juce::jmax(peak[3],sideReplay.getCurrentLevel());
+                }
                 primaryEngine.process(up.getSample(0,k),index);
                 if(needsSecondaryEngine)secondaryEngine.process(up.getSample(1,k),index);
                 peak[0]=juce::jmax(peak[0],primaryEngine.getCurrentLevel());
@@ -1283,6 +1321,7 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
     result.firstValidMarkerIndex=0;
     result.detectorDb0.assign(request.markers.size(),std::numeric_limits<float>::quiet_NaN());
     result.detectorDb1=result.detectorDb0;
+    if(request.mode==qqsc::params::stereoLinked)for(auto& values:result.stDetectorDb)values=result.detectorDb0;
     if (externalKey)
     {
         result.externalKeyDb0=result.detectorDb0;
@@ -1294,7 +1333,9 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
         // Replaying it with today's Lookahead was the horizontal displacement.
         const double capturedDelay=marker<request.carrierDelays.size() && request.carrierDelays[marker]>=0
             ? request.carrierDelays[marker]*snapshot.sampleRate : double(lookaheadSamples);
-        const auto span=marker>0 ? request.markers[marker]-request.markers[marker-1]
+        const auto span=marker<request.captureBlockSamples.size() && request.captureBlockSamples[marker]>0
+            ? uint64_t(request.captureBlockSamples[marker])
+            : marker>0 ? request.markers[marker]-request.markers[marker-1]
             : request.markers.size()>1 ? request.markers[1]-request.markers[0]
             : uint64_t(snapshot.sampleRate/displayRefreshHz);
         if (externalKey)
@@ -1318,9 +1359,10 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
             +int64_t(std::llround(detectorDelay-capturedDelay));
         const int64_t start=end-int64_t(span);
         if(end>int64_t(levels.size()))continue; // No fabricated future audio at the live edge.
-        std::array<float,2> peak{};
+        std::array<float,4> peak{};
         for(int64_t i=std::max(int64_t(0),start);i<end;++i)
-        {peak[0]=juce::jmax(peak[0],levels[size_t(i)][0]);peak[1]=juce::jmax(peak[1],levels[size_t(i)][1]);}
+            for(size_t d=0;d<4;++d)peak[d]=juce::jmax(peak[d],levels[size_t(i)][d]);
+        if(request.mode==qqsc::params::stereoLinked)for(size_t d=0;d<4;++d)result.stDetectorDb[d][marker]=detectorLevelToDb(peak[d]);
         if(request.mode==qqsc::params::stereoLinked && snapshot.stereoKey)peak[0]=juce::jmax(peak[0],peak[1]);
         result.detectorDb0[marker]=detectorLevelToDb(peak[0]);
         result.detectorDb1[marker]=detectorLevelToDb(peak[1]);
@@ -1353,7 +1395,8 @@ void DynamicDisplay::applyHpfReplay (ReplayResult result)
         || result.request.keySource != lastKeySource
         || result.request.keySource != juce::roundToInt(readParameter(processor, qqsc::params::keySource))
         || result.request.abSlot != processor.getActiveABSlot()
-        || result.request.limiter != processor.isLimiterMode()
+        || result.request.limiter != processor.isMasteringMode()
+        || result.request.clipper != processor.isClipperMode()
         || result.request.oversampling != juce::roundToInt(readParameter(processor,qqsc::params::oversampling))
         || result.request.detectorMode != effectiveDisplayDetectorMode (processor, currentLookaheadMs)
         || std::abs (result.request.lookaheadMs - currentLookaheadMs) > 0.01f)
@@ -1383,12 +1426,27 @@ void DynamicDisplay::applyHpfReplay (ReplayResult result)
                 continue;
 
             const auto index = static_cast<size_t> (std::distance (result.request.markers.begin(), marker));
-            if (index >= result.firstValidMarkerIndex && index < values.size() && std::isfinite(values[index]))
+            const std::array<float,5> settings {result.request.lookaheadMs,result.request.detectorWindowMs,
+                float(result.request.oversampling),result.request.hpfHz,float(result.request.detectorMode)};
+            bool originalSettings=true;
+            for(size_t i=0;i<settings.size();++i)
+                originalSettings=originalSettings && std::abs(settings[i]-point.capturedDetectorSettings[i])<.001f;
+            if(originalSettings)
+            {
+                // Restoring a setting restores the exact live evidence, including
+                // high-rate/oversampled peaks that the bounded raw replay approximates.
+                point.hasReplayedDetector=false;point.hasSTReplay=false;
+            }
+            else if (index >= result.firstValidMarkerIndex && index < values.size() && std::isfinite(values[index]))
             {
                 point.replayedDetectorDb = values[index];
                 point.hasReplayedDetector = true;
+                if(result.request.mode==qqsc::params::stereoLinked && index<result.stDetectorDb[0].size())
+                {for(size_t d=0;d<4;++d)point.stReplayedDetectorDb[d]=result.stDetectorDb[d][index];point.hasSTReplay=true;}
             }
-            if (index >= result.firstValidMarkerIndex && index < keyValues.size() && std::isfinite(keyValues[index]))
+            if(std::abs(result.request.hpfHz-point.capturedDetectorSettings[3])<.001f)
+                point.hasReplayedExternalKey=false;
+            else if (index >= result.firstValidMarkerIndex && index < keyValues.size() && std::isfinite(keyValues[index]))
             {
                 point.replayedExternalKeyDb = keyValues[index];
                 point.hasReplayedExternalKey = true;
@@ -1417,7 +1475,7 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     const auto keySource = juce::roundToInt (readParameter (processor, qqsc::params::keySource));
     const bool externalKey = keySource == qqsc::params::keyExternal;
     const bool externalAvailable = processor.isExternalSidechainBusAvailable();
-    const auto& cache = processor.isLimiterMode() ? stereoLimiterCache : renderCaches[static_cast<size_t> (domainIndex)];
+    const auto& cache = processor.isMasteringMode() ? stereoLimiterCache : renderCaches[static_cast<size_t> (domainIndex)];
     const auto currentGr = cache.currentGainReductionDb;
 
     if (qqsc::ui::isDarkTheme())
@@ -1452,16 +1510,16 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
 
     const auto plot = plotBoundsForPanel (panel);
 
-    const auto gridFloor=-float(processor.getDisplayScaleDb());
-    const auto gridStep=float(processor.getDisplayScaleDb()) / 6.0f;
-    for (float db=0.0f; db>=gridFloor; db-=gridStep)
+    const auto gridStep=(view[1]-view[0])/6.f;
+    for (int tick=0; tick<=6; ++tick)
     {
+        const float db=view[1]-float(tick)*gridStep;
         const auto y = dbToY (db, plot);
         g.setColour (qqsc::ui::text().withAlpha (0.065f));
         g.drawHorizontalLine (juce::roundToInt (y), plot.getX(), plot.getRight());
         g.setColour (qqsc::ui::textMuted().withAlpha (0.64f));
         g.setFont (8.0f);
-        g.drawText (juce::String (static_cast<int> (db)),
+        g.drawText (juce::String (db,gridStep<5.f ? 1 : 0),
                     juce::roundToInt (panel.getX() + 4.0f), juce::roundToInt (y - 6.0f), 37, 12,
                     juce::Justification::right);
     }
@@ -1474,11 +1532,13 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     {
         return getBoundaryYForDomainDb (parameterDomainIndex, db,upper);
     };
+    constexpr float boundaryTagHeight = 24.0f;
     const auto tagY = [&] (float db,bool upper)
     {
-        return juce::jlimit (plot.getY(), plot.getBottom() - 16.0f, boundaryY (db,upper) - 8.0f);
+        return juce::jlimit (plot.getY(), plot.getBottom() - boundaryTagHeight,
+                             boundaryY (db,upper) - boundaryTagHeight * 0.5f);
     };
-    const bool tagsOverlap = std::abs (tagY (lowerDb,false) - tagY (upperDb,true)) < 18.0f;
+    const bool tagsOverlap = std::abs (tagY (lowerDb,false) - tagY (upperDb,true)) < boundaryTagHeight + 2.0f;
     const auto drawBoundary = [&] (float db, bool upper)
     {
         const bool rangeOff = ! dual && upper && ! qqsc::params::isRangeEnabled (db);
@@ -1494,16 +1554,16 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
 
         const juce::String name = dual ? (upper ? "DOWN " : "UP ") : (upper ? "RANGE " : "THR ");
         const auto value = rangeOff ? juce::String ("OFF")
-                                    : (processor.isClassicBoundary(upper) || qqsc::params::isThresholdEnabled (db) ? juce::String (db, 1) : juce::String ("-inf"));
-        constexpr float tagWidth = 88.0f;
+                                    : juce::String (qqsc::params::clampThresholdDb (db), 1);
+        constexpr float tagWidth = 112.0f;
         const auto offset = upper && tagsOverlap ? tagWidth + 3.0f : 0.0f;
         auto tag = juce::Rectangle<float> (plot.getRight() - tagWidth - 2.0f - offset,
-                                            tagY (db,upper), tagWidth, 16.0f);
+                                            tagY (db,upper), tagWidth, boundaryTagHeight);
         g.setColour (qqsc::ui::panel().withAlpha (0.90f));
         g.fillRoundedRectangle (tag, 4.0f);
         g.setColour (colour);
-        g.setFont (juce::Font (juce::FontOptions (8.5f, juce::Font::bold)));
-        g.drawFittedText (name + value, tag.toNearestInt(), juce::Justification::centred, 1);
+        g.setFont (juce::Font (juce::FontOptions (13.0f, juce::Font::bold)));
+        g.drawFittedText (name + value, tag.reduced (4.0f, 1.0f).toNearestInt(), juce::Justification::centred, 1);
     };
     g.saveState();
     g.reduceClipRegion (plot.toNearestInt());
@@ -1554,19 +1614,18 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     g.strokePath (cache.outputPath, juce::PathStrokeType (1.5f));
     g.restoreState();
     drawBoundary (lowerDb, false);
-    if (dual || !processor.isLimiterMode()) drawBoundary (upperDb, true);
+    if (dual || !processor.isMasteringMode()) drawBoundary (upperDb, true);
 }
 
 juce::Rectangle<float> DynamicDisplay::getLoudnessReadoutBounds() const noexcept
 {
-    if (!processor.isLimiterMode()) return {};
+    if (!processor.isMasteringMode()) return {};
     const auto mode = displayProcessingMode(processor);
-    const bool split = mode != qqsc::params::stereoLinked && !processor.isLimiterMode();
+    const bool split = mode != qqsc::params::stereoLinked && !processor.isMasteringMode();
     const auto plot = plotBoundsForPanel(domainPanelBounds(split ? 1 : 0, mode));
-    const auto width = juce::jmin(380.0f, plot.getWidth() * .48f);
-    const auto height = juce::jmin(split ? 103.0f : 150.0f, plot.getHeight() * .68f);
-    return {plot.getX() + plot.getWidth() * .13f,
-            plot.getY() + plot.getHeight() * (split ? .27f : .49f), width, height};
+    const auto width = juce::jmin(180.0f, plot.getWidth() - 8.0f);
+    const auto height = juce::jmin(92.0f, plot.getHeight() - 8.0f);
+    return {plot.getX() + 4.0f, plot.getBottom() - height - 4.0f, width, height};
 }
 
 void DynamicDisplay::drawLoudnessReadout(juce::Graphics& g)
@@ -1579,15 +1638,15 @@ void DynamicDisplay::drawLoudnessReadout(juce::Graphics& g)
     const bool running = meters.outputLoudnessMeasuring.load(std::memory_order_relaxed);
     const bool valid = lufs > -100.0f && std::isfinite(lufs);
     g.setColour(qqsc::ui::panel().withAlpha(.94f));
-    g.fillRoundedRectangle(box, 9.0f);
+    g.fillRoundedRectangle(box, 6.0f);
     g.setColour(qqsc::ui::border().withAlpha(.80f));
-    g.drawRoundedRectangle(box.reduced(.5f), 9.0f, 1.0f);
-    auto content = box.reduced(18.0f, 12.0f);
-    auto heading = content.removeFromTop(15.0f);
+    g.drawRoundedRectangle(box.reduced(.5f), 6.0f, 1.0f);
+    auto content = box.reduced(10.0f, 7.0f);
+    auto heading = content.removeFromTop(13.0f);
     g.setColour(qqsc::ui::textMuted());
     g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
     g.drawText("OUTPUT  /  LUFS-I", heading, juce::Justification::centredLeft);
-    auto footer = content.removeFromBottom(14.0f);
+    auto footer = content.removeFromBottom(12.0f);
     g.setFont(9.0f);
     g.setColour(qqsc::ui::textMuted());
     g.drawText(running ? "MEASURING" : seconds > 0 ? "HOLD" : "READY", footer, juce::Justification::centredLeft);
@@ -1595,18 +1654,17 @@ void DynamicDisplay::drawLoudnessReadout(juce::Graphics& g)
     const auto duration = juce::String(elapsed / 60) + ":" + juce::String(elapsed % 60).paddedLeft('0', 2);
     g.drawText(duration, footer, juce::Justification::centredRight);
     g.setColour(qqsc::ui::outputAccent());
-    g.setFont(juce::Font(juce::FontOptions(juce::jmin(46.0f, content.getHeight() * .86f), juce::Font::bold)));
-    g.drawText(valid ? juce::String(lufs, 1) : "--.-", content.withTrimmedRight(62.0f), juce::Justification::centredLeft);
+    g.setFont(juce::Font(juce::FontOptions(juce::jmin(36.0f, content.getHeight() * .86f), juce::Font::bold)));
+    g.drawText(valid ? juce::String(lufs, 1) : "--.-", content.withTrimmedRight(40.0f), juce::Justification::centredLeft);
     g.setColour(qqsc::ui::textMuted());
     g.setFont(12.0f);
-    g.drawText("LUFS", content.removeFromRight(62.0f), juce::Justification::centredRight);
+    g.drawText("LUFS", content.removeFromRight(34.0f), juce::Justification::centredRight);
 }
 
 void DynamicDisplay::paint (juce::Graphics& g)
 {
     refreshScale();
-    scaleButton.setColour(juce::TextButton::buttonColourId, qqsc::ui::panel());
-    scaleButton.setColour(juce::TextButton::textColourOffId, qqsc::ui::textMuted());
+
     const auto bounds = getLocalBounds().toFloat();
     g.fillAll (qqsc::ui::canvas());
     g.setColour (qqsc::ui::panel().withAlpha (0.97f));
@@ -1627,11 +1685,13 @@ void DynamicDisplay::paint (juce::Graphics& g)
     g.setFont (9.5f);
     const auto headerStatus = (hpfReplayBusy ? juce::String ("UPDATING   ") : juce::String())
                             + (readParameter (processor, qqsc::params::compressionMode) >= 0.5f ? "DUAL  " : "SINGLE  ")
-                            + qqsc::params::modeName (processor.isLimiterMode() ? qqsc::params::stereoLinked : mode);
+                            + qqsc::params::modeName (processor.isMasteringMode() ? qqsc::params::stereoLinked : mode);
     g.drawFittedText (headerStatus, header.removeFromRight(110.0f).toNearestInt(),
                       juce::Justification::centredRight, 1);
+    if(view!=std::array<float,4>{-90,0,8,0})
+        g.drawFittedText("ZOOM  "+juce::String(view[2],2)+" s",header.toNearestInt(),juce::Justification::centredRight,1);
 
-    if (mode == qqsc::params::stereoLinked || processor.isLimiterMode())
+    if (mode == qqsc::params::stereoLinked || processor.isMasteringMode())
     {
         drawDomainPanel (g, domainPanelBounds (0, mode), 0, "ST", mode);
     }
@@ -1646,7 +1706,12 @@ void DynamicDisplay::paint (juce::Graphics& g)
         drawDomainPanel (g, domainPanelBounds (1, mode), 1, "S", mode);
     }
 
-    if (processor.isLimiterMode()) drawLoudnessReadout(g);
+    if (processor.isMasteringMode()) drawLoudnessReadout(g);
+    if(zoomDragActive)
+    {
+        g.setColour(qqsc::ui::cyanAccent().withAlpha(.14f));g.fillRect(zoomSelection);
+        g.setColour(qqsc::ui::cyanAccent().withAlpha(.9f));g.drawRect(zoomSelection,1.f);
+    }
 
     const bool externalKey = juce::roundToInt (
         readParameter (processor, qqsc::params::keySource)) == qqsc::params::keyExternal;
@@ -1671,4 +1736,47 @@ void DynamicDisplay::paint (juce::Graphics& g)
 
     if (externalKey)
         drawLegend (legendArea, qqsc::ui::cyanAccent().withAlpha (0.45f), "External key");
+}
+
+void DynamicDisplay::resetZoom()
+{
+    zoomDragActive=false;processor.setDisplayZoom(-90,0,8,0);refreshScale();
+    geometryDirty=true;refreshRenderCaches(displayProcessingMode(processor));repaint();
+    processor.updateHostDisplay(juce::AudioProcessor::ChangeDetails{}.withNonParameterStateChanged(true));
+}
+void DynamicDisplay::zoomToSelection(juce::Rectangle<float> selected,juce::Rectangle<float> plot)
+{
+    selected=selected.getIntersection(plot);
+    if(selected.getWidth()<6 || selected.getHeight()<6)return;
+    const float top=juce::jmap(selected.getY(),plot.getY(),plot.getBottom(),view[1],view[0]);
+    const float floor=juce::jmap(selected.getBottom(),plot.getY(),plot.getBottom(),view[1],view[0]);
+    const float seconds=view[2]*selected.getWidth()/plot.getWidth();
+    const float endAge=view[3]+view[2]*(plot.getRight()-selected.getRight())/plot.getWidth();
+    processor.setDisplayZoom(floor,top,seconds,endAge);refreshScale();
+    geometryDirty=true;refreshRenderCaches(displayProcessingMode(processor));repaint();
+    processor.updateHostDisplay(juce::AudioProcessor::ChangeDetails{}.withNonParameterStateChanged(true));
+}
+void DynamicDisplay::mouseDown(const juce::MouseEvent& event)
+{
+    if(event.mods.isPopupMenu()){resetZoom();return;}
+    if(!event.mods.isLeftButtonDown())return;
+    const int mode=displayProcessingMode(processor);
+    const int panels=mode==qqsc::params::stereoLinked || processor.isMasteringMode() ? 1 : 2;
+    for(int panel=0;panel<panels;++panel)
+    {
+        const auto plot=plotBoundsForPanel(domainPanelBounds(panel,mode));
+        if(plot.contains(event.position))
+        {zoomPlot=plot;zoomStart=event.position;zoomSelection={zoomStart,zoomStart};zoomDragActive=true;break;}
+    }
+}
+void DynamicDisplay::mouseDrag(const juce::MouseEvent& event)
+{
+    if(!zoomDragActive)return;
+    const auto end=zoomPlot.getConstrainedPoint(event.position);
+    zoomSelection=juce::Rectangle<float>(zoomStart,end);repaint();
+}
+void DynamicDisplay::mouseUp(const juce::MouseEvent& event)
+{
+    if(!zoomDragActive)return;
+    mouseDrag(event);zoomDragActive=false;zoomToSelection(zoomSelection,zoomPlot);repaint();
 }

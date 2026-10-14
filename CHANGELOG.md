@@ -1,3 +1,36 @@
+# QQ Super Compression 1.4.1 release changes
+
+### 1.4.1 - Stable, 2026-10-14
+
+- 中文：ST/LR/MS 模式按钮统一为紧凑尺寸；LR/MS 的 LINK 紧邻右侧，切换顺序为 ST → LR → MS，保留原参数编号及自动化含义。放大阈值标签，将 LUFS 表缩小移到 Display 左下角。
+- English: Uses compact ST/LR/MS buttons with LINK immediately beside LR/MS, cycles ST → LR → MS and preserves saved parameter IDs. Enlarges threshold labels and moves the compact LUFS meter to the lower-left of the Display.
+- 中文：Super 与 Classic 阈值范围统一为 -90 至 0 dB，取消 Super -inf。原 -inf 默认/复位改为 -90 dB，原 0 dB 默认保留。旧工程、预置和 A/B 低于 -90 dB 的阈值恢复为 -90 dB，Range OFF 保留；合法自动化位置和无条件 Output LINK 不变。
+- English: Super and Classic thresholds share -90 to 0 dB; Super -inf is removed. Former -inf defaults/resets become -90 dB; existing 0 dB defaults remain. Lower legacy project/preset/A/B thresholds load as -90 dB. Range OFF, legal automation positions and unconditional Output LINK remain.
+- 中文：配套中英文手册各 49 页，尽早解释 ST 的两个 Link，分开介绍 Lookahead/Window 与 SAFE；明确默认值、Alt/Option 复位与旧工程兼容。经用户指定为 Stable。
+- English: Matching 49-page manuals explain both ST Links early, separate Lookahead/Window from SAFE, and distinguish defaults, Alt/Option resets and legacy recall. Stable status was explicitly selected by the user.
+
+### 1.4.0 - Stable, 2026-10-14
+
+- 中文：整理 Compressor/Clipper/Limiter 三种模式。Clipper 只下压，Ratio 10:1-1000:1，无 Ceiling，L/R Link 默认/Alt 为 0%，Output LINK 默认关闭。Comp/ST 的 L/R Link、M/S Link 同时提供，默认/Alt 均为 100%；两者都为 0% 时两种独立处理各占一半。
+- English: Consolidates Compressor/Clipper/Limiter. Clipper is downward-only, 10:1-1000:1, without Ceiling; L/R Link defaults/resets to 0% and Output LINK starts off. Comp/ST provides both L/R and M/S Links, each default/reset 100%; at both 0%, independent L/R and M/S processing is mixed equally.
+- 中文：修正 Clipper 最低 Ratio 灯带、Window 调回 0 的 Display 一致性；Clipper 的每声道 GR 保持最大值，双击或重新播放清零。修复 Limiter Output LINK 在 Ratio 1:1 或下压关闭时失效，联动仅由开关决定，双压 UP 保持独立。
+- English: Fixes the Clipper minimum-Ratio arc and Display consistency when Window returns to zero. Per-channel Clipper GR holds its maximum until double-click or new playback. Limiter Output LINK remains active at Ratio 1:1 or with DOWN off; only its switch controls linking, and Dual UP remains independent.
+
+### 1.3.7 - Historical development delivery, 2026-10-14
+
+- 中文：首次交付三种处理模式、Comp/ST 双 Link、零 Window/零 Lookahead 下禁用 SAFE，以及 Display 框选放大和右键恢复。缩放保持滚动，改进 Ceiling 对齐和绘制流畅性，保留参数调整时的实时历史响应。此版本当时以 Candidate 名称交付，未设为 Stable；历史标识保留，功能后续并入 1.4.0。
+- English: First delivered the three processing modes, two Comp/ST Links, SAFE disabling at zero Window/Lookahead and rectangle Display zoom with right-click reset. Zoom keeps scrolling; Ceiling alignment/rendering improve while live parameter replay remains. Historically delivered as Candidate, not Stable; this historical label is retained and the work was consolidated into 1.4.0.
+
+## Upgrade and compatibility / 升级与兼容
+
+阈值现在最低 -90 dB；旧 -inf 会变为 -90 dB。保存工程副本后升级。参数 ID 与已合法的自动化位置保留。Range OFF 和 Limiter 的 UP 独立性保留。Window/SAFE 可能改变提前压，OS 可能改变音色、CPU 和延迟；切换 Limiter 仍可能因 Ceiling 延迟改变而暂停。
+
+Thresholds now stop at -90 dB; legacy -inf becomes -90 dB. Save a session copy before upgrading. Parameter IDs and valid automation positions remain. Range OFF and independent Limiter UP remain. Window/SAFE may change pre-attenuation; OS may change tone, CPU and latency. Limiter switching may still pause because Ceiling changes latency.
+
+No new quantified CPU or audio-quality claims are made. Mac bundles are ad-hoc signed, not notarized. Windows build/contract/installation checks were completed before this release work; Mac checks run in CI.
+
+--- Previous version records ---
+
 # QQ Super Compression changelog
 
 ### 1.3.6 — Stable, 2026-10-12

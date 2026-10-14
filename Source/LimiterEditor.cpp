@@ -5,10 +5,11 @@ void QQSuperCompressionAudioProcessorEditor::refreshDetectorWindowControl()
     const auto maximum = qqsc::params::snapLookaheadMs (processor.readSoundParameter (qqsc::params::lookaheadMs));
     const bool safe = processor.readSoundParameter(qqsc::params::detectorMode) >= 0.5f;
     const auto value = processor.readSoundParameter(qqsc::params::detectorWindowMs);
+    const bool safeAvailable = maximum > 0.0f && value > 0.0f;
     detectorWindowLabel.setText("WINDOW",juce::dontSendNotification);
-    detectorModeButton.setToggleState(safe && maximum>0.0f,juce::dontSendNotification);
-    detectorModeButton.setEnabled(maximum > 0.0f);
-    detectorModeButton.setAlpha(maximum > 0.0f ? 1.0f : 0.35f);
+    detectorModeButton.setToggleState(safe && safeAvailable,juce::dontSendNotification);
+    detectorModeButton.setEnabled(safeAvailable);
+    detectorModeButton.setAlpha(safeAvailable ? 1.0f : 0.35f);
     detectorWindowValue.setTooltip(safe
         ? juce::String::fromUTF8 (u8"Window：0 ms 至当前 Lookahead。保持延迟不变，调整实际检测时长，便于连续比较声音。Safe 开启时，较大的 Window 有助于减少噼啪声，也会带来峰值前后的压低。双击输入毫秒数；上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 Lookahead 的数值。")
         : juce::String::fromUTF8 (u8"Window：0 ms 至当前 Lookahead。保持延迟不变，调整实际检测时长，便于连续比较声音。较小的 Window 可能增加染色或噼啪声，尤其低于 10 ms 时可考虑开启 OS 过采样。双击输入毫秒数；上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 Lookahead 的数值。"));
@@ -82,7 +83,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseDetectorWindowControl()
 
 void QQSuperCompressionAudioProcessorEditor::setLimiterParameter (const char* id, float value)
 {
-    if (auto* parameter = processor.getAPVTS().getParameter (id))
+    if (auto* parameter = processor.getAPVTS().getParameter (processor.soundParameterID(id)))
         parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
 }
 
@@ -97,11 +98,12 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
 {
     initialiseDetectorWindowControl();
     initialiseLimiterStereoLinkControl();
+    initialiseSTLinkControls();
     configureActionButton (detectorModeButton);
     contentRoot.addAndMakeVisible (detectorModeButton);
     registerKeyboardListener (detectorModeButton);
     detectorModeButton.setComponentID (qqsc::params::detectorMode);
-    detectorModeButton.setTooltip (juce::String::fromUTF8 (u8"Safe：点亮时使用前后两侧较大的检测峰值，帮助减少噼啪声，代价是峰值前后的声音也可能被压低。使用 Range 出现噼啪声时也可尝试开启。关闭时使用正常检测。Lookahead 为 0 ms 时不可用；Window 为 0 ms 时开关效果相同。不额外加入 Attack / Release。"));
+    detectorModeButton.setTooltip (juce::String::fromUTF8 (u8"Safe：点亮时使用前后两侧较大的检测峰值，帮助减少噼啪声，代价是峰值前后的声音也可能被压低。使用 Range 出现噼啪声时也可尝试开启。关闭时使用正常检测。Lookahead 或 Window 为 0 ms 时变灰、不可用；恢复非零值后保留之前的开关状态。不额外加入 Attack / Release。"));
     detectorModeButton.onClick = [this]
     {
         beginUndoTransaction ("Detector Mode");
@@ -116,7 +118,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     }
     limiterButton.setComponentID ("limiterMode");
     limiterLinkButton.getProperties().set ("qqscSmallLink",true);
-    limiterButton.setTooltip (juce::String::fromUTF8 (u8"Limiter：先进行 Classic / Super 压缩，再由 Ceiling 限制最终峰值。下压 Ratio 为 1:1 至 1000:1，上压为 1:8 至 1:1。可用 L/R Link 调整左右声道的相互影响，用 Window 比较响度与动态。"));
+    limiterButton.setTooltip (juce::String::fromUTF8 (u8"处理模式：单击在 COMPRESSOR、CLIPPER、LIMITER 之间切换，各自保存参数。Compressor 为常规压缩；Clipper 仅下压，Ratio 为 10:1 至 1000:1，使用单组立体声控制和 L/R Link，没有双压和 Ceiling；Limiter 支持单压、双压，并带有 Ceiling 最终峰值限制。Clipper 的 Output 联动默认关闭，可用 LINK 开启。"));
     truePeakButton.setComponentID("truePeakLimiting");
     truePeakButton.getProperties().set("qqscSmallLink",true);
     truePeakButton.setTooltip(juce::String::fromUTF8 (u8"TP：点亮时启用真峰值限制；关闭时在 Ceiling 处硬削波。与压缩共用 OS 过采样设置，开启 TP 不会自动改变 OS 倍率。"));
@@ -154,14 +156,12 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
         processor.setUnityMonitorEnabled(!processor.isUnityMonitorEnabled());
         updateLimiterUi();
     };
-    limiterLinkButton.setTooltip (juce::String::fromUTF8 (u8"Output 联动：调整下压 Threshold 或 Makeup 时，Output Gain 按相同 dB 数反向变化；调整 Output 时，下压 Threshold 按相同 dB 数反向变化。上压阈值独立。Ratio、Mix、Input 和算法切换不参与此联动。"));
+    limiterLinkButton.setTooltip (juce::String::fromUTF8 (u8"Output 联动：调整下压 Threshold 或 Makeup 时，Output Gain 按相同 dB 数反向变化；调整 Output 时，下压 Threshold 按相同 dB 数反向变化。联动只由此 LINK 开关控制，Ratio 为 1:1 或下压关闭时仍然有效，不受其他参数影响。双压的上压阈值独立。"));
     limiterButton.onClick = [this]
     {
-        finishCompressionControlGestures(); beginUndoTransaction ("Limiter Mode");
-        const bool enabled=!processor.isLimiterMode();
-        if(enabled) processor.enterLimiterMode();
-        else processor.leaveLimiterMode();
-        updateCompressionUi();
+        finishCompressionControlGestures(); beginUndoTransaction ("Processor Mode");
+        processor.setProcessorModeFromEditor((processor.getProcessorMode()+1)%3);
+        updateModeUi();
     };
     limiterLinkButton.onClick = [this]
     {
@@ -249,7 +249,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     };
     limiterOutputText=[this,normalText] (const juce::String& text)
     {
-        if(!processor.isLimiterMode()) return normalText(text);
+        if(!processor.isMasteringMode()) return normalText(text);
         beginUndoTransaction("Limiter Output");
         if(!processor.isLimiterLinked()) return juce::jlimit(-120.0,120.0,text.getDoubleValue());
         beginLimiterOutputGesture();
@@ -262,10 +262,9 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     // original Normal parameter would display Limiter values above 30 as 30.
     for (auto* slider : { &makeupSTSlider,&makeupLSlider,&makeupRSlider,&makeupMSlider,&makeupSSlider })
         slider->textFromValueFunction = [] (double value) { return juce::String(value, 2); };
-    // Limiter LINK keeps the musical compression controls coherent in either
-    // direction: Makeup and every active non-unity UP/DOWN Threshold are paired
-    // with Output in exact opposite dB deltas. Ratio/Mix/algorithms themselves
-    // never move Output; they only decide which threshold branch is active.
+    // LINK is a control relationship, independent of whether dynamics are
+    // active: Makeup and Single Threshold / Dual DOWN drive Output by inverse
+    // 1:1 dB deltas. Ratio, enables, Mix and algorithms never gate this link.
     for (auto* slider : { &makeupSTSlider,&makeupLSlider,&makeupRSlider,&makeupMSlider,&makeupSSlider })
         linkLimiterReferenceControl(*slider);
     // MATCH owns its mixed-signal correction inside the processor. Do not
@@ -277,29 +276,31 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
 void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
 {
     if(!limiterControlsReady) return;
-    const bool limiter=processor.isLimiterMode(), dual=attachedCompressionMode==1;
+    const bool limiter=processor.isMasteringMode(), dual=attachedCompressionMode==1;
+    compressionModeButton.setVisible(!processor.isClipperMode());
     const juce::ScopedValueSetter<bool> guard(limiterUpdating,true);
     const bool bilateral = processor.readSoundParameter (qqsc::params::detectorMode) >= 0.5f;
     detectorModeButton.setToggleState (bilateral, juce::dontSendNotification);
     refreshDetectorWindowControl();
+    limiterButton.setButtonText(processor.isLimiterMode() ? "LIMITER" : processor.isClipperMode() ? "CLIPPER" : "COMPRESSOR");
     limiterButton.setToggleState(limiter,juce::dontSendNotification);
     limiterLinkButton.setToggleState(processor.isLimiterLinked(),juce::dontSendNotification);
     refreshLimiterStereoLinkControl();
     unityMonitorButton.setToggleState(processor.isUnityMonitorEnabled(),juce::dontSendNotification);
-    unityMonitorButton.setVisible(limiter);
+    unityMonitorButton.setVisible(processor.isLimiterMode());
     truePeakButton.setToggleState(processor.isTruePeakSelected(),juce::dontSendNotification);
-    truePeakButton.setVisible(limiter);
+    truePeakButton.setVisible(processor.isLimiterMode());
     const auto recovery=processor.getTpRecoveryMode();
     tpRecoveryButton.setButtonText(recovery==qqsc::params::tpTight ? "TIGHT"
         : recovery==qqsc::params::tpSmooth ? "SMOOTH" : "AUTO");
-    tpRecoveryButton.setVisible(limiter && processor.isTruePeakSelected());
+    tpRecoveryButton.setVisible(processor.isLimiterMode() && processor.isTruePeakSelected());
     monitorCeilingLabel.setVisible(processor.isUnityMonitorActive());
     inputOutputLinkButton.setVisible(!limiter);
     ceilingSlider.setVisible(false);
-    limiterLinkButton.setVisible(limiter); ceilingLabel.setVisible(limiter); ceilingValue.setVisible(limiter);
-    ceilingPanel.setVisible(limiter);ceilingPanel.repaint();
+    limiterLinkButton.setVisible(limiter); ceilingLabel.setVisible(processor.isLimiterMode()); ceilingValue.setVisible(processor.isLimiterMode());
+    ceilingPanel.setVisible(processor.isLimiterMode());ceilingPanel.repaint();
     updateCeilingOversamplingUi();
-    if(attachedLimiter!=int(limiter))
+    if(attachedLimiter!=processor.getProcessorMode())
     {
         finishCompressionControlGestures();
         // Rebind every common control to its mode bank, keeping its text/gesture
@@ -330,11 +331,11 @@ void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
         linkAttachment.reset();
         linkAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(processor.getAPVTS(),processor.soundParameterID(qqsc::params::domainLink),linkButton);
         outputGainAttachment.reset();
-        const auto* id=limiter ? qqsc::params::limiterOutputDb : qqsc::params::outputGainDb;
+        const auto* id=processor.soundParameterID(qqsc::params::outputGainDb);
         outputGainSlider.getProperties().set("qqscParameterID",id);
         outputGainAttachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.getAPVTS(),id,outputGainSlider);
         outputGainSlider.valueFromTextFunction=limiterOutputText;
-        attachedLimiter=int(limiter);
+        attachedLimiter=processor.getProcessorMode();
         reattachCompressionControls(dual);
         resized();
     }
@@ -354,10 +355,17 @@ void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
         down.setValue(qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[d]),limiter,true),juce::dontSendNotification);
         down.setResetValue(min);
         down.setTooltip(limiter ? juce::String::fromUTF8 (u8"下压 Ratio：1:1 至 1000:1。数值越大，下压越强；1:1 不下压。") : juce::String::fromUTF8 (u8"下压 Ratio：1:1 至 200:1。数值越大，下压越强；1:1 不下压。"));
-        const int kind=(dual ? 2 : 0)+(limiter ? 1 : 0);
+        const int kind=processor.isClipperMode() ? 4 : (dual ? 2 : 0)+(limiter ? 1 : 0);
         if(int(main[d]->getProperties().getWithDefault("limiterRangeKind",-1))!=kind)
         {
-            if(kind==1) main[d]->setNormalisableRange(qqsc::params::limiterSingleRange());
+            if(kind==4)
+            {
+                const auto r=qqsc::params::dynamicsRatioRange(10.f,1000.f);
+                main[d]->setNormalisableRange({10.0,1000.0,
+                    [r](double,double,double n){return double(r.convertFrom0to1(float(n)));},
+                    [r](double,double,double v){return double(r.convertTo0to1(float(v)));}});
+            }
+            else if(kind==1) main[d]->setNormalisableRange(qqsc::params::limiterSingleRange());
             else
             {
                 const auto r=qqsc::params::dynamicsRatioRange(limiter ? qqsc::limiterDualMinimumUpRatio : qqsc::minimumUpRatio,
@@ -373,8 +381,10 @@ void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
         // Limiter compression defaults to unity in both directions. Ceiling/TP
         // is the final limiter; Alt-click therefore restores the compression
         // stage to 1:1 instead of forcing a high downward ratio.
-        main[d]->setResetValue(1.0);
-        main[d]->setTooltip(dual
+        main[d]->setResetValue(processor.isClipperMode() ? 10.0 : 1.0);
+        main[d]->setTooltip(processor.isClipperMode()
+            ? juce::String::fromUTF8(u8"Clipper 下压 Ratio：10:1 至 1000:1，仅保留下压，没有双压和 Ceiling。Alt 单击（Mac：Option）恢复为 10:1。")
+            : dual
             ? (limiter ? juce::String::fromUTF8 (u8"上压 Ratio：1:8 至 1:1。数值越接近 1:8，提升越强；1:1 不提升。") : juce::String::fromUTF8 (u8"上压 Ratio：1:200 至 1:1。数值越接近 1:200，提升越强；1:1 不提升。"))
             : (limiter ? juce::String::fromUTF8 (u8"Ratio：上压为 1:8 至 1:1，下压为 1:1 至 1000:1。Alt 单击（Mac：Option）恢复为 1:1，不作动态压缩。")
                        : juce::String::fromUTF8 (u8"Ratio：1:200 至 200:1。小于 1:1 为上压，大于 1:1 为下压，1:1 不作动态压缩。")));
@@ -405,7 +415,7 @@ void QQSuperCompressionAudioProcessorEditor::linkLimiterReferenceControl(FineKno
         limiterReferenceGestureSource = &slider;
         if (limiterLinkAnchorValid)
         {
-            auto* output = processor.getAPVTS().getParameter(qqsc::params::limiterOutputDb);
+            auto* output = processor.getAPVTS().getParameter(processor.soundParameterID(qqsc::params::limiterOutputDb));
             if (std::find(companionGestureParameters.begin(), companionGestureParameters.end(), output)
                 == companionGestureParameters.end())
             {
@@ -473,7 +483,7 @@ void QQSuperCompressionAudioProcessorEditor::reconcileLimiterOutput(FineKnob& so
     const juce::ScopedValueSetter<bool> guard(limiterUpdating,true);
     const auto delta=source.getValue()-double(limiterLinkReference);
     const auto next=juce::jlimit(-120.0,120.0,double(limiterLinkOutput)-delta);
-    auto* p=processor.getAPVTS().getParameter(qqsc::params::limiterOutputDb);
+    auto* p=processor.getAPVTS().getParameter(processor.soundParameterID(qqsc::params::limiterOutputDb));
     const auto gestureOpen=std::find(companionGestureParameters.begin(),companionGestureParameters.end(),p)!=companionGestureParameters.end();
     if(!gestureOpen) p->beginChangeGesture();
     setLinkedControlValue(outputGainSlider,next);
@@ -482,7 +492,7 @@ void QQSuperCompressionAudioProcessorEditor::reconcileLimiterOutput(FineKnob& so
 
 void QQSuperCompressionAudioProcessorEditor::beginLimiterOutputGesture()
 {
-    endLinkedGesture(); beginUndoTransaction("Output / Active Threshold 1:1");
+    endLinkedGesture(); beginUndoTransaction("Output / Threshold 1:1");
     limiterOutputGesture=true; limiterStartOutput=float(outputGainSlider.getValue());
     const auto mode=juce::roundToInt(processor.readSoundParameter(qqsc::params::processingMode));
     const bool dual=attachedCompressionMode==1;
@@ -490,7 +500,7 @@ void QQSuperCompressionAudioProcessorEditor::beginLimiterOutputGesture()
     {
         limiterStartLowerThresholds[d]=processor.getBoundaryForDomainDb(dual,false,int(d));
         limiterStartUpperThresholds[d]=processor.getBoundaryForDomainDb(dual,true,int(d));
-        const bool active=processor.isLimiterMode() ? d==1 : mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
+        const bool active=processor.isMasteringMode() ? d==1 : mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
         if(!active) continue;
 
         const auto openGesture=[&](const char* normalID)
@@ -502,16 +512,11 @@ void QQSuperCompressionAudioProcessorEditor::beginLimiterOutputGesture()
 
         if(!dual)
         {
-            if(std::abs(processor.effectiveSingleRatio(d)-1.0f)>1.0e-6f)
-                openGesture(qqsc::params::thresholdIds[d]);
+            openGesture(qqsc::params::thresholdIds[d]);
             continue;
         }
 
-        const auto downRatio=qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[d]),true,true);
-
-        const bool downActive=processor.readSoundParameter(qqsc::params::downEnabledIds[d])>=0.5f && downRatio>1.0f+1.0e-6f;
-
-        if(downActive) openGesture(qqsc::params::downThresholdIds[d]);
+        openGesture(qqsc::params::downThresholdIds[d]);
     }
 }
 
@@ -520,9 +525,9 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
     const auto requestedDelta=float(requested-limiterStartOutput);
     if(std::abs(requestedDelta)<1.e-5f) return limiterStartOutput;
 
-    // Output and every active non-unity Threshold move by the same absolute dB
-    // amount in opposite directions. Dual links DOWN only; UP stays independent.
-    // A unity branch produces no dynamics and must not lock Output.
+    // Output and the selected Threshold move by equal opposite dB amounts,
+    // including Ratio 1:1 and DOWN OFF. Dual links DOWN only; UP is independent.
+    // Parameter bounds limit the shared delta, never the dynamics settings.
     float minDelta=-120.0f-limiterStartOutput;
     float maxDelta= 120.0f-limiterStartOutput;
     const auto mode=juce::roundToInt(processor.readSoundParameter(qqsc::params::processingMode));
@@ -530,12 +535,11 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
     std::array<bool,5> moveLower {}, moveUpper {};
     for(int d=0; d<5; ++d)
     {
-        const bool active=processor.isLimiterMode() ? d==1 : mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
+        const bool active=processor.isMasteringMode() ? d==1 : mode==0 ? d==0 : mode==2 ? d==1||d==2 : d==3||d==4;
         if(!active) continue;
 
         if(!dual)
         {
-            if(std::abs(processor.effectiveSingleRatio(size_t(d))-1.0f)<=1.0e-6f) continue;
             moveLower[size_t(d)]=true;
             const auto floor=processor.boundaryMinimumDb(false);
             const auto minimum=floor;
@@ -546,13 +550,9 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
             continue;
         }
 
-        const auto downRatio=qqsc::params::limiterRatio(processor.readSoundParameter(qqsc::params::downRatioIds[size_t(d)]),true,true);
-
-        const bool downActive=processor.readSoundParameter(qqsc::params::downEnabledIds[size_t(d)])>=0.5f && downRatio>1.0f+1.0e-6f;
-        moveLower[size_t(d)]=false; moveUpper[size_t(d)]=downActive;
+        moveLower[size_t(d)]=false; moveUpper[size_t(d)]=true;
 
         const auto upperFloor=processor.boundaryMinimumDb(true);
-        if(downActive)
         {
             const auto minimum=juce::jmax(upperFloor,limiterStartLowerThresholds[size_t(d)]);
             const auto maximum=0.0f;
@@ -572,7 +572,8 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
 
 void QQSuperCompressionAudioProcessorEditor::refreshLimiterStereoLinkControl()
 {
-    limiterStereoLinkValue.setVisible(processor.isLimiterMode());
+    refreshSTLinkControls();
+    limiterStereoLinkValue.setVisible(processor.isMasteringMode());
     if (!limiterStereoLinkValue.isBeingEdited())
         limiterStereoLinkValue.setText(juce::String(processor.readSoundParameter(qqsc::params::limiterStereoLink),2)+" %",juce::dontSendNotification);
 }
@@ -583,20 +584,20 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterStereoLinkControl(
     limiterStereoLinkValue.setFont(juce::Font(juce::FontOptions(11.0f)));
     limiterStereoLinkValue.setEditable(false,true,false);
     limiterStereoLinkValue.setComponentID(qqsc::params::limiterStereoLink);
-    limiterStereoLinkValue.setTooltip(juce::String::fromUTF8 (u8"L/R Link：左右声道限制量的相互影响。0% 各自独立，100% 共同采用较强的衰减量，Ceiling 也参与联动；不会混合左右声道的音频。追求响度可从 0% 开始，保留声像细节可适当调高。双击输入百分比，上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 0%。"));
+    limiterStereoLinkValue.setTooltip(juce::String::fromUTF8 (u8"L/R Link：左右声道限制量的相互影响。0% 各自独立，100% 共同采用较强的衰减量；Limiter 中 Ceiling 也参与联动。不会混合左右声道的音频。追求响度可从 0% 开始，保留声像细节可适当调高。双击输入百分比，上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 0%。"));
     contentRoot.addAndMakeVisible(limiterStereoLinkValue);
     registerKeyboardListener(limiterStereoLinkValue);
     limiterStereoLinkValue.start=[this] {
         beginUndoTransaction("Limiter L/R Link");
         limiterStereoLinkDragValue=processor.readSoundParameter(qqsc::params::limiterStereoLink);
-        processor.getAPVTS().getParameter(qqsc::params::limiterStereoLink)->beginChangeGesture();
+        processor.getAPVTS().getParameter(processor.soundParameterID(qqsc::params::limiterStereoLink))->beginChangeGesture();
     };
     limiterStereoLinkValue.move=[this](float delta,bool fine) {
         limiterStereoLinkDragValue=juce::jlimit(0.0,100.0,limiterStereoLinkDragValue+delta*(fine ? .01 : .1));
         setLimiterParameter(qqsc::params::limiterStereoLink,float(limiterStereoLinkDragValue));
         refreshLimiterStereoLinkControl();
     };
-    limiterStereoLinkValue.finish=[this] { processor.getAPVTS().getParameter(qqsc::params::limiterStereoLink)->endChangeGesture(); };
+    limiterStereoLinkValue.finish=[this] { processor.getAPVTS().getParameter(processor.soundParameterID(qqsc::params::limiterStereoLink))->endChangeGesture(); };
     limiterStereoLinkValue.reset=[this] {
         limiterStereoLinkValue.start();setLimiterParameter(qqsc::params::limiterStereoLink,0);
         limiterStereoLinkValue.finish();refreshLimiterStereoLinkControl();
@@ -614,4 +615,35 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterStereoLinkControl(
         }
         refreshLimiterStereoLinkControl();
     };
+}
+
+void QQSuperCompressionAudioProcessorEditor::refreshSTLinkControls()
+{
+    const bool visible=!processor.isMasteringMode() && processor.readSoundParameter(qqsc::params::processingMode)<.5f;
+    for(size_t i=0;i<2;++i)
+    {
+        stLinkValues[i].setVisible(visible);stLinkLabels[i].setVisible(visible);
+        if(!stLinkValues[i].isBeingEdited())stLinkValues[i].setText(
+            juce::String(processor.readSoundParameter(i==0 ? "stLRLink" : "stMSLink"),1)+" %",juce::dontSendNotification);
+    }
+}
+void QQSuperCompressionAudioProcessorEditor::initialiseSTLinkControls()
+{
+    for(size_t i=0;i<2;++i)
+    {
+        const auto* id=i==0 ? "stLRLink" : "stMSLink";
+        auto& value=stLinkValues[i];auto& label=stLinkLabels[i];
+        configureLabel(label,i==0 ? "L/R LINK" : "M/S LINK");configureLabel(value,{});
+        label.setFont(juce::Font(juce::FontOptions(8.f)));value.setFont(juce::Font(juce::FontOptions(10.f)));
+        value.setEditable(false,true,false);value.setComponentID(id);
+        value.setTooltip(juce::String::fromUTF8(u8"Comp/ST 联动：两项均为 100% 时保持原 ST 声音。降低 L/R Link，逐渐加入左右独立压缩；降低 M/S Link，逐渐加入中侧独立压缩。两项均为 0% 时两种结果各占一半，仍共用一组压缩参数。双击输入，上下拖动，Shift 微调；Alt 单击（Mac：Option）恢复 100%。"));
+        label.setTooltip(value.getTooltip());
+        contentRoot.addAndMakeVisible(label);contentRoot.addAndMakeVisible(value);registerKeyboardListener(value);
+        value.start=[this,i,id]{beginUndoTransaction("ST Link");stLinkDragValues[i]=processor.readSoundParameter(id);processor.getAPVTS().getParameter(id)->beginChangeGesture();};
+        value.move=[this,i,id](float delta,bool fine){stLinkDragValues[i]=juce::jlimit(0.,100.,stLinkDragValues[i]+delta*(fine?.01:.1));setLimiterParameter(id,float(stLinkDragValues[i]));refreshSTLinkControls();};
+        value.finish=[this,id]{processor.getAPVTS().getParameter(id)->endChangeGesture();};
+        value.reset=[this,i,id]{stLinkValues[i].start();setLimiterParameter(id,100);stLinkValues[i].finish();refreshSTLinkControls();};
+        value.onEditorShow=[this,i]{if(auto* ed=stLinkValues[i].getCurrentTextEditor()){ed->setInputRestrictions(16,"0123456789+-. %");registerKeyboardListener(*ed);}};
+        value.onTextChange=[this,i,id]{const auto text=stLinkValues[i].getText();if(text.containsAnyOf("0123456789")){stLinkValues[i].start();setLimiterParameter(id,juce::jlimit(0.f,100.f,text.getFloatValue()));stLinkValues[i].finish();}refreshSTLinkControls();};
+    }
 }

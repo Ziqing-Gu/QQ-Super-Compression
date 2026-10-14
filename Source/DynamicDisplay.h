@@ -8,7 +8,7 @@
 #include <deque>
 #include "PluginProcessor.h"
 
-class DynamicDisplay final : public juce::Component,
+class DynamicDisplay final : public juce::Component, public juce::SettableTooltipClient,
                              private juce::Timer
 {
 public:
@@ -17,6 +17,10 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent&) override;
+    void mouseDrag(const juce::MouseEvent&) override;
+    void mouseUp(const juce::MouseEvent&) override;
+    float getVisibleDbSpan() const noexcept { return view[1]-view[0]; }
     juce::Rectangle<float> getLoudnessReadoutBounds() const noexcept;
     void beginHistoryGesture() noexcept;
     void endHistoryGesture();
@@ -44,6 +48,9 @@ private:
 
     struct HistoryPoint
     {
+        std::array<float,4> stInputDb {-120,-120,-120,-120}, stDetectorDb {-120,-120,-120,-120};
+        std::array<float,4> stReplayedDetectorDb {-120,-120,-120,-120};
+        bool hasSTReplay = false;
         float inputDb = -120.0f;
         float detectorDb = -120.0f;
         float truePeakExcessDb = 0.0f;
@@ -55,6 +62,8 @@ private:
         uint64_t captureGeneration = 0;
         uint64_t captureCounter = 0;
         float carrierDelaySeconds = -1.0f;
+        int captureBlockSamples = 0;
+        std::array<float,5> capturedDetectorSettings {-1,-1,-1,-1,-1};
         bool hasReplayedDetector = false;
         bool hasReplayedExternalKey = false;
     };
@@ -72,14 +81,16 @@ private:
         int detectorMode = 0;
         std::vector<uint64_t> markers;
         std::vector<float> carrierDelays;
+        std::vector<int> captureBlockSamples;
         int oversampling = 0;
         int abSlot = 0;
-        bool limiter = false;
+        bool limiter = false, clipper = false;
     };
 
     struct ReplayResult
     {
         ReplayRequest request;
+        std::array<std::vector<float>,4> stDetectorDb;
         std::vector<float> detectorDb0;
         std::vector<float> detectorDb1;
         std::vector<float> externalKeyDb0;
@@ -160,9 +171,13 @@ private:
     void clearHistories();
 
     QQSuperCompressionAudioProcessor& processor;
-    juce::TextButton scaleButton;
-    int lastScaleDb = -1;
+    std::array<float,4> view {{-90,0,8,0}};
+    juce::Rectangle<float> zoomPlot, zoomSelection;
+    juce::Point<float> zoomStart;
+    bool zoomDragActive=false;
     void refreshScale();
+    void zoomToSelection(juce::Rectangle<float> selected,juce::Rectangle<float> plot);
+    void resetZoom();
     std::array<HistorySet, 2> histories;
     std::array<RenderCache, 2> renderCaches;
     RenderCache stereoLimiterCache; // One ST presentation of independent L/R results.

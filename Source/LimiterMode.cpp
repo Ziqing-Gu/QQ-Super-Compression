@@ -18,21 +18,30 @@ float QQSuperCompressionAudioProcessor::getUnityMonitorCeilingDb() const noexcep
 
 const char* QQSuperCompressionAudioProcessor::soundParameterID (const char* id) const noexcept
 {
-    if(isLimiterMode())
+    if(isMasteringMode())
     {
+        const auto& sound = isClipperMode() ? qqsc::params::clipperSoundIds : qqsc::params::limiterSoundIds;
+        const auto& settings = isClipperMode() ? qqsc::params::clipperModeIds : qqsc::params::limiterModeIds;
         for(size_t i=0;i<qqsc::params::normalSoundIds.size();++i)
-            if(std::strcmp(id,qqsc::params::normalSoundIds[i])==0) return qqsc::params::limiterSoundIds[i];
+            if(std::strcmp(id,qqsc::params::normalSoundIds[i])==0) return sound[i];
         for(size_t i=0;i<qqsc::params::normalModeIds.size();++i)
-            if(std::strcmp(id,qqsc::params::normalModeIds[i])==0) return qqsc::params::limiterModeIds[i];
-        if(std::strcmp(id,qqsc::params::outputGainDb)==0) return qqsc::params::limiterOutputDb;
+            if(std::strcmp(id,qqsc::params::normalModeIds[i])==0) return settings[i];
+        if(std::strcmp(id,qqsc::params::outputGainDb)==0) return isClipperMode() ? "clipperOutputDb" : qqsc::params::limiterOutputDb;
+        if(isClipperMode())
+        {
+            if(std::strcmp(id,qqsc::params::limiterOutputDb)==0) return "clipperOutputDb";
+            if(std::strcmp(id,qqsc::params::limiterLink)==0) return "clipperLink";
+            if(std::strcmp(id,qqsc::params::limiterStereoLink)==0) return "clipperStereoLink";
+        }
     }
     return id;
 }
 float QQSuperCompressionAudioProcessor::readSoundParameter (const char* id) const noexcept
 {
-    if (isLimiterMode() && std::strcmp(id,qqsc::params::processingMode)==0)
+    if(isClipperMode() && std::strcmp(id,qqsc::params::compressionMode)==0) return 0.f;
+    if (isMasteringMode() && std::strcmp(id,qqsc::params::processingMode)==0)
         return float(qqsc::params::leftRight);
-    if (isLimiterMode())
+    if (isMasteringMode())
     {
         // Retain legacy host IDs for project compatibility; Range no longer
         // participates in Limiter processing, automation or display.
@@ -56,11 +65,14 @@ float QQSuperCompressionAudioProcessor::readSoundParameter (const char* id) cons
     const auto* mappedID = soundParameterID (id);
     if (std::strcmp (mappedID, "limiterCompressionMode") == 0)
         return static_cast<float> (limiterCompressionModeForAudio.load (std::memory_order_acquire));
+    if(std::strcmp(mappedID,"clipperCompressionMode")==0)
+        return float(clipperCompressionModeForAudio.load(std::memory_order_acquire));
     return apvts.getRawParameterValue(mappedID)->load();
 }
 
 void QQSuperCompressionAudioProcessor::setCompressionModeFromEditor (int mode)
 {
+    if(isClipperMode()) return;
     const int nextMode = juce::jlimit (0, 1, mode);
     if (readSoundParameter (qqsc::params::compressionMode) == static_cast<float> (nextMode))
         return;
@@ -73,11 +85,11 @@ void QQSuperCompressionAudioProcessor::setCompressionModeFromEditor (int mode)
 
     std::array<juce::RangedAudioParameter*, 10> companions {};
     size_t numCompanions = 0;
-    if (isLimiterMode())
+    if (isMasteringMode())
     {
         const bool dual = nextMode == 1;
-        const int sourceBank = dual ? 2 : 3;
-        const int destinationBank = dual ? 3 : 2;
+        const int sourceBank = activeBoundaryBank() + (dual ? 0 : 1);
+        const int destinationBank = activeBoundaryBank() + (dual ? 1 : 0);
         for (int d = 0; d < 5; ++d)
         {
             const auto desired = qqsc::continueLimiterModeBoundaries (dual,
@@ -110,49 +122,46 @@ void QQSuperCompressionAudioProcessor::setCompressionModeFromEditor (int mode)
     (void) apvts.copyState();
 }
 
-void QQSuperCompressionAudioProcessor::enterLimiterMode()
+void QQSuperCompressionAudioProcessor::setProcessorModeFromEditor(int mode)
 {
-    if (isLimiterMode()) return;
-    const auto from = captureCurrentSnapshot();
-    if (! limiterBankInitialised.load(std::memory_order_acquire))
+    mode=juce::jlimit(0,2,mode);
+    if(mode==getProcessorMode()) return;
+    timerCallback();
+    (void)apvts.copyState();
+    const auto from=captureCurrentSnapshot();
+    if(mode==2 && !limiterBankInitialised.load(std::memory_order_acquire))
     {
-        // Both banks already exist with their own factory defaults. Never seed
-        // this one from Normal, including the first visit or after first-entry
-        // Undo. Hidden Limiter automation/preloaded settings are retained too.
         struct RememberInitialisation final : juce::UndoableAction
         {
             explicit RememberInitialisation(std::atomic<bool>& value) : flag(value), before(value.load()) {}
-            bool perform() override { flag.store(true,std::memory_order_release); return true; }
-            bool undo() override { flag.store(before,std::memory_order_release); return true; }
-            std::atomic<bool>& flag;
-            const bool before;
+            bool perform() override { flag.store(true,std::memory_order_release);return true; }
+            bool undo() override { flag.store(before,std::memory_order_release);return true; }
+            std::atomic<bool>& flag;const bool before;
         };
-        undoManager.perform(std::make_unique<RememberInitialisation>(limiterBankInitialised).release());
+        undoManager.perform(new RememberInitialisation(limiterBankInitialised));
     }
-    auto to = from;
-    to.limiterMode = true;
-    queueABTransfer(from, to);
-    setActualParameterValue(qqsc::params::limiterMode, 1);
+    auto to=from;to.limiterMode=mode==2;to.clipperMode=mode==1;
+    queueABTransfer(from,to);
+    // Suppress companion parameter propagation during a bank-only switch.
+    restoringDynamicsState.store(true,std::memory_order_release);
+    setActualParameterValue("clipperMode",mode==1 ? 1.f : 0.f);
+    setActualParameterValue(qqsc::params::limiterMode,mode==2 ? 1.f : 0.f);
+    restoringDynamicsState.store(false,std::memory_order_release);
+    if(mode==2)limiterBankInitialised.store(true,std::memory_order_release);
     notifyHostProcessingLatency();
 }
 
-void QQSuperCompressionAudioProcessor::leaveLimiterMode()
-{
-    if(!isLimiterMode()) return;
-    const auto from=captureCurrentSnapshot();
-    auto to=from; to.limiterMode=false;
-    queueABTransfer(from,to);
-    setActualParameterValue(qqsc::params::limiterMode,0);
-    notifyHostProcessingLatency();
-}
+void QQSuperCompressionAudioProcessor::enterLimiterMode() { setProcessorModeFromEditor(2); }
+void QQSuperCompressionAudioProcessor::leaveLimiterMode() { setProcessorModeFromEditor(0); }
 
 float QQSuperCompressionAudioProcessor::effectiveSingleRatio (size_t domain) const noexcept
 {
-    return qqsc::params::limiterRatio (readSoundParameter (qqsc::params::ratioIds[domain]), isLimiterMode());
+    return qqsc::params::limiterRatio (readSoundParameter (qqsc::params::ratioIds[domain]), isMasteringMode());
 }
 
 float QQSuperCompressionAudioProcessor::getActiveOutputGainDb() const noexcept
 {
+    if(isClipperMode()) return apvts.getRawParameterValue("clipperOutputDb")->load();
     return isLimiterMode()
         ? apvts.getRawParameterValue (qqsc::params::limiterOutputDb)->load() + apvts.getRawParameterValue (qqsc::params::ceilingDb)->load()
             + apvts.getRawParameterValue (qqsc::params::limiterCalibrationDb)->load()
@@ -169,7 +178,7 @@ float QQSuperCompressionAudioProcessor::getLimiterReferencePeakDb (float shift, 
     {
         // Reference carrier: post-Input peak <= 1, matched/unfiltered internal
         // key. No signal-dependent gain is introduced by this calculation.
-        const auto floor = qqsc::params::thresholdOffDb;
+        const auto floor = qqsc::params::thresholdMinimumDb;
         if (shift != 0.0f && t.dual && s.downEnabled[d])
             t.upper[d] = qqsc::params::thresholdLinear (juce::jlimit (juce::jmax (floor,juce::jmin(0.0f,getBoundaryForDomainDb(true,false,int(d))+0.01f)), 0.0f, getBoundaryForDomainDb(true,true,int(d))+shift));
         else if (shift != 0.0f && !t.dual && t.ratio[d]>1.0f)

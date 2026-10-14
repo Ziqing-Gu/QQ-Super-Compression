@@ -1,3 +1,11 @@
+# Current release: QQ Super Compression 1.4.1 Stable
+
+User-approved on 2026-10-14. The accepted Windows product is reused; Mac release builds use the same production inputs. README and CHANGELOG cover every actual version after 1.3.6: 1.3.7, 1.4.0, 1.4.1. Matching Chinese and English manuals have 49 pages.
+
+Read AGENTS.md and docs/BEHAVIOR_CONTRACTS.md before changes. Future delivered product modifications require the next numeric version; Stable requires explicit user choice. Reuse completed Plan stages and never reopen frozen backups. Historical Candidate/Test labels below describe actual old deliveries and are not the current workflow.
+
+--- Historical records ---
+
 # 1.2.3 Stable / Plan B — 2026-09-26
 
 User selected the dB comparison algorithm as the official Super Compression. Formal name and original VST3 identity restored, installed1.2.2 replaced and separate test installation removed. See STABLE_1.2.3.md for the external backup completion authority. Original manuals and previous version history retained.

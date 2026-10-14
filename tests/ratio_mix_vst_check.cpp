@@ -25,6 +25,30 @@ int main(int argc,char** argv)
             format.findAllTypesForFile(desc[j],argv[j+1]);require(desc[j].size()==1,"One plugin per bundle");
             juce::String error;p[j]=format.createInstanceFromDescription(*desc[j][0],48000,256,error);require(p[j]!=nullptr,error);
         }
+        if(argc==4 && juce::String(argv[3])=="--candidate140")
+        {
+            require(desc[0][0]->uniqueId==desc[1][0]->uniqueId && desc[1][0]->version=="1.4.0","Candidate identity/version");
+            require(p[1]->getParameters().size()==p[0]->getParameters().size()+74,"Expected appended Clipper bank and two ST Links");
+            for(int i=0;i<p[0]->getParameters().size();++i)
+                require(p[0]->getHostedParameter(i)->getParameterID()==p[1]->getHostedParameter(i)->getParameterID(),"Legacy host parameter ID/order changed");
+            int cases=0;double worst=0;
+            for(int algo:{0,1})for(int dual:{0,1})for(int mode:{0,1,2})
+            {
+                for(auto& plugin:p)configure(*plugin,algo,dual,mode,-18,4,1);
+                const auto a=renderPromotion(*p[0],mode,257,48000),b=renderPromotion(*p[1],mode,257,48000);
+                require(a.size()==b.size() && p[0]->getLatencySamples()==p[1]->getLatencySamples(),"Legacy audio size/latency");
+                for(size_t i=0;i<a.size();++i)worst=std::max(worst,double(std::abs(a[i]-b[i])));
+                ++cases;
+            }
+            require(worst<1.e-6,"Legacy real VST3 audio changed");
+            juce::MemoryBlock oldState;p[0]->getStateInformation(oldState);p[1]->setStateInformation(oldState.getData(),int(oldState.getSize()));
+            auto state=componentState(*p[1]);
+            const auto val=[&](const char* id){return float(state.getChildWithProperty("id",id).getProperty("value"));};
+            require(val("stLRLink")==100 && val("stMSLink")==100 && val("clipperMode")==0 && val("clipperLink")==0,"Legacy VST3 state new-control defaults");
+            require(val("clipperRatioL")==10 && val("clipperOversampling")==0,"Clipper VST3 defaults");
+            std::cout<<"PASS: real VST3 1.4.0 loads; 74 appended parameters, legacy IDs/order unchanged; "<<cases<<" legacy audio cases; max sample delta="<<worst<<"; old-wrapper state migrates correctly\n";
+            return 0;
+        }
         if(argc==4)
         {
             // Characterise the accepted binary alone with neighbouring physical

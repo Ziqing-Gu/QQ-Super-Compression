@@ -4,6 +4,7 @@
 #include "PluginProcessor.h"
 
 class LevelMeters final : public juce::Component,
+                          public juce::TooltipClient,
                           private juce::Timer
 {
 public:
@@ -15,6 +16,7 @@ public:
 
     void paint (juce::Graphics& g) override;
     void mouseDoubleClick (const juce::MouseEvent&) override;
+    juce::String getTooltip() override;
 
 private:
     void timerCallback() override { repaint(); }

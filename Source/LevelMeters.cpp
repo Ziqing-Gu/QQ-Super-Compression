@@ -34,6 +34,22 @@ void LevelMeters::mouseDoubleClick (const juce::MouseEvent& event)
         processor.resetTruePeakHold();
         repaint();
     }
+    else if(processor.isClipperMode())
+    {
+        auto inner=getLocalBounds().toFloat().reduced(6.f);
+        const auto width=(inner.getWidth()-8.f)/3.f;
+        inner.removeFromLeft(2.f*(width+4.f));
+        inner.removeFromTop(28.f);
+        if(inner.contains(event.position))
+        {processor.resetClipperGainReductionHold();repaint();}
+    }
+}
+
+juce::String LevelMeters::getTooltip()
+{
+    return processor.isClipperMode()
+        ? juce::String::fromUTF8(u8"Clipper Gain Reduction：左右分别保持本次播放中的最大衰减量，停止后保留。双击 Gain Reduction 区域清零并重新累计；下次开始播放时自动清零。Makeup 和 Output Gain 不计入衰减量。双击顶部 TP 数值可单独清除真峰值记录。")
+        : juce::String::fromUTF8(u8"Input / Output：输入和输出电平。GAIN +/-：经过 Mix 后的动态增益变化；Limiter 中包含 Ceiling 的衰减，排除 Makeup 和 Output Gain。细线短暂保持峰值。双击顶部 TP 数值清除真峰值记录。");
 }
 
 void LevelMeters::paint (juce::Graphics& g)
@@ -79,12 +95,14 @@ void LevelMeters::paint (juce::Graphics& g)
                    m.outputDb1.load (std::memory_order_relaxed),
                    -60.0f, 3.0f, false, 0.0f, 0.0f, qqsc::ui::outputAccent());
 
-    drawDualMeter (g, grArea, "GAIN +/-", ch0, ch1,
-                   m.gainReductionDb0.load (std::memory_order_relaxed),
-                   m.gainReductionDb1.load (std::memory_order_relaxed),
+    const bool clipper=processor.isClipperMode();
+    const auto gr0=(clipper?m.clipperGainReductionHoldDb0:m.gainReductionDb0).load(std::memory_order_relaxed);
+    const auto gr1=(clipper?m.clipperGainReductionHoldDb1:m.gainReductionDb1).load(std::memory_order_relaxed);
+    drawDualMeter (g, grArea, clipper ? "GR HOLD" : "GAIN +/-", ch0, ch1,
+                   gr0, gr1,
                    -36.0f, 36.0f, true,
-                   m.gainReductionHoldDb0.load (std::memory_order_relaxed),
-                   m.gainReductionHoldDb1.load (std::memory_order_relaxed),
+                   clipper ? gr0 : m.gainReductionHoldDb0.load (std::memory_order_relaxed),
+                   clipper ? gr1 : m.gainReductionHoldDb1.load (std::memory_order_relaxed),
                    qqsc::ui::grAccent());
 }
 

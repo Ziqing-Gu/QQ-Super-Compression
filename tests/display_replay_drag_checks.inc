@@ -30,6 +30,7 @@
                 value("algorithmMode",1);value("ratio",5);value("ratioL",5);value("ratioR",5);
                 value("thresholdDb",-24);value("thresholdLDb",-24);value("thresholdRDb",-24);
                 value("rangeDb",1);set(*x,"distort",0);set(*x,"truePeakLimiting",0);
+                if(!limiter){set(*x,"stLRLink",35);set(*x,"stMSLink",65);}
                 x->setRateAndBufferSizeDetails(48000,800);x->prepareToPlay(48000,800);
             }
             QQSuperCompressionAudioProcessorEditor e(p,settings(root));e.stopTimer();
@@ -92,14 +93,27 @@
             request.detectorWindowMs=p.readSoundParameter("detectorWindowMs");
             request.detectorMode=0;request.oversampling=os;request.hpfHz=p.readSoundParameter("keyHpfHz");
             request.abSlot=p.getActiveABSlot();request.limiter=limiter;
-            for(const auto& point:d.histories[0].points) {request.markers.push_back(point.captureCounter);request.carrierDelays.push_back(point.carrierDelaySeconds);}
+            for(const auto& point:d.histories[0].points) {request.markers.push_back(point.captureCounter);request.carrierDelays.push_back(point.carrierDelaySeconds);request.captureBlockSamples.push_back(point.captureBlockSamples);}
             request.requestedStartCounter=request.markers.front()>48000?request.markers.front()-48000:0;
             DynamicDisplay::ReplayResult expected;
             check(d.buildHpfReplay(request,expected,oracleThread),"Final-value replay oracle failed");
             size_t compared=0;
             for(size_t i=0;i<expected.detectorDb0.size();++i)if(std::isfinite(expected.detectorDb0[i])) {
-                check(d.histories[0].points[i].hasReplayedDetector,"Final history point not refreshed");
+                if(!d.histories[0].points[i].hasReplayedDetector)
+                {
+                    const auto& captured=d.histories[0].points[i].capturedDetectorSettings;
+                    check(std::abs(captured[0]-request.lookaheadMs)<.001f && std::abs(captured[1]-request.detectorWindowMs)<.001f
+                        && captured[2]==float(os) && std::abs(captured[3]-request.hpfHz)<.001f && captured[4]==float(request.detectorMode),
+                        "Unreplayed point must have exact original detection settings");
+                    ++compared;continue;
+                }
                 check(std::abs(d.histories[0].points[i].replayedDetectorDb-expected.detectorDb0[i])<.0001f,"Final history differs from exact settled parameters");++compared;
+                if(!limiter)
+                {
+                    check(d.histories[0].points[i].hasSTReplay,"Missing LR/MS detector replay in ST");
+                    for(size_t channel=0;channel<4;++channel)
+                        check(std::abs(d.histories[0].points[i].stReplayedDetectorDb[channel]-expected.stDetectorDb[channel][i])<.0001f,"ST LR/MS detector replay did not follow final Window/HPF");
+                }
             }
             check(compared>400,"Too little final history checked");
             // Even while a gesture is active, never paint another A/B slot,

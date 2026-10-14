@@ -666,9 +666,9 @@ struct QQSCVisualCheck
             }
             for (auto* child : component.getChildren()) collect (*child);
         };
-        for (bool limiter : {false, true})
+        for (int family : {0, 1, 2})
         {
-            if (limiter) processor.enterLimiterMode();
+            processor.setProcessorModeFromEditor(family);
             for (int dual : {0, 1}) for (int mode : {0, 1, 2}) for (int safe : {0, 1})
             {
                 processor.setCompressionModeFromEditor (dual);
@@ -732,7 +732,8 @@ struct QQSCVisualCheck
                   << "; rendered glyphs=" << glyphCount << "; themes=3; missing glyphs=0; clipped layouts=0\n";
     }
 
-    static int run (const juce::File& dir, bool displayUnityOnly = false, bool zeroDetectorOnly = false, bool tooltipsOnly = false)
+    static int run (const juce::File& dir, bool displayUnityOnly = false, bool zeroDetectorOnly = false,
+                    bool tooltipsOnly = false, bool modeSnapshotsOnly = false)
     {
         dir.createDirectory();
         QQSuperCompressionAudioProcessor processor;
@@ -748,6 +749,28 @@ struct QQSCVisualCheck
         editor.stopTimer();
         editor.display.stopTimer();
         editor.setSize (1200, 800);
+        if (modeSnapshotsOnly)
+        {
+            for (auto skinTheme : {qqsc::ui::Theme::light, qqsc::ui::Theme::dark, qqsc::ui::Theme::classic})
+            {
+                editor.theme = skinTheme;
+                editor.applyTheme();
+                for (int size : {1008, 1200})
+                    for (int mode : {0, 1, 2})
+                    {
+                        parameter (processor, qqsc::params::processingMode, float (mode));
+                        editor.updateModeUi();
+                        editor.setSize (size, size * 2 / 3);
+                        editor.resized();
+                        const auto name = juce::String (qqsc::ui::themeKey (skinTheme)) + "-"
+                            + juce::String (size) + "-" + (mode == 0 ? "ST" : mode == 1 ? "MS" : "LR");
+                        snapshot (editor, dir.getChildFile (name + ".png"));
+                    }
+            }
+            std::cout << "Rendered 18 mode layout snapshots (3 themes, 2 sizes, ST/MS/LR)\n";
+            processor.releaseResources();
+            return 0;
+        }
         if (tooltipsOnly)
         {
             tooltipPreview (editor, processor, dir);
@@ -964,7 +987,8 @@ int main (int argc, char** argv)
     const bool displayUnityOnly = argc == 3 && juce::String (argv[2]) == "--display-unity";
     const bool zeroDetectorOnly = argc == 3 && juce::String (argv[2]) == "--detector-zero-display";
     const bool tooltipsOnly = argc == 3 && juce::String (argv[2]) == "--chinese-tooltips";
-    if (argc == 3 && ! displayUnityOnly && ! zeroDetectorOnly && ! tooltipsOnly) return 2;
-    try { return QQSCVisualCheck::run (juce::File (juce::String::fromUTF8 (argv[1])), displayUnityOnly, zeroDetectorOnly, tooltipsOnly); }
+    const bool modeSnapshotsOnly = argc == 3 && juce::String (argv[2]) == "--mode-snapshots";
+    if (argc == 3 && ! displayUnityOnly && ! zeroDetectorOnly && ! tooltipsOnly && ! modeSnapshotsOnly) return 2;
+    try { return QQSCVisualCheck::run (juce::File (juce::String::fromUTF8 (argv[1])), displayUnityOnly, zeroDetectorOnly, tooltipsOnly, modeSnapshotsOnly); }
     catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
 }

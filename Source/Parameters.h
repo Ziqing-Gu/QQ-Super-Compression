@@ -153,23 +153,34 @@ namespace qqsc::params
 
     inline constexpr std::array<const char*,35> normalSoundIds { "ratio", "ratioL", "ratioR", "ratioM", "ratioS", "upRatio", "upRatioL", "upRatioR", "upRatioM", "upRatioS", "downRatio", "downRatioL", "downRatioR", "downRatioM", "downRatioS", "thresholdDb", "thresholdLDb", "thresholdRDb", "thresholdMDb", "thresholdSDb", "rangeDb", "rangeLDb", "rangeRDb", "rangeMDb", "rangeSDb", "upThresholdDb", "upThresholdLDb", "upThresholdRDb", "upThresholdMDb", "upThresholdSDb", "downThresholdDb", "downThresholdLDb", "downThresholdRDb", "downThresholdMDb", "downThresholdSDb" };
     inline constexpr std::array<const char*,35> limiterSoundIds { "limiterRatio", "limiterRatioL", "limiterRatioR", "limiterRatioM", "limiterRatioS", "limiterUpRatio", "limiterUpRatioL", "limiterUpRatioR", "limiterUpRatioM", "limiterUpRatioS", "limiterDownRatio", "limiterDownRatioL", "limiterDownRatioR", "limiterDownRatioM", "limiterDownRatioS", "limiterThresholdDb", "limiterThresholdLDb", "limiterThresholdRDb", "limiterThresholdMDb", "limiterThresholdSDb", "limiterRangeDb", "limiterRangeLDb", "limiterRangeRDb", "limiterRangeMDb", "limiterRangeSDb", "limiterUpThresholdDb", "limiterUpThresholdLDb", "limiterUpThresholdRDb", "limiterUpThresholdMDb", "limiterUpThresholdSDb", "limiterDownThresholdDb", "limiterDownThresholdLDb", "limiterDownThresholdRDb", "limiterDownThresholdMDb", "limiterDownThresholdSDb" };
+    inline constexpr std::array<const char*,35> clipperSoundIds { "clipperRatio", "clipperRatioL", "clipperRatioR", "clipperRatioM", "clipperRatioS", "clipperUpRatio", "clipperUpRatioL", "clipperUpRatioR", "clipperUpRatioM", "clipperUpRatioS", "clipperDownRatio", "clipperDownRatioL", "clipperDownRatioR", "clipperDownRatioM", "clipperDownRatioS", "clipperThresholdDb", "clipperThresholdLDb", "clipperThresholdRDb", "clipperThresholdMDb", "clipperThresholdSDb", "clipperRangeDb", "clipperRangeLDb", "clipperRangeRDb", "clipperRangeMDb", "clipperRangeSDb", "clipperUpThresholdDb", "clipperUpThresholdLDb", "clipperUpThresholdRDb", "clipperUpThresholdMDb", "clipperUpThresholdSDb", "clipperDownThresholdDb", "clipperDownThresholdLDb", "clipperDownThresholdRDb", "clipperDownThresholdMDb", "clipperDownThresholdSDb" };
     inline constexpr std::array<const char*,5> limiterRatioIds { "limiterRatio", "limiterRatioL", "limiterRatioR", "limiterRatioM", "limiterRatioS" };
+    inline constexpr std::array<const char*,5> clipperRatioIds { "clipperRatio", "clipperRatioL", "clipperRatioR", "clipperRatioM", "clipperRatioS" };
     inline constexpr std::array<const char*,5> limiterUpRatioIds { "limiterUpRatio", "limiterUpRatioL", "limiterUpRatioR", "limiterUpRatioM", "limiterUpRatioS" };
+    inline constexpr std::array<const char*,5> clipperUpRatioIds { "clipperUpRatio", "clipperUpRatioL", "clipperUpRatioR", "clipperUpRatioM", "clipperUpRatioS" };
     inline constexpr std::array<const char*,5> limiterDownRatioIds { "limiterDownRatio", "limiterDownRatioL", "limiterDownRatioR", "limiterDownRatioM", "limiterDownRatioS" };
+    inline constexpr std::array<const char*,5> clipperDownRatioIds { "clipperDownRatio", "clipperDownRatioL", "clipperDownRatioR", "clipperDownRatioM", "clipperDownRatioS" };
     inline constexpr std::array<const char*,5> limiterThresholdIds { "limiterThresholdDb", "limiterThresholdLDb", "limiterThresholdRDb", "limiterThresholdMDb", "limiterThresholdSDb" };
+    inline constexpr std::array<const char*,5> clipperThresholdIds { "clipperThresholdDb", "clipperThresholdLDb", "clipperThresholdRDb", "clipperThresholdMDb", "clipperThresholdSDb" };
     inline constexpr std::array<const char*,5> limiterRangeIds { "limiterRangeDb", "limiterRangeLDb", "limiterRangeRDb", "limiterRangeMDb", "limiterRangeSDb" };
+    inline constexpr std::array<const char*,5> clipperRangeIds { "clipperRangeDb", "clipperRangeLDb", "clipperRangeRDb", "clipperRangeMDb", "clipperRangeSDb" };
     inline constexpr std::array<const char*,5> limiterUpThresholdIds { "limiterUpThresholdDb", "limiterUpThresholdLDb", "limiterUpThresholdRDb", "limiterUpThresholdMDb", "limiterUpThresholdSDb" };
+    inline constexpr std::array<const char*,5> clipperUpThresholdIds { "clipperUpThresholdDb", "clipperUpThresholdLDb", "clipperUpThresholdRDb", "clipperUpThresholdMDb", "clipperUpThresholdSDb" };
     inline constexpr std::array<const char*,5> limiterDownThresholdIds { "limiterDownThresholdDb", "limiterDownThresholdLDb", "limiterDownThresholdRDb", "limiterDownThresholdMDb", "limiterDownThresholdSDb" };
+    inline constexpr std::array<const char*,5> clipperDownThresholdIds { "clipperDownThresholdDb", "clipperDownThresholdLDb", "clipperDownThresholdRDb", "clipperDownThresholdMDb", "clipperDownThresholdSDb" };
     // These were shared before the independent-mode revision. Appended IDs
     // preserve every existing host parameter ID/index. Each mode owns its timing.
     inline constexpr std::array<const char*,33> normalModeIds { "inputGainDb", "makeupGainDb", "makeupGainLDb", "makeupGainRDb", "makeupGainMDb", "makeupGainSDb", "mix", "mixL", "mixR", "mixM", "mixS", "algorithmMode", "compressionMode", "processingMode", "domainLink", "dualRatioLink", "upEnabled", "upEnabledL", "upEnabledR", "upEnabledM", "upEnabledS", "downEnabled", "downEnabledL", "downEnabledR", "downEnabledM", "downEnabledS", "keySource", "keyGainDb", "keyHpfHz", "oversampling", "lookaheadMs", "upAlgorithmMode", "downAlgorithmMode" };
     inline constexpr std::array<const char*,33> limiterModeIds { "limiterInputGainDb", "limiterMakeupGainDb", "limiterMakeupGainLDb", "limiterMakeupGainRDb", "limiterMakeupGainMDb", "limiterMakeupGainSDb", "limiterMix", "limiterMixL", "limiterMixR", "limiterMixM", "limiterMixS", "limiterAlgorithmMode", "limiterCompressionMode", "limiterProcessingMode", "limiterDomainLink", "limiterDualRatioLink", "limiterUpEnabled", "limiterUpEnabledL", "limiterUpEnabledR", "limiterUpEnabledM", "limiterUpEnabledS", "limiterDownEnabled", "limiterDownEnabledL", "limiterDownEnabledR", "limiterDownEnabledM", "limiterDownEnabledS", "limiterKeySource", "limiterKeyGainDb", "limiterKeyHpfHz", "limiterOversampling", "limiterLookaheadMs", "limiterUpAlgorithmMode", "limiterDownAlgorithmMode" };
+    inline constexpr std::array<const char*,33> clipperModeIds { "clipperInputGainDb", "clipperMakeupGainDb", "clipperMakeupGainLDb", "clipperMakeupGainRDb", "clipperMakeupGainMDb", "clipperMakeupGainSDb", "clipperMix", "clipperMixL", "clipperMixR", "clipperMixM", "clipperMixS", "clipperAlgorithmMode", "clipperCompressionMode", "clipperProcessingMode", "clipperDomainLink", "clipperDualRatioLink", "clipperUpEnabled", "clipperUpEnabledL", "clipperUpEnabledR", "clipperUpEnabledM", "clipperUpEnabledS", "clipperDownEnabled", "clipperDownEnabledL", "clipperDownEnabledR", "clipperDownEnabledM", "clipperDownEnabledS", "clipperKeySource", "clipperKeyGainDb", "clipperKeyHpfHz", "clipperOversampling", "clipperLookaheadMs", "clipperUpAlgorithmMode", "clipperDownAlgorithmMode" };
     inline const std::array<const char*,5>& boundaryBankIds (int bank, bool upper) noexcept
     {
         if (bank==0) return upper ? rangeIds : thresholdIds;
         if (bank==1) return upper ? downThresholdIds : upThresholdIds;
         if (bank==2) return upper ? limiterRangeIds : limiterThresholdIds;
-        return upper ? limiterDownThresholdIds : limiterUpThresholdIds;
+        if (bank==3) return upper ? limiterDownThresholdIds : limiterUpThresholdIds;
+        if (bank==4) return upper ? clipperRangeIds : clipperThresholdIds;
+        return upper ? clipperDownThresholdIds : clipperUpThresholdIds;
     }
 
     inline juce::NormalisableRange<float> dynamicsRatioRange (float minimum = qqsc::minimumUpRatio, float maximum = qqsc::normalMaximumDownRatio)
@@ -223,11 +234,10 @@ namespace qqsc::params
         return text.getFloatValue();
     }
 
-    // Preserve the host numeric endpoint. Super interprets it as -inf;
-    // Classic clamps stored values below -90 dB inside its transfer functions.
-    // Keeping the per-algorithm mapping in the engine also preserves both
-    // sides of the Classic/Super crossfade at this shared stored value.
+    // Historical host coordinate retained only for automation compatibility.
+    // Threshold/UP/DOWN and finite Range now stop at -90 dB.
     inline constexpr float thresholdOffDb = -120.0f;
+    inline constexpr float thresholdMinimumDb = -90.0f;
     // Virtual Range endpoint: +1 is a stored OFF sentinel, never physical dB.
     // Finite 0 dB remains a distinct strict upper cutoff in saved projects.
     inline constexpr float rangeOffDb = 1.0f;
@@ -240,12 +250,25 @@ namespace qqsc::params
         return db > thresholdOffDb + 0.0001f;
     }
 
+    inline float clampThresholdDb (float db) noexcept
+    {
+        return juce::jlimit (thresholdMinimumDb, 0.0f, db);
+    }
+
+    inline juce::NormalisableRange<float> thresholdParameterRange()
+    {
+        // Preserve old normalized positions for values >= -90 dB.
+        // The removed lower quarter saturates at the finite floor.
+        return { thresholdOffDb, 0.0f,
+                 [] (float start, float end, float value) { return start + (end - start) * value; },
+                 [] (float start, float end, float value) { return (value - start) / (end - start); },
+                 [] (float, float, float value)
+                 { return clampThresholdDb (std::round (value * 100.0f) * 0.01f); } };
+    }
+
     inline float thresholdLinear (float db) noexcept
     {
-        if (! isThresholdEnabled (db))
-            return 0.0f;
-
-        return juce::Decibels::decibelsToGain (juce::jlimit (thresholdOffDb, 0.0f, db), thresholdOffDb);
+        return juce::Decibels::decibelsToGain (clampThresholdDb (db), thresholdOffDb);
     }
 
     inline bool isRangeEnabled (float db) noexcept
@@ -255,7 +278,7 @@ namespace qqsc::params
 
     inline float clampRangeDb (float db) noexcept
     {
-        return isRangeEnabled (db) ? juce::jlimit (thresholdOffDb, 0.0f, db) : rangeOffDb;
+        return isRangeEnabled (db) ? clampThresholdDb (db) : rangeOffDb;
     }
 
     inline float rangeLinear (float db) noexcept
@@ -263,26 +286,22 @@ namespace qqsc::params
         return isRangeEnabled (db) ? thresholdLinear (db) : std::numeric_limits<float>::infinity();
     }
 
-    inline juce::String boundaryText (float db, bool classic, int decimals = 2)
+    inline juce::String boundaryText (float db, bool, int decimals = 2)
     {
-        if (classic) db = juce::jmax (classicThresholdMinimumDb, db);
-        return classic || isThresholdEnabled (db)
-            ? juce::String (db, decimals) + " dB" : juce::String ("-inf dB");
+        return juce::String (clampThresholdDb (db), decimals) + " dB";
     }
 
-    inline juce::String rangeText (float db, bool classic = false)
+    inline juce::String rangeText (float db, bool = false)
     {
         if (! isRangeEnabled (db)) return "OFF";
-        if (! classic && ! isThresholdEnabled (db)) return "-inf dB";
-        if (classic) db = juce::jmax (classicThresholdMinimumDb, db);
-        return juce::String (db, 2) + " dB";
+        return juce::String (clampThresholdDb (db), 2) + " dB";
     }
 
     inline float rangeFromText (const juce::String& text)
     {
         if (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("+inf")) return rangeOffDb;
-        if (text.containsIgnoreCase ("-inf")) return thresholdOffDb;
-        return juce::jlimit (thresholdOffDb, 0.0f, text.getFloatValue());
+        if (text.containsIgnoreCase ("-inf")) return thresholdMinimumDb;
+        return clampThresholdDb (text.getFloatValue());
     }
 
     inline juce::NormalisableRange<float> rangeParameterRange()

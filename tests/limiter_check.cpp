@@ -197,6 +197,8 @@ struct QQSCLimiterCheck
 {
 #include "output_link_checks.inc"
 #include "strict_output_link_checks.inc"
+#include "limiter_unconditional_link_checks.inc"
+#include "finite_threshold_checks.inc"
 #include "dual_algorithm_checks.inc"
 #include "ratio_mix_checks.inc"
 #include "mode_memory_checks.inc"
@@ -209,7 +211,7 @@ struct QQSCLimiterCheck
 #include "window_link_checks.inc"
 #include "shared_controls_checks.inc"
 #include "limiter_45_checks.inc"
-#include "display_scale_checks.inc"
+    #include "display_zoom_checks.inc"
 #include "display_replay_reference_checks.inc"
 #include "display_replay_drag_checks.inc"
 #include "external_key_display_checks.inc"
@@ -435,6 +437,10 @@ int main(int argc,char** argv)
     try
     {
         const juce::File root(argv[1]);root.createDirectory();
+        if(argc==3 && juce::String(argv[2])=="finite-threshold")
+        { QQSCLimiterCheck::finiteThresholdChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="unconditional-link")
+        { QQSCLimiterCheck::unconditionalLimiterLinkChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="carrier-display")
         { QQSCLimiterCheck::carrierDisplayChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="external-key-display")

@@ -10,15 +10,15 @@
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 
-# QQ Super Compression 1.3.6 Stable
+# QQ Super Compression 1.4.1 Stable
 
-Qing Audio 压缩/限制器，支持 Classic/Super、Single/Dual、ST/LR/MS、内外侧链与 Limiter。SAFE 默认关闭；Normal 与 Safe 均使用 Window 毫秒；统一 1x/4x/8x/16x 过采样作用于所有 Lookahead。Lookahead 档位为 0/26/40/80/100 ms。
+Qing Audio 动态处理插件，提供 Compressor、Clipper、Limiter。支持 Classic/Super、单压/双压、内外侧链；Comp 的 ST 提供 L/R Link 与 M/S Link。Lookahead 为 0/26/40/80/100 ms，Window 在固定延迟内调节检测时长。SAFE 默认关闭，Window 或 Lookahead 为 0 时灰显。总 OS 为 1x/4x/8x/16x，默认 1x。
 
-Qing Audio compressor/limiter with Classic/Super, Single/Dual, ST/LR/MS, internal/external sidechains and Limiter. SAFE defaults off; Normal and Safe both use Window in milliseconds. Unified 1x/4x/8x/16x audio oversampling works at every Lookahead. Presets: 0/26/40/80/100 ms.
+Qing Audio dynamics plug-in with Compressor, Clipper and Limiter; Classic/Super curves, Single/Dual processing and internal/external sidechains. Comp/ST offers both L/R Link and M/S Link. Lookahead presets are 0/26/40/80/100 ms; Window adjusts detection length within fixed latency. SAFE defaults off and is disabled at zero Window or Lookahead. Overall OS is 1x/4x/8x/16x, default 1x.
 
 ## 下载与安装 / Download and installation
 
-**当前正式版 / Latest stable:** [全部 Release / All releases](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [QQ Super Compression 1.3.6](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.3.6)
+**上一公开版 / Previous public release:** [全部 Release / All releases](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [QQ Super Compression 1.3.6](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.3.6)
 
 两本 44 页中英文手册已随 Release 提供，可独立下载。 / Both 44-page Chinese and English manuals are separate Release downloads.
 
@@ -41,13 +41,34 @@ No Linux build is provided. Save a session copy and quit DAWs before upgrading. 
 
 ## 当前稳定版 / Current stable version
 
-**1.3.6 Stable (2026-10-12).** 补齐全部中文悬停说明及数值栏提示；修正 INT 曲线的输入基准和 EXT 曲线的独立显示；拖动 Window / HPF 时刷新历史。普通模式与 Limiter 的新实例 OS 均默认 1x，保留已保存的选择。压缩算法保持原规则。附 44 页[中文手册](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-Chinese.pdf)和[英文手册](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-English.pdf)。
+**1.4.1 Stable (2026-10-14)** 已由用户确认。Windows 复用已验证成品；Mac 从对应源码构建。中英文手册各 49 页：[中文](docs/manuals/QQ-Super-Compression-1.4.1-User-Manual-Chinese.pdf) · [English](docs/manuals/QQ-Super-Compression-1.4.1-User-Manual-English.pdf)。
 
-**1.3.6 Stable (2026-10-12).** Completes Chinese hover help and numeric-readout tips; fixes the INT input reference and independent EXT history; refreshes history during Window/HPF drags. New Normal and Limiter instances default to 1x OS while saved settings remain intact. Compression laws are unchanged. Includes matching 44-page Chinese and English manuals.
+**1.4.1 Stable** is user-approved. Windows reuses the accepted binary; Mac is built from matching source. Includes the two 49-page manuals linked above.
 
-源码与 Release 变化范围：1.3.5 → 1.3.6；包含 1.3.6，遗漏版本：无。 / Source and Release changes: 1.3.5 → 1.3.6; covers 1.3.6, missing versions: none. Shared Display Scale remains -30/-60/-90 dB and does not change actual thresholds or audio.
+本次相对上次公开源码/Release 1.3.6，覆盖全部真实版本：1.3.7、1.4.0、1.4.1；遗漏版本：无。 / Since the previous public source/release 1.3.6, coverage includes every actual version: 1.3.7, 1.4.0 and 1.4.1; missing versions: none.
 
 ## 版本记录 / Version history
+
+### 1.4.1 - Stable, 2026-10-14
+
+- 中文：ST/LR/MS 模式按钮统一为紧凑尺寸；LR/MS 的 LINK 紧邻右侧，切换顺序为 ST → LR → MS，保留原参数编号及自动化含义。放大阈值标签，将 LUFS 表缩小移到 Display 左下角。
+- English: Uses compact ST/LR/MS buttons with LINK immediately beside LR/MS, cycles ST → LR → MS and preserves saved parameter IDs. Enlarges threshold labels and moves the compact LUFS meter to the lower-left of the Display.
+- 中文：Super 与 Classic 阈值范围统一为 -90 至 0 dB，取消 Super -inf。原 -inf 默认/复位改为 -90 dB，原 0 dB 默认保留。旧工程、预置和 A/B 低于 -90 dB 的阈值恢复为 -90 dB，Range OFF 保留；合法自动化位置和无条件 Output LINK 不变。
+- English: Super and Classic thresholds share -90 to 0 dB; Super -inf is removed. Former -inf defaults/resets become -90 dB; existing 0 dB defaults remain. Lower legacy project/preset/A/B thresholds load as -90 dB. Range OFF, legal automation positions and unconditional Output LINK remain.
+- 中文：配套中英文手册各 49 页，尽早解释 ST 的两个 Link，分开介绍 Lookahead/Window 与 SAFE；明确默认值、Alt/Option 复位与旧工程兼容。经用户指定为 Stable。
+- English: Matching 49-page manuals explain both ST Links early, separate Lookahead/Window from SAFE, and distinguish defaults, Alt/Option resets and legacy recall. Stable status was explicitly selected by the user.
+
+### 1.4.0 - Stable, 2026-10-14
+
+- 中文：整理 Compressor/Clipper/Limiter 三种模式。Clipper 只下压，Ratio 10:1-1000:1，无 Ceiling，L/R Link 默认/Alt 为 0%，Output LINK 默认关闭。Comp/ST 的 L/R Link、M/S Link 同时提供，默认/Alt 均为 100%；两者都为 0% 时两种独立处理各占一半。
+- English: Consolidates Compressor/Clipper/Limiter. Clipper is downward-only, 10:1-1000:1, without Ceiling; L/R Link defaults/resets to 0% and Output LINK starts off. Comp/ST provides both L/R and M/S Links, each default/reset 100%; at both 0%, independent L/R and M/S processing is mixed equally.
+- 中文：修正 Clipper 最低 Ratio 灯带、Window 调回 0 的 Display 一致性；Clipper 的每声道 GR 保持最大值，双击或重新播放清零。修复 Limiter Output LINK 在 Ratio 1:1 或下压关闭时失效，联动仅由开关决定，双压 UP 保持独立。
+- English: Fixes the Clipper minimum-Ratio arc and Display consistency when Window returns to zero. Per-channel Clipper GR holds its maximum until double-click or new playback. Limiter Output LINK remains active at Ratio 1:1 or with DOWN off; only its switch controls linking, and Dual UP remains independent.
+
+### 1.3.7 - Historical development delivery, 2026-10-14
+
+- 中文：首次交付三种处理模式、Comp/ST 双 Link、零 Window/零 Lookahead 下禁用 SAFE，以及 Display 框选放大和右键恢复。缩放保持滚动，改进 Ceiling 对齐和绘制流畅性，保留参数调整时的实时历史响应。此版本当时以 Candidate 名称交付，未设为 Stable；历史标识保留，功能后续并入 1.4.0。
+- English: First delivered the three processing modes, two Comp/ST Links, SAFE disabling at zero Window/Lookahead and rectangle Display zoom with right-click reset. Zoom keeps scrolling; Ceiling alignment/rendering improve while live parameter replay remains. Historically delivered as Candidate, not Stable; this historical label is retained and the work was consolidated into 1.4.0.
 
 ### 1.3.6 — Stable, 2026-10-12
 
@@ -145,9 +166,9 @@ For Limiter, start with Ratio 20:1–1000:1, keep Output LINK on and lower Thres
 
 ## 编译 / Build
 
-JUCE 固定为 8.0.15；CMake 3.22+。Windows 使用 VS 2022 C++ 工具与 Windows SDK，macOS 使用 Xcode Command Line Tools。macOS 最低部署版本为 11.0。详见 [复现说明 / reproduction](REPRODUCE_1.3.2.md)。Windows Actions 仅手动触发，本次交付复用已验证 Windows 成品。
+JUCE 固定为 8.0.15；CMake 3.22+。Windows 使用 VS 2022 C++ 工具与 Windows SDK，macOS 使用 Xcode Command Line Tools。macOS 最低部署版本为 11.0。详见 [复现说明 / reproduction](REPRODUCE_1.4.1.md)。Windows Actions 仅手动触发，本次交付复用已验证 Windows 成品。
 
-JUCE is pinned to 8.0.15. Use CMake 3.22+, VS 2022 C++ tools and Windows SDK on Windows, or Xcode Command Line Tools on macOS. The macOS deployment target is 11.0. See [reproduction instructions](REPRODUCE_1.3.2.md). Windows Actions remains manual; this release reuses its verified Windows build.
+JUCE is pinned to 8.0.15. Use CMake 3.22+, VS 2022 C++ tools and Windows SDK on Windows, or Xcode Command Line Tools on macOS. The macOS deployment target is 11.0. See [reproduction instructions](REPRODUCE_1.4.1.md). Windows Actions remains manual; this release reuses its verified Windows build.
 
 ## 已知限制 / Known limits
 
@@ -157,7 +178,7 @@ Longer Safe windows can cause pre/post-attenuation. Shorter windows can increase
 
 FULL may stay awake at extreme gain or with active input/selected sidechain. ECO cuts tails when the host reports Stop. Plugin CPU timings cannot be translated to an ASIO-Guard percentage; DAW scheduling and buffer conditions matter. macOS artifacts are ad-hoc signed and may require trusted-source quarantine handling as described in the installation guides. Commercial use is prohibited; redistributed binaries require free complete corresponding source and the required notices.
 
-## 1.3.6 升级注意 / Upgrade notes
+## 1.3.6 历史升级说明 / Historical upgrade notes
 
 Limiter 旧 ST 设置迁移为 L/R Link 100%，旧 LR/MS 为 0%；旧 L（MS 为 M）参数成为共用值。Limiter 不再使用 Range。Display Scale 不会改变阈值；Classic 最低 -90 dB，Super 最低 -inf。如果旧 1.3.4 已将阈值存为 -45 dB，本版无法恢复更早的数值。旧双组参数工程可能改变声音，请另存工程并试听。
 
@@ -167,7 +188,7 @@ Window 只改变检测时长，不改变选定延迟；SAFE 可能衰减强音�
 
 Window changes detection duration at fixed latency. SAFE may attenuate audio around loud events. Compare OS at 0 ms, short Window (especially below 10 ms), and in Limiter. Limiter switching can still trigger host compensation because Ceiling adds latency.
 
-当前构建说明 / Current build instructions: [REPRODUCE_1.3.6.md](REPRODUCE_1.3.6.md).
+当前构建说明 / Current build instructions: [REPRODUCE_1.4.1.md](REPRODUCE_1.4.1.md).
 
 新实例 OS 默认 1x，由用户按声音和 CPU 选择；已保存工程不会被强制改为 1x。悬停帮助现为中文，英文操作说明见随附英文手册。
 

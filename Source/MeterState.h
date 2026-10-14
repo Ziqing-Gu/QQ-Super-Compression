@@ -28,6 +28,12 @@ struct MeterState
     // In ST, channel 0 is linked and channel 1 is ignored. LR uses L/R; MS M/S.
     std::atomic<float> displayInputDb0  { -120.0f };
     std::atomic<float> displayInputDb1  { -120.0f };
+    // Live evidence covers the last host block, not the GUI polling interval.
+    std::atomic<int> displayBlockSamples { 0 };
+    std::atomic<uint64_t> displayCaptureRevision { 0 }, displayCaptureCounter { 0 }, displayCaptureGeneration { 0 };
+    std::atomic<int> displayCaptureMode { 0 };
+    std::array<std::atomic<float>,5> displayDetectorSettings {}; // Lookahead, Window, OS, HPF, Safe
+    std::array<std::atomic<float>,4> displaySTInputDb {}, displaySTDetectorDb {};
     std::atomic<float> displayDetectorDb0 { -120.0f };
     std::atomic<float> displayDetectorDb1 { -120.0f };
     // Post-Filter/Key-Gain sidechain signal, aligned to the Display carrier.
@@ -61,6 +67,11 @@ struct MeterState
     // block value automatically.
     std::atomic<float> gainReductionHoldDb0 { 0.0f };
     std::atomic<float> gainReductionHoldDb1 { 0.0f };
+
+    // Clipper retains the deepest reduction for the playback pass. Independent
+    // of UI lifetime and detector reconfiguration; reset by playback or a click.
+    std::atomic<float> clipperGainReductionHoldDb0 { 0.0f };
+    std::atomic<float> clipperGainReductionHoldDb1 { 0.0f };
 
     // v1.1.0 Candidate External Key panel. The compact meter follows the
     // detector source after Input Gain (INT) or dedicated Key Gain (EXT).

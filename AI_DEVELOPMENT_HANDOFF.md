@@ -1,3 +1,11 @@
+# Current release: QQ Super Compression 1.4.1 Stable
+
+User-approved on 2026-10-14. The accepted Windows product is reused; Mac release builds use the same production inputs. README and CHANGELOG cover every actual version after 1.3.6: 1.3.7, 1.4.0, 1.4.1. Matching Chinese and English manuals have 49 pages.
+
+Read AGENTS.md and docs/BEHAVIOR_CONTRACTS.md before changes. Future delivered product modifications require the next numeric version; Stable requires explicit user choice. Reuse completed Plan stages and never reopen frozen backups. Historical Candidate/Test labels below describe actual old deliveries and are not the current workflow.
+
+--- Historical records ---
+
 # Current: 1.2.8 Plan C correction — 2026-09-28
 
 Desktop delivery is now verified: eight files, 43,518,833 bytes, comprising Windows x64 VST3, Apple Silicon VST3, Intel VST3, Universal 2 AU, bilingual installation guides and two clearly labelled historical 1.2.7 manuals. Apple Silicon job 108719043229 passed in run 36354377015 at f5891559f24d54abe272d37d2941cdb1e068ba89. Intel job 108717571154 passed in run 36353856702 at 9ca6e6ff284dc133d7c7ecd3137861c6fc314093; the run's aggregate failure belongs to its earlier ARM attempt and is not reported as a successful run. AU job 108714126279 passed at a281cd9700b57d29378820b8fdb1fd9080e72767. All three successful jobs have identical production inputs; the 36 production source/resource/build files match the accepted Plan A workspace. The ARM Ceiling test now accounts for sub-step floating-point rounding and requires reset/redo to restore the exact stored default. The transient matrix-selection failure in run 36354310433 was corrected before the successful ARM build. Windows was reused without rebuilding. Plan D remains deferred.

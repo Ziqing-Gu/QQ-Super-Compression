@@ -174,6 +174,9 @@ private:
                 auto requested = current + deltaValue;
                 if (boundaryYToDb && deltaY < 0.0 && current >= boundaryYToDb(plot.getBottom()))
                     requested = juce::jmax(double(boundaryYToDb(plot.getBottom())), requested);
+                if (boundaryYToDb && deltaY > 0.0 && boundaryYToDb(plot.getY()) < 0.f
+                    && current <= boundaryYToDb(plot.getY()))
+                    requested = juce::jmin(double(boundaryYToDb(plot.getY())), requested);
                 if (getMaximum() > 0.0 && requested > 0.0)
                     requested = getMaximum(); // Range's extra top detent is OFF, not +1 dB.
                 setValue (juce::jlimit (getMinimum(), getMaximum(), requested),
@@ -464,6 +467,11 @@ private:
     CeilingValueLabel detectorWindowValue;
     double detectorWindowDragValue = 0.0;
     CeilingValueLabel limiterStereoLinkValue;
+    std::array<CeilingValueLabel,2> stLinkValues;
+    std::array<juce::Label,2> stLinkLabels;
+    std::array<double,2> stLinkDragValues {};
+    void initialiseSTLinkControls();
+    void refreshSTLinkControls();
     double limiterStereoLinkDragValue = 0.0;
     void initialiseLimiterStereoLinkControl();
     void refreshLimiterStereoLinkControl();
@@ -496,11 +504,11 @@ private:
     FineKnob mixMSlider { 100.0 };
     FineKnob mixSSlider { 100.0 };
     FineKnob outputGainSlider { 0.0 };
-    FineKnob thresholdSlider { qqsc::params::thresholdOffDb };
-    FineKnob thresholdLSlider { qqsc::params::thresholdOffDb };
-    FineKnob thresholdRSlider { qqsc::params::thresholdOffDb };
-    FineKnob thresholdMSlider { qqsc::params::thresholdOffDb };
-    FineKnob thresholdSSlider { qqsc::params::thresholdOffDb };
+    FineKnob thresholdSlider { qqsc::params::thresholdMinimumDb };
+    FineKnob thresholdLSlider { qqsc::params::thresholdMinimumDb };
+    FineKnob thresholdRSlider { qqsc::params::thresholdMinimumDb };
+    FineKnob thresholdMSlider { qqsc::params::thresholdMinimumDb };
+    FineKnob thresholdSSlider { qqsc::params::thresholdMinimumDb };
     FineKnob keyGainSlider { 0.0 };
     FineKnob keyHpfSlider { qqsc::params::keyHpfOffHz };
 

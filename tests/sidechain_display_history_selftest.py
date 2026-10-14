@@ -37,10 +37,10 @@ assert "detectorDb += keyGainDb - point.capturedKeyGainDb;" in display
 assert "detectorDb += externalKey ? keyGainDb : inputGainDb;" in display
 
 # HPF never launches a full replay on every drag tick. Mouse release requests
-# one worker pass; non-mouse automation/preset changes use a short stable-value
-# debounce so they cannot leave stale history behind.
-assert "display.beginKeyHpfGesture();" in editor
-assert "keyHpfSlider.onGestureEnd = [this] { display.endKeyHpfGesture(); };" in editor
+# an exact final worker pass; moving controls use bounded, coalesced replays.
+# Settled automation/preset changes cannot retain an intermediate result.
+assert "display.beginHistoryGesture();" in editor
+assert "keyHpfSlider.onGestureEnd = [this] { display.endHistoryGesture(); };" in editor
 assert "requestHpfHistoryRefresh();" in display
 assert "hpfAutomationStableTicks = 4" in display_h
 assert "hpfMaxRetryAttempts = 3" in display_h
@@ -50,7 +50,7 @@ assert "requestHpfHistoryRefresh (true)" in display
 assert "uint64_t startCounter" in processor_h and "requestedStartCounter" in processor
 assert "QQSC Display HPF Replay" in display
 assert "juce::Thread::Priority::low" in display
-assert "HPF UPDATING" in display
+assert "UPDATING" in display
 assert "ReplayPeakWindow primaryEngine" in display
 assert "ReplayPeakWindow secondaryEngine" in display
 assert "ReplayPeakWindow leftEngine" not in display

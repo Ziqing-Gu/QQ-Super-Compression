@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.3.6 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.4.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -92,6 +92,13 @@ if(QQSC_BUILD_DYNAMICS_CHECK)
     target_link_libraries(QQSCClickReplay PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
     if(MSVC)
         target_compile_options(QQSCClickReplay PRIVATE /utf-8)
+    endif()
+    juce_add_console_app(QQSCDisplayAlignmentCheck PRODUCT_NAME "QQSC Display Alignment Check")
+    target_sources(QQSCDisplayAlignmentCheck PRIVATE tests/display_alignment_check.cpp)
+    target_include_directories(QQSCDisplayAlignmentCheck PRIVATE Source "${CMAKE_CURRENT_BINARY_DIR}/QQSuperCompression_artefacts/JuceLibraryCode")
+    target_link_libraries(QQSCDisplayAlignmentCheck PRIVATE QQSuperCompression juce::juce_audio_utils juce::juce_dsp)
+    if(MSVC)
+        target_compile_options(QQSCDisplayAlignmentCheck PRIVATE /utf-8)
     endif()
 endif()
 
@@ -203,6 +210,18 @@ if(QQSC_BUILD_DYNAMICS_CHECK)
     if(MSVC)
         target_compile_options(QQSCLimiterCheck PRIVATE /utf-8)
     endif()
+    # User-confirmed behavior contracts are a delivery gate, not an optional
+    # historical regression profile. Failure must propagate to the build.
+    add_custom_target(QQSCContractCheck
+        COMMAND $<TARGET_FILE:QQSCLimiterCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>"
+                unconditional-link
+        COMMAND $<TARGET_FILE:QQSCLimiterCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>"
+                finite-threshold
+        DEPENDS QQSCLimiterCheck
+        COMMENT "Verify user-confirmed QQ Super Compression behavior contracts"
+        VERBATIM)
 endif()
 
 if(QQSC_BUILD_DYNAMICS_CHECK)

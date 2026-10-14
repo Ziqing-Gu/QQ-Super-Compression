@@ -74,7 +74,7 @@
             request.requestGeneration=d.replayRequestGeneration->load();request.captureGeneration=d.lastCaptureGeneration;
             request.mode=c.mode;request.keySource=1;request.lookaheadMs=26;request.oversampling=c.os;
             request.hpfHz=qqsc::params::keyHpfOffHz;request.abSlot=p.getActiveABSlot();request.limiter=c.limiter;
-            for(const auto& point:d.histories[0].points){request.markers.push_back(point.captureCounter);request.carrierDelays.push_back(point.carrierDelaySeconds);}
+            for(const auto& point:d.histories[0].points){request.markers.push_back(point.captureCounter);request.carrierDelays.push_back(point.carrierDelaySeconds);request.captureBlockSamples.push_back(point.captureBlockSamples);}
             request.requestedStartCounter=0;
             DynamicDisplay::ReplayResult baseline;
             float maxDetectorDifference=0,maxOutputDifference=0;
