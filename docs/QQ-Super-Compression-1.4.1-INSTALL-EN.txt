@@ -297,4 +297,4 @@ QQ.Super.Compression.1.4.1.macOS.Apple.Silicon.VST3.zip
 QQ.Super.Compression.1.4.1.macOS.Intel.x86_64.VST3.zip
 QQ.Super.Compression.1.4.1.macOS.Universal.2.AU.zip
 
-1.4.1 update: New Normal and Limiter instances default to 1x OS; saved choices are restored. Chinese hover help now covers knobs, numeric readouts and other controls. Window/HPF drags refresh history (higher OS may refresh more slowly); EXT history is independent of Window/SAFE/OS and INT references are corrected. Compression laws are unchanged.
+1.4.1 update: Compact mode controls cycle ST -> LR -> MS. Threshold labels are larger and the compact LUFS meter sits at the lower-left of the Display. Super and Classic thresholds share -90 to 0 dB; former -inf defaults/resets become -90 dB while existing 0 dB defaults remain. See section 6 and both 49-page manuals for operation, migration and cumulative changes.

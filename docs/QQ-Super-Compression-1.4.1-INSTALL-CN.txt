@@ -297,4 +297,4 @@ QQ.Super.Compression.1.4.1.macOS.Apple.Silicon.VST3.zip
 QQ.Super.Compression.1.4.1.macOS.Intel.x86_64.VST3.zip
 QQ.Super.Compression.1.4.1.macOS.Universal.2.AU.zip
 
-1.4.1 更新：普通模式和 Limiter 新实例 OS 默认 1x；已保存选择仍会恢复。全中文悬停说明覆盖旋钮、数值栏及其他控件。Window / HPF 拖动实时刷新历史（高倍 OS 可降低刷新速度），EXT 曲线独立于 Window / SAFE / OS，INT 曲线基准修正；压缩规则不变。
+1.4.1 更新：模式按钮统一为紧凑尺寸，顺序为 ST → LR → MS。阈值标签放大，LUFS 表缩小并移至 Display 左下角。Super 与 Classic 阈值统一为 -90 至 0 dB；原 -inf 默认/复位改为 -90 dB，原 0 dB 默认保留。其余操作、兼容说明和累计变化见第 6 节及两本 49 页用户手册。
