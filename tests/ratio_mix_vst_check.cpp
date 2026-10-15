@@ -25,6 +25,35 @@ int main(int argc,char** argv)
             format.findAllTypesForFile(desc[j],argv[j+1]);require(desc[j].size()==1,"One plugin per bundle");
             juce::String error;p[j]=format.createInstanceFromDescription(*desc[j][0],48000,256,error);require(p[j]!=nullptr,error);
         }
+        if(argc==4 && juce::String(argv[3])=="--lookahead143")
+        {
+            require(desc[1][0]->version=="1.4.3","Wrong delivered plugin version");
+            require(desc[0][0]->uniqueId==desc[1][0]->uniqueId,"VST3 identity changed");
+            require(p[0]->getParameters().size()==p[1]->getParameters().size(),"Host parameter count changed");
+            for(int i=0;i<p[0]->getParameters().size();++i)
+                require(p[0]->getHostedParameter(i)->getParameterID()==p[1]->getHostedParameter(i)->getParameterID(),"Host parameter ID/order changed");
+            for(const auto* name:{"Lookahead","Limiter lookaheadMs","Clipper lookaheadMs"})
+            {
+                juce::AudioProcessorParameter* found=nullptr;
+                for(auto* param:p[1]->getParameters())if(param->getName(100)==name){found=param;break;}
+                require(found!=nullptr,juce::String("Missing hosted parameter: ")+name);
+                for(const auto* text:{"0 ms","25.3 ms","50.6 ms","76 ms","100 ms"})
+                    require(found->getText(found->getValueForText(text),100)==text,"Hosted decimal preset text round trip");
+            }
+            juce::MemoryBlock state;p[0]->getStateInformation(state);
+            p[1]->setStateInformation(state.getData(),int(state.getSize()));
+            const auto old=componentState(*p[0]),next=componentState(*p[1]);
+            for(const auto* id:{"lookaheadMs","limiterLookaheadMs","clipperLookaheadMs"})
+            {
+                const float was=float(old.getChildWithProperty("id",id).getProperty("value"));
+                float expected=0,best=std::abs(was);
+                for(float value:{25.3f,50.6f,76.f,100.f})if(std::abs(was-value)<=best){best=std::abs(was-value);expected=value;}
+                if(was>=5 && was<25.3f)expected=25.3f;
+                require(std::abs(float(next.getChildWithProperty("id",id).getProperty("value"))-expected)<.001f,"Actual old VST3 state Lookahead migration");
+            }
+            std::cout<<"PASS: actual VST3 1.4.3 loads; identity and all host parameter IDs/order preserved; decimal preset text in all banks; real previous-version wrapper state migration\n";
+            return 0;
+        }
         if(argc==4 && juce::String(argv[3])=="--candidate140")
         {
             require(desc[0][0]->uniqueId==desc[1][0]->uniqueId && desc[1][0]->version=="1.4.0","Candidate identity/version");

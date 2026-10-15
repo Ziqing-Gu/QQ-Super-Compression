@@ -35,6 +35,7 @@ constexpr auto stateSchemaProperty = "qqscStateSchemaVersion";
 constexpr auto monitorLRProperty = "qqscMonitorLRSelection";
 constexpr auto monitorMSProperty = "qqscMonitorMSSelection";
 constexpr auto performanceEcoProperty = "qqscPerformanceEco";
+constexpr auto displayFreezeProperty = "qqscDisplayFreezeOnStop";
 constexpr int oversamplingSchemaVersion = 2; // v0.1.10: 0 ms-only 1x/8x/16x Oversampling schema
 constexpr int currentStateSchemaVersion = 31; // Finite -90 dB boundaries; retain host automation coordinates
 constexpr float centeredChannelMonitorGain = 0.70710678118654752440f; // 1/sqrt(2), -3.0103 dB
@@ -57,6 +58,12 @@ juce::PropertiesFile::Options userPreferencesOptions()
     return options;
 }
 
+bool loadLastDisplayFreezeOnStop()
+{
+    juce::PropertiesFile properties(userPreferencesOptions());
+    return properties.getBoolValue("lastDisplayFreezeOnStop",true);
+}
+
 bool loadLastPerformanceEco()
 {
     // Construction only, never the audio callback or state restore path.
@@ -68,11 +75,10 @@ float loadLastUserLookaheadMs()
 {
     juce::PropertiesFile properties (userPreferencesOptions());
 
-    // 26 ms is the first-run fallback for the fixed-preset design. User
-    // PluginDoctor tests found it to be the shortest tested window where the
-    // sharp distortion boundary had moved to about 20 Hz. Once the user makes
-    // a selection, that selection becomes the default for future new instances.
-    const auto stored = static_cast<float> (properties.getDoubleValue ("lastLookaheadMs", 26.0));
+    // The first nonzero preset is the first-run fallback. Later new instances
+    // reuse the user's last choice, snapped to the currently available presets.
+    const auto stored = static_cast<float> (properties.getDoubleValue (
+        "lastLookaheadMs", qqsc::params::defaultLookaheadMs));
     return qqsc::params::snapLookaheadMs (stored);
 }
 
@@ -201,6 +207,9 @@ QQSuperCompressionAudioProcessor::QQSuperCompressionAudioProcessor(std::unique_p
     ecoMode.store(initialPreferencesOverride != nullptr
         ? initialPreferencesOverride->getBoolValue("lastPerformanceEco",false)
         : loadLastPerformanceEco(),std::memory_order_relaxed);
+    displayFreezeOnStop.store(initialPreferencesOverride != nullptr
+        ? initialPreferencesOverride->getBoolValue("lastDisplayFreezeOnStop",true)
+        : loadLastDisplayFreezeOnStop(),std::memory_order_relaxed);
     // Preallocate every supported Core factor. Switching quality never creates
     // an oversampler in processBlock; 4x adds a lower-cost option in 1.2.36.
     oversamplers[0] = std::make_unique<juce::dsp::Oversampling<float>> (8u);
@@ -226,6 +235,12 @@ QQSuperCompressionAudioProcessor::~QQSuperCompressionAudioProcessor()
     for(auto* parameter:getParameters())
         if(auto* identified=dynamic_cast<juce::AudioProcessorParameterWithID*>(parameter))
             apvts.removeParameterListener(identified->paramID,this);
+}
+
+void QQSuperCompressionAudioProcessor::setDisplayFreezeOnStop(bool enabled)
+{
+    if(displayFreezeOnStop.exchange(enabled,std::memory_order_acq_rel)==enabled)return;
+    updateHostDisplay(juce::AudioProcessor::ChangeDetails().withNonParameterStateChanged(true));
 }
 
 void QQSuperCompressionAudioProcessor::setEcoMode(bool eco)
@@ -697,12 +712,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
     const auto defaultLookaheadMs = loadLastUserLookaheadMs();
     layout.add (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { qqsc::params::lookaheadMs, 1 }, "Lookahead",
-        juce::NormalisableRange<float> { 0.0f, 100.0f, 0.1f }, defaultLookaheadMs,
+        juce::NormalisableRange<float> { 0.0f, qqsc::params::maximumLookaheadMs, 0.1f }, defaultLookaheadMs,
         juce::AudioParameterFloatAttributes()
             .withLabel ("ms")
             .withStringFromValueFunction ([] (float v, int)
             {
-                return juce::String (qqsc::params::snapLookaheadMs (v), 0) + " ms";
+                return qqsc::params::lookaheadTextForMs(v);
             })
             .withValueFromStringFunction ([] (const juce::String& s)
             {
@@ -934,9 +949,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
         }
         else if(i==30)
             layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{id,1},name,
-                juce::NormalisableRange<float>{0.f,100.f,.1f},defaultLookaheadMs,
+                juce::NormalisableRange<float>{0.f,qqsc::params::maximumLookaheadMs,.1f},defaultLookaheadMs,
                 juce::AudioParameterFloatAttributes().withLabel("ms")
-                    .withStringFromValueFunction([](float v,int){return juce::String(qqsc::params::snapLookaheadMs(v),0)+" ms";})
+                    .withStringFromValueFunction([](float v,int){return qqsc::params::lookaheadTextForMs(v);})
                     .withValueFromStringFunction([](const juce::String& s){return qqsc::params::snapLookaheadMs(s.getFloatValue());})));
         else
         {
@@ -964,13 +979,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
     // the min-of-windows behaviour for saved projects.
     layout.add(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID{qqsc::params::detectorMode,1},"Detector",
-        juce::StringArray{"Normal","Safe"},0));
+        juce::StringArray{"Normal","Transparent"},0));
     // Append after Detector; existing host parameter indices are unchanged.
-    // 100 is capped to the active Lookahead, preserving the complete legacy
+    // The maximum is capped to the active Lookahead, preserving the complete legacy
     // window on fresh instances and when loading pre-WINDOW sessions.
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{qqsc::params::detectorWindowMs,1},"Detector Window",
-        juce::NormalisableRange<float>{0.0f,100.0f,0.01f},100.0f,
+        juce::NormalisableRange<float>{0.0f,qqsc::params::maximumLookaheadMs,0.01f},qqsc::params::maximumLookaheadMs,
         juce::AudioParameterFloatAttributes().withLabel("ms")));
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{qqsc::params::distort,1},"Distort",
@@ -1025,9 +1040,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout QQSuperCompressionAudioProce
         }
         else if(i==30)
             layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{id,1},name,
-                juce::NormalisableRange<float>{0.f,100.f,.1f},defaultLookaheadMs,
+                juce::NormalisableRange<float>{0.f,qqsc::params::maximumLookaheadMs,.1f},defaultLookaheadMs,
                 juce::AudioParameterFloatAttributes().withLabel("ms")
-                    .withStringFromValueFunction([](float v,int){return juce::String(qqsc::params::snapLookaheadMs(v),0)+" ms";})
+                    .withStringFromValueFunction([](float v,int){return qqsc::params::lookaheadTextForMs(v);})
                     .withValueFromStringFunction([](const juce::String& s){return qqsc::params::snapLookaheadMs(s.getFloatValue());})));
         else
         {
@@ -1086,6 +1101,7 @@ void QQSuperCompressionAudioProcessor::initialiseDualAlgorithmPreferences (int u
 
 void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    displayTransportStopped.store(false, std::memory_order_release);
     currentSampleRate = juce::jmax (1.0, sampleRate);
 
     displayKeyHistoryHostSampleRate.store (currentSampleRate, std::memory_order_relaxed);
@@ -1114,8 +1130,8 @@ void QQSuperCompressionAudioProcessor::prepareToPlay (double sampleRate, int sam
     originalInputBuffer.setSize (2, configuredMaximumBlockSize, false, true, true);
     originalInputBuffer.clear();
 
-    // Reserve the maximum 100 ms window at 16x; processBlock never allocates.
-    maxLookaheadSamplesBase = juce::jmax (0, static_cast<int> (std::ceil (currentSampleRate * 0.100)));
+    // Reserve the longest preset at 16x; processBlock never allocates.
+    maxLookaheadSamplesBase = juce::jmax (0, static_cast<int> (std::ceil (currentSampleRate * qqsc::params::maximumLookaheadSeconds)));
     maxLookaheadSamplesInternal = maxLookaheadSamplesBase * qqsc::params::oversamplingFactors.back();
     // Rebuilding the two-sided detector needs 2N input history. This buffer
     // capacity does not change the N-sample audio read position or host latency.
@@ -1765,6 +1781,13 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         }
     }
 
+    // Freeze only retained Display evidence, never audible processing, meters,
+    // parameter projection, recording or offline rendering. Unknown transport
+    // remains live (for example an analyser host). Sample once per audio block.
+    displayTransportStopped.store(transportAvailable && !transportPlaying && !transportRecording && !offlineRendering, std::memory_order_release);
+    const bool captureDisplayForBlock = uiAnalysisEnabled && (!isDisplayFreezeOnStop()
+        || !transportAvailable || transportPlaying || transportRecording || offlineRendering);
+
     if(transportPlaying && !lastTransportPlaying)resetClipperGainReductionHold();
     const bool holdClipperGr = isClipperMode() && !forceBypass
         && (!transportAvailable || transportPlaying || transportRecording || offlineRendering);
@@ -1869,33 +1892,33 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         unityMatchSettling=juce::jmax(0,unityMatchSettling-numSamples);
         if(uiAnalysisEnabled)
         {
-            // Preserve FULL's history and meter hold timing. Only the cheap
-            meterState.displayCaptureRevision.fetch_add(1,std::memory_order_acq_rel);
-            // zero history writes remain; no gain conversion, delay mixing,
-            // HPF, compressor, Ceiling or true-peak oversampling is run here.
-            if(auto history=std::atomic_load_explicit(&displayKeyHistoryStorage,std::memory_order_acquire))
-                for(int i=0;i<numSamples;++i)
-                    history->push(0.f,0.f,keySource,useExternalKey ? externalKeyChannels>=2 : stereoBus);
             meterState.inputDb0.store(-120.f,std::memory_order_relaxed);
             meterState.inputDb1.store(-120.f,std::memory_order_relaxed);
             meterState.outputDb0.store(-120.f,std::memory_order_relaxed);
             meterState.outputDb1.store(-120.f,std::memory_order_relaxed);
-            meterState.displayInputDb0.store(-120.f,std::memory_order_relaxed);
-            meterState.displayInputDb1.store(-120.f,std::memory_order_relaxed);
-            for(size_t d=0;d<4;++d){meterState.displaySTInputDb[d].store(-120.f);meterState.displaySTDetectorDb[d].store(-120.f);}
-            meterState.displayDetectorDb0.store(-120.f,std::memory_order_relaxed);
-            meterState.displayDetectorDb1.store(-120.f,std::memory_order_relaxed);
-            meterState.displayExternalKeyDb0.store(-120.f,std::memory_order_relaxed);
-            meterState.displayExternalKeyDb1.store(-120.f,std::memory_order_relaxed);
+            if(captureDisplayForBlock)
+            {
+                meterState.displayCaptureRevision.fetch_add(1,std::memory_order_acq_rel);
+                if(auto history=std::atomic_load_explicit(&displayKeyHistoryStorage,std::memory_order_acquire))
+                    for(int i=0;i<numSamples;++i)
+                        history->push(0.f,0.f,keySource,useExternalKey ? externalKeyChannels>=2 : stereoBus);
+                meterState.displayInputDb0.store(-120.f,std::memory_order_relaxed);
+                meterState.displayInputDb1.store(-120.f,std::memory_order_relaxed);
+                for(size_t d=0;d<4;++d){meterState.displaySTInputDb[d].store(-120.f);meterState.displaySTDetectorDb[d].store(-120.f);}
+                meterState.displayDetectorDb0.store(-120.f,std::memory_order_relaxed);
+                meterState.displayDetectorDb1.store(-120.f,std::memory_order_relaxed);
+                meterState.displayExternalKeyDb0.store(-120.f,std::memory_order_relaxed);
+                meterState.displayExternalKeyDb1.store(-120.f,std::memory_order_relaxed);
+                meterState.displayCeilingGainReductionDb.store(0.f,std::memory_order_relaxed);
+                finishDisplayMeterCapture(displayCaptureStart,juce::jlimit(0,2,int(readSoundParameter(qqsc::params::processingMode))));
+            }
             meterState.keyInputDb.store(-120.f,std::memory_order_relaxed);
             meterState.gainReductionDb0.store(0.f,std::memory_order_relaxed);
             meterState.gainReductionDb1.store(0.f,std::memory_order_relaxed);
-            meterState.displayCeilingGainReductionDb.store(0.f,std::memory_order_relaxed);
             updateTruePeakHold(-120.f,numSamples);
             for(int ch=0;ch<2;++ch) updateGainReductionHoldChannel(ch,0.f,numSamples);
             meterState.gainReductionHoldDb0.store(gainReductionHoldDb[0],std::memory_order_relaxed);
             meterState.gainReductionHoldDb1.store(gainReductionHoldDb[1],std::memory_order_relaxed);
-            finishDisplayMeterCapture(displayCaptureStart,juce::jlimit(0,2,int(readSoundParameter(qqsc::params::processingMode))));
         }
         lastTransportPlaying=transportPlaying;
         lastTransportSample=transportSample;
@@ -1971,7 +1994,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
     keyHpfWetSmoother.setTargetValue (keyHpfEnabled ? 1.0f : 0.0f);
 
     const bool detectorKeyIsStereo = useExternalKey ? externalKeyChannels >= 2 : stereoBus;
-    const auto displayHistoryForBlock = uiAnalysisEnabled
+    const auto displayHistoryForBlock = captureDisplayForBlock
         ? std::atomic_load_explicit (&displayKeyHistoryStorage, std::memory_order_acquire)
         : std::shared_ptr<DisplayKeyHistoryStorage> {};
 
@@ -2820,7 +2843,8 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
                 displayPreCeilingTruePeakLinear / displayPreCeilingSamplePeakLinear, -180.0f));
         // Accumulate until the 60 Hz display consumes it, so a short inter-sample
         // peak between GUI ticks is still represented in the historical point.
-        atomicMaxFloat (meterState.displayTruePeakExcessDb, displayTruePeakExcessDb);
+        if(captureDisplayForBlock)
+            atomicMaxFloat (meterState.displayTruePeakExcessDb, displayTruePeakExcessDb);
         // GAIN +/- and Dynamic Display share the same final-processing semantics:
         // compressor/Mix signed gain change plus the actual stereo-linked OutputCeiling
         // attenuation. TP/Sample-Peak switching is already represented by the
@@ -2834,25 +2858,30 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         const auto totalEffectiveGr1 = effectiveGr1 + ceilingGrForChannel(1);
     
         updateTruePeakMeter(numSamples);
-        meterState.displayCaptureRevision.fetch_add(1,std::memory_order_acq_rel);
+        if(captureDisplayForBlock)
+            meterState.displayCaptureRevision.fetch_add(1,std::memory_order_acq_rel);
         meterState.inputDb0.store  (peakToDb (meterInputPeak[0]), std::memory_order_relaxed);
         meterState.inputDb1.store  (peakToDb (meterInputPeak[1]), std::memory_order_relaxed);
         meterState.outputDb0.store (peakToDb (meterOutputPeak[0]), std::memory_order_relaxed);
         meterState.outputDb1.store (peakToDb (meterOutputPeak[1]), std::memory_order_relaxed);
     
-        meterState.displayInputDb0.store  (peakToDb (displayInputPeak[0]), std::memory_order_relaxed);
-        meterState.displayInputDb1.store  (peakToDb (displayInputPeak[1]), std::memory_order_relaxed);
-        for(size_t d=0;d<4;++d)
-        {meterState.displaySTInputDb[d].store(peakToDb(stInputPeak[d]),std::memory_order_relaxed);
-         meterState.displaySTDetectorDb[d].store(peakToDb(stDetectorPeak[d]),std::memory_order_relaxed);}
-        meterState.displayDetectorDb0.store (peakToDb (displayDetectorPeak[0]), std::memory_order_relaxed);
-        meterState.displayDetectorDb1.store (peakToDb (displayDetectorPeak[1]), std::memory_order_relaxed);
-        meterState.displayExternalKeyDb0.store (peakToDb (displayExternalKeyPeak[0]), std::memory_order_relaxed);
-        meterState.displayExternalKeyDb1.store (peakToDb (displayExternalKeyPeak[1]), std::memory_order_relaxed);
+        if(captureDisplayForBlock)
+        {
+            meterState.displayInputDb0.store  (peakToDb (displayInputPeak[0]), std::memory_order_relaxed);
+            meterState.displayInputDb1.store  (peakToDb (displayInputPeak[1]), std::memory_order_relaxed);
+            for(size_t d=0;d<4;++d)
+            {meterState.displaySTInputDb[d].store(peakToDb(stInputPeak[d]),std::memory_order_relaxed);
+             meterState.displaySTDetectorDb[d].store(peakToDb(stDetectorPeak[d]),std::memory_order_relaxed);}
+            meterState.displayDetectorDb0.store (peakToDb (displayDetectorPeak[0]), std::memory_order_relaxed);
+            meterState.displayDetectorDb1.store (peakToDb (displayDetectorPeak[1]), std::memory_order_relaxed);
+            meterState.displayExternalKeyDb0.store (peakToDb (displayExternalKeyPeak[0]), std::memory_order_relaxed);
+            meterState.displayExternalKeyDb1.store (peakToDb (displayExternalKeyPeak[1]), std::memory_order_relaxed);
+        }
     
         meterState.gainReductionDb0.store (totalEffectiveGr0, std::memory_order_relaxed);
         meterState.gainReductionDb1.store (totalEffectiveGr1, std::memory_order_relaxed);
-        meterState.displayCeilingGainReductionDb.store (forceBypass ? 0.0f : displayCeilingGainReductionDb,
+        if(captureDisplayForBlock)
+            meterState.displayCeilingGainReductionDb.store (forceBypass ? 0.0f : displayCeilingGainReductionDb,
                                                         std::memory_order_relaxed);
         meterState.keyInputDb.store (peakToDb (keyInputPeak), std::memory_order_relaxed);
     
@@ -2860,7 +2889,7 @@ void QQSuperCompressionAudioProcessor::processBlockInternal (juce::AudioBuffer<f
         updateGainReductionHoldChannel (1, stereoBus ? totalEffectiveGr1 : 0.0f, numSamples);
         meterState.gainReductionHoldDb0.store (gainReductionHoldDb[0], std::memory_order_relaxed);
         meterState.gainReductionHoldDb1.store (gainReductionHoldDb[1], std::memory_order_relaxed);
-        finishDisplayMeterCapture(displayCaptureStart,mode);
+        if(captureDisplayForBlock)finishDisplayMeterCapture(displayCaptureStart,mode);
     }
 
     if(stoppedInputIsQuiet && !stoppedDspSleeping)
@@ -3556,6 +3585,7 @@ void QQSuperCompressionAudioProcessor::readABStateFrom (const juce::ValueTree& s
             };
             for(size_t i=0;i<35;++i) s.clipperSound[i]=readClipper(qqsc::params::clipperSoundIds[i]);
             for(size_t i=0;i<33;++i) s.clipperSettings[i]=readClipper(qqsc::params::clipperModeIds[i]);
+            s.clipperSettings[30]=qqsc::params::snapLookaheadMs(s.clipperSettings[30]);
             s.clipperMode=readClipper("clipperMode")>=.5f;s.clipperLink=readClipper("clipperLink")>=.5f;
             s.clipperOutputDb=readClipper("clipperOutputDb");s.clipperStereoLink=readClipper("clipperStereoLink");
             s.stLRLink=juce::jlimit(0.f,100.f,float(state.getProperty(abProperty(prefix+"stLRLink"),100.f)));
@@ -3575,8 +3605,8 @@ void QQSuperCompressionAudioProcessor::readABStateFrom (const juce::ValueTree& s
             s.outputGainDb = static_cast<float> (state.getProperty (abProperty (prefix + "outputGainDb"), s.outputGainDb));
             s.lookaheadMs = qqsc::params::snapLookaheadMs (
                 static_cast<float> (state.getProperty (abProperty (prefix + "lookaheadMs"), s.lookaheadMs)));
-            s.detectorWindowMs = juce::jlimit (0.0f, 100.0f,
-                float(state.getProperty (abProperty (prefix + "detectorWindowMs"), 100.0f)));
+            s.detectorWindowMs = juce::jlimit (0.0f, qqsc::params::maximumLookaheadMs,
+                float(state.getProperty (abProperty (prefix + "detectorWindowMs"), qqsc::params::maximumLookaheadMs)));
             s.detectorMode = juce::jlimit (0, 1,
                 int(state.getProperty (abProperty (prefix + "detectorMode"), s.detectorMode)));
             if(state.hasProperty(abProperty(prefix+"oversampling")))
@@ -3892,6 +3922,7 @@ void QQSuperCompressionAudioProcessor::getStateInformation (juce::MemoryBlock& d
     writeCanonicalBoundariesTo (state);
     state.setProperty (stateSchemaProperty, currentStateSchemaVersion, nullptr);
     state.setProperty (performanceEcoProperty, isEcoMode(), nullptr);
+    state.setProperty (displayFreezeProperty, isDisplayFreezeOnStop(), nullptr);
     state.setProperty ("qqscDisplayScaleDb", getDisplayScaleDb(), nullptr);
     const auto zoom=getDisplayZoom();
     for(size_t i=0;i<4;++i)state.setProperty("qqscDisplayZoom"+juce::String(int(i)),zoom[i],nullptr);
@@ -3998,6 +4029,10 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
             // Older projects never stored an instance preference. Restore FULL
             // explicitly, including when loading over an existing ECO instance.
             ecoMode.store (bool(state.getProperty(performanceEcoProperty, false)), std::memory_order_release);
+            // Legacy projects inherit the construction-time user preference.
+            // Loading a project never changes the default for other instances.
+            if(state.hasProperty(displayFreezeProperty))
+                displayFreezeOnStop.store(bool(state.getProperty(displayFreezeProperty)),std::memory_order_release);
             setDisplayScaleDb(int(state.getProperty("qqscDisplayScaleDb", 90)));
             if(state.hasProperty("qqscDisplayZoom0"))setDisplayZoom(
                 float(state.getProperty("qqscDisplayZoom0",-90.f)),float(state.getProperty("qqscDisplayZoom1",0.f)),
@@ -4139,7 +4174,7 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
             if (! stateHasCeilingOs)
                 setActualParameterValue (qqsc::params::ceilingOversampling, float(qqsc::params::ceiling8x));
             if (! stateHasDetectorWindow)
-                setActualParameterValue (qqsc::params::detectorWindowMs, 100.0f);
+                setActualParameterValue (qqsc::params::detectorWindowMs, qqsc::params::maximumLookaheadMs);
             if (! stateHasDetectorMode)
                 setActualParameterValue (qqsc::params::detectorMode, 0.0f);
             for (size_t d = 0; d < 5; ++d)
@@ -4182,8 +4217,9 @@ void QQSuperCompressionAudioProcessor::setStateInformation (const void* data, in
                     setActualParameterValue(qqsc::params::limiterModeIds[i],legacy.limiterSettings[i]);
                 setActualParameterValue(qqsc::params::limiterStereoLink,legacy.limiterStereoLink);
             }
-            setActualParameterValue("limiterLookaheadMs",qqsc::params::snapLookaheadMs(
-                apvts.getRawParameterValue("limiterLookaheadMs")->load()));
+            for(const auto* id : {"limiterLookaheadMs", "clipperLookaheadMs"})
+                setActualParameterValue(id,qqsc::params::snapLookaheadMs(
+                    apvts.getRawParameterValue(id)->load()));
             limiterBankInitialised.store(bool(state.getProperty("qqscLimiterBankInitialised",hadLimiterBank)),std::memory_order_release);
             const auto restoredDistort = stateHasDistort
                 ? apvts.getRawParameterValue(qqsc::params::distort)->load()

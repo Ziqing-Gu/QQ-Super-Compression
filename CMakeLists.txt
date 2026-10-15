@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.4.1 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.4.10 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -219,6 +219,15 @@ if(QQSC_BUILD_DYNAMICS_CHECK)
         COMMAND $<TARGET_FILE:QQSCLimiterCheck>
                 "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>"
                 finite-threshold
+        COMMAND $<TARGET_FILE:QQSCLimiterCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>"
+                display-live-follow
+        COMMAND $<TARGET_FILE:QQSCLimiterCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>"
+                display-freeze
+        COMMAND $<TARGET_FILE:QQSCLimiterCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>"
+                lookahead-presets
         DEPENDS QQSCLimiterCheck
         COMMENT "Verify user-confirmed QQ Super Compression behavior contracts"
         VERBATIM)

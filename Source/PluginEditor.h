@@ -401,7 +401,7 @@ private:
     private:
         float lastY=0; bool dragging=false;
     };
-    juce::TextButton detectorModeButton { "SAFE" };
+    juce::TextButton detectorModeButton { "TRANSPARENT" };
     juce::TextButton limiterButton { "LIMITER" }, limiterLinkButton { "LINK" };
     juce::TextButton unityMonitorButton;
     juce::TextButton truePeakButton { "TP" };

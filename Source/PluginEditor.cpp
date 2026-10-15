@@ -53,6 +53,14 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
       meters (p)
 {
     processor.setEditorOpen(true);
+    display.onFreezeChanged=[this](bool enabled) {
+        // Only a manual choice updates the new-instance preference.
+        if(uiProperties!=nullptr) {
+            uiProperties->reload();
+            uiProperties->setValue("lastDisplayFreezeOnStop",enabled);
+            uiProperties->saveIfNeeded();
+        }
+    };
     processor.initialiseDualRatioLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("dualRatioLink", true));
     processor.initialiseInputOutputLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("inputOutputLink", true));
     processor.initialiseAlgorithmPreference (uiProperties != nullptr ? uiProperties->getIntValue ("lastAlgorithmMode", 0) : 0);
@@ -237,6 +245,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     contentRoot.addAndMakeVisible (keyHpfSlider);
     registerKeyboardListener (keyHpfSlider);
 
+    lookaheadCombo.getProperties().set ("qqscCompactUnitText", true);
     lookaheadCombo.addItemList (qqsc::params::lookaheadChoices(), 1);
     lookaheadCombo.setTooltip (juce::String::fromUTF8 (u8"Lookahead：允许提前读取的时长，也是 Window 的最大值。切换会改变插件延迟，并将 Window 恢复到同一数值。只调整 Window 可保持延迟不变，连续比较不同检测时长的声音。"));
     lookaheadCombo.setJustificationType (juce::Justification::centred);
@@ -598,6 +607,7 @@ std::unique_ptr<juce::PropertiesFile> QQSuperCompressionAudioProcessorEditor::cr
 void QQSuperCompressionAudioProcessorEditor::applyTheme()
 {
     utf8LookAndFeel.setTheme (theme);
+    display.lookAndFeelChanged();
     const bool classicTheme = theme == qqsc::ui::Theme::classic;
     const bool darkTheme = theme == qqsc::ui::Theme::dark;
 
@@ -1503,7 +1513,7 @@ void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool d
                                                                   : juce::String::fromUTF8 (u8"Ratio：1:200 至 200:1。小于 1:1 为上压，大于 1:1 为下压，1:1 不作动态压缩。")));
         downRatioSliders[i]->setTooltip (processor.isMasteringMode() ? juce::String::fromUTF8 (u8"下压 Ratio：1:1 至 1000:1。数值越大，下压越强；1:1 不下压。") : juce::String::fromUTF8 (u8"下压 Ratio：1:1 至 200:1。数值越大，下压越强；1:1 不下压。"));
         lower[i]->setTooltip (dual ? juce::String::fromUTF8 (u8"上压阈值 UP：只提升高于 UP 且低于 DOWN 的声音。UP 与 DOWN 重合时，停止上压和下压。") : juce::String::fromUTF8 (u8"Threshold：压缩开始作用的阈值，低于它的声音不作动态压缩。推向 Range 时会带动 Range 一起移动。"));
-        upperBoundarySliders[i]->setTooltip (dual ? juce::String::fromUTF8 (u8"下压阈值 DOWN：高于此值的声音进行下压；UP 与 DOWN 之间可进行上压。两个阈值重合时停止动态压缩。") : juce::String::fromUTF8 (u8"Range：超过此电平的声音不进行压缩。OFF 表示 Range 不限制压缩范围；0 dB 仍是一个有效的限制值。使用 Range 出现噼啪声时，可尝试开启 Safe。"));
+        upperBoundarySliders[i]->setTooltip (dual ? juce::String::fromUTF8 (u8"下压阈值 DOWN：高于此值的声音进行下压；UP 与 DOWN 之间可进行上压。两个阈值重合时停止动态压缩。") : juce::String::fromUTF8 (u8"Range：超过此电平的声音不进行压缩。OFF 表示 Range 不限制压缩范围；0 dB 仍是一个有效的限制值。使用 Range 出现噼啪声时，可尝试开启 Transparent。"));
     }
 }
 

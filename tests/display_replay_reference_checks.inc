@@ -5,7 +5,7 @@ static void replayReferenceChecks(QQSuperCompressionAudioProcessorEditor& e,
     auto& display=e.display;
     constexpr int blockSize=257, blocks=32;
     int cases=0;
-    for(int look:{0,26})for(float window:{0.f,8.f,26.f})for(int detector:{0,1})
+    for(float look:{0.f,25.3f,100.f})for(float window:{0.f,8.f,25.3f,100.f})for(int detector:{0,1})
     {
         p.releaseResources();p.setEcoMode(false);p.setEditorOpen(true);
         set(p,"processingMode",0);set(p,"keySource",0);
@@ -19,7 +19,7 @@ static void replayReferenceChecks(QQSuperCompressionAudioProcessorEditor& e,
         request.lookaheadMs=float(look);request.detectorWindowMs=std::min(float(look),window);
         request.detectorMode=request.detectorWindowMs>0?detector:0;
         request.mode=0;request.keySource=0;request.hpfHz=qqsc::params::keyHpfOffHz;
-        const int n=look*48,w=int(std::round(request.detectorWindowMs*48));
+        const int n=int(std::round(double(look)*48)),w=int(std::round(double(request.detectorWindowMs)*48));
         juce::MidiBuffer midi;std::vector<float> input;
         for(int block=0;block<blocks;++block)
         {
@@ -53,10 +53,10 @@ static void replayReferenceChecks(QQSuperCompressionAudioProcessorEditor& e,
         // Reproject the SAME retained carrier after switching Lookahead.
         // A pure delay change must not move the matching detection interval.
         const auto retained=request;
-        for(float newLook:{0.f,26.f,100.f})
+        for(float newLook:{0.f,25.3f,100.f})
         {
             request=retained;request.lookaheadMs=newLook;request.detectorWindowMs=0;
-            request.detectorMode=0;request.carrierDelays.assign(request.markers.size(),float(look)*.001f);
+            request.detectorMode=0;request.carrierDelays.assign(request.markers.size(),float(n/48000.0));
             if(!display.buildHpfReplay(request,result,worker))throw std::runtime_error("Lookahead replay alignment failed");
             for(int block=0;block<blocks;++block)
             {
@@ -72,3 +72,10 @@ static void replayReferenceChecks(QQSuperCompressionAudioProcessorEditor& e,
     }
     std::cout<<"PASS: "<<cases<<" WINDOW/0 ms interval-peak oracles and "<<cases*3<<" retained-carrier Lookahead alignment cases.\n";
 }
+
+    static void replayReferenceOnlyChecks(const juce::File& root)
+    {
+        QQSuperCompressionAudioProcessor p(settings(root));
+        QQSuperCompressionAudioProcessorEditor e(p,settings(root));
+        e.stopTimer();e.display.stopTimer();replayReferenceChecks(e,p);
+    }

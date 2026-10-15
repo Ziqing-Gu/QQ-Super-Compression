@@ -62,12 +62,15 @@ public:
       setDisplayZoom(-float(getDisplayScaleDb()),0,8,0); }
     std::array<float,4> getDisplayZoom() const noexcept
     {return {displayZoom[0].load(),displayZoom[1].load(),displayZoom[2].load(),displayZoom[3].load()};}
-    void setDisplayZoom(float floor,float top,float seconds,float endAge) noexcept
+    void setDisplayZoom(float floor,float top,float seconds,float legacyEndAge) noexcept
     {
-        if(!std::isfinite(floor)||!std::isfinite(top)||!std::isfinite(seconds)||!std::isfinite(endAge))return;
+        // Retain the fourth state field for compatibility, but never restore a
+        // historical offset: the right edge must follow the newest audio.
+        juce::ignoreUnused(legacyEndAge);
+        if(!std::isfinite(floor)||!std::isfinite(top)||!std::isfinite(seconds))return;
         top=juce::jlimit(-89.f,0.f,top);floor=juce::jlimit(-90.f,top-1.f,floor);
-        seconds=juce::jlimit(.1f,8.f,seconds);endAge=juce::jlimit(0.f,8.f-seconds,endAge);
-        displayZoom[0].store(floor);displayZoom[1].store(top);displayZoom[2].store(seconds);displayZoom[3].store(endAge);
+        seconds=juce::jlimit(.1f,8.f,seconds);
+        displayZoom[0].store(floor);displayZoom[1].store(top);displayZoom[2].store(seconds);displayZoom[3].store(0.f);
     }
     bool isEcoMode() const noexcept { return ecoMode.load (std::memory_order_acquire); }
     void setEcoMode (bool eco);
@@ -189,6 +192,9 @@ public:
         std::vector<float> right;
     };
 
+    bool isDisplayTransportStopped() const noexcept { return displayTransportStopped.load(std::memory_order_acquire); }
+    bool isDisplayFreezeOnStop() const noexcept { return displayFreezeOnStop.load(std::memory_order_acquire); }
+    void setDisplayFreezeOnStop(bool enabled);
     void setDisplayKeyHistoryCaptureEnabled (bool enabled);
     DisplayKeyHistoryPosition getDisplayKeyHistoryPosition() const noexcept;
     bool copyDisplayKeyHistory (uint64_t generation, uint64_t startCounter,
@@ -303,11 +309,11 @@ private:
         int tpRecoveryMode = qqsc::params::tpAuto;
         int ceilingOversampling = qqsc::params::ceiling8x;
         float ceilingDb = 0.0f, limiterOutputDb = 0.0f, limiterCalibrationDb = 0.0f;
-        float lookaheadMs = 26.0f;
+        float lookaheadMs = qqsc::params::defaultLookaheadMs;
         float limiterStereoLink = 0.0f;
         float stLRLink = 100.f, stMSLink = 100.f;
         float distort = 0.0f;
-        float detectorWindowMs = 100.0f; // Effective value is capped by the active Lookahead.
+        float detectorWindowMs = qqsc::params::maximumLookaheadMs; // Capped by the active Lookahead.
         int detectorMode = 0;
         int oversampling = qqsc::params::os8x;
         int mode = qqsc::params::stereoLinked;
@@ -546,12 +552,14 @@ private:
     // boxcar-decimated to at most 48 kHz before it enters this ring.
     std::shared_ptr<DisplayKeyHistoryStorage> displayKeyHistoryStorage;
     std::atomic<bool> displayKeyHistoryCaptureEnabled { false };
+    std::atomic<bool> displayFreezeOnStop { true };
+    std::atomic<bool> displayTransportStopped { false }; // UI-only navigation state; never saved.
     std::atomic<double> displayKeyHistoryHostSampleRate { 44100.0 };
     std::atomic<uint64_t> displayKeyHistoryGenerationCounter { 0 };
 
     mutable juce::CriticalSection abLock;
     std::atomic<float> distortForAudio { 0.0f };
-    std::array<std::atomic<float>,3> observedLookahead {{26.0f,26.0f,26.0f}};
+    std::array<std::atomic<float>,3> observedLookahead {{qqsc::params::defaultLookaheadMs,qqsc::params::defaultLookaheadMs,qqsc::params::defaultLookaheadMs}};
     std::atomic<float> displayCoreDelaySeconds {0.026f};
     ParameterSnapshot snapshotA;
     ParameterSnapshot snapshotB;

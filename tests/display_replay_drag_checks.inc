@@ -26,7 +26,7 @@
             for(auto* x:{&p,&reference}) {
                 x->setEcoMode(false);if(limiter)x->enterLimiterMode();
                 auto value=[&](const char* id,float v){set(*x,x->soundParameterID(id),v);};
-                value("lookaheadMs",26);value("oversampling",float(os));value("keyHpfHz",20);
+                value("lookaheadMs",25.3f);value("oversampling",float(os));value("keyHpfHz",20);
                 value("algorithmMode",1);value("ratio",5);value("ratioL",5);value("ratioR",5);
                 value("thresholdDb",-24);value("thresholdLDb",-24);value("thresholdRDb",-24);
                 value("rangeDb",1);set(*x,"distort",0);set(*x,"truePeakLimiting",0);
@@ -89,7 +89,7 @@
             const double completedWorkMs=d.hpfLastReplayWorkMs;
             DynamicDisplay::ReplayRequest request;
             request.requestGeneration=d.replayRequestGeneration->load();request.captureGeneration=d.lastCaptureGeneration;
-            request.mode=d.lastMode;request.keySource=d.lastKeySource;request.lookaheadMs=26;
+            request.mode=d.lastMode;request.keySource=d.lastKeySource;request.lookaheadMs=25.3f;
             request.detectorWindowMs=p.readSoundParameter("detectorWindowMs");
             request.detectorMode=0;request.oversampling=os;request.hpfHz=p.readSoundParameter("keyHpfHz");
             request.abSlot=p.getActiveABSlot();request.limiter=limiter;

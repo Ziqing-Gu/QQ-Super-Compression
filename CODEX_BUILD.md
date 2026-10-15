@@ -1,6 +1,12 @@
+# Current build instructions
+
+See [REPRODUCE_1.4.10.md](REPRODUCE_1.4.10.md). Windows output is reused; default release Actions build the three Mac artifacts only.
+
+--- Historical instructions (not the current backup policy) ---
+
 # Reproduce QQ Super Compression1.2.3 Stable on Windows
 
-Requires VS2022 C++ Build Tools/Windows SDK, CMake>=3.22 and JUCE8.0.15. Do not build inside a frozen backup. Copy to a new D-drive workspace first; use D:\Codex\Temp for build output.
+Requires VS2022 C++ Build Tools/Windows SDK, CMake>=3.22 and JUCE8.0.15. Do not build inside a frozen backup. Copy to a new D-drive workspace first; use an external temporary build directory.
 
 In an x64 VS developer prompt, set SOURCE and BUILD to the copied source and build directory, then:
 

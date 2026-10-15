@@ -403,7 +403,10 @@ namespace qqsc::params
     };
 
 
-    inline constexpr std::array<float, 5> lookaheadPresetMs { 0.0f, 26.0f, 40.0f, 80.0f, 100.0f };
+    inline constexpr std::array<float, 5> lookaheadPresetMs { 0.0f, 25.3f, 50.6f, 76.0f, 100.0f };
+    inline constexpr float defaultLookaheadMs = lookaheadPresetMs[1];
+    inline constexpr float maximumLookaheadMs = lookaheadPresetMs.back();
+    inline constexpr double maximumLookaheadSeconds = double(maximumLookaheadMs) * 0.001;
     inline constexpr std::array<int, 4> oversamplingFactors { 1, 4, 8, 16 };
     inline constexpr std::array<int, 4> oversamplingStageCounts { 0, 2, 3, 4 };
 
@@ -448,14 +451,14 @@ namespace qqsc::params
 
     inline juce::StringArray lookaheadChoices()
     {
-        return { "0 ms", "26 ms", "40 ms", "80 ms", "100 ms" };
+        return { "0 ms", "25.3 ms", "50.6 ms", "76 ms", "100 ms" };
     }
 
     inline int lookaheadChoiceIndexForMs (float ms) noexcept
     {
         // The retired 10 ms preset (including its legacy 5 ms midpoint) now
-        // selects 26 ms. Do not migrate that nonzero mode to zero latency.
-        if (ms >= 5.0f && ms < 26.0f)
+        // selects the first nonzero preset. Do not migrate it to zero latency.
+        if (ms >= 5.0f && ms < defaultLookaheadMs)
             return 1;
         int bestIndex = 0;
         auto bestDistance = std::abs (ms - lookaheadPresetMs[0]);
@@ -483,6 +486,13 @@ namespace qqsc::params
     inline float snapLookaheadMs (float ms) noexcept
     {
         return lookaheadMsForChoiceIndex (lookaheadChoiceIndexForMs (ms));
+    }
+
+    inline juce::String lookaheadTextForMs (float ms)
+    {
+        const auto preset = snapLookaheadMs (ms);
+        const int decimals = std::abs(preset - std::round(preset)) < 0.001f ? 0 : 1;
+        return juce::String(preset, decimals) + " ms";
     }
 
     inline int effectiveOversamplingChoiceIndex (float requestedLookaheadMs, int userChoiceIndex) noexcept

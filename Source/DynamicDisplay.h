@@ -17,9 +17,11 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    void lookAndFeelChanged() override;
     void mouseDown(const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent&) override;
     void mouseUp(const juce::MouseEvent&) override;
+    void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
     float getVisibleDbSpan() const noexcept { return view[1]-view[0]; }
     juce::Rectangle<float> getLoudnessReadoutBounds() const noexcept;
     void beginHistoryGesture() noexcept;
@@ -31,6 +33,7 @@ public:
     float getBoundaryYForDomainDb (int parameterDomainIndex, float detectorDb, bool upper=false) const noexcept;
     float getBoundaryDbForY (int parameterDomainIndex, float localY, bool upper=false) const noexcept;
     std::function<void()> onScaleChanged;
+    std::function<void(bool)> onFreezeChanged;
 
 private:
     friend struct QQSCVisualCheck;
@@ -171,12 +174,16 @@ private:
     void clearHistories();
 
     QQSuperCompressionAudioProcessor& processor;
+    juce::TextButton freezeButton { "FREEZE" };
     std::array<float,4> view {{-90,0,8,0}};
     juce::Rectangle<float> zoomPlot, zoomSelection;
     juce::Point<float> zoomStart;
-    bool zoomDragActive=false;
+    bool zoomDragActive = false;
+    // Temporary stopped browsing only. Never persist an offset into live playback.
+    float stoppedViewEndAgeSeconds = 0.f;
+    float visibleEndAgeSeconds() const noexcept;
     void refreshScale();
-    void zoomToSelection(juce::Rectangle<float> selected,juce::Rectangle<float> plot);
+    void zoomToSelection(juce::Rectangle<float> selected, juce::Rectangle<float> plot);
     void resetZoom();
     std::array<HistorySet, 2> histories;
     std::array<RenderCache, 2> renderCaches;
@@ -196,8 +203,8 @@ private:
     double renderReferenceSampleRate = 44100.0;
     bool geometryDirty = true;
     float lastObservedHpfHz = qqsc::params::keyHpfOffHz;
-    float lastObservedLookaheadMs = 26.0f;
-    float lastObservedDetectorWindowMs = 26.0f;
+    float lastObservedLookaheadMs = qqsc::params::defaultLookaheadMs;
+    float lastObservedDetectorWindowMs = qqsc::params::defaultLookaheadMs;
     int lastObservedDetectorMode = 0;
     int lastObservedOversampling = -1;
     int hpfStableTimerTicks = 0;

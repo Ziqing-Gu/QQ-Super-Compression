@@ -231,6 +231,20 @@ public:
         return juce::Font (juce::FontOptions (11.0f));
     }
 
+    void positionComboBoxText (juce::ComboBox& box, juce::Label& label) override
+    {
+        if (! static_cast<bool> (box.getProperties().getWithDefault ("qqscCompactUnitText", false)))
+        {
+            juce::LookAndFeel_V4::positionComboBoxText (box, label);
+            return;
+        }
+        // Reserve only the compact arrow, keeping decimal values + ms at the
+        // existing font size. The default JUCE layout wastes 30 px plus padding.
+        label.setBounds (3, 1, juce::jmax (0, box.getWidth() - 19), box.getHeight() - 2);
+        label.setBorderSize (juce::BorderSize<int> (0, 1, 0, 1));
+        label.setFont (getComboBoxFont (box));
+    }
+
     void drawRotarySlider (juce::Graphics& g,
                            int x,
                            int y,
@@ -409,6 +423,8 @@ public:
 
         auto arrowArea = juce::Rectangle<float> (static_cast<float> (buttonX), static_cast<float> (buttonY),
                                                  static_cast<float> (buttonW), static_cast<float> (buttonH)).reduced (8.0f, 9.0f);
+        if (static_cast<bool> (box.getProperties().getWithDefault ("qqscCompactUnitText", false)))
+            arrowArea = { static_cast<float> (width) - 13.0f, static_cast<float> (height) * 0.5f - 2.0f, 8.0f, 4.0f };
         juce::Path arrow;
         arrow.startNewSubPath (arrowArea.getX(), arrowArea.getY());
         arrow.lineTo (arrowArea.getCentreX(), arrowArea.getBottom());

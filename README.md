@@ -10,11 +10,21 @@
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 
-# QQ Super Compression 1.4.1 Stable
+# QQ Super Compression 1.4.10
 
-Qing Audio 动态处理插件，提供 Compressor、Clipper、Limiter。支持 Classic/Super、单压/双压、内外侧链；Comp 的 ST 提供 L/R Link 与 M/S Link。Lookahead 为 0/26/40/80/100 ms，Window 在固定延迟内调节检测时长。SAFE 默认关闭，Window 或 Lookahead 为 0 时灰显。总 OS 为 1x/4x/8x/16x，默认 1x。
+Qing Audio 动态处理插件，提供 Compressor、Clipper、Limiter，Classic/Super、单压/双压和内外侧链。Comp/ST 同时提供 L/R Link 与 M/S Link。Lookahead 为 0 / 25.3 / 50.6 / 76 / 100 ms，Window 在固定延迟内调节检测时长。TRANSPARENT 默认关闭，Window 或 Lookahead 为 0 时灰显。总 OS 为 1x/4x/8x/16x，默认 1x。
 
-Qing Audio dynamics plug-in with Compressor, Clipper and Limiter; Classic/Super curves, Single/Dual processing and internal/external sidechains. Comp/ST offers both L/R Link and M/S Link. Lookahead presets are 0/26/40/80/100 ms; Window adjusts detection length within fixed latency. SAFE defaults off and is disabled at zero Window or Lookahead. Overall OS is 1x/4x/8x/16x, default 1x.
+Qing Audio dynamics plug-in with Compressor, Clipper, Limiter, Classic/Super, Single/Dual and internal/external sidechains. Comp/ST provides both L/R and M/S Link. Lookahead presets are 0 / 25.3 / 50.6 / 76 / 100 ms; Window changes detection length at fixed latency. TRANSPARENT defaults off and is disabled at zero Window or Lookahead. Overall OS offers 1x/4x/8x/16x, default 1x.
+
+Display 支持框选、细步幅纵向滚轮、Ctrl＋滚轮横向缩放及右键复位。停播横向缩放以鼠标为中心，播放跟随最新音频。FREEZE 点亮后仅在停播时冻结，首次默认打开，新实例记住上次手动选择。
+
+Display supports rectangle zoom, fine vertical wheel, Ctrl+wheel horizontal zoom and right-click reset. Horizontal zoom anchors at the pointer while stopped and follows the live edge during playback. FREEZE freezes history only after stopping, initially defaults on and remembers the last manual choice for new instances.
+
+**本次版本 / Current version: 1.4.10.** 修复 Lookahead 单位裁切；最后由用户指定的 Stable 仍为 1.4.1。 / Fixes Lookahead unit clipping; the last user-selected Stable remains 1.4.1.
+
+配套手册 / Included manuals: [中文 1.4.9](docs/manuals/QQ-Super-Compression-1.4.9-User-Manual-Chinese.pdf) · [English 1.4.9](docs/manuals/QQ-Super-Compression-1.4.9-User-Manual-English.pdf)。各 49 页；1.4.10 操作未变，沿用此版手册，保留真实版号。 / 49 pages each; 1.4.10 has the same operation and reuses these manuals with their original edition number.
+
+本次覆盖上次公开版本 1.4.1 之后的全部真实版本 1.4.2–1.4.10，遗漏版本为无。 / Covers every actual version after public 1.4.1 through 1.4.10, with no omissions.
 
 ## 下载与安装 / Download and installation
 
@@ -48,6 +58,56 @@ No Linux build is provided. Save a session copy and quit DAWs before upgrading. 
 本次相对上次公开源码/Release 1.3.6，覆盖全部真实版本：1.3.7、1.4.0、1.4.1；遗漏版本：无。 / Since the previous public source/release 1.3.6, coverage includes every actual version: 1.3.7, 1.4.0 and 1.4.1; missing versions: none.
 
 ## 版本记录 / Version history
+
+### 1.4.10 — 2026-10-16
+
+- 中文：修复 Lookahead 的“25.3 ms”被截成省略号。只调整文字内边距和箭头占位，字号、控件尺寸、声音与参数不变；540 组真实控件适配检查及行为约定检查通过。沿用适用的 1.4.9 双语手册。
+- English: Fixes ellipsis clipping of “25.3 ms” in Lookahead. Only text padding and arrow space change; font size, field dimensions, audio and parameters remain unchanged. All 540 real-control readout fixtures and behavior contracts passed. The applicable bilingual 1.4.9 manuals are included.
+
+### 1.4.9 — 2026-10-16
+
+- 中文：横向缩放改为 Ctrl＋滚轮。停播时以鼠标为中心，播放时跟随最新音频；停播查看偏移不写入工程或 A/B。保留框选、细步幅纵向滚轮、Freeze 与实时参数重算。18 组停播夹具、27 组跟随及音频不变性检查通过；双语手册各 49 页、57 张截图更新。
+- English: Changes horizontal zoom to Ctrl+wheel. It anchors at the pointer while stopped and follows the newest audio during playback; stopped navigation offsets are not saved in projects or A/B. Rectangle zoom, fine vertical wheel, Freeze and live parameter replay remain. Eighteen stopped fixtures, 27 live-follow cases and audio-invariance checks passed; both 49-page manuals and 57 screenshots were updated.
+
+### 1.4.8 — 2026-10-16
+
+- 中文：新增 FREEZE，点亮后仅在停播时冻结 Display；首次默认打开，新实例记住上次手动选择。工程保留自身状态，A/B 不改变它；录音、离线及未知播放状态保持实时。18 组冻结/模式/ECO/FULL 与 Window/HPF 重算检查通过，音频差值为 0。
+- English: Adds FREEZE, which freezes the Display only after playback stops. It initially defaults on and new instances remember the last manual choice. Projects retain their own setting and A/B does not change it; recording, offline rendering and unknown transport states remain live. Eighteen freeze/mode/ECO/FULL fixtures and Window/HPF replay checks passed, with zero audio difference.
+
+### 1.4.7 — 2026-10-16
+
+- 中文：恢复左键框选放大，与细步幅滚轮并存，支持反向及连续框选。右键恢复完整视图；播放持续跟随最新音频，不恢复旧历史偏移。中文悬停说明同步更新；27 组混合缩放跟随、18 组交互和 12 组音频不变性检查通过。
+- English: Restores left-drag rectangle zoom alongside fine wheel zoom, including reverse and repeated selections. Right-click restores the full view; playback stays at the newest audio without restoring old offsets. Chinese hover help was updated. Twenty-seven mixed-zoom follow cases, 18 interaction cases and 12 audio-invariance cases passed.
+
+### 1.4.6 — 2026-10-16
+
+- 中文：纵向及当时 Shift 横向滚轮的缩放灵敏度降为原来的四分之一，便于小幅调整；不增加响应延时。Display 悬停说明同步修改。保留范围、鼠标电平锚点与实时重算；行为约定、18 组交互和 12 组音频不变性检查通过。横向修饰键后于 1.4.9 改为 Ctrl。
+- English: Reduces vertical and then-Shift horizontal wheel sensitivity to one quarter for smaller steps, without adding response lag. Display hover help was updated. Limits, pointer-level anchoring and live replay remain; contracts, 18 interaction cases and 12 audio-invariance cases passed. Version 1.4.9 later changes the horizontal modifier to Ctrl.
+
+### 1.4.5 — 2026-10-16
+
+- 中文：Display 纵轴 dB 刻度统一保留一位小数，避免缩放后出现冗长数字。仅改变文字精度，不改变实际范围、阈值或音频精度；离屏预览、行为约定与音频不变性检查通过。
+- English: Formats Display dB-axis labels to one decimal place to avoid long numbers after zooming. This changes text formatting only, not actual ranges, thresholds or audio precision. Offscreen previews, behavior contracts and audio-invariance checks passed.
+
+### 1.4.4 — 2026-10-16
+
+- 中文：SAFE 改名 TRANSPARENT，中文说明强调瞬态、细节和减少噼啪声；参数 ID、算法、默认关闭及零 ms 禁用规则不变。加入鼠标电平为中心的纵向滚轮、Shift 横向滚轮与右键复位，当时暂时取消框选。18 组缩放、12 组音频不变性和中文提示检查通过；框选后于 1.4.7 恢复。
+- English: Renames SAFE to TRANSPARENT and explains transients, detail and click reduction in Chinese help; parameter IDs, algorithm, default-off and zero-ms disabling remain. Adds pointer-centred vertical wheel zoom, Shift horizontal zoom and right-click reset, temporarily replacing rectangle zoom. Eighteen zoom cases, 12 audio-invariance cases and Chinese tooltip checks passed; rectangle zoom returns in 1.4.7.
+
+### 1.4.3 — 2026-10-16
+
+- 中文：用户试听后将最大 Lookahead 从试验用 105 ms 改为 100 ms，最终五档为 0 / 25.3 / 50.6 / 76 / 100 ms。旧 105 ms 设置恢复到 100 ms 并保留 Window 比例；Display 滞后修复保留。真实插件加载、状态迁移、36 组延迟与 15 组脉冲检查通过。
+- English: After listening, the maximum Lookahead changes from the experimental 105 ms to 100 ms. Final presets are 0 / 25.3 / 50.6 / 76 / 100 ms. Saved 105 ms settings load at 100 ms while preserving Window proportion; the Display lag fix remains. Real plug-in loading, state migration, 36 latency fixtures and 15 pulse fixtures passed.
+
+### 1.4.2 — 2026-10-16
+
+- 中文：修复框选后历史时间偏移累积，导致 Display 长时间落后声音的问题。缩放保留比例，播放时右端跟随最新音频；旧工程的历史偏移清零。此版真实交付的 Lookahead 为 0 / 25.3 / 50.6 / 76 / 105 ms，供用户比较高延迟；旧档位就近迁移，保留参数身份、独立模式及 A/B。27 组跟随、33 组状态迁移和实际拖动实时更新检查通过；一小时为模拟时间线，不是一小时 DAW 实测。
+- English: Fixes accumulated historical offsets after rectangle zoom that could make the Display lag far behind audio. Zoom keeps its scale while playback follows the live edge, and old project offsets are cleared. This delivered version used 0 / 25.3 / 50.6 / 76 / 105 ms for high-latency comparison. Old presets map to the nearest values while parameter identity, separate modes and A/B remain. Twenty-seven follow cases, 33 migration cases and real drag replay checks passed; the one-hour case is a simulated timeline, not a one-hour DAW test.
+
+所有以上版本均为实际交付的数字版本；未由用户另行指定为 Stable。最后用户选定的 Stable 仍为 1.4.1。Windows 自动检查与离屏渲染不等于所有宿主中的人工试听；Mac 验证等级以本次 Release 说明为准。
+
+All versions above were delivered numeric versions, without a new user-selected Stable designation. The last user-selected Stable remains 1.4.1. Windows automated/offscreen checks do not imply manual listening in every host; see this Release for the Mac validation level.
+
 
 ### 1.4.1 - Stable, 2026-10-14
 

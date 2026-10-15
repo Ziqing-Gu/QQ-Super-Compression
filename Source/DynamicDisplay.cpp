@@ -29,7 +29,7 @@ float readParameter (QQSuperCompressionAudioProcessor& processor, const char* pa
 float effectiveDisplayWindow (QQSuperCompressionAudioProcessor& processor, float lookaheadMs) noexcept
 {
     return juce::jlimit (0.0f, lookaheadMs,
-        readParameter (processor, qqsc::params::detectorWindowMs, 100.0f));
+        readParameter (processor, qqsc::params::detectorWindowMs, qqsc::params::maximumLookaheadMs));
 }
 
 int effectiveDisplayDetectorMode (QQSuperCompressionAudioProcessor& processor, float lookaheadMs) noexcept
@@ -211,7 +211,17 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
       replayRequestGeneration (std::make_shared<std::atomic<uint64_t>> (0))
 {
     setOpaque (true);
-    setTooltip(juce::String::fromUTF8(u8"Display：按住鼠标左键拖动框选，放大所选的时间和音量范围。放大后继续随播放滚动，保持放大比例；可再次框选进一步放大。鼠标右键恢复完整视图。阈值推子与图表保持对齐，框选不会改变阈值或声音。调整声音参数仍会实时更新已有曲线。"));
+    setTooltip(juce::String::fromUTF8(u8"Display：按住鼠标左键拖动框选，放大选区的时间和音量范围。滚轮向上小幅放大、向下小幅缩小音量范围，以鼠标所在的电平位置为中心；按住 Ctrl 滚动，微调横向时间范围：停播时以鼠标位置为中心，播放时右侧跟随最新音频。框选与滚轮可交替使用；FREEZE 点亮时，停播后保留最后的图表。鼠标右键恢复全局视图。阈值推子与图表保持对齐，缩放不改变阈值或声音。调整声音参数仍会实时更新已有曲线。"));
+    freezeButton.setClickingTogglesState(true);
+    freezeButton.setToggleState(processor.isDisplayFreezeOnStop(),juce::dontSendNotification);
+    freezeButton.setTooltip(juce::String::fromUTF8(u8"Freeze：点亮时，播放中正常滚动，宿主停止播放后保留最后的图表；关闭时继续更新。冻结后仍可缩放、调整参数并查看曲线变化，不影响声音处理和右侧电平表。首次默认打开，新开实例记住上次手动选择；各实例独立。录音、离线导出或宿主不提供播放状态时仍正常更新。"));
+    freezeButton.onClick=[this] {
+        const bool enabled=freezeButton.getToggleState();
+        processor.setDisplayFreezeOnStop(enabled);
+        if(onFreezeChanged)onFreezeChanged(enabled);
+    };
+    addAndMakeVisible(freezeButton);
+    lookAndFeelChanged();
     refreshScale();
 
     // The 4097-point detector grid never changes. Precompute the dB->linear
@@ -264,6 +274,10 @@ DynamicDisplay::~DynamicDisplay()
 void DynamicDisplay::refreshScale()
 {
     const auto current = processor.getDisplayZoom();
+    const auto endAge = processor.isDisplayTransportStopped()
+        ? juce::jlimit(0.f, historyWindowSeconds - current[2], stoppedViewEndAgeSeconds) : 0.f;
+    if (endAge != stoppedViewEndAgeSeconds)
+    { stoppedViewEndAgeSeconds = endAge; geometryDirty = true; repaint(); }
     if (view == current) return;
     view = current;
     geometryDirty = true;
@@ -271,9 +285,18 @@ void DynamicDisplay::refreshScale()
     repaint();
 }
 
+void DynamicDisplay::lookAndFeelChanged()
+{
+    freezeButton.setColour(juce::TextButton::buttonColourId,qqsc::ui::panel());
+    freezeButton.setColour(juce::TextButton::buttonOnColourId,qqsc::ui::warmAccent());
+    freezeButton.setColour(juce::TextButton::textColourOffId,qqsc::ui::text().withAlpha(.86f));
+    freezeButton.setColour(juce::TextButton::textColourOnId,qqsc::ui::text());
+}
+
 void DynamicDisplay::resized()
 {
-    zoomDragActive=false;
+    freezeButton.setBounds(getWidth()-74,5,60,22);
+    zoomDragActive = false;
     geometryDirty = true;
     if (! isShowing())
         return;
@@ -304,6 +327,7 @@ void DynamicDisplay::endHistoryGesture()
 
 void DynamicDisplay::clearHistories()
 {
+    stoppedViewEndAgeSeconds = 0.f;
     replayRequestGeneration->fetch_add (1, std::memory_order_relaxed);
     processor.getMeterState().displayTruePeakExcessDb.store (0.0f, std::memory_order_relaxed);
     for (auto& h : histories)
@@ -335,6 +359,7 @@ void DynamicDisplay::clearHistories()
 
 void DynamicDisplay::timerCallback()
 {
+    freezeButton.setToggleState(processor.isDisplayFreezeOnStop(),juce::dontSendNotification);
     refreshScale();
     if (processor.isEcoMode() && ! isShowing())
     {
@@ -523,6 +548,11 @@ float DynamicDisplay::dbToY (float db, juce::Rectangle<float> plot) const noexce
     return juce::jmap (juce::jlimit (view[0], view[1], db), view[1], view[0], plot.getY(), plot.getBottom());
 }
 
+float DynamicDisplay::visibleEndAgeSeconds() const noexcept
+{
+    return processor.isDisplayTransportStopped() ? stoppedViewEndAgeSeconds : 0.f;
+}
+
 float DynamicDisplay::historyXForCounter (uint64_t captureCounter,
                                           juce::Rectangle<float> plot) const noexcept
 {
@@ -531,10 +561,10 @@ float DynamicDisplay::historyXForCounter (uint64_t captureCounter,
 
     const auto ageSamples = renderReferenceCounter > captureCounter
         ? renderReferenceCounter - captureCounter : uint64_t { 0 };
-    const auto ageSeconds = static_cast<double> (ageSamples) / renderReferenceSampleRate;
-    const auto ageNormalised = view[2]==historyWindowSeconds && view[3]==0.f
+    const auto ageSeconds = static_cast<double> (ageSamples) / renderReferenceSampleRate - visibleEndAgeSeconds();
+    const auto ageNormalised = view[2]==historyWindowSeconds
         ? juce::jlimit(0.0,1.0,ageSeconds/double(historyWindowSeconds))
-        : (ageSeconds-double(view[3]))/double(view[2]);
+        : ageSeconds/double(view[2]);
     return plot.getRight() - plot.getWidth() * static_cast<float> (ageNormalised);
 }
 
@@ -1248,7 +1278,7 @@ bool DynamicDisplay::buildHpfReplay (const ReplayRequest& request, ReplayResult&
         return false;
 
     const auto maxLookaheadSamples = juce::jmax (0, static_cast<int> (
-        std::ceil (snapshot.sampleRate * 0.100)));
+        std::ceil (snapshot.sampleRate * qqsc::params::maximumLookaheadSeconds)));
     const auto lookaheadSamples = juce::jlimit (0, maxLookaheadSamples, static_cast<int> (
         std::round (snapshot.sampleRate * static_cast<double> (request.lookaheadMs) * 0.001)));
 
@@ -1519,7 +1549,7 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
         g.drawHorizontalLine (juce::roundToInt (y), plot.getX(), plot.getRight());
         g.setColour (qqsc::ui::textMuted().withAlpha (0.64f));
         g.setFont (8.0f);
-        g.drawText (juce::String (db,gridStep<5.f ? 1 : 0),
+        g.drawText (juce::String (db, 1),
                     juce::roundToInt (panel.getX() + 4.0f), juce::roundToInt (y - 6.0f), 37, 12,
                     juce::Justification::right);
     }
@@ -1675,6 +1705,7 @@ void DynamicDisplay::paint (juce::Graphics& g)
     const auto mode = displayProcessingMode (processor);
 
     auto header = bounds.reduced (14.0f, 5.0f).removeFromTop (22.0f);
+    header.removeFromRight(68.0f); // FREEZE occupies the rightmost header space.
     auto titleArea = header.removeFromLeft (juce::jmin (290.0f, header.getWidth() * 0.62f));
     g.setColour (qqsc::ui::text().withAlpha (0.84f));
     g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
@@ -1707,10 +1738,12 @@ void DynamicDisplay::paint (juce::Graphics& g)
     }
 
     if (processor.isMasteringMode()) drawLoudnessReadout(g);
-    if(zoomDragActive)
+    if (zoomDragActive)
     {
-        g.setColour(qqsc::ui::cyanAccent().withAlpha(.14f));g.fillRect(zoomSelection);
-        g.setColour(qqsc::ui::cyanAccent().withAlpha(.9f));g.drawRect(zoomSelection,1.f);
+        g.setColour(qqsc::ui::cyanAccent().withAlpha(.14f));
+        g.fillRect(zoomSelection);
+        g.setColour(qqsc::ui::cyanAccent().withAlpha(.9f));
+        g.drawRect(zoomSelection, 1.f);
     }
 
     const bool externalKey = juce::roundToInt (
@@ -1740,43 +1773,110 @@ void DynamicDisplay::paint (juce::Graphics& g)
 
 void DynamicDisplay::resetZoom()
 {
-    zoomDragActive=false;processor.setDisplayZoom(-90,0,8,0);refreshScale();
+    zoomDragActive = false;
+    stoppedViewEndAgeSeconds = 0.f;
+    processor.setDisplayZoom(-90,0,8,0);refreshScale();
     geometryDirty=true;refreshRenderCaches(displayProcessingMode(processor));repaint();
     processor.updateHostDisplay(juce::AudioProcessor::ChangeDetails{}.withNonParameterStateChanged(true));
 }
-void DynamicDisplay::zoomToSelection(juce::Rectangle<float> selected,juce::Rectangle<float> plot)
+void DynamicDisplay::zoomToSelection(juce::Rectangle<float> selected, juce::Rectangle<float> plot)
 {
-    selected=selected.getIntersection(plot);
-    if(selected.getWidth()<6 || selected.getHeight()<6)return;
-    const float top=juce::jmap(selected.getY(),plot.getY(),plot.getBottom(),view[1],view[0]);
-    const float floor=juce::jmap(selected.getBottom(),plot.getY(),plot.getBottom(),view[1],view[0]);
-    const float seconds=view[2]*selected.getWidth()/plot.getWidth();
-    const float endAge=view[3]+view[2]*(plot.getRight()-selected.getRight())/plot.getWidth();
-    processor.setDisplayZoom(floor,top,seconds,endAge);refreshScale();
-    geometryDirty=true;refreshRenderCaches(displayProcessingMode(processor));repaint();
+    selected = selected.getIntersection(plot);
+    if (selected.getWidth() < 6.f || selected.getHeight() < 6.f) return;
+    const float top = juce::jmap(selected.getY(), plot.getY(), plot.getBottom(), view[1], view[0]);
+    const float floor = juce::jmap(selected.getBottom(), plot.getY(), plot.getBottom(), view[1], view[0]);
+    const float seconds = view[2] * selected.getWidth() / plot.getWidth();
+    // Stopped browsing shows the actual rectangle. Live playback stays at the newest edge.
+    const float endAge = visibleEndAgeSeconds() + view[2] * (plot.getRight() - selected.getRight()) / plot.getWidth();
+    processor.setDisplayZoom(floor, top, seconds, 0.f);
+    stoppedViewEndAgeSeconds = processor.isDisplayTransportStopped()
+        ? juce::jlimit(0.f, historyWindowSeconds - processor.getDisplayZoom()[2], endAge) : 0.f;
+    refreshScale();
+    refreshRenderCaches(displayProcessingMode(processor));
+    repaint();
     processor.updateHostDisplay(juce::AudioProcessor::ChangeDetails{}.withNonParameterStateChanged(true));
 }
+
 void DynamicDisplay::mouseDown(const juce::MouseEvent& event)
 {
-    if(event.mods.isPopupMenu()){resetZoom();return;}
-    if(!event.mods.isLeftButtonDown())return;
-    const int mode=displayProcessingMode(processor);
-    const int panels=mode==qqsc::params::stereoLinked || processor.isMasteringMode() ? 1 : 2;
-    for(int panel=0;panel<panels;++panel)
+    if (event.mods.isPopupMenu()) { resetZoom(); return; }
+    if (! event.mods.isLeftButtonDown()) return;
+    zoomDragActive = false;
+    refreshScale();
+    const int mode = displayProcessingMode(processor);
+    const int panels = mode == qqsc::params::stereoLinked || processor.isMasteringMode() ? 1 : 2;
+    for (int panel = 0; panel < panels; ++panel)
     {
-        const auto plot=plotBoundsForPanel(domainPanelBounds(panel,mode));
-        if(plot.contains(event.position))
-        {zoomPlot=plot;zoomStart=event.position;zoomSelection={zoomStart,zoomStart};zoomDragActive=true;break;}
+        const auto plot = plotBoundsForPanel(domainPanelBounds(panel, mode));
+        if (! plot.contains(event.position)) continue;
+        zoomPlot = plot;
+        zoomStart = event.position;
+        zoomSelection = {zoomStart, zoomStart};
+        zoomDragActive = true;
+        repaint();
+        break;
     }
 }
+
 void DynamicDisplay::mouseDrag(const juce::MouseEvent& event)
 {
-    if(!zoomDragActive)return;
-    const auto end=zoomPlot.getConstrainedPoint(event.position);
-    zoomSelection=juce::Rectangle<float>(zoomStart,end);repaint();
+    if (! zoomDragActive) return;
+    zoomSelection = juce::Rectangle<float>(zoomStart, zoomPlot.getConstrainedPoint(event.position));
+    repaint();
 }
+
 void DynamicDisplay::mouseUp(const juce::MouseEvent& event)
 {
-    if(!zoomDragActive)return;
-    mouseDrag(event);zoomDragActive=false;zoomToSelection(zoomSelection,zoomPlot);repaint();
+    if (! zoomDragActive) return;
+    mouseDrag(event);
+    zoomDragActive = false;
+    zoomToSelection(zoomSelection, zoomPlot);
+    repaint();
+}
+
+void DynamicDisplay::mouseWheelMove(const juce::MouseEvent& event,
+                                    const juce::MouseWheelDetails& wheel)
+{
+    // Finish a rectangle gesture before accepting another zoom gesture.
+    if (zoomDragActive) return;
+    const bool horizontal = event.mods.isCtrlDown();
+    // Accept horizontal-axis wheel events with the same explicit Ctrl modifier.
+    const float delta = horizontal && wheel.deltaY == 0.f ? wheel.deltaX : wheel.deltaY;
+    if (! std::isfinite(delta) || delta == 0.f) return;
+    refreshScale();
+    const int mode = displayProcessingMode(processor);
+    const int panels = mode == qqsc::params::stereoLinked || processor.isMasteringMode() ? 1 : 2;
+    for (int panel = 0; panel < panels; ++panel)
+    {
+        const auto plot = plotBoundsForPanel(domainPanelBounds(panel, mode));
+        if (! plot.contains(event.position)) continue;
+        const auto old = view;
+        const float factor = std::exp2(-0.75f * juce::jlimit(-4.f, 4.f, delta));
+        if (horizontal)
+        {
+            const float relativeX = juce::jlimit(0.f, 1.f, (event.position.x - plot.getX()) / plot.getWidth());
+            const float seconds = juce::jlimit(.1f, historyWindowSeconds, view[2] * factor);
+            const float anchorAge = visibleEndAgeSeconds() + (1.f - relativeX) * view[2];
+            stoppedViewEndAgeSeconds = processor.isDisplayTransportStopped()
+                ? juce::jlimit(0.f, historyWindowSeconds - seconds, anchorAge - (1.f - relativeX) * seconds) : 0.f;
+            processor.setDisplayZoom(view[0], view[1], seconds, 0.f);
+        }
+        else
+        {
+            const float relativeY = juce::jlimit(0.f, 1.f, (event.position.y - plot.getY()) / plot.getHeight());
+            const float oldSpan = view[1] - view[0];
+            const float anchorDb = view[1] - relativeY * oldSpan;
+            const float span = juce::jlimit(1.f, 90.f, oldSpan * factor);
+            // Preserve the dB level beneath the pointer until a global bound
+            // is reached, then shift the whole range without changing span.
+            const float top = juce::jlimit(-90.f + span, 0.f, anchorDb + relativeY * span);
+            processor.setDisplayZoom(top - span, top, view[2], 0.f);
+        }
+        refreshScale();
+        if (view == old) return;
+        refreshRenderCaches(mode);
+        repaint();
+        processor.updateHostDisplay(juce::AudioProcessor::ChangeDetails{}.withNonParameterStateChanged(true));
+        return;
+    }
 }

@@ -11,7 +11,7 @@ void QQSuperCompressionAudioProcessorEditor::refreshDetectorWindowControl()
     detectorModeButton.setEnabled(safeAvailable);
     detectorModeButton.setAlpha(safeAvailable ? 1.0f : 0.35f);
     detectorWindowValue.setTooltip(safe
-        ? juce::String::fromUTF8 (u8"Window：0 ms 至当前 Lookahead。保持延迟不变，调整实际检测时长，便于连续比较声音。Safe 开启时，较大的 Window 有助于减少噼啪声，也会带来峰值前后的压低。双击输入毫秒数；上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 Lookahead 的数值。")
+        ? juce::String::fromUTF8 (u8"Window：0 ms 至当前 Lookahead。保持延迟不变，调整实际检测时长，便于连续比较声音。Transparent 开启时，Window 会影响瞬态与细节的表现；较大的值有助于减少噼啪声，也可能压低峰值前后的声音。双击输入毫秒数；上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 Lookahead 的数值。")
         : juce::String::fromUTF8 (u8"Window：0 ms 至当前 Lookahead。保持延迟不变，调整实际检测时长，便于连续比较声音。较小的 Window 可能增加染色或噼啪声，尤其低于 10 ms 时可考虑开启 OS 过采样。双击输入毫秒数；上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 Lookahead 的数值。"));
     detectorWindowValue.setEnabled (maximum > 0.0f);
     detectorWindowLabel.setAlpha (maximum > 0.0f ? 1.0f : 0.45f);
@@ -103,7 +103,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     contentRoot.addAndMakeVisible (detectorModeButton);
     registerKeyboardListener (detectorModeButton);
     detectorModeButton.setComponentID (qqsc::params::detectorMode);
-    detectorModeButton.setTooltip (juce::String::fromUTF8 (u8"Safe：点亮时使用前后两侧较大的检测峰值，帮助减少噼啪声，代价是峰值前后的声音也可能被压低。使用 Range 出现噼啪声时也可尝试开启。关闭时使用正常检测。Lookahead 或 Window 为 0 ms 时变灰、不可用；恢复非零值后保留之前的开关状态。不额外加入 Attack / Release。"));
+    detectorModeButton.setTooltip (juce::String::fromUTF8 (u8"Transparent（透明）：开启后使用前后两侧较大的检测峰值。可尝试开启以保留瞬态与细节，同时减少噼啪声；实际听感取决于素材和设置。Window 较大时，峰值前后的声音也可能被压低。使用 Range 出现噼啪声时也可尝试开启。默认关闭。Lookahead 或 Window 为 0 ms 时变灰、不可用；恢复非零值后保留之前的开关状态。不额外加入 Attack / Release。"));
     detectorModeButton.onClick = [this]
     {
         beginUndoTransaction ("Detector Mode");

@@ -212,6 +212,8 @@ struct QQSCLimiterCheck
 #include "shared_controls_checks.inc"
 #include "limiter_45_checks.inc"
     #include "display_zoom_checks.inc"
+#include "display_live_follow_checks.inc"
+#include "display_freeze_checks.inc"
 #include "display_replay_reference_checks.inc"
 #include "display_replay_drag_checks.inc"
 #include "external_key_display_checks.inc"
@@ -445,10 +447,16 @@ int main(int argc,char** argv)
         { QQSCLimiterCheck::carrierDisplayChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="external-key-display")
         { QQSCLimiterCheck::externalKeyDisplayChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="display-replay-reference")
+        { QQSCLimiterCheck::replayReferenceOnlyChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="display-replay-drag")
         { QQSCLimiterCheck::displayReplayDragChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="cumulative-match")
         { QQSCReviewCheck::cumulativeMatchChecks();return 0; }
+        if(argc==3 && juce::String(argv[2])=="display-freeze")
+        { QQSCLimiterCheck::displayFreezeChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="display-live-follow")
+        { QQSCLimiterCheck::displayLiveFollowChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="display-scale")
         { QQSCLimiterCheck::displayScaleChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="limiter-45")
