@@ -104,7 +104,7 @@ xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/Components/QQ Super
 - 不需要额外安装程序。不同宿主、设备路由和长期工程可能存在差异，本说明不替代用户在自己的宿主中试听和确认。
 - 禁止商业使用。分发原版或修改版时，须免费提供完整对应源码，保留作者、许可证和来源，并注明修改；具体条款以仓库许可证为准。
 - 对应公开源码与许可证：https://github.com/Ziqing-Gu/QQ-Super-Compression/tree/v1.4.10
-- Stable 发布页：https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.10
+- 本版发布页：https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.10
 
 许可证全文（分发时请保留）：
 
