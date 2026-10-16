@@ -26,20 +26,20 @@ Display: drag a rectangle to zoom, wheel to zoom vertically, Shift+wheel to pan 
 
 ## 下载与安装 / Download and installation
 
-**下载 1.4.10 / Download 1.4.10:** [最新 Release / Latest Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [固定版本页面 / Version page](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.10) · [历史版本 / Release history](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases)
+**下载 1.4.14 / Download 1.4.14:** [最新 Release / Latest Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [固定版本页面 / Version page](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.14) · [历史版本 / Release history](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases)
 
 按系统、宿主架构和格式选择。Mac VST3 只安装一套匹配宿主架构的包；AU 是独立格式。 / Choose by OS, host architecture and format. Install one matching Mac VST3 architecture; AU is independent.
 
-- Windows 10/11 x64 · VST3: [QQ.Super.Compression.1.4.10.Windows.x64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.Windows.x64.VST3.zip)
-- macOS 11+ · Apple Silicon arm64 · VST3: [QQ.Super.Compression.1.4.10.macOS.Apple.Silicon.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.macOS.Apple.Silicon.VST3.zip)
-- macOS 11+ · Intel / Rosetta x86_64 · VST3: [QQ.Super.Compression.1.4.10.macOS.Intel.x86_64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.macOS.Intel.x86_64.VST3.zip)
-- macOS 11+ · Universal 2 · AU: [QQ.Super.Compression.1.4.10.macOS.Universal.2.AU.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.macOS.Universal.2.AU.zip)
-- 中文安装说明 / Chinese installation guide: [QQ.Super.Compression.1.4.10.Installation.Guide.Chinese.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.Installation.Guide.Chinese.txt)
-- English installation guide / 英文安装说明: [QQ.Super.Compression.1.4.10.Installation.Guide.English.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.Installation.Guide.English.txt)
-- 中文手册 1.4.9（适用于 1.4.10，49 页）/ Chinese manual 1.4.9 (applicable to 1.4.10, 49 pages): [QQ.Super.Compression.1.4.9.User.Manual.Chinese.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.9.User.Manual.Chinese.pdf)
-- English manual 1.4.9 (applicable to 1.4.10, 49 pages) / 英文手册 1.4.9（适用于 1.4.10，49 页）: [QQ.Super.Compression.1.4.9.User.Manual.English.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.9.User.Manual.English.pdf)
+- Windows 10/11 x64 · VST3: [QQ.Super.Compression.1.4.14.Windows.x64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.Windows.x64.VST3.zip)
+- macOS 11+ · Apple Silicon arm64 · VST3: [QQ.Super.Compression.1.4.14.macOS.Apple.Silicon.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.macOS.Apple.Silicon.VST3.zip)
+- macOS 11+ · Intel / Rosetta x86_64 · VST3: [QQ.Super.Compression.1.4.14.macOS.Intel.x86_64.VST3.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.macOS.Intel.x86_64.VST3.zip)
+- macOS 11+ · Universal 2 · AU: [QQ.Super.Compression.1.4.14.macOS.Universal.2.AU.zip](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.macOS.Universal.2.AU.zip)
+- 中文安装说明 / Chinese installation guide: [QQ.Super.Compression.1.4.14.Installation.Guide.Chinese.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.Installation.Guide.Chinese.txt)
+- English installation guide / 英文安装说明: [QQ.Super.Compression.1.4.14.Installation.Guide.English.txt](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.Installation.Guide.English.txt)
+- 中文手册 1.4.14（49 页）/ Chinese manual 1.4.14 (49 pages): [QQ.Super.Compression.1.4.14.User.Manual.Chinese.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.User.Manual.Chinese.pdf)
+- English manual 1.4.14 (49 pages) / 英文手册 1.4.14（49 页）: [QQ.Super.Compression.1.4.14.User.Manual.English.pdf](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.User.Manual.English.pdf)
 
-两本手册沿用已验证的 1.4.9 版，操作适用于 1.4.10，保留真实版号；本次只修复 Lookahead 单位裁切。 / Both manuals keep their verified 1.4.9 edition number and apply to 1.4.10, which only fixes Lookahead unit clipping.
+两本手册均为 1.4.14，操作与截图已同步更新。 / Both manuals are edition 1.4.14 with updated operation and screenshots.
 
 升级前另存工程并退出 DAW；Mac 包使用 ad-hoc 签名，未经过 Apple 公证。完整步骤和安全处理见双语安装说明。不提供 Linux 成品。 / Save a session copy and quit DAWs before upgrading. Mac bundles are ad-hoc signed and not notarized. See the bilingual guides for installation and security steps. No Linux build is provided.
 

@@ -5,7 +5,7 @@ on:
       tag:
         description: Published release tag
         required: true
-        default: v1.3.6
+        default: v1.4.14
 permissions:
   contents: read
 jobs:
@@ -21,20 +21,24 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, os, subprocess, concurrent.futures
+          import json, os, subprocess, concurrent.futures, hashlib, pathlib
           repo=os.environ['REPO']; tag=os.environ['RELEASE_TAG']
           release=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/releases/tags/{tag}']))
           assert not release['draft'] and not release['prerelease'] and len(release['assets'])==8
           def check(asset):
               url=asset['browser_download_url']
               assert url.startswith(f'https://github.com/{repo}/releases/download/{tag}/')
-              r=subprocess.run(['curl','--fail','--head','--location','--retry','2','--connect-timeout','10','--max-time','60','--silent','--show-error','--output','/dev/null','--write-out','%{http_code}',url],capture_output=True,text=True)
+              dest=pathlib.Path(asset['name'])
+              r=subprocess.run(['curl','--fail','--location','--retry','2','--connect-timeout','10','--max-time','120','--silent','--show-error','--output',str(dest),'--write-out','%{http_code}',url],capture_output=True,text=True)
               status=r.stdout.strip()
-              return {'name':asset['name'],'url':url,'http_status':int(status) if status.isdigit() else 0,'curl_exit':r.returncode,'error':r.stderr.strip(),'bytes':asset['size'],'digest':asset['digest'],'route':'anonymous curl on GitHub-hosted Ubuntu; no Authorization header sent'}
+              downloaded_bytes=dest.stat().st_size if dest.exists() else 0
+              downloaded_sha256=hashlib.sha256(dest.read_bytes()).hexdigest() if dest.exists() else None
+              integrity=(downloaded_bytes==asset['size'] and 'sha256:'+str(downloaded_sha256)==asset['digest'])
+              return {'name':asset['name'],'url':url,'http_status':int(status) if status.isdigit() else 0,'curl_exit':r.returncode,'error':r.stderr.strip(),'bytes':asset['size'],'digest':asset['digest'],'downloaded_bytes':downloaded_bytes,'downloaded_sha256':downloaded_sha256,'integrity_match':integrity,'route':'anonymous curl on GitHub-hosted Ubuntu; no Authorization header sent'}
           with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool: checks=list(pool.map(check,release['assets']))
           open('release-download-checks.json','w').write(json.dumps({'tag':tag,'release_id':release['id'],'checks':checks},indent=2))
           for c in checks: print(c['name'],c['http_status'],c['curl_exit'])
-          assert all(c['curl_exit']==0 and c['http_status'] in [200,206] for c in checks)
+          assert all(c['curl_exit']==0 and c['http_status'] in [200,206] and c['integrity_match'] for c in checks)
           PY
       - name: Upload download verification
         uses: actions/upload-artifact@v4
