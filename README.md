@@ -10,21 +10,19 @@
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 
-# QQ Super Compression 1.4.10
+# QQ Super Compression 1.4.14 Stable
 
-Qing Audio 动态处理插件，提供 Compressor、Clipper、Limiter，Classic/Super、单压/双压和内外侧链。Comp/ST 同时提供 L/R Link 与 M/S Link。Lookahead 为 0 / 25.3 / 50.6 / 76 / 100 ms，Window 在固定延迟内调节检测时长。TRANSPARENT 默认关闭，Window 或 Lookahead 为 0 时灰显。总 OS 为 1x/4x/8x/16x，默认 1x。
+Qing Audio 动态处理插件，提供 Compressor、Clipper、Limiter，Classic/Super、单压/双压和内外侧链。Comp/ST 同时提供 L/R Link 与 M/S Link。Lookahead 为 0 / 25.3 / 50.6 / 76 / 100 ms，Window 在固定延迟内调节检测时长。TRANSPARENT 默认关闭，Window 或 Lookahead 为 0 时灰显。OS 为 1x/4x/8x/16x，默认 1x。
 
-Qing Audio dynamics plug-in with Compressor, Clipper, Limiter, Classic/Super, Single/Dual and internal/external sidechains. Comp/ST provides both L/R and M/S Link. Lookahead presets are 0 / 25.3 / 50.6 / 76 / 100 ms; Window changes detection length at fixed latency. TRANSPARENT defaults off and is disabled at zero Window or Lookahead. Overall OS offers 1x/4x/8x/16x, default 1x.
+Qing Audio dynamics plug-in with Compressor, Clipper, Limiter, Classic/Super, Single/Dual and internal/external sidechains. Comp/ST provides both L/R and M/S Link. Lookahead presets are 0 / 25.3 / 50.6 / 76 / 100 ms; Window changes detection length at fixed latency. TRANSPARENT defaults off and is disabled at zero Window or Lookahead. OS offers 1x/4x/8x/16x, default 1x.
 
-Display 支持框选、细步幅纵向滚轮、Ctrl＋滚轮横向缩放及右键复位。停播横向缩放以鼠标为中心，播放跟随最新音频。FREEZE 点亮后仅在停播时冻结，首次默认打开，新实例记住上次手动选择。
+Display：框选放大，滚轮上下缩放，Shift＋滚轮上下平移，Ctrl＋滚轮左右缩放，右键恢复全图。FREEZE 点亮后停播才冻结；播放时跟随最新音频。Clipper 的柱条实时，数字和标记线保持最大压缩量。
 
-Display supports rectangle zoom, fine vertical wheel, Ctrl+wheel horizontal zoom and right-click reset. Horizontal zoom anchors at the pointer while stopped and follows the live edge during playback. FREEZE freezes history only after stopping, initially defaults on and remembers the last manual choice for new instances.
+Display: drag a rectangle to zoom, wheel to zoom vertically, Shift+wheel to pan vertically, Ctrl+wheel to zoom horizontally, and right-click to reset. FREEZE holds history only after stopping; playback follows the live edge. Clipper bars remain live while numbers and marker lines hold maximum reduction.
 
-**本次版本 / Current version: 1.4.10.** 修复 Lookahead 单位裁切；最后由用户指定的 Stable 仍为 1.4.1。 / Fixes Lookahead unit clipping; the last user-selected Stable remains 1.4.1.
+配套手册 / Included manuals: [中文 1.4.14](docs/manuals/QQ-Super-Compression-1.4.14-User-Manual-Chinese.pdf) · [English 1.4.14](docs/manuals/QQ-Super-Compression-1.4.14-User-Manual-English.pdf)。各 49 页；本版截图与操作已同步。 / 49 pages each, with matching screenshots and operation.
 
-配套手册 / Included manuals: [中文 1.4.9](docs/manuals/QQ-Super-Compression-1.4.9-User-Manual-Chinese.pdf) · [English 1.4.9](docs/manuals/QQ-Super-Compression-1.4.9-User-Manual-English.pdf)。各 49 页；1.4.10 操作未变，沿用此版手册，保留真实版号。 / 49 pages each; 1.4.10 has the same operation and reuses these manuals with their original edition number.
-
-本次覆盖上次公开版本 1.4.1 之后的全部真实版本 1.4.2–1.4.10，遗漏版本为无。 / Covers every actual version after public 1.4.1 through 1.4.10, with no omissions.
+本次覆盖上次公开版本 1.4.10 之后的全部真实版本 1.4.11–1.4.14。 / Covers all actual versions after public 1.4.10 through 1.4.14.
 
 ## 下载与安装 / Download and installation
 
@@ -50,13 +48,30 @@ Display supports rectangle zoom, fine vertical wheel, Ctrl+wheel horizontal zoom
 
 ## 当前稳定版 / Current stable version
 
-**1.4.1 Stable (2026-10-14)** 已由用户确认。Windows 复用已验证成品；Mac 从对应源码构建。中英文手册各 49 页：[中文](docs/manuals/QQ-Super-Compression-1.4.1-User-Manual-Chinese.pdf) · [English](docs/manuals/QQ-Super-Compression-1.4.1-User-Manual-English.pdf)。
-
-**1.4.1 Stable** is user-approved. Windows reuses the accepted binary; Mac is built from matching source. Includes the two 49-page manuals linked above.
-
-本次相对上次公开源码/Release 1.3.6，覆盖全部真实版本：1.3.7、1.4.0、1.4.1；遗漏版本：无。 / Since the previous public source/release 1.3.6, coverage includes every actual version: 1.3.7, 1.4.0 and 1.4.1; missing versions: none.
+**1.4.14 Stable (2026-10-16)**，由用户明确指定。Windows 使用已验证成品；Mac 从对应源码构建。 / Explicitly user-designated. Windows reuses the verified binary; Mac is built from corresponding source.
 
 ## 版本记录 / Version history
+
+### 1.4.14 — 2026-10-16 — Stable
+
+- 中文：精简 Display 中文悬停，只保留框选、滚轮缩放、Shift 平移、Ctrl 横向缩放、右键恢复与 FREEZE 的常用操作。更新中英文 49 页手册，截图与本版一致。由用户指定为 Stable；声音及参数行为不变。
+- English: Shortens the Chinese Display tooltip to the basic selection, wheel zoom, Shift pan, Ctrl horizontal zoom, right-click reset and FREEZE operations. Updates both 49-page manuals and screenshots. User-designated Stable; audio and parameter behavior are unchanged.
+
+### 1.4.13 — 2026-10-16 — Stable
+
+- 中文：框选放大更容易操作，可从 Display 周边开始拖动，超出的部分按绘图区边缘计算。由用户指定为 Stable；原有缩放、平移、FREEZE 与实时重算保持。
+- English: Makes rectangle zoom easier to use: dragging can start around the Display and out-of-plot portions use the plot edges. User-designated Stable; existing zoom, pan, FREEZE and live recalculation remain.
+
+### 1.4.12 — 2026-10-16
+
+- 中文：新增 Shift＋滚轮上下平移 Display，保持放大比例与时间位置；同步中文悬停。Ctrl 横向缩放、播放跟随及实时响应不变。
+- English: Adds Shift+wheel vertical panning while preserving zoom and time position, with updated Chinese help. Ctrl horizontal zoom, live following and realtime response remain.
+
+### 1.4.11 — 2026-10-16
+
+- 中文：Display 顶部也支持滚轮缩放，纵向以 0 dB 为上沿，Ctrl 横向缩放。Clipper 柱条显示实时压缩量，数字和标记线保持最大值，双击或重新播放清零。
+- English: Enables wheel zoom over the Display header, with 0 dB at the top for vertical zoom and Ctrl for horizontal zoom. Clipper bars show current reduction; numbers and marker lines hold the maximum until double-click or playback restart.
+
 
 ### 1.4.10 — 2026-10-16
 

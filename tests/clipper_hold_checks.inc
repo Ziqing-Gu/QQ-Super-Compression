@@ -21,6 +21,40 @@
             {juce::AudioBuffer<float> a(2,256);for(int i=0;i<256;++i){a.setSample(0,i,left);a.setSample(1,i,right);}
              p.processBlock(a,midi);head.samples+=256;}
         };
+        // Render the real meter with live values changing under a fixed maximum.
+        const auto difference=[](const juce::Image& a,const juce::Image& b,juce::Rectangle<int> area) {
+            int changed=0;for(int y=area.getY();y<area.getBottom();++y)
+                for(int x=area.getX();x<area.getRight();++x)changed+=a.getPixelAt(x,y)!=b.getPixelAt(x,y);
+            return changed;
+        };
+        for(auto theme:{qqsc::ui::Theme::light,qqsc::ui::Theme::dark,qqsc::ui::Theme::classic}) {
+            e.theme=theme;e.applyTheme();e.resized();
+            m.clipperGainReductionHoldDb0.store(24);m.clipperGainReductionHoldDb1.store(12);
+            m.gainReductionDb0.store(18);m.gainReductionDb1.store(9);
+            const auto high=e.meters.createComponentSnapshot(e.meters.getLocalBounds());
+            m.gainReductionDb0.store(0);m.gainReductionDb1.store(0);
+            const auto low=e.meters.createComponentSnapshot(e.meters.getLocalBounds());
+            auto gr=e.meters.getLocalBounds().toFloat().reduced(6.f);
+            const auto groupWidth=(gr.getWidth()-8.f)/3.f;
+            gr.removeFromLeft(2.f*(groupWidth+4.f));gr.removeFromTop(70.f);
+            auto digits=gr.removeFromBottom(32.f).getSmallestIntegerContainer();
+            const auto leftBar=gr.removeFromLeft((gr.getWidth()-2.5f)*.5f).reduced(2.f,3.f);
+            gr.removeFromLeft(2.5f);const auto rightBar=gr.reduced(2.f,3.f);
+            for(const auto bar:{leftBar,rightBar})
+                require(difference(high,low,bar.toNearestInt())>20,"Clipper bar ignores live GR while maximum is unchanged");
+            require(difference(high,low,digits)==0,"Clipper numeric maximum changed with live GR");
+            for(const auto pair:{std::make_pair(leftBar,24.f),std::make_pair(rightBar,12.f)}) {
+                const int y=juce::roundToInt(pair.first.getY()+pair.first.getHeight()*(pair.second+36.f)/72.f);
+                const auto line=juce::Rectangle<int>(juce::roundToInt(pair.first.getX()+2),y-1,int(pair.first.getWidth())-4,3);
+                require(difference(high,low,line)==0,"Clipper maximum marker moved with live GR");
+            }
+            juce::PNGImageFormat png;
+            for(bool active:{false,true}) {
+                auto out=root.getChildFile("clipper-live-"+juce::String(int(theme))+(active?"-active.png":"-idle.png")).createOutputStream();
+                png.writeImageToStream(active?high:low,*out);
+            }
+        }
+        p.resetClipperGainReductionHold();
         run(20,.5f,.25f);
         const float left=m.clipperGainReductionHoldDb0.load(),right=m.clipperGainReductionHoldDb1.load();
         require(left>right+4 && right>3,"Clipper independent maximum GR capture");

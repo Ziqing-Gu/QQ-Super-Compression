@@ -72,14 +72,17 @@
             const auto savedCounter=d.renderReferenceCounter;
             const auto savedRate=d.renderReferenceSampleRate;
             d.renderReferenceCounter=480000;d.renderReferenceSampleRate=48000.;
+            bool headerWheel=false;
             const auto wheelAt=[&](float x,float delta,int modifiers) {
-                auto at=zoomPlot.getRelativePoint(x,.5f);auto now=juce::Time::getCurrentTime();
+                auto at=zoomPlot.getRelativePoint(x,.5f);if(headerWheel)at.y=12.f;
+                auto now=juce::Time::getCurrentTime();
                 juce::MouseEvent ev(juce::Desktop::getInstance().getMainMouseSource(),at,
                     juce::ModifierKeys(modifiers),1.f,0.f,0.f,0.f,0.f,&d,&d,now,at,now,0,false);
                 juce::MouseWheelDetails details {};details.deltaY=delta;
                 d.mouseWheelMove(ev,details);
             };
-            for(float fraction:{.1f,.5f,.9f}) {
+            for(bool inHeader:{false,true})for(float fraction:{.1f,.5f,.9f}) {
+                headerWheel=inHeader;
                 d.resetZoom();const auto capture=uint64_t(std::llround(480000.-(1.-fraction)*8.*48000.));
                 const auto anchor=d.historyXForCounter(capture,zoomPlot);
                 for(int i=0;i<4;++i)wheelAt(fraction,1.f/3.f,juce::ModifierKeys::ctrlModifier);
@@ -95,8 +98,34 @@
                 check(p.getDisplayZoom()[2]==8.f && std::abs(d.historyXForCounter(480000,zoomPlot)-zoomPlot.getRight())<.02f,
                     "Zoom out failed to restore the full stopped history");
             }
+            // Header-to-outside rectangle clamps to the plot while preserving
+            // the selected historical interval when transport is stopped.
+            d.resetZoom();
+            const auto from=juce::Point<float>(zoomPlot.getRelativePoint(.25f,0.f).x,12.f);
+            const auto to=juce::Point<float>(zoomPlot.getRelativePoint(.75f,1.f).x,float(d.getHeight()+50));
+            const auto now=juce::Time::getCurrentTime();
+            const juce::MouseEvent press(juce::Desktop::getInstance().getMainMouseSource(),from,
+                juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier),1.f,0.f,0.f,0.f,0.f,&d,&d,now,from,now,1,false);
+            d.mouseDown(press);d.mouseDrag(press.withNewPosition(to));d.mouseUp(press.withNewPosition(to));
+            check(p.getDisplayZoom()==std::array<float,4>{-90,0,4,0} && std::abs(d.stoppedViewEndAgeSeconds-2.f)<.001f,
+                  "Clamped stopped rectangle lost selected history");
+            check(d.renderReferenceCounter==480000 && std::abs(d.historyXForCounter(384000,zoomPlot)-zoomPlot.getRight())<.02f,
+                  "Expanded stopped rectangle advanced or misaligned frozen history");
+            headerWheel=false;
             d.resetZoom();wheelAt(.5f,1.f/3.f,juce::ModifierKeys::shiftModifier);
-            check(p.getDisplayZoom()[2]==8.f && d.getVisibleDbSpan()<90.f,"Shift still selects horizontal zoom");
+            check(p.getDisplayZoom()==std::array<float,4>{-90,0,8,0},"Shift must not zoom the full stopped view");
+            for(bool inHeader:{false,true}) {
+                headerWheel=inHeader;
+                p.setDisplayZoom(-60,-30,8,0);d.refreshScale();
+                wheelAt(.5f,1.f/3.f,juce::ModifierKeys::ctrlModifier);
+                const auto age=d.stoppedViewEndAgeSeconds;const auto zoom=p.getDisplayZoom();
+                wheelAt(.5f,1.f/3.f,juce::ModifierKeys::shiftModifier);
+                check(d.getVisibleDbSpan()==30.f && p.getDisplayZoom()[0]>zoom[0]
+                      && p.getDisplayZoom()[2]==zoom[2] && d.stoppedViewEndAgeSeconds==age,
+                      "Stopped Shift pan changed scale or horizontal browse position");
+                check(d.renderReferenceCounter==480000,"Shift pan advanced frozen history");
+            }
+            headerWheel=false;
             d.resetZoom();wheelAt(.5f,1.f/3.f,juce::ModifierKeys::ctrlModifier);
             d.renderReferenceCounter=savedCounter;d.renderReferenceSampleRate=savedRate;
             const auto outputBefore=family?d.stereoLimiterCache.projected.output:d.renderCaches[0].projected.output;
@@ -169,3 +198,4 @@
         check(worstAudio==0.f,"Display Freeze changed actual audio");
         std::cout<<"PASS: "<<cases<<" Freeze transport/mode/ECO/FULL fixtures, long retained raw history, retrospective parameters and asynchronous Window/HPF, zoom, record/offline/unknown/resume, preferences/project/A-B/reopen; audio_delta="<<worstAudio<<"\n";
     }
+

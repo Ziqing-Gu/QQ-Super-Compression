@@ -163,3 +163,52 @@ cmake --build <build-directory> --config Release --target QQSCContractCheck --pa
 - 保持 11 px 逻辑字号及 Lookahead / Window 原有大小、同排关系；只减少该下拉框的箭头占位和文字内边距，不影响其他下拉框。
 - 不改变 Lookahead 参数、自动化、延迟、Window 复位、Display 缩放/冻结或音频处理。
 - tests/lookahead_presets_checks.inc 验证真实标签字体、可用区域及各档字符串宽度，已随 QQSCContractCheck 运行。修复前“25.3 ms”需 37.2558 px，实际仅 26 px，断言失败。
+
+
+## DISPLAY-008：顶部区域的滚轮缩放
+
+用户于 2026-10-16 要求 Display 顶部标题区域也支持缩放，以 0 dB 为纵向参考，同时允许横向缩放。
+
+- 顶部标题及图表上方留白支持普通滚轮，0 dB 固定在上沿；已有偏移范围也恢复此参考。步幅保持 0.75、跨度 1～90 dB。
+- 顶部 Ctrl + 滚轮同图表内部：停播以鼠标横坐标为中心；播放/录音/离线/未知状态跟随最新音频。时间范围仍为 0.1～8 秒。
+- 图内普通滚轮仍以鼠标电平为中心；保留框选、右键复位、阈值对齐、FREEZE 和实时参数重算。滚轮经过 FREEZE 按钮不改变其开关。
+- 不改变音频、参数、延迟或历史采集调度。顶部缩放只改变视图。
+- 修复前 display-scale 失败：Header wheel must zoom vertically from 0 dB。该测试加入 QQSCContractCheck；display-freeze 同时覆盖顶部停播中心。
+
+## METER-001：Clipper 实时柱条与最大值分别显示
+
+用户于 2026-10-16 明确选择“柱条实时，数字与标记线保持最大值”。此条细化此前 Clipper GR HOLD 的要求。
+
+- 左右柱条实时显示当前动态衰减；数字及标记线独立保持本次播放的最大衰减。柱条不得使用保持值。
+- 停止播放后保留最大值；双击 Gain Reduction 区域或下次开始播放时清零。现有左右独立、ECO 后台记录、关闭再打开编辑器及 Window/Lookahead 重设保持规则不变。
+- Makeup / Output Gain 不计入衰减量。不改变 Comp / Limiter 表计行为、DSP 或刷新频率。中文悬停明确区分柱条与保持值。
+- 修复前真实绘制检查失败：Clipper bar ignores live GR while maximum is unchanged。clipper-hold 检查三个主题下柱条变化、数字/标记不动及原有清零规则，纳入 QQSCContractCheck。
+
+
+## DISPLAY-009：Shift 滚轮纵向平移
+
+用户于 2026-10-16 要求 Shift + 上下滚轮上下移动 Display，不放大，并同步悬停说明。本条替代 Shift 与普通滚轮相同的旧行为。
+
+- Shift + 滚轮纵向移动可见电平范围，跨度与时间比例不变；向上查看更高电平，向下查看更低电平。每单位 delta 移动当前跨度的 15%，细步幅，无额外延迟。
+- 两个纵向边界一起移动，限制在 −90～0 dB 内；完整 90 dB 视图已覆盖全局，平移不缩小或越界。
+- 顶部标题区域及 ST/LR/MS 各子图均支持；在顶部平移时不强行将上沿重置为 0 dB。普通顶部滚轮的 0 dB 缩放保持原样。
+- Ctrl + 滚轮仍只横向缩放，Ctrl 与 Shift 同按时优先 Ctrl；图内普通滚轮仍以鼠标电平缩放。旋钮/推子的 Shift 微调不变。
+- 保留停播浏览的横向位置、FREEZE 历史、播放跟随、框选、右键复位、推子对齐、A/B/工程保存以及 Window/HPF 的实时重算；不得改阈值、声音或延迟。
+- 中文 Display 和 Freeze 悬停说明同步。tests/display_zoom_checks.inc 与 display_freeze_checks.inc 验证平移及边界，随 QQSCContractCheck 运行。
+
+
+## DISPLAY-010：整个 Display 起拖，框选超限贴边
+
+用户于 2026-10-16 要求扩大鼠标框选范围，超出极限的部分按极限边缘计算。本条替代只能从曲线绘图区起拖的规则。
+
+- Display 面板内的标题、纵轴刻度、底部图例及留白均可作为左键框选起点；FREEZE 按钮保持原点击行为。不能从 Display 外的其他控件启动选区。
+- 起点和终点分别限制到实际曲线绘图区的最近边缘；拖动中可以越出整个面板，超出部分不参与时间/电平缩放计算。选区轮廓只绘制有效部分。
+- LR/MS 双图以起点最近的子图为准，在一次拖动期间不切换子图；两图继续共用显示比例。中间间隙选择最近边缘，等距时使用上图。
+- 全部落在同一条边缘的零宽/零高选区不放大；保留原小于 6 像素的有效选区忽略规则、反向拖动、右键/调整界面尺寸取消选区。
+- 保留普通/Shift/Ctrl 滚轮、冻结后选中历史区间、播放跟随最新、阈值对齐、实时参数重算和音频不变性；不改变参数、声音或延迟。
+- 中文 Display 悬停同步说明。display-scale 验证所有边缘、越界终点、双图归属、按键保留；display-freeze 验证停播选区位置，均纳入 QQSCContractCheck。
+
+
+## HELP-001：Display 悬停只列常用操作
+
+2026-10-16 用户要求精简整段 Display 悬停。保留框选、右键恢复、普通/Shift/Ctrl 滚轮、FREEZE 停播保留和不影响声音的简短说明。不在悬停中介绍扩大的框选范围、边缘计算或缩放中心等细节；详细规则放到说明书。此次只改文字，不改变任何交互或声音。

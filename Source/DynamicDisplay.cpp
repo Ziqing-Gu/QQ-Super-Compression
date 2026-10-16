@@ -211,10 +211,10 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
       replayRequestGeneration (std::make_shared<std::atomic<uint64_t>> (0))
 {
     setOpaque (true);
-    setTooltip(juce::String::fromUTF8(u8"Display：按住鼠标左键拖动框选，放大选区的时间和音量范围。滚轮向上小幅放大、向下小幅缩小音量范围，以鼠标所在的电平位置为中心；按住 Ctrl 滚动，微调横向时间范围：停播时以鼠标位置为中心，播放时右侧跟随最新音频。框选与滚轮可交替使用；FREEZE 点亮时，停播后保留最后的图表。鼠标右键恢复全局视图。阈值推子与图表保持对齐，缩放不改变阈值或声音。调整声音参数仍会实时更新已有曲线。"));
+    setTooltip(juce::String::fromUTF8(u8"Display：左键拖动框选放大，右键恢复全图。\n滚轮：上下缩放；Shift + 滚轮：上下平移；Ctrl + 滚轮：左右缩放。\nFREEZE 点亮时，停播后保留图表。\n缩放和平移不影响声音。"));
     freezeButton.setClickingTogglesState(true);
     freezeButton.setToggleState(processor.isDisplayFreezeOnStop(),juce::dontSendNotification);
-    freezeButton.setTooltip(juce::String::fromUTF8(u8"Freeze：点亮时，播放中正常滚动，宿主停止播放后保留最后的图表；关闭时继续更新。冻结后仍可缩放、调整参数并查看曲线变化，不影响声音处理和右侧电平表。首次默认打开，新开实例记住上次手动选择；各实例独立。录音、离线导出或宿主不提供播放状态时仍正常更新。"));
+    freezeButton.setTooltip(juce::String::fromUTF8(u8"Freeze：点亮时，播放中正常滚动，宿主停止播放后保留最后的图表；关闭时继续更新。冻结后仍可缩放、平移、调整参数并查看曲线变化，不影响声音处理和右侧电平表。首次默认打开，新开实例记住上次手动选择；各实例独立。录音、离线导出或宿主不提供播放状态时仍正常更新。"));
     freezeButton.onClick=[this] {
         const bool enabled=freezeButton.getToggleState();
         processor.setDisplayFreezeOnStop(enabled);
@@ -1802,20 +1802,25 @@ void DynamicDisplay::mouseDown(const juce::MouseEvent& event)
     if (event.mods.isPopupMenu()) { resetZoom(); return; }
     if (! event.mods.isLeftButtonDown()) return;
     zoomDragActive = false;
+    if (! getLocalBounds().toFloat().contains(event.position)
+        || freezeButton.getBounds().toFloat().contains(event.position)) return;
     refreshScale();
     const int mode = displayProcessingMode(processor);
     const int panels = mode == qqsc::params::stereoLinked || processor.isMasteringMode() ? 1 : 2;
-    for (int panel = 0; panel < panels; ++panel)
+    auto plot = plotBoundsForPanel(domainPanelBounds(0, mode));
+    if (panels == 2)
     {
-        const auto plot = plotBoundsForPanel(domainPanelBounds(panel, mode));
-        if (! plot.contains(event.position)) continue;
-        zoomPlot = plot;
-        zoomStart = event.position;
-        zoomSelection = {zoomStart, zoomStart};
-        zoomDragActive = true;
-        repaint();
-        break;
+        const auto lower = plotBoundsForPanel(domainPanelBounds(1, mode));
+        // Header/footer/axis margins belong to the nearest plot. Keep that
+        // plot throughout the gesture, even when dragging across both panels.
+        if (event.position.y > (plot.getBottom() + lower.getY()) * 0.5f)
+            plot = lower;
     }
+    zoomPlot = plot;
+    zoomStart = plot.getConstrainedPoint(event.position);
+    zoomSelection = {zoomStart, zoomStart};
+    zoomDragActive = true;
+    repaint();
 }
 
 void DynamicDisplay::mouseDrag(const juce::MouseEvent& event)
@@ -1849,7 +1854,10 @@ void DynamicDisplay::mouseWheelMove(const juce::MouseEvent& event,
     for (int panel = 0; panel < panels; ++panel)
     {
         const auto plot = plotBoundsForPanel(domainPanelBounds(panel, mode));
-        if (! plot.contains(event.position)) continue;
+        const bool inHeader = panel == 0
+            && getLocalBounds().toFloat().reduced(10.f, 6.f).contains(event.position)
+            && event.position.y < plot.getY();
+        if (! inHeader && ! plot.contains(event.position)) continue;
         const auto old = view;
         const float factor = std::exp2(-0.75f * juce::jlimit(-4.f, 4.f, delta));
         if (horizontal)
@@ -1861,6 +1869,15 @@ void DynamicDisplay::mouseWheelMove(const juce::MouseEvent& event,
                 ? juce::jlimit(0.f, historyWindowSeconds - seconds, anchorAge - (1.f - relativeX) * seconds) : 0.f;
             processor.setDisplayZoom(view[0], view[1], seconds, 0.f);
         }
+        else if (event.mods.isShiftDown())
+        {
+            // Pan both dB bounds together; neither scale nor the stopped time
+            // anchor changes. A typical wheel notch moves 5% of the visible span.
+            const float span = view[1] - view[0];
+            const float offset = span * 0.15f * juce::jlimit(-4.f, 4.f, delta);
+            const float top = juce::jlimit(-90.f + span, 0.f, view[1] + offset);
+            processor.setDisplayZoom(top - span, top, view[2], 0.f);
+        }
         else
         {
             const float relativeY = juce::jlimit(0.f, 1.f, (event.position.y - plot.getY()) / plot.getHeight());
@@ -1869,7 +1886,10 @@ void DynamicDisplay::mouseWheelMove(const juce::MouseEvent& event,
             const float span = juce::jlimit(1.f, 90.f, oldSpan * factor);
             // Preserve the dB level beneath the pointer until a global bound
             // is reached, then shift the whole range without changing span.
-            const float top = juce::jlimit(-90.f + span, 0.f, anchorDb + relativeY * span);
+            // The header offers a fixed 0 dB reference; plot gestures retain
+            // their existing pointer-centred mapping, including a panned range.
+            const float top = inHeader ? 0.f
+                : juce::jlimit(-90.f + span, 0.f, anchorDb + relativeY * span);
             processor.setDisplayZoom(top - span, top, view[2], 0.f);
         }
         refreshScale();

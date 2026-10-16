@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.4.10 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.4.14 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -228,7 +228,13 @@ if(QQSC_BUILD_DYNAMICS_CHECK)
         COMMAND $<TARGET_FILE:QQSCLimiterCheck>
                 "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>"
                 lookahead-presets
-        DEPENDS QQSCLimiterCheck
+        COMMAND $<TARGET_FILE:QQSCLimiterCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>/display-scale"
+                display-scale
+        COMMAND $<TARGET_FILE:QQSCDisplayAlignmentCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>/clipper-hold"
+                clipper-hold
+        DEPENDS QQSCLimiterCheck QQSCDisplayAlignmentCheck
         COMMENT "Verify user-confirmed QQ Super Compression behavior contracts"
         VERBATIM)
 endif()
