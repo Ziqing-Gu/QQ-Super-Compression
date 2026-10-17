@@ -212,3 +212,33 @@ cmake --build <build-directory> --config Release --target QQSCContractCheck --pa
 ## HELP-001：Display 悬停只列常用操作
 
 2026-10-16 用户要求精简整段 Display 悬停。保留框选、右键恢复、普通/Shift/Ctrl 滚轮、FREEZE 停播保留和不影响声音的简短说明。不在悬停中介绍扩大的框选范围、边缘计算或缩放中心等细节；详细规则放到说明书。此次只改文字，不改变任何交互或声音。
+
+## ECO-001：关闭 UI 后停止分析，漏算的播放不能 Match
+
+2026-10-17 用户重申原设计：ECO 关闭 UI 后播放的内容不计算；停止播放后重新打开 UI，不能使用这次未完整统计的播放执行 Match。此规则独立于 FREEZE。
+
+- “关闭 UI”包括销毁编辑器、隐藏 JUCE 组件，以及宿主仅隐藏原生外层窗口但保留编辑器对象。不能只凭对象存在或 Component::isShowing() 判定仍在显示。
+- ECO 在 UI 实际不可见时停止 Display 历史采集与重算、普通表计分析、LUFS 与 Match 统计；音频处理继续。Clipper 最大 GR 的既有后台保持约定不变。
+- 本轮播放只要存在未分析片段，重新打开 UI 或停止播放都不能使残缺数据变为有效 Match；打开 UI 后重新开始一次完整播放才恢复。已有累计 Match、重复点击不重置起点的规则不变。
+- FULL 关闭 UI 后仍继续分析，重新打开可以使用完整统计；不可见时无需生成 Display 绘制路径。
+- FREEZE 仍只控制停播后是否保留图表，不得被用作 ECO 后台分析开关。不得改变音频、延迟、参数、侧链或任何 LINK 规则。
+- 原生窗口可见性查询只在消息线程执行，不放入音频回调。界面挂接/可见性回调及时同步状态，保留周期检查以覆盖原生宿主隐藏时不发 JUCE 回调的情况。
+
+验证：tests/eco_ui_visibility_checks.inc 使用真实处理器和编辑器、始终隐藏的原生父窗口，检查三种处理模式、FREEZE 两种状态、ECO/FULL、Display 重算取消、Match 拒绝及下一轮恢复和音频一致性。tests/cumulative_match_checks.inc 验证累计 Match 行为；两者纳入 QQSCContractCheck。
+
+修复前：1.4.14 的原生窗口不可见，但 editorOpen=1，后台仍累计约 2.13 秒波形，Match 可实际执行。新回归断言在旧共享代码上失败：Native-hidden editor incorrectly published as open。
+
+## ECO-002：ECO 重开 UI 从当前音频重新绘图，与 Freeze 开关无关
+
+2026-10-18 用户要求修复 QQ Host 保留编辑器对象时的旧图续接问题，并指定版本 1.4.16。修复位于超级压缩，不修改 QQ Host。
+
+同日用户在 1.4.16 验证后进一步明确：Freeze 点亮也必须在 ECO 重开 UI 时清空旧波形，避免误导；Cubase 当前表现正确，QQ Host 的保留编辑器路径仍有问题。1.4.17 因此取消原来的 Freeze 关闭条件，以本条更新后的规则为准。
+
+- ECO 暂停 UI 分析后，恢复分析必须清空旧曲线及历史重算缓存，从恢复后采集的音频重新绘制，与 Freeze 是否点亮无关。不能把隐藏前后的两段波形直接接在一起，也不能在新音频到达前重复添加旧表计帧；隐藏期间停播后重开也应为空图，等待新的音频证据。
+- 清理应使旧的异步重算结果失效；与音频回调交错的缓存换代不能把旧帧标成新数据。UI 缓存分配只在消息线程执行。
+- 保持用户的电平和时间缩放。FULL 的后台分析不变；界面持续打开时，Freeze 点亮仍保留停播图表。Freeze 不决定 ECO 是否在后台分析，也不能保留 ECO 隐藏之前的旧图。
+- 清理 Display 不重置音频处理器，不恢复残缺播放的 Match 资格。只有重新开始完整的 UI 可见播放才恢复 Match；不改变 LINK、阈值、声音或延迟。
+
+验证入口：tests/eco_ui_reopen_checks.inc / eco-ui-reopen，纳入 QQSCContractCheck。使用屏幕外的独立原生测试窗口，真实执行显示、隐藏、继续播放、重新显示，以及隐藏期间停播的流程，覆盖 Comp ST/LR/MS、Clipper、Limiter、ECO/FULL、Freeze 两种状态。1.4.15 修改前失败：ECO Freeze-OFF reopen retained stale Display history。
+
+1.4.17 修改前：按用户更新后的规则运行回归，1.4.16 在 ECO + Freeze ON 的保留编辑器重开场景失败：ECO reopen retained stale Display history (Freeze must not preserve a hidden gap)。

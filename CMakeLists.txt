@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(QQSuperCompression VERSION 1.4.14 LANGUAGES C CXX)
+project(QQSuperCompression VERSION 1.4.17 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -213,6 +213,15 @@ if(QQSC_BUILD_DYNAMICS_CHECK)
     # User-confirmed behavior contracts are a delivery gate, not an optional
     # historical regression profile. Failure must propagate to the build.
     add_custom_target(QQSCContractCheck
+        COMMAND $<TARGET_FILE:QQSCLimiterCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>/eco-ui-reopen"
+                eco-ui-reopen
+        COMMAND $<TARGET_FILE:QQSCLimiterCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>/eco-ui-visibility"
+                eco-ui-visibility
+        COMMAND $<TARGET_FILE:QQSCLimiterCheck>
+                "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>"
+                cumulative-match
         COMMAND $<TARGET_FILE:QQSCLimiterCheck>
                 "${CMAKE_CURRENT_BINARY_DIR}/contract-checks/$<CONFIG>"
                 unconditional-link

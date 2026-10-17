@@ -196,6 +196,7 @@ private:
     int lastKeySource = -1;
     uint64_t lastCaptureGeneration = 0;
     uint64_t lastCapturedHistoryCounter = 0;
+    bool ecoUiSuspended = false;
     uint64_t historyRevision = 1;
     uint64_t renderedHistoryRevision = 0;
     uint64_t renderedProjectionRevision = 0;

@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "Parameters.h"
+#include "UiVisibility.h"
 #include <cmath>
 
 namespace
@@ -52,7 +53,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
       display (p),
       meters (p)
 {
-    processor.setEditorOpen(true);
+    processor.setEditorOpen(qqsc::ui::isActuallyShowing(*this));
     display.onFreezeChanged=[this](bool enabled) {
         // Only a manual choice updates the new-instance preference.
         if(uiProperties!=nullptr) {
@@ -1953,12 +1954,24 @@ void QQSuperCompressionAudioProcessorEditor::updateAlgorithmUi()
     updateCompressionUi();
 }
 
+void QQSuperCompressionAudioProcessorEditor::visibilityChanged()
+{
+    processor.setEditorOpen(qqsc::ui::isActuallyShowing(*this));
+}
+
+void QQSuperCompressionAudioProcessorEditor::parentHierarchyChanged()
+{
+    processor.setEditorOpen(qqsc::ui::isActuallyShowing(*this));
+}
+
 void QQSuperCompressionAudioProcessorEditor::timerCallback()
 {
     // Some hosts keep an editor object alive after its window is hidden. ECO
     // follows the actual per-instance UI visibility, not merely editor object
     // lifetime, so hidden-but-retained editors still suspend analysis.
-    processor.setEditorOpen (isShowing());
+    // Poll as well: a native host ancestor can hide without a JUCE component
+    // visibility callback. Keep native window queries off the audio thread.
+    processor.setEditorOpen (qqsc::ui::isActuallyShowing(*this));
 
     updateAlgorithmUi();
     updateModeUi();

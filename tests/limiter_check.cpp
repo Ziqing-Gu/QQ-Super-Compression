@@ -16,6 +16,8 @@
 // limiter regression executable.
 struct QQSCVisualCheck
 {
+#include "eco_ui_visibility_checks.inc"
+#include "eco_ui_reopen_checks.inc"
     struct ProjectedView
     {
         std::vector<float> blue;
@@ -453,6 +455,10 @@ int main(int argc,char** argv)
         { QQSCLimiterCheck::displayReplayDragChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="cumulative-match")
         { QQSCReviewCheck::cumulativeMatchChecks();return 0; }
+        if(argc==3 && juce::String(argv[2])=="eco-ui-visibility")
+        { QQSCVisualCheck::ecoUiVisibilityChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="eco-ui-reopen")
+        { QQSCVisualCheck::ecoUiReopenChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="display-freeze")
         { QQSCLimiterCheck::displayFreezeChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="display-live-follow")

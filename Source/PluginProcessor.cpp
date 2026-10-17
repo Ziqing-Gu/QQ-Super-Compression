@@ -609,6 +609,13 @@ void QQSuperCompressionAudioProcessor::setDisplayKeyHistoryCaptureEnabled (bool 
     }
 }
 
+void QQSuperCompressionAudioProcessor::restartDisplayKeyHistoryCapture()
+{
+    if (displayKeyHistoryCaptureEnabled.load (std::memory_order_acquire))
+        std::atomic_store_explicit (&displayKeyHistoryStorage, createDisplayKeyHistoryStorage(),
+                                    std::memory_order_release);
+}
+
 QQSuperCompressionAudioProcessor::DisplayKeyHistoryPosition
 QQSuperCompressionAudioProcessor::getDisplayKeyHistoryPosition() const noexcept
 {
@@ -3005,7 +3012,9 @@ void QQSuperCompressionAudioProcessor::finishDisplayMeterCapture(DisplayKeyHisto
     meterState.displayBlockSamples.store(end.generation==start.generation && end.counter>=start.counter
         ? int(end.counter-start.counter) : 0,std::memory_order_relaxed);
     meterState.displayCaptureCounter.store(end.counter,std::memory_order_relaxed);
-    meterState.displayCaptureGeneration.store(end.generation,std::memory_order_relaxed);
+    // A UI reset may replace the ring during this block. Keep such a meter
+    // frame tagged with the old generation so it cannot seed the new graph.
+    meterState.displayCaptureGeneration.store(start.generation,std::memory_order_relaxed);
     meterState.displayCaptureMode.store(mode,std::memory_order_relaxed);
     const float look=qqsc::params::snapLookaheadMs(readSoundParameter(qqsc::params::lookaheadMs));
     const float window=juce::jlimit(0.f,look,readSoundParameter(qqsc::params::detectorWindowMs));

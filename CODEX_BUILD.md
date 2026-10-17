@@ -1,5 +1,11 @@
 # Current build instructions
 
+See [REPRODUCE_1.4.17.md](REPRODUCE_1.4.17.md). Reuse validated Windows output; release Actions build only the three missing Mac artifacts.
+
+--- Historical instructions ---
+
+# Current build instructions
+
 See [REPRODUCE_1.4.14.md](REPRODUCE_1.4.14.md). Reuse validated Windows output; release Actions build only the three missing Mac artifacts.
 
 --- Historical instructions ---

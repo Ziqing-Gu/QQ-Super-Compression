@@ -10,7 +10,7 @@
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 
-# QQ Super Compression 1.4.14 Stable
+# QQ Super Compression 1.4.17 Stable
 
 Qing Audio 动态处理插件，提供 Compressor、Clipper、Limiter，Classic/Super、单压/双压和内外侧链。Comp/ST 同时提供 L/R Link 与 M/S Link。Lookahead 为 0 / 25.3 / 50.6 / 76 / 100 ms，Window 在固定延迟内调节检测时长。TRANSPARENT 默认关闭，Window 或 Lookahead 为 0 时灰显。OS 为 1x/4x/8x/16x，默认 1x。
 
@@ -20,11 +20,13 @@ Display：框选放大，滚轮上下缩放，Shift＋滚轮上下平移，Ctrl�
 
 Display: drag a rectangle to zoom, wheel to zoom vertically, Shift+wheel to pan vertically, Ctrl+wheel to zoom horizontally, and right-click to reset. FREEZE holds history only after stopping; playback follows the live edge. Clipper bars remain live while numbers and marker lines hold maximum reduction.
 
-配套手册 / Included manuals: [中文 1.4.14](docs/manuals/QQ-Super-Compression-1.4.14-User-Manual-Chinese.pdf) · [English 1.4.14](docs/manuals/QQ-Super-Compression-1.4.14-User-Manual-English.pdf)。各 49 页；本版截图与操作已同步。 / 49 pages each, with matching screenshots and operation.
+配套手册 / Included manuals: [中文 1.4.14](docs/manuals/QQ-Super-Compression-1.4.14-User-Manual-Chinese.pdf) · [English 1.4.14](docs/manuals/QQ-Super-Compression-1.4.14-User-Manual-English.pdf)。各 49 页，按用户要求原样沿用，保留 1.4.14 版号。本次 ECO 修复见下方更新记录。 / 49 pages each, reused unchanged at the user’s request with their true 1.4.14 edition number. See the version history below for the ECO fixes.
 
-本次覆盖上次公开版本 1.4.10 之后的全部真实版本 1.4.11–1.4.14。 / Covers all actual versions after public 1.4.10 through 1.4.14.
+本次覆盖上次公开版本 1.4.14 之后的全部真实版本 1.4.15、1.4.16、1.4.17。 / Covers every actual version after public 1.4.14: 1.4.15, 1.4.16 and 1.4.17.
 
 ## 下载与安装 / Download and installation
+
+1.4.17 发布准备中；以下链接仍指向已发布的 1.4.14，完成上传后更新。 / Release 1.4.17 is being prepared; links below still point to published 1.4.14 and will be updated after upload.
 
 **下载 1.4.14 / Download 1.4.14:** [最新 Release / Latest Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [固定版本页面 / Version page](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.14) · [历史版本 / Release history](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases)
 
@@ -48,9 +50,29 @@ Display: drag a rectangle to zoom, wheel to zoom vertically, Shift+wheel to pan 
 
 ## 当前稳定版 / Current stable version
 
-**1.4.14 Stable (2026-10-16)**，由用户明确指定。Windows 使用已验证成品；Mac 从对应源码构建。 / Explicitly user-designated. Windows reuses the verified binary; Mac is built from corresponding source.
+**1.4.17 Stable (2026-10-18)**，由用户明确指定。Windows 使用已验证成品；Mac 从对应源码构建。 / Explicitly user-designated. Windows reuses the verified binary; Mac is built from corresponding source.
 
 ## 版本记录 / Version history
+
+### 1.4.17 — 2026-10-18 — Stable
+
+- 中文：ECO 关闭 UI 后重新打开时，无论 FREEZE 是否点亮，都清空旧 Display 并从新音频重新绘制；修复 QQ Host 保留编辑器对象时仍显示旧波形的问题。保留缩放、界面持续打开时的停播冻结和 FULL 后台分析；缺失数据的播放轮次仍不能 Match。更新中文悬停，声音和参数规则不变。由用户指定 Stable；20 组原生窗口重开、12 组隐藏门控及完整行为约定通过，音频逐采样差异为 0。
+- English: In ECO, reopening the UI clears the old Display and starts fresh regardless of FREEZE, including QQ Host's retained-editor case. Zoom, stop-time freezing while the UI stays open and FULL background analysis remain; an incomplete playback pass remains ineligible for Match. Updates Chinese hover help without changing audio or parameter rules. User-designated Stable; 20 native-window reopen cases, 12 hidden-gating cases and the full contracts passed, with zero sample difference.
+
+### 1.4.16 — 2026-10-18 — Stable
+
+- 中文：ECO 暂停分析后，在 FREEZE 关闭时重开 UI 会清空旧历史、重算缓存和过期结果，保留缩放，从新采集的音频开始显示。保持不完整播放不能 Match 的规则。用户确认 QQ Host 问题解决并指定 Stable；20 组重开及原有回归通过，声音差异为 0。FREEZE 点亮时的旧图保留问题由 1.4.17 修复。
+- English: After ECO suspends analysis, reopening with FREEZE off clears old history, replay caches and stale results while retaining zoom and drawing newly captured audio. Incomplete passes remain ineligible for Match. The user confirmed the QQ Host fix and selected Stable; 20 reopen cases and existing regressions passed with zero audio difference. Version 1.4.17 addresses retained history when FREEZE is on.
+
+### 1.4.15 — 2026-10-17 — Delivered / 已交付
+
+- 中文：识别宿主仅隐藏原生外层窗口、仍保留插件编辑器的情况。ECO 在这段时间停止 Display、普通表计、LUFS 和 Match 分析；漏算的本轮播放不能用于 Match，下一轮完整的 UI 可见播放恢复。12 组 Windows 原生隐藏测试通过，声音差异为 0。重开时旧图保留的问题在后续版本继续修复；用户曾回退 1.4.14 做对比，1.4.15 未被指定 Stable。
+- English: Detects a host hiding its native parent window while retaining the editor. ECO suspends Display, ordinary meters, LUFS and Match analysis during that interval. The incomplete playback pass cannot be matched; a complete UI-visible pass restores eligibility. Twelve Windows native-hidden tests passed with zero audio difference. Later versions address stale history on reopening. The user temporarily restored 1.4.14 for comparison; 1.4.15 was not designated Stable.
+
+这三版均保留插件身份、工程参数和音频算法，未修改 QQ Host。升级前另存工程并退出宿主。Windows 原生窗口回归不能代替 macOS 的交互式宿主验证；不声称完成所有 DAW 的人工测试。
+
+All three versions preserve plug-in identity, session parameters and audio algorithms; QQ Host itself was not modified. Save a session copy and quit hosts before upgrading. Windows native-window fixtures do not establish interactive macOS host behavior; no all-DAW manual testing is claimed.
+
 
 ### 1.4.14 — 2026-10-16 — Stable
 

@@ -1,6 +1,7 @@
 #include "DynamicDisplay.h"
 #include "Parameters.h"
 #include "UTF8LookAndFeel.h"
+#include "UiVisibility.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -214,7 +215,7 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
     setTooltip(juce::String::fromUTF8(u8"Display：左键拖动框选放大，右键恢复全图。\n滚轮：上下缩放；Shift + 滚轮：上下平移；Ctrl + 滚轮：左右缩放。\nFREEZE 点亮时，停播后保留图表。\n缩放和平移不影响声音。"));
     freezeButton.setClickingTogglesState(true);
     freezeButton.setToggleState(processor.isDisplayFreezeOnStop(),juce::dontSendNotification);
-    freezeButton.setTooltip(juce::String::fromUTF8(u8"Freeze：点亮时，播放中正常滚动，宿主停止播放后保留最后的图表；关闭时继续更新。冻结后仍可缩放、平移、调整参数并查看曲线变化，不影响声音处理和右侧电平表。首次默认打开，新开实例记住上次手动选择；各实例独立。录音、离线导出或宿主不提供播放状态时仍正常更新。"));
+    freezeButton.setTooltip(juce::String::fromUTF8(u8"Freeze：点亮时，播放中正常滚动，宿主停止播放后保留最后的图表；关闭时继续更新。ECO 模式重新打开界面时会清空旧图。冻结后仍可缩放、平移、调整参数并查看曲线变化，不影响声音处理和右侧电平表。首次默认打开，新开实例记住上次手动选择；各实例独立。录音、离线导出或宿主不提供播放状态时仍正常更新。"));
     freezeButton.onClick=[this] {
         const bool enabled=freezeButton.getToggleState();
         processor.setDisplayFreezeOnStop(enabled);
@@ -298,7 +299,7 @@ void DynamicDisplay::resized()
     freezeButton.setBounds(getWidth()-74,5,60,22);
     zoomDragActive = false;
     geometryDirty = true;
-    if (! isShowing())
+    if (! qqsc::ui::isActuallyShowing(*this))
         return;
 
     const auto mode = displayProcessingMode (processor);
@@ -333,8 +334,9 @@ void DynamicDisplay::clearHistories()
     for (auto& h : histories)
         h.points.clear();
 
-    for (auto& cache : renderCaches)
+    for (auto* item : { &renderCaches[0], &renderCaches[1], &stereoLimiterCache })
     {
+        auto& cache = *item;
         cache.projected.size = 0;
         cache.inputPath.clear();
         cache.gainReductionPath.clear();
@@ -361,12 +363,23 @@ void DynamicDisplay::timerCallback()
 {
     freezeButton.setToggleState(processor.isDisplayFreezeOnStop(),juce::dontSendNotification);
     refreshScale();
-    if (processor.isEcoMode() && ! isShowing())
+    if (processor.isEcoMode() && ! qqsc::ui::isActuallyShowing(*this))
     {
+        ecoUiSuspended = true;
         replayRequestGeneration->fetch_add(1, std::memory_order_relaxed);
         hpfReplayBusy = false;
         hpfRefreshPending = true;
         return;
+    }
+    if (ecoUiSuspended)
+    {
+        ecoUiSuspended = false;
+        // Freeze controls stopped transport, never retention across an ECO
+        // visibility gap. Start fresh even when the host kept this editor.
+        // Old meter frames and pending replay results must remain rejected.
+        processor.restartDisplayKeyHistoryCapture();
+        clearHistories();
+        geometryDirty = true;
     }
     auto& m = processor.getMeterState();
     const auto mode = displayProcessingMode (processor);
@@ -518,7 +531,7 @@ void DynamicDisplay::timerCallback()
     // Keep collecting evidence while an editor/component is hidden, but do not
     // spend message-thread time re-projecting paths that cannot be seen. When
     // it becomes visible again the revision mismatch rebuilds everything once.
-    if (! isShowing())
+    if (! qqsc::ui::isActuallyShowing(*this))
         return;
 
     const bool projectionDirty = projectionRevision != renderedProjectionRevision;
@@ -1190,7 +1203,7 @@ void DynamicDisplay::handleHpfReplayFailure (uint64_t requestGeneration,
 
 bool DynamicDisplay::requestHpfHistoryRefresh (bool retrying)
 {
-    if (processor.isEcoMode() && ! isShowing())
+    if (processor.isEcoMode() && ! qqsc::ui::isActuallyShowing(*this))
     {
         hpfRefreshPending = true;
         return false;
@@ -1490,7 +1503,7 @@ void DynamicDisplay::applyHpfReplay (ReplayResult result)
     hpfRetryTimerTicks = 0;
     ++hpfReplayAppliedCount;
     ++historyRevision;
-    if (isShowing())
+    if (qqsc::ui::isActuallyShowing(*this))
     {
         refreshRenderCaches (lastMode);
         renderedHistoryRevision = historyRevision;

@@ -196,6 +196,9 @@ public:
     bool isDisplayFreezeOnStop() const noexcept { return displayFreezeOnStop.load(std::memory_order_acquire); }
     void setDisplayFreezeOnStop(bool enabled);
     void setDisplayKeyHistoryCaptureEnabled (bool enabled);
+    // Message thread only: start a new UI evidence generation after an ECO
+    // visibility gap. Does not reset the audible detector or Match session.
+    void restartDisplayKeyHistoryCapture();
     DisplayKeyHistoryPosition getDisplayKeyHistoryPosition() const noexcept;
     bool copyDisplayKeyHistory (uint64_t generation, uint64_t startCounter,
                                 uint64_t endCounter,
