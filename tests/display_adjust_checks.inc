@@ -1,6 +1,15 @@
     static void displayAdjustChecks(const juce::File& root)
     {
         int cases=0;
+        // JUCE's 0.1-step slider may use FMA on arm64. At requested zero,
+        // -90 + 900 * 0.1 then yields 0x1.68p-48 dB instead of bitwise zero.
+        // Bound only this arithmetic residue; nonzero targets remain exact.
+        // State and A/B must preserve the actual pre-save value exactly.
+        const auto requestedAdjustMatches=[](float actual,float requested)
+        {
+            return actual==requested || (requested==0.f
+                && std::abs(double(actual))<=8.0*90.0*std::numeric_limits<double>::epsilon());
+        };
         for(int family:{0,1,2})for(int mode:{0,1,2})
         {
             if(family && mode!=2)continue;
@@ -21,6 +30,9 @@
             for(float adjust:{-18.f,0.f,18.f})
             {
                 e.inputGainSlider.setValue(adjust,juce::sendNotificationSync);d.refreshScale();
+                const float beforeSave=p.getDisplayAdjustDb();
+                check(beforeSave==float(e.inputGainSlider.getValue()) && requestedAdjustMatches(beforeSave,adjust),
+                      "Adjust knob did not apply requested value");
                 check(p.getDisplayZoom()==base,"Adjust changed zoom/time scale");
                 check(std::abs(d.view[1]+adjust)<.001f && std::abs(d.view[0]+60+adjust)<.001f,"Display axis did not translate");
                 check(std::abs(d.getBoundaryYForDomainDb(domain,-30)-(y0-adjust/60*plot.getHeight()))<.01f,"Threshold line did not follow Adjust");
@@ -29,13 +41,9 @@
                 check(p.getBoundaryForDomainDb(false,false,domain)==-30 && p.readSoundParameter("outputGainDb")==output,"Adjust changed sound controls");
                 juce::MemoryBlock state;p.getStateInformation(state);QQSuperCompressionAudioProcessor restored;
                 restored.setStateInformation(state.getData(),int(state.getSize()));
-                if(restored.getDisplayAdjustDb()!=adjust || restored.readSoundParameter("inputGainDb")!=0)
-                    std::cerr << "Adjust state diagnostic: family=" << family << " mode=" << mode
-                              << std::hexfloat << " requested=" << adjust << " slider=" << e.inputGainSlider.getValue()
-                              << " before=" << p.getDisplayAdjustDb() << " restored=" << restored.getDisplayAdjustDb()
-                              << " retiredInput=" << restored.readSoundParameter("inputGainDb") << std::defaultfloat << "\n";
-                check(restored.getDisplayAdjustDb()==adjust && restored.readSoundParameter("inputGainDb")==0,"Project lost Adjust / revived Input");
-                p.copyAToB();p.selectABSlot(1);check(p.getDisplayAdjustDb()==adjust,"A/B changed display-only Adjust");p.selectABSlot(0);
+                check(restored.getDisplayAdjustDb()==beforeSave && restored.readSoundParameter("inputGainDb")==0,
+                      "Project lost Adjust / revived Input");
+                p.copyAToB();p.selectABSlot(1);check(p.getDisplayAdjustDb()==beforeSave,"A/B changed display-only Adjust");p.selectABSlot(0);
                 ++cases;
             }
             // View controls must preserve the offset, time anchor and scale semantics.
@@ -64,7 +72,7 @@
             check(std::abs(d.view[1]-selectedTop)<.01f && p.getDisplayAdjustDb()==18,"Rectangle zoom double-counted Adjust");
             const auto alt=mouse(e.inputGainSlider,e.inputGainSlider.getLocalBounds().toFloat().getCentre(),true);
             e.inputGainSlider.mouseDown(alt);e.inputGainSlider.mouseUp(alt);
-            check(p.getDisplayAdjustDb()==0,"Adjust Alt reset failed");
+            check(requestedAdjustMatches(p.getDisplayAdjustDb(),0.f),"Adjust Alt reset failed");
             p.setDisplayAdjustDb(-12);d.resetZoom();
             check(p.getDisplayAdjustDb()==0 && p.getDisplayZoom()==std::array<float,4>{-90,0,8,0},"Right click must restore complete display");
             // Silence has no finite dB coordinate, even when viewing below -120.
