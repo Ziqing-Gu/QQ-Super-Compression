@@ -1,0 +1,16 @@
+name: Diagnose Adjust state
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build-adjust -DQQSC_FETCH_JUCE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_OSX_ARCHITECTURES=arm64 -DQQSC_BUILD_DYNAMICS_CHECK=ON
+      - name: Build diagnostic executable
+        run: cmake --build build-adjust --target QQSCLimiterCheck --config Release --parallel 3
+      - name: Reproduce Adjust state check without changing assertions
+        run: build-adjust/QQSCLimiterCheck_artefacts/Release/QQSCLimiterCheck "$RUNNER_TEMP/adjust-state" display-adjust

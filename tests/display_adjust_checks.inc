@@ -29,6 +29,11 @@
                 check(p.getBoundaryForDomainDb(false,false,domain)==-30 && p.readSoundParameter("outputGainDb")==output,"Adjust changed sound controls");
                 juce::MemoryBlock state;p.getStateInformation(state);QQSuperCompressionAudioProcessor restored;
                 restored.setStateInformation(state.getData(),int(state.getSize()));
+                if(restored.getDisplayAdjustDb()!=adjust || restored.readSoundParameter("inputGainDb")!=0)
+                    std::cerr << "Adjust state diagnostic: family=" << family << " mode=" << mode
+                              << std::hexfloat << " requested=" << adjust << " slider=" << e.inputGainSlider.getValue()
+                              << " before=" << p.getDisplayAdjustDb() << " restored=" << restored.getDisplayAdjustDb()
+                              << " retiredInput=" << restored.readSoundParameter("inputGainDb") << std::defaultfloat << "\n";
                 check(restored.getDisplayAdjustDb()==adjust && restored.readSoundParameter("inputGainDb")==0,"Project lost Adjust / revived Input");
                 p.copyAToB();p.selectABSlot(1);check(p.getDisplayAdjustDb()==adjust,"A/B changed display-only Adjust");p.selectABSlot(0);
                 ++cases;
