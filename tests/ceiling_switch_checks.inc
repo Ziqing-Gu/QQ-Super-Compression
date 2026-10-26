@@ -5,15 +5,22 @@
               "Limiter needs an independent Ceiling enable parameter");
         check(get(p,"ceilingEnabled") == 1.0f,"Ceiling defaults to ON");
         p.enterLimiterMode();set(p,"ceilingEnabled",0);set(p,"ceilingDb",-6);
+        // APVTS snaps a 0.01f interval; arm64 FMA can retain one float ULP.
+        // First verify the requested setting, then require exact preservation.
+        const float storedCeiling=get(p,"ceilingDb");
+        check(std::abs(storedCeiling+6.f)<=2.f*24.f*std::numeric_limits<float>::epsilon(),
+              "Ceiling did not accept the requested -6 dB value");
         p.copyAToB();p.selectABSlot(1);set(p,"ceilingEnabled",1);
         p.selectABSlot(0);check(!p.isCeilingEnabled(),"A/B lost disabled Ceiling");
         juce::MemoryBlock state;p.getStateInformation(state);
         QQSuperCompressionAudioProcessor restored;restored.setStateInformation(state.getData(),int(state.getSize()));
-        check(!restored.isCeilingEnabled(),"Project lost disabled Ceiling");
+        check(!restored.isCeilingEnabled() && get(restored,"ceilingDb")==storedCeiling,"Project lost disabled Ceiling / stored level");
         restored.selectABSlot(1);check(restored.isCeilingEnabled(),"Inactive B Ceiling not restored");
         restored.selectABSlot(0);
         p.leaveLimiterMode();p.enterClipperMode();p.enterLimiterMode();
-        check(!p.isCeilingEnabled() && get(p,"ceilingDb")==-6,"Mode switching lost Ceiling settings");
+        std::cout << "Ceiling recall diagnostic:" << std::hexfloat << " stored=" << storedCeiling
+                  << " after=" << get(p,"ceilingDb") << std::defaultfloat << " enabled=" << p.isCeilingEnabled() << "\n";
+        check(!p.isCeilingEnabled() && get(p,"ceilingDb")==storedCeiling,"Mode switching lost Ceiling settings");
         auto xml=juce::AudioProcessor::getXmlFromBinary(state.getData(),int(state.getSize()));
         check(xml!=nullptr,"Saved project XML missing");
         auto legacy=juce::ValueTree::fromXml(*xml);
@@ -33,6 +40,8 @@
             put("lookaheadMs",look);put("oversampling",float(os));put("inputGainDb",0);put("outputGainDb",6);
             put("limiterLink",0);put("compressionMode",0);put("ratioL",1);put("makeupGainLDb",0);put("mixL",100);
             set(audio,"ceilingDb",-6);set(audio,"truePeakLimiting",tp?1.f:0.f);
+            const float beforeToggles=get(audio,"ceilingDb");
+            check(std::abs(beforeToggles+6.f)<=2.f*24.f*std::numeric_limits<float>::epsilon(),"Audio Ceiling setting differs from requested -6 dB");
             audio.setRateAndBufferSizeDetails(48000,256);audio.prepareToPlay(48000,256);
             // Reference the unchanged core at the SAME OS. Its 16x filters do
             // not have mathematically exact DC unity gain; Ceiling OFF must
@@ -62,7 +71,7 @@
                     if(os==0)check(std::abs(value-.8f*juce::Decibels::decibelsToGain(6.f))<.00002f,"Native OFF path gain is incorrect");
                     check(std::abs(audio.getActiveOutputGainDb()-6.f)<.001f,"Disabled Ceiling changes active output gain");
                 }
-                check(get(audio,"ceilingDb")==-6 && get(audio,"truePeakLimiting")==float(tp),"Toggle discarded stored settings");
+                check(get(audio,"ceilingDb")==beforeToggles && get(audio,"truePeakLimiting")==float(tp),"Toggle discarded stored settings");
                 csv+=juce::String(os)+","+juce::String(int(tp))+","+juce::String(look)+","+juce::String(int(enabled))+","+juce::String(latency)+","+juce::String(value,7)+"\n";
                 ++cases;
             }
