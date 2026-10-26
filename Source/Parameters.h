@@ -22,6 +22,7 @@ namespace qqsc::params
     }
     inline constexpr auto limiterLink = "limiterLink";
     inline constexpr auto ceilingDb = "ceilingDb";
+    inline constexpr auto ceilingEnabled = "ceilingEnabled";
     inline constexpr auto truePeakLimiting = "truePeakLimiting";
     inline constexpr auto tpRecoveryMode = "tpRecoveryMode";
     inline constexpr auto ceilingOversampling = "ceilingOversampling"; // 1.2.36: Limiter Ceiling 1x/4x/8x/16x
@@ -234,13 +235,16 @@ namespace qqsc::params
         return text.getFloatValue();
     }
 
-    // Historical host coordinate retained only for automation compatibility.
-    // Threshold/UP/DOWN and finite Range now stop at -90 dB.
+    // Stable host coordinate: -120 stores the -infinity threshold endpoint.
+    // Finite defaults and Range remain independent of that endpoint.
     inline constexpr float thresholdOffDb = -120.0f;
-    inline constexpr float thresholdMinimumDb = -90.0f;
-    // Virtual Range endpoint: +1 is a stored OFF sentinel, never physical dB.
-    // Finite 0 dB remains a distinct strict upper cutoff in saved projects.
-    inline constexpr float rangeOffDb = 1.0f;
+    inline constexpr float thresholdMinimumDb = thresholdOffDb;
+    inline constexpr float thresholdDefaultDb = -90.0f;
+    inline constexpr float thresholdMaximumDb = 24.0f;
+    inline constexpr float rangeMaximumDb = 24.0f;
+    inline constexpr float rangeMinimumDb = -90.0f;
+    // Virtual endpoint above all finite Range values. Schema < 33 stored OFF as +1.
+    inline constexpr float rangeOffDb = 25.0f;
     inline constexpr float keyHpfOffHz = 0.0f;
     inline constexpr float keyHpfMinHz = 20.0f;
     inline constexpr float keyHpfMaxHz = 500.0f;
@@ -252,14 +256,13 @@ namespace qqsc::params
 
     inline float clampThresholdDb (float db) noexcept
     {
-        return juce::jlimit (thresholdMinimumDb, 0.0f, db);
+        return juce::jlimit (thresholdMinimumDb, thresholdMaximumDb, db);
     }
 
     inline juce::NormalisableRange<float> thresholdParameterRange()
     {
-        // Preserve old normalized positions for values >= -90 dB.
-        // The removed lower quarter saturates at the finite floor.
-        return { thresholdOffDb, 0.0f,
+        // Extended numeric range; state stores real dB, while host normalisation rescales.
+        return { thresholdOffDb, thresholdMaximumDb,
                  [] (float start, float end, float value) { return start + (end - start) * value; },
                  [] (float start, float end, float value) { return (value - start) / (end - start); },
                  [] (float, float, float value)
@@ -273,12 +276,12 @@ namespace qqsc::params
 
     inline bool isRangeEnabled (float db) noexcept
     {
-        return db <= 0.0f;
+        return db <= rangeMaximumDb;
     }
 
     inline float clampRangeDb (float db) noexcept
     {
-        return isRangeEnabled (db) ? clampThresholdDb (db) : rangeOffDb;
+        return isRangeEnabled (db) ? juce::jlimit(rangeMinimumDb,rangeMaximumDb,db) : rangeOffDb;
     }
 
     inline float rangeLinear (float db) noexcept
@@ -288,37 +291,37 @@ namespace qqsc::params
 
     inline juce::String boundaryText (float db, bool, int decimals = 2)
     {
-        return juce::String (clampThresholdDb (db), decimals) + " dB";
+        return isThresholdEnabled(db) ? juce::String (clampThresholdDb (db), decimals) + " dB" : "-inf";
     }
 
     inline juce::String rangeText (float db, bool = false)
     {
         if (! isRangeEnabled (db)) return "OFF";
-        return juce::String (clampThresholdDb (db), 2) + " dB";
+        return juce::String (clampRangeDb (db), 2) + " dB";
     }
 
     inline float rangeFromText (const juce::String& text)
     {
         if (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("+inf")) return rangeOffDb;
-        if (text.containsIgnoreCase ("-inf")) return thresholdMinimumDb;
-        return clampThresholdDb (text.getFloatValue());
+        if (text.containsIgnoreCase ("-inf")) return rangeMinimumDb;
+        return clampRangeDb (text.getFloatValue());
     }
 
     inline juce::NormalisableRange<float> rangeParameterRange()
     {
-        // The final 2% of travel is an explicit OFF detent; finite 0 dB remains
+        // The final 2% of travel is an explicit OFF detent; finite +24 dB remains
         // reachable immediately below it. No values between 0 and OFF are dB.
         constexpr float finiteEnd = 0.98f;
         return { thresholdOffDb, rangeOffDb,
                  [finiteEnd] (float, float, float normalised)
                  {
                      return normalised > finiteEnd ? rangeOffDb
-                         : thresholdOffDb * (1.0f - normalised / finiteEnd);
+                         : thresholdOffDb + (rangeMaximumDb - thresholdOffDb) * normalised / finiteEnd;
                  },
                  [finiteEnd] (float, float, float value)
                  {
                      return isRangeEnabled (value)
-                         ? finiteEnd * (1.0f - juce::jlimit (thresholdOffDb, 0.0f, value) / thresholdOffDb)
+                         ? finiteEnd * (juce::jlimit (thresholdOffDb, rangeMaximumDb, value) - thresholdOffDb) / (rangeMaximumDb - thresholdOffDb)
                          : 1.0f;
                  },
                  [] (float, float, float value)
@@ -370,13 +373,6 @@ namespace qqsc::params
 
                      return std::round (clampKeyHpfHz (value));
                  } };
-    }
-
-    // Dynamic Display Dry is intentionally pre-Input-Gain, while the detector
-    // sees post-Input-Gain audio. Shift the visual line into the Display reference.
-    inline float effectiveDisplayThresholdDb (float threshold, float inputGain) noexcept
-    {
-        return threshold - inputGain;
     }
 
     enum ProcessingMode

@@ -21,7 +21,7 @@ enum class CompressionAlgorithm { classic, super };
 //
 //     legacy gain = 1 / (1 + (ratio - 1) * level)
 //
-// Classic uses a finite -90 dB minimum throughout. Super uses the original
+// Both algorithms support finite positive thresholds and the -inf endpoint. Super uses the original
 // rational law at both finite and -inf thresholds.
 // Finite Down thresholds use constant dB ratio; finite Up gates use the same
 // dB slope as reciprocal Down, anchored at Range/Dual Down/0dB. Existing static
@@ -82,7 +82,9 @@ public:
     // discarded unity gain/GR for every oversampled detector sample.
     float processLevelSample (float sample, int64_t currentSampleIndex) noexcept
     {
-        const auto magnitude = juce::jlimit (0.0f, 1.0f, std::abs (sample));
+        // Floating-point audio can exceed 0 dBFS. Keep its real magnitude;
+        // the optional Range gate, not full scale, defines the upper boundary.
+        const auto magnitude = std::abs (sample);
         if (queueValues.empty())
             return currentLevel;
         // A zero-length window is exactly this sample. Changing lookahead
@@ -119,17 +121,15 @@ public:
     static float gainForLevel (float level, float ratio, float thresholdLinear,
                               CompressionAlgorithm algorithm = CompressionAlgorithm::classic) noexcept
     {
-        level = juce::jlimit (0.0f, 1.0f, level);
+        level = juce::jmax (0.0f, level);
         ratio = juce::jmax (1.0f, ratio);
-        thresholdLinear = juce::jlimit (0.0f, 1.0f, thresholdLinear);
+        thresholdLinear = juce::jmax (0.0f, thresholdLinear);
 
-        // The shared host endpoint is clamped to -90 dB in Classic; only
-        // Super interprets it as -inf and uses the old rational law.
-        if (algorithm == CompressionAlgorithm::classic)
-            thresholdLinear = juce::jmax (classicThresholdMinimumGain, thresholdLinear);
-
+        // Limit of the selected transfer law as Threshold tends to -infinity.
+        if (ratio == 1.f || level == 0.f) return 1.f;
         if (thresholdLinear <= 0.0f)
-            return 1.0f / (1.0f + (ratio - 1.0f) * level);
+            return algorithm == CompressionAlgorithm::classic ? 0.f
+                : 1.0f / (1.0f + (ratio - 1.0f) * level);
 
         if (level <= thresholdLinear)
             return 1.0f;
@@ -151,17 +151,12 @@ public:
     static float singleGainForLevel (float level, float ratio, float lower, float upper,
                                     CompressionAlgorithm algorithm = CompressionAlgorithm::classic) noexcept
     {
-        level = juce::jlimit (0.0f, 1.0f, level);
-        lower = juce::jlimit (0.0f, 1.0f, lower);
+        level = juce::jmax (0.0f, level);
+        lower = juce::jmax (0.0f, lower);
         // Range OFF is +infinity: retain it through the operating gate. A
         // finite 0 dB Range is 1.0 and still restores unity at/above that level.
         upper = juce::jmax (0.0f, upper);
         ratio = juce::jlimit (minimumUpRatio, maximumDownRatio, ratio);
-        if (algorithm == CompressionAlgorithm::classic)
-        {
-            lower = juce::jmax (classicThresholdMinimumGain, lower);
-            upper = juce::jmax (classicThresholdMinimumGain, upper);
-        }
         if (lower >= upper || level <= lower || level >= upper || ratio == 1.0f)
             return 1.0f;
         if (ratio > 1.0f)
@@ -174,7 +169,7 @@ public:
             const auto blend = boundaryBlend ((upper - level) / width);
             return (1.0f - blend) + gain * blend;
         }
-        return gatedUpwardGain (level, ratio, lower, juce::jmin (1.0f, upper), algorithm);
+        return gatedUpwardGain (level, ratio, lower, std::isfinite(upper) ? upper : 1.0f, algorithm);
     }
 
     static float boundaryBlend (float position) noexcept
@@ -186,14 +181,7 @@ public:
     static float gatedUpwardGain (float level, float ratio, float lower, float anchor,
                                  CompressionAlgorithm algorithm = CompressionAlgorithm::classic) noexcept
     {
-        if (algorithm == CompressionAlgorithm::classic)
-        {
-            lower = juce::jmax (classicThresholdMinimumGain, lower);
-            anchor = juce::jmax (classicThresholdMinimumGain, anchor);
-        }
         if (level <= lower || lower >= anchor) return 1.0f;
-        // Only Super has a true -inf gate.
-        if (lower <= 0.0f) return upwardGainForLevel (level, ratio, anchor);
         // Same dB slope as the reciprocal Down ratio, anchored at the upper
         // boundary: upGainDb = (anchorDb - levelDb) * (1 - ratio).
         // Matching Up/Down differs by a constant gain in the interior; the
@@ -203,14 +191,15 @@ public:
             ? upwardGainForLevel (level, ratio, anchor)
             : (level >= anchor || ratio == 1.0f ? 1.0f
                 : juce::jmin (maximumUpwardGain, std::pow (anchor / level, 1.0f - ratio)));
+        if (lower <= 0.f) return gain; // No lower gate; keep the selected upward law.
         const auto width = juce::jmin (lower, (anchor - lower) * 0.5f);
         return 1.0f + (gain - 1.0f) * boundaryBlend ((level - lower) / width);
     }
 
     static float upwardGainForLevel (float level, float ratio, float anchor) noexcept
     {
-        level = juce::jlimit (0.0f, 1.0f, level);
-        anchor = juce::jlimit (0.0f, 1.0f, anchor);
+        level = juce::jmax (0.0f, level);
+        anchor = juce::jmax (0.0f, anchor);
         ratio = juce::jlimit (minimumUpRatio, 1.0f, ratio);
         if (anchor <= 0.0f || level >= anchor || ratio == 1.0f)
             return 1.0f;
@@ -236,10 +225,6 @@ public:
         // UP is an enabling gate, never an invitation to raise sub-threshold
         // material. The upward branch ends at DOWN, where its gain reaches
         // unity and the retained downward branch takes over.
-        if (upAlgorithm == CompressionAlgorithm::classic)
-            upThreshold = juce::jmax (classicThresholdMinimumGain, upThreshold);
-        if (downAlgorithm == CompressionAlgorithm::classic)
-            downThreshold = juce::jmax (classicThresholdMinimumGain, downThreshold);
         if (upThreshold >= downThreshold || level <= upThreshold)
             return 1.0f;
         if (level < downThreshold)

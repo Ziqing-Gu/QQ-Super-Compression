@@ -171,16 +171,18 @@ private:
                 const auto pixelSpan = static_cast<double> (juce::jmax (1.0f, plot.getHeight()));
                 const auto deltaValue = deltaY * (boundaryDbSpan ? boundaryDbSpan() : getMaximum() - getMinimum()) / (pixelSpan * fineScale);
                 auto current = getValue();
-                if (current > 0.0 && deltaY < 0.0)
-                    current = 0.0; // Leave Range OFF through its finite 0 dB endpoint.
+                const bool isRange = bool(getProperties()["qqscUpperBoundary"])
+                    && !bool(getProperties()["qqscDualBoundary"]);
+                if (isRange && current > qqsc::params::rangeMaximumDb && deltaY < 0.0)
+                    current = qqsc::params::rangeMaximumDb; // Leave OFF through finite +24 dB.
                 auto requested = current + deltaValue;
                 if (boundaryYToDb && deltaY < 0.0 && current >= boundaryYToDb(plot.getBottom()))
                     requested = juce::jmax(double(boundaryYToDb(plot.getBottom())), requested);
-                if (boundaryYToDb && deltaY > 0.0 && boundaryYToDb(plot.getY()) < 0.f
+                if (boundaryYToDb && deltaY > 0.0 && boundaryYToDb(plot.getY()) < qqsc::params::thresholdMaximumDb
                     && current <= boundaryYToDb(plot.getY()))
                     requested = juce::jmin(double(boundaryYToDb(plot.getY())), requested);
-                if (getMaximum() > 0.0 && requested > 0.0)
-                    requested = getMaximum(); // Range's extra top detent is OFF, not +1 dB.
+                if (isRange && requested > qqsc::params::rangeMaximumDb)
+                    requested = getMaximum(); // Only Range has an extra OFF detent.
                 setValue (juce::jlimit (getMinimum(), getMaximum(), requested),
                           juce::sendNotificationSync);
                 return;
@@ -418,7 +420,7 @@ private:
         }
     } ceilingPanel;
     FineKnob ceilingSlider { 0.0 };
-    juce::Label ceilingLabel;
+    juce::TextButton ceilingEnabledButton { "CEILING" };
     juce::Label monitorCeilingLabel;
     CeilingValueLabel ceilingValue;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> ceilingAttachment;

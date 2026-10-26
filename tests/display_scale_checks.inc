@@ -65,7 +65,7 @@
 
         // Real drag sensitivity follows the displayed span, including Shift.
         p.leaveLimiterMode();set(p,"processingMode",0);set(p,"compressionMode",0);set(p,"inputOutputLink",0);
-        set(p,"algorithmMode",0);set(p,"rangeDb",1);set(p,"inputGainDb",0);sync(p,e);e.timerCallback();
+        set(p,"algorithmMode",0);set(p,"rangeDb",qqsc::params::rangeOffDb);set(p,"inputGainDb",0);sync(p,e);e.timerCallback();
         for(int scale:{30,60,90})for(bool fine:{false,true})
         {
             p.setDisplayScaleDb(scale);e.display.refreshScale();set(p,"thresholdDb",-15);sync(p,e);

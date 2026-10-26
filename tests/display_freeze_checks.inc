@@ -120,8 +120,8 @@
                 wheelAt(.5f,1.f/3.f,juce::ModifierKeys::ctrlModifier);
                 const auto age=d.stoppedViewEndAgeSeconds;const auto zoom=p.getDisplayZoom();
                 wheelAt(.5f,1.f/3.f,juce::ModifierKeys::shiftModifier);
-                check(d.getVisibleDbSpan()==30.f && p.getDisplayZoom()[0]>zoom[0]
-                      && p.getDisplayZoom()[2]==zoom[2] && d.stoppedViewEndAgeSeconds==age,
+                check(std::abs(d.getVisibleDbSpan()-30.f)<.001f && p.getDisplayZoom()==zoom
+                      && p.getDisplayAdjustDb()>0 && d.stoppedViewEndAgeSeconds==age,
                       "Stopped Shift pan changed scale or horizontal browse position");
                 check(d.renderReferenceCounter==480000,"Shift pan advanced frozen history");
             }

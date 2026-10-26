@@ -63,7 +63,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
         }
     };
     processor.initialiseDualRatioLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("dualRatioLink", true));
-    processor.initialiseInputOutputLinkPreference (uiProperties == nullptr || uiProperties->getBoolValue ("inputOutputLink", true));
+    // The retired Input/Output link no longer has a UI preference.
     processor.initialiseAlgorithmPreference (uiProperties != nullptr ? uiProperties->getIntValue ("lastAlgorithmMode", 0) : 0);
     processor.initialiseDualAlgorithmPreferences(
         uiProperties != nullptr ? uiProperties->getIntValue("lastUpAlgorithmMode",int(processor.readSoundParameter("algorithmMode"))) : 0,
@@ -112,7 +112,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     contentRoot.addAndMakeVisible (display);
     contentRoot.addAndMakeVisible (meters);
 
-    configureLabel (inputGainLabel, "INPUT GAIN");
+    configureLabel (inputGainLabel, "ADJUST");
     configureLabel (ratioLabel, "RATIO");
     configureLabel (ratioChannel0Label, "L");
     configureLabel (ratioChannel1Label, "R");
@@ -155,7 +155,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
 
     for (auto* label : { &inputGainLabel, &ratioLabel, &ratioChannel0Label, &ratioChannel1Label,
                           &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
-                          &mixLabel, &mixChannel0Label, &mixChannel1Label, &ceilingLabel, &outputGainLabel, &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
+                          &mixLabel, &mixChannel0Label, &mixChannel1Label, &outputGainLabel, &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
                           &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel, &ceilingOversamplingLabel })
         contentRoot.addAndMakeVisible (*label);
 
@@ -163,6 +163,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
         contentRoot.addAndMakeVisible (*label);
 
     configureKnob (inputGainSlider, " dB");
+    inputGainSlider.setRange(-90.0, 90.0, 0.1);
+    inputGainSlider.setNumDecimalPlacesToDisplay(1);
+    inputGainSlider.setValue(processor.getDisplayAdjustDb(), juce::dontSendNotification);
     for (auto* ratio : { &ratioSlider, &ratioLSlider, &ratioRSlider, &ratioMSlider, &ratioSSlider })
     {
         configureKnob (*ratio);
@@ -179,8 +182,8 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureKnob (outputGainSlider, " dB");
     configureKnob (keyGainSlider, " dB");
     keyGainSlider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 70, 20);
-    inputGainSlider.setTooltip (juce::String::fromUTF8 (u8"Input Gain：调整进入处理器的音量。INT 检测也随之改变；EXT 的外部检测音量由 Key Gain 调整。普通模式的 Input / Output LINK 开启时，Output 按相同 dB 数反向变化。双击输入，Shift 微调；Alt 单击（Mac：Option）恢复为 0 dB。"));
-    outputGainSlider.setTooltip (juce::String::fromUTF8 (u8"Output Gain：调整 Mix 混合后的音量。Limiter 中位于 Ceiling 之前，提高它会增加最终峰值限制量；Output LINK 开启时，下压阈值作等量反向变化，上压阈值不参与。双击输入，Shift 微调；Alt 单击（Mac：Option）恢复为 0 dB。"));
+    inputGainSlider.setTooltip (juce::String::fromUTF8 (u8"Adjust：上下平移 Display，波形、刻度和阈值线一起移动，不改变声音或压缩量。正值向上，负值向下。图表上 Shift + 滚轮也可调整。双击输入，Shift 微调；Alt 单击（Mac：Option）恢复为 0，图表右键恢复完整视图。"));
+    outputGainSlider.setTooltip (juce::String::fromUTF8 (u8"Output Gain：调整 Mix 混合后的最终音量，不计入 Match 测算。Limiter 中位于 Ceiling 之前，提高它会增加最终峰值限制量；Output LINK 开启时，下压阈值作等量反向变化，上压阈值不参与。双击输入，Shift 微调；Alt 单击（Mac：Option）恢复为 0 dB。"));
     for (auto* makeup : { &makeupSTSlider, &makeupLSlider, &makeupRSlider, &makeupMSlider, &makeupSSlider })
         makeup->setTooltip (juce::String::fromUTF8 (u8"Makeup：调整压缩后的 Wet 音量，在 Mix 混合之前生效。Match 会修改此值。Clipper 或 Limiter 的 Output LINK 开启时，Output 作等量反向补偿；Clipper 默认关闭此联动。双击输入，Shift 微调；Alt 单击（Mac：Option）恢复为 0 dB。"));
     for (auto* mix : { &mixSlider, &mixLSlider, &mixRSlider, &mixMSlider, &mixSSlider })
@@ -268,7 +271,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     configureActionButton (monitorFirstButton);
     configureActionButton (monitorSecondButton);
     configureActionButton (matchButton);
-    matchButton.setTooltip(juce::String::fromUTF8 (u8"Match：根据本次开始播放至点击此刻的累计音频匹配音量。重复点击不会重置统计起点，也不会重复叠加上次的补偿。ECO 模式下，请在开始播放前打开插件界面以进行分析。"));
+    matchButton.setTooltip(juce::String::fromUTF8 (u8"Match：累计比较原始输入与压缩后 Wet 的响度，通过 Makeup 匹配；Adjust、Output、Ceiling 和耳机监听不计入测算。重复点击不叠加补偿。ECO 模式下，请在开始播放前打开界面进行分析。"));
     configureActionButton (bypassButton);
     configureActionButton (aButton);
     configureActionButton (bButton);
@@ -360,7 +363,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     sidechainButton.getProperties().set (juce::Identifier ("qqscAlwaysLit"), true);
     sidechainButton.setColour (juce::TextButton::buttonOnColourId, qqsc::ui::cyanAccent());
     sidechainButton.setTooltip (juce::String::fromUTF8 (u8"打开侧链设置：选择检测信号来源，调整 Key Gain、HPF 高通滤波，并监听侧链。"));
-    keyInternalButton.setTooltip (juce::String::fromUTF8 (u8"INT：使用经过 Input Gain 调整后的主音频作为侧链检测信号。"));
+    keyInternalButton.setTooltip (juce::String::fromUTF8 (u8"INT：使用原始主音频作为侧链检测信号；Adjust 只移动图表。"));
     keyExternalButton.setTooltip (juce::String::fromUTF8 (u8"EXT：使用宿主送入外部侧链总线的音频作为检测信号。"));
     sidechainListenButton.setClickingTogglesState (true);
     sidechainListenButton.setTooltip (juce::String::fromUTF8 (u8"SC Listen：监听当前侧链检测信号，包含侧链增益和滤波，并与插件延迟对齐。"));
@@ -413,7 +416,7 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     contentRoot.addAndMakeVisible (keyMeter);
 
     auto& state = processor.getAPVTS();
-    inputGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::inputGainDb, inputGainSlider);
+    // Adjust is display state, independent of host audio parameters and A/B.
     ratioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::ratio, ratioSlider);
     ratioLAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::ratioL, ratioLSlider);
     ratioRAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, qqsc::params::ratioR, ratioRSlider);
@@ -440,9 +443,9 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, qqsc::params::bypass, bypassButton);
     linkAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, qqsc::params::domainLink, linkButton);
 
-    inputGainSlider.getProperties().set ("qqscParameterID", qqsc::params::inputGainDb);
+    inputGainSlider.getProperties().remove("qqscParameterID");
     outputGainSlider.getProperties().set ("qqscParameterID", qqsc::params::outputGainDb);
-    inputGainSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::inputOutput, inputGainSlider, outputGainSlider, "Input / Output Gain"); };
+    inputGainSlider.onGestureStart = {};
     ratioSlider.onGestureStart = [this] { beginUndoTransaction ("Ratio ST"); };
     makeupSTSlider.onGestureStart = [this] { beginUndoTransaction ("Makeup ST"); };
     // This converter survives bank rebinding. Do not keep JUCE's initial
@@ -454,12 +457,17 @@ QQSuperCompressionAudioProcessorEditor::QQSuperCompressionAudioProcessorEditor (
                                    : makeupSTSlider.getValue();
     };
     mixSlider.onGestureStart = [this] { beginUndoTransaction ("Mix ST"); };
-    outputGainSlider.onGestureStart = [this] { beginLinkedGesture (LinkedPair::inputOutput, outputGainSlider, inputGainSlider, "Output / Input Gain"); };
+    outputGainSlider.onGestureStart = [this] { beginUndoTransaction("Output Gain"); };
     inputGainSlider.onGestureEnd = outputGainSlider.onGestureEnd = [this] { endLinkedGesture(); };
-    inputGainSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::inputOutput, inputGainSlider, outputGainSlider); };
-    outputGainSlider.onValueChange = [this] { handleLinkedValueChange (LinkedPair::inputOutput, outputGainSlider, inputGainSlider); };
-    inputGainSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::inputOutput, inputGainSlider, outputGainSlider, text, "Input / Output Gain"); };
-    outputGainSlider.valueFromTextFunction = [this] (const juce::String& text) { return handleLinkedTextEntry (LinkedPair::inputOutput, outputGainSlider, inputGainSlider, text, "Output / Input Gain"); };
+    inputGainSlider.onValueChange = [this]
+    {
+        processor.setDisplayAdjustDb(float(inputGainSlider.getValue()));
+        display.refreshView();
+        processor.updateHostDisplay(juce::AudioProcessor::ChangeDetails{}.withNonParameterStateChanged(true));
+    };
+    outputGainSlider.onValueChange = {};
+    inputGainSlider.valueFromTextFunction = [] (const juce::String& text) { return juce::jlimit(-90.0,90.0,text.getDoubleValue()); };
+    outputGainSlider.valueFromTextFunction = [this] (const juce::String& text) { return juce::jlimit(outputGainSlider.getMinimum(),outputGainSlider.getMaximum(),text.getDoubleValue()); };
     thresholdSlider.onGestureStart = [this] { beginUndoTransaction ("Threshold ST"); };
     keyGainSlider.onGestureStart = [this] { beginUndoTransaction ("Key Gain"); };
     keyHpfSlider.onGestureStart = [this]
@@ -632,7 +640,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
     for (auto* label : { &inputGainLabel, &ratioLabel, &ratioChannel0Label, &ratioChannel1Label,
                          &makeupLabel, &makeupChannel0Label, &makeupChannel1Label,
-                         &mixLabel, &mixChannel0Label, &mixChannel1Label, &ceilingLabel, &outputGainLabel,
+                         &mixLabel, &mixChannel0Label, &mixChannel1Label, &outputGainLabel,
                          &thresholdLabel, &thresholdChannel0Label, &thresholdChannel1Label,
                          &modeLabel, &monitorLabel, &lookaheadLabel, &oversamplingLabel, &ceilingOversamplingLabel,
                          &keySourceLabel, &keyGainLabel, &keyHpfLabel, &keyMeterLabel })
@@ -701,7 +709,7 @@ void QQSuperCompressionAudioProcessorEditor::applyTheme()
 
     for (auto* button : std::initializer_list<juce::TextButton*> { &modeButton, &linkButton, &dualRatioLinkButton, &inputOutputLinkButton, &monitorAllButton, &monitorFirstButton, &monitorSecondButton,
                           &matchButton, &bypassButton, &aButton, &bButton, &aToBButton, &bToAButton,
-                          &detectorModeButton, &limiterButton, &limiterLinkButton, &unityMonitorButton, &truePeakButton, &tpRecoveryButton, &algorithmButton, &upAlgorithmButton, &downAlgorithmButton, &themeButton, &oversamplingButton, &ceilingOversamplingButton, &performanceModeButton, &sidechainButton, &keyInternalButton,
+                          &detectorModeButton, &limiterButton, &limiterLinkButton, &unityMonitorButton, &truePeakButton, &tpRecoveryButton, &ceilingEnabledButton, &algorithmButton, &upAlgorithmButton, &downAlgorithmButton, &themeButton, &oversamplingButton, &ceilingOversamplingButton, &performanceModeButton, &sidechainButton, &keyInternalButton,
                           &keyExternalButton, &sidechainListenButton })
     {
         button->setColour (juce::TextButton::buttonColourId, qqsc::ui::panel());
@@ -886,7 +894,7 @@ void QQSuperCompressionAudioProcessorEditor::configureThresholdSlider (FineKnob&
     {
         return (text.containsIgnoreCase ("off") || text.containsIgnoreCase ("-inf"))
             ? static_cast<double> (qqsc::params::thresholdMinimumDb)
-            : juce::jlimit (static_cast<double> (qqsc::params::thresholdMinimumDb), 0.0, text.getDoubleValue());
+            : juce::jlimit (static_cast<double> (qqsc::params::thresholdMinimumDb), double(qqsc::params::thresholdMaximumDb), text.getDoubleValue());
     };
 }
 
@@ -1194,27 +1202,7 @@ QQSuperCompressionAudioProcessorEditor::mainRatioControls()
 
 void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
 {
-    configureActionButton (inputOutputLinkButton);
-    inputOutputLinkButton.getProperties().set ("qqscSmallLink", true);
-    inputOutputLinkButton.setTooltip (juce::String::fromUTF8 (u8"Input / Output 联动：输入与输出增益按相同 dB 数反向变化。开启时保留当前数值，不立即改变增益。新实例记住上次的联动选择。"));
-    contentRoot.addAndMakeVisible (inputOutputLinkButton);
-    registerKeyboardListener (inputOutputLinkButton);
-    inputOutputLinkButton.onClick = [this]
-    {
-        inputGainSlider.cancelNativeDragForParameterRebind();
-        outputGainSlider.cancelNativeDragForParameterRebind();
-        endLinkedGesture();
-        beginUndoTransaction ("Input / Output Gain Link");
-        const bool enabled = processor.readSoundParameter(qqsc::params::inputOutputLink) < 0.5f;
-        setChoiceParameter (qqsc::params::inputOutputLink, enabled ? 1 : 0);
-        if (uiProperties != nullptr)
-        {
-            uiProperties->reload();
-            uiProperties->setValue ("inputOutputLink", enabled);
-            uiProperties->saveIfNeeded();
-        }
-        updateCompressionUi();
-    };
+    inputOutputLinkButton.setVisible(false); // Retired Input / Output LINK.
     configureActionButton (dualRatioLinkButton);
     dualRatioLinkButton.getProperties().set ("qqscSmallLink", true);
     dualRatioLinkButton.setTooltip (juce::String::fromUTF8 (u8"上压 / 下压 Ratio 联动：调整一个 Ratio 时，另一个作反向的相对变化。开启时保留当前数值。此联动与 L/R、M/S 的声道参数 LINK 相互独立。"));
@@ -1289,6 +1277,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseCompressionControls()
     linkButton.setTooltip (juce::String::fromUTF8 (u8"声道参数联动：Ratio、Threshold、Range、Makeup、Mix 作相对变化；双压的同类 ON 开关同步开关。"));
     display.onScaleChanged = [this]
     {
+        inputGainSlider.setValue(processor.getDisplayAdjustDb(), juce::dontSendNotification);
         refreshBoundaryReadouts();
         for(auto* slider:lowerBoundaryControls()) slider->repaint();
         for(auto& slider:upperBoundarySliders) if(slider) slider->repaint();
@@ -1505,7 +1494,7 @@ void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool d
         }
         ratios[i]->updateText();
         downRatioSliders[i]->updateText();
-        lower[i]->setResetValue (qqsc::params::thresholdMinimumDb);
+        lower[i]->setResetValue (qqsc::params::thresholdDefaultDb);
         upperBoundarySliders[i]->setResetValue (dual ? 0.0 : qqsc::params::rangeOffDb);
         ratios[i]->setResetValue (1.0);
         downRatioSliders[i]->setResetValue (1.0);
@@ -1513,8 +1502,8 @@ void QQSuperCompressionAudioProcessorEditor::reattachCompressionControls (bool d
                                      : (processor.isMasteringMode() ? juce::String::fromUTF8 (u8"Ratio：上压为 1:8 至 1:1，下压为 1:1 至 1000:1。中间停点为 1:1，不作动态压缩。")
                                                                   : juce::String::fromUTF8 (u8"Ratio：1:200 至 200:1。小于 1:1 为上压，大于 1:1 为下压，1:1 不作动态压缩。")));
         downRatioSliders[i]->setTooltip (processor.isMasteringMode() ? juce::String::fromUTF8 (u8"下压 Ratio：1:1 至 1000:1。数值越大，下压越强；1:1 不下压。") : juce::String::fromUTF8 (u8"下压 Ratio：1:1 至 200:1。数值越大，下压越强；1:1 不下压。"));
-        lower[i]->setTooltip (dual ? juce::String::fromUTF8 (u8"上压阈值 UP：只提升高于 UP 且低于 DOWN 的声音。UP 与 DOWN 重合时，停止上压和下压。") : juce::String::fromUTF8 (u8"Threshold：压缩开始作用的阈值，低于它的声音不作动态压缩。推向 Range 时会带动 Range 一起移动。"));
-        upperBoundarySliders[i]->setTooltip (dual ? juce::String::fromUTF8 (u8"下压阈值 DOWN：高于此值的声音进行下压；UP 与 DOWN 之间可进行上压。两个阈值重合时停止动态压缩。") : juce::String::fromUTF8 (u8"Range：超过此电平的声音不进行压缩。OFF 表示 Range 不限制压缩范围；0 dB 仍是一个有效的限制值。使用 Range 出现噼啪声时，可尝试开启 Transparent。"));
+        lower[i]->setTooltip (dual ? juce::String::fromUTF8 (u8"上压阈值 UP：支持 −inf 至 +24 dB。只提升高于 UP 且低于 DOWN 的声音。UP 与 DOWN 重合时，停止上压和下压。") : juce::String::fromUTF8 (u8"Threshold：支持 −inf 至 +24 dB。压缩开始作用的阈值，低于它的声音不作动态压缩。推向 Range 时会带动 Range 一起移动。"));
+        upperBoundarySliders[i]->setTooltip (dual ? juce::String::fromUTF8 (u8"下压阈值 DOWN：支持 −inf 至 +24 dB。高于此值的声音进行下压；UP 与 DOWN 之间可进行上压。两个阈值重合时停止动态压缩。") : juce::String::fromUTF8 (u8"Range：范围 −90 至 +24 dB。超过此电平的声音不进行压缩。OFF 表示 Range 不限制压缩范围；0 dB 仍是一个有效的限制值。使用 Range 出现噼啪声时，可尝试开启 Transparent。"));
     }
 }
 
@@ -1616,13 +1605,15 @@ void QQSuperCompressionAudioProcessorEditor::refreshBoundaryReadouts()
         {
             if (upper && attachedCompressionMode == 0 && ! qqsc::params::isRangeEnabled (static_cast<float> (db)))
                 return juce::String ("OFF");
+            if ((!upper || attachedCompressionMode == 1) && !qqsc::params::isThresholdEnabled(float(db)))
+                return juce::String("-inf");
             const auto plot = display.getBoundaryPlotForDomain(int(i));
             const bool below = db < display.getBoundaryDbForY(int(i), plot.getBottom(), upper) - 0.005f;
             const bool above = db > display.getBoundaryDbForY(int(i), plot.getY(), upper) + 0.005f;
             return juce::String (db, (i == 0 || processor.isMasteringMode()) ? 2 : 1)
                 + (below || above ? " *" : ((i == 0 || processor.isMasteringMode()) ? " dB" : ""));
         };
-        lowerBoundaryValues[i].setTooltip(juce::String::fromUTF8 (u8"实际阈值，范围为 -90 至 0 dB，Super 与 Classic 相同。Alt 单击恢复 -90 dB。星号 * 表示数值超出当前 Display 显示范围，原数值仍保留。双击可编辑；在 Display 上右键可恢复完整视图。"));
+        lowerBoundaryValues[i].setTooltip(juce::String::fromUTF8 (u8"实际阈值，下限为 -inf（负无穷），上限为 0 dB，Super 与 Classic 相同。Alt 单击恢复 -90 dB。星号 * 表示数值超出当前 Display 显示范围，原数值仍保留。双击可编辑；在 Display 上右键可恢复完整视图。"));
         upperBoundaryValues[i].setTooltip(juce::String::fromUTF8 (u8"实际阈值或 Range 数值，单位 dB。星号 * 表示数值超出当前 Display 显示范围，原数值仍保留。双击可编辑；在 Display 上右键可恢复完整视图。"));
         if (! lowerBoundaryValues[i].isBeingEdited())
             lowerBoundaryValues[i].setText (formatBoundary (lower[i]->getValue(), false), juce::dontSendNotification);
@@ -1663,11 +1654,12 @@ void QQSuperCompressionAudioProcessorEditor::updateCompressionUi()
     {
         const auto minimum = double(processor.boundaryMinimumDb(false));
         const auto upperMinimum = double(processor.boundaryMinimumDb(true));
-        if (lower[i]->getMinimum() != minimum) lower[i]->setRange (minimum, 0.0, 0.01);
+        if (lower[i]->getMinimum() != minimum || lower[i]->getMaximum() != double(qqsc::params::thresholdMaximumDb))
+            lower[i]->setRange (minimum, double(qqsc::params::thresholdMaximumDb), 0.01);
         if (upperBoundarySliders[i]->getMinimum() != upperMinimum
-            || upperBoundarySliders[i]->getMaximum() != (dual ? 0.0 : double(qqsc::params::rangeOffDb)))
-            upperBoundarySliders[i]->setRange (upperMinimum, dual ? 0.0 : double(qqsc::params::rangeOffDb), 0.01);
-        lower[i]->setResetValue (minimum);
+            || upperBoundarySliders[i]->getMaximum() != (dual ? double(qqsc::params::thresholdMaximumDb) : double(qqsc::params::rangeOffDb)))
+            upperBoundarySliders[i]->setRange (upperMinimum, dual ? double(qqsc::params::thresholdMaximumDb) : double(qqsc::params::rangeOffDb), 0.01);
+        lower[i]->setResetValue (qqsc::params::thresholdDefaultDb);
         const bool visible = processor.isMasteringMode() ? i == 1 : channelMode == qqsc::params::stereoLinked ? i == 0
             : (channelMode == qqsc::params::leftRight ? i == 1 || i == 2 : i == 3 || i == 4);
         const juce::String prefix = (i == 0 || processor.isMasteringMode()) ? "" : juce::String (i == 1 ? "L " : i == 2 ? "R " : i == 3 ? "M " : "S ");
@@ -2440,9 +2432,9 @@ void QQSuperCompressionAudioProcessorEditor::resized()
         limiterLinkButton.setBounds (983,controlsY+2,32,17);
         outputGainSlider.setBounds(894,controlsY+16,100,108);
         ceilingPanel.setBounds(884,controlsY+126,120,32);
-        ceilingLabel.setBounds (888,controlsY+127,36,11);
-        tpRecoveryButton.setBounds(925,controlsY+127,39,12);
-        truePeakButton.setBounds(966,controlsY+127,33,12);
+        ceilingEnabledButton.setBounds (888,controlsY+127,44,12);
+        tpRecoveryButton.setBounds(935,controlsY+127,39,12);
+        truePeakButton.setBounds(977,controlsY+127,22,12);
         monitorCeilingLabel.setBounds(884,controlsY+159,120,11);
         ceilingValue.setBounds (890,controlsY+139,108,17);
     }

@@ -77,32 +77,32 @@
             {
                 const auto panPlot=d.getBoundaryPlotForDomain(domain+(panArea==2?1:0));
                 const auto at=panArea==0 ? juce::Point<float>(anchor.x,12.f) : panPlot.getCentre();
-                p.setDisplayZoom(-60,-30,4,0);d.refreshScale();
+                p.setDisplayAdjustDb(0);p.setDisplayZoom(-60,-30,4,0);d.refreshScale();
                 const auto oldY=d.getBoundaryYForDomainDb(domain,-45);
                 wheel(at,1.f/3.f,false,false,true);const auto shifted=p.getDisplayZoom();
                 check(std::abs(d.getVisibleDbSpan()-30.f)<.001f && shifted[2]==4.f && shifted[3]==0.f,
                       "Shift wheel must pan without zooming or changing time");
-                check(std::abs(shifted[0]+54.f)<.001f && std::abs(shifted[1]+24.f)<.001f,
-                      "Shift up must view higher levels in fine steps");
-                check(std::abs(d.getBoundaryYForDomainDb(domain,-45)-(oldY+plot.getHeight()*.2f))<.02f,
+                check(shifted==std::array<float,4>{-60,-30,4,0} && std::abs(p.getDisplayAdjustDb()-6.f)<.001f,
+                      "Shift up must increase Adjust without changing zoom");
+                check(std::abs(d.getBoundaryYForDomainDb(domain,-45)-(oldY-plot.getHeight()*.2f))<.02f,
                       "Panned threshold line lost vertical alignment");
                 check(std::abs(d.getBoundaryDbForY(domain,d.getBoundaryYForDomainDb(domain,-45))+45.f)<.001f,
                       "Panned threshold inverse mapping");
                 check(p.getBoundaryForDomainDb(activeDual,false,domain)==threshold && p.getDynamicsGainForDomain(.4f,domain)==gain,
                       "Shift pan changed threshold or audio gain");
                 wheel(at,-1.f/3.f,false,false,true);
-                check(p.getDisplayZoom()==std::array<float,4>{-60,-30,4,0},"Reverse pan failed");
-                wheel(at,100,false,false,true);
-                check(p.getDisplayZoom()==std::array<float,4>{-30,0,4,0},"Upper pan limit changed span");
-                wheel(at,-100,false,false,true);
-                check(p.getDisplayZoom()==std::array<float,4>{-90,-60,4,0},"Lower pan limit changed span");
+                check(p.getDisplayZoom()==std::array<float,4>{-60,-30,4,0} && std::abs(p.getDisplayAdjustDb())<.001f,"Reverse Adjust failed");
+                for(int k=0;k<3;++k)wheel(at,100,false,false,true);
+                check(p.getDisplayAdjustDb()==90 && p.getDisplayZoom()==std::array<float,4>{-60,-30,4,0},"Adjust upper limit changed zoom");
+                for(int k=0;k<3;++k)wheel(at,-100,false,false,true);
+                check(p.getDisplayAdjustDb()==-90 && p.getDisplayZoom()==std::array<float,4>{-60,-30,4,0},"Adjust lower limit changed zoom");
                 wheel(at,1.f/3.f,true,false,true);
-                check(std::abs(p.getDisplayZoom()[2]-2.f)<.001f && p.getDisplayZoom()[0]==-90.f && p.getDisplayZoom()[1]==-60.f,
+                check(std::abs(p.getDisplayZoom()[2]-2.f)<.001f && p.getDisplayZoom()[0]==-60.f && p.getDisplayZoom()[1]==-30.f && p.getDisplayAdjustDb()==-90,
                       "Ctrl must retain horizontal priority with Shift held");
                 d.mouseDown(event(at,false,true));wheel(at,1.f/3.f,false,false,true);
-                check(p.getDisplayZoom()==std::array<float,4>{-90,0,8,0},"Full view must not shrink during pan");
+                check(p.getDisplayZoom()==std::array<float,4>{-90,0,8,0} && std::abs(p.getDisplayAdjustDb()-18)<.001f,"Full view Shift must change Adjust");
                 wheel(at,-1.f/3.f,false,false,true);
-                check(p.getDisplayZoom()==std::array<float,4>{-90,0,8,0},"Full view must not move outside global limits");
+                check(p.getDisplayZoom()==std::array<float,4>{-90,0,8,0},"Reverse full-view Adjust must preserve zoom");
             }
             // Header uses a fixed 0 dB top; plot gestures keep their pointer anchor.
             for(const auto header: {juce::Point<float>(11.f,12.f),
@@ -213,7 +213,7 @@
         juce::MemoryBlock state;p.getStateInformation(state);QQSuperCompressionAudioProcessor restored;
         restored.setStateInformation(state.getData(),int(state.getSize()));check(restored.getDisplayZoom()==p.getDisplayZoom(),"Project zoom restore");
         p.leaveLimiterMode();set(p,"processingMode",0);set(p,"compressionMode",0);set(p,"inputOutputLink",0);
-        set(p,"inputGainDb",0);set(p,"rangeDb",1);e.updateModeUi();
+        set(p,"inputGainDb",0);set(p,"rangeDb",qqsc::params::rangeOffDb);e.updateModeUi();
         for(bool fine:{false,true})
         {
             p.setDisplayZoom(-30,-10,2,0);d.refreshScale();set(p,"thresholdDb",-20);sync(p,e);

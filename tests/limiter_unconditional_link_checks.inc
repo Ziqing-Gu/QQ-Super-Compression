@@ -140,8 +140,8 @@
             near(p.getBoundaryForDomainDb(dual,dual,1),floor,"Output reached threshold lower bound incorrectly");
             near(get(p,"limiterOutputDb"),-20-floor,"Lower bound broke inverse delta");
             drag(e.outputGainSlider,-119);sync(p,e);
-            near(p.getBoundaryForDomainDb(dual,dual,1),0,"Output reached threshold upper bound incorrectly");
-            near(get(p,"limiterOutputDb"),-20,"Upper bound broke inverse delta");
+            near(p.getBoundaryForDomainDb(dual,dual,1),24,"Output reached threshold upper bound incorrectly");
+            near(get(p,"limiterOutputDb"),-44,"Upper bound broke inverse delta");
             set(p,"limiterOutputDb",119);p.setBoundaryForDomainDb(dual,dual,1,-20);sync(p,e);
             drag(threshold,-25);sync(p,e);
             near(get(p,"limiterOutputDb"),120,"Threshold exceeded Output maximum");

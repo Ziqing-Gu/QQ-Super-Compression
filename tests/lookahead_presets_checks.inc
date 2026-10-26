@@ -143,7 +143,7 @@
             QQSuperCompressionAudioProcessor q(settings(root));q.setProcessorModeFromEditor(0);q.setEcoMode(false);
             set(q,"inputOutputLink",0);set(q,"processingMode",0);set(q,"compressionMode",0);
             set(q,"oversampling",0);set(q,"inputGainDb",0);set(q,"outputGainDb",0);set(q,"makeupGainDb",0);
-            set(q,"mix",100);set(q,"ratio",1);set(q,"rangeDb",1);set(q,"detectorMode",0);q.setLookaheadFromEditor(look);
+            set(q,"mix",100);set(q,"ratio",1);set(q,"rangeDb",qqsc::params::rangeOffDb);set(q,"detectorMode",0);q.setLookaheadFromEditor(look);
             q.setRateAndBufferSizeDetails(rate,256);q.prepareToPlay(rate,256);
             const int delay=int(std::round(rate*double(look)*.001)),pulseAt=256;
             juce::MidiBuffer midi;juce::AudioBuffer<float> audio(2,256);

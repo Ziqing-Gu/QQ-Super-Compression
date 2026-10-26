@@ -18,7 +18,7 @@
                 check(q->setBusesLayout(layout),"External curve test bus layout");
                 q->setEcoMode(false);if(c.limiter)q->enterLimiterMode();
                 setSound(*q,"processingMode",float(c.mode));setSound(*q,"keySource",1);
-                setSound(*q,"lookaheadMs",26);setSound(*q,"detectorWindowMs",26);
+                setSound(*q,"lookaheadMs",25.3f);setSound(*q,"detectorWindowMs",25.3f);
                 setSound(*q,"detectorMode",0);setSound(*q,"oversampling",float(c.os));
                 setSound(*q,"keyHpfHz",qqsc::params::keyHpfOffHz);setSound(*q,"keyGainDb",0);
                 for(auto id:qqsc::params::ratioIds)setSound(*q,id,4);
@@ -31,7 +31,7 @@
             juce::MidiBuffer midi;
             for(int b=0;b<blocks;++b)
             {
-                const float window=float((b/16)%3==0?0:(b/16)%3==1?8:26);
+                const float window=float((b/16)%3==0?0:(b/16)%3==1?8:25.3f);
                 const float safe=float((b/8)%2);
                 for(auto* q:{&p,&reference}){setSound(*q,"detectorWindowMs",window);setSound(*q,"detectorMode",safe);}
                 juce::AudioBuffer<float> audio(c.stereoKey?4:3,n),other(c.stereoKey?4:3,n);
@@ -72,14 +72,14 @@
             check(maxLiveError<.005f,"Live external curve differs from aligned signal during Window/Safe changes");
             DynamicDisplay::ReplayRequest request;
             request.requestGeneration=d.replayRequestGeneration->load();request.captureGeneration=d.lastCaptureGeneration;
-            request.mode=c.mode;request.keySource=1;request.lookaheadMs=26;request.oversampling=c.os;
+            request.mode=c.mode;request.keySource=1;request.lookaheadMs=25.3f;request.oversampling=c.os;
             request.hpfHz=qqsc::params::keyHpfOffHz;request.abSlot=p.getActiveABSlot();request.limiter=c.limiter;
             for(const auto& point:d.histories[0].points){request.markers.push_back(point.captureCounter);request.carrierDelays.push_back(point.carrierDelaySeconds);request.captureBlockSamples.push_back(point.captureBlockSamples);}
             request.requestedStartCounter=0;
             DynamicDisplay::ReplayResult baseline;
             float maxDetectorDifference=0,maxOutputDifference=0;
             std::vector<float> baselineOutput;
-            for(float window:{0.f,8.f,26.f})for(int safe:{0,1})
+            for(float window:{0.f,8.f,25.3f})for(int safe:{0,1})
             {
                 setSound(p,"detectorWindowMs",window);setSound(p,"detectorMode",float(safe));
                 request.detectorWindowMs=window;request.detectorMode=window==0?0:safe;
@@ -92,7 +92,9 @@
                     if(std::isfinite(result.detectorDb0[i]) && std::isfinite(baseline.detectorDb0[i]))
                         maxDetectorDifference=std::max(maxDetectorDifference,std::abs(result.detectorDb0[i]-baseline.detectorDb0[i]));
                 }
+                const auto beforeApply=d.hpfReplayAppliedCount;
                 d.applyHpfReplay(result);d.refreshRenderCaches(c.mode);
+                check(d.hpfReplayAppliedCount==beforeApply+1,"Current external replay was rejected instead of applied");
                 auto& projected=d.renderCaches[0].projected;
                 check(projected.size==result.externalKeyDb0.size(),"External replay marker count mismatch");
                 for(size_t i=0;i<projected.size;++i)
@@ -105,7 +107,7 @@
             check(maxOutputDifference>.01f,"Window/Safe stopped changing the projected compressed result");
             // Neither a new Lookahead nor a different detector OS may move or
             // reshape a retained source waveform. Capture-time delay wins.
-            for(float look:{0.f,40.f,100.f})for(int os:{0,3})
+            for(float look:{0.f,50.6f,100.f})for(int os:{0,3})
             {
                 auto changed=request;changed.lookaheadMs=look;changed.detectorWindowMs=0;changed.detectorMode=0;changed.oversampling=os;
                 DynamicDisplay::ReplayResult result;check(d.buildHpfReplay(changed,result,worker),"Lookahead/OS key replay failed");

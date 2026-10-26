@@ -22,6 +22,7 @@ public:
     void mouseDrag(const juce::MouseEvent&) override;
     void mouseUp(const juce::MouseEvent&) override;
     void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
+    void refreshView();
     float getVisibleDbSpan() const noexcept { return view[1]-view[0]; }
     juce::Rectangle<float> getLoudnessReadoutBounds() const noexcept;
     void beginHistoryGesture() noexcept;
@@ -48,6 +49,8 @@ private:
     static constexpr float historyWindowSeconds = static_cast<float> (historyLength) / static_cast<float> (displayRefreshHz);
     static constexpr int gainReductionShadeSegments = 160;
     static constexpr int dynamicsLutSize = 4097;
+    static constexpr int positiveDynamicsLutSize = 2049;
+    static constexpr float positiveDynamicsLutMaxDb = 60.0f;
 
     struct HistoryPoint
     {
@@ -130,6 +133,8 @@ private:
         juce::Path gainIncreaseShadePath;
         float currentGainReductionDb = 0.0f;
         std::array<float, dynamicsLutSize> dynamicsGainLut {};
+        std::array<float, positiveDynamicsLutSize> positiveDynamicsGainLut {};
+        int dynamicsDomain = 0;
         uint64_t dynamicsLutSignature = 0;
         bool dynamicsLutValid = false;
         bool dynamicsLutUnity = false;
@@ -189,6 +194,7 @@ private:
     std::array<RenderCache, 2> renderCaches;
     RenderCache stereoLimiterCache; // One ST presentation of independent L/R results.
     std::array<float, dynamicsLutSize> detectorLevelLut {};
+    std::array<float, positiveDynamicsLutSize> positiveDetectorLevelLut {};
     std::unique_ptr<HpfReplayWorker> hpfReplayWorker;
     std::shared_ptr<std::atomic<uint64_t>> replayRequestGeneration;
     int lastMode = -1;

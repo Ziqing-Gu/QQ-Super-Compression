@@ -112,23 +112,31 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
         setChoiceParameter (qqsc::params::detectorMode, next);
         updateLimiterUi();
     };
-    for (auto* button : { &limiterButton,&limiterLinkButton,&unityMonitorButton,&truePeakButton,&tpRecoveryButton })
+    for (auto* button : { &limiterButton,&limiterLinkButton,&unityMonitorButton,&truePeakButton,&tpRecoveryButton,&ceilingEnabledButton })
     {
         configureActionButton (*button); contentRoot.addAndMakeVisible (*button); registerKeyboardListener (*button);
     }
     limiterButton.setComponentID ("limiterMode");
+    ceilingEnabledButton.setComponentID(qqsc::params::ceilingEnabled);
+    ceilingEnabledButton.getProperties().set("qqscSmallLink",true);
+    ceilingEnabledButton.setTooltip(juce::String::fromUTF8(u8"Ceiling 开关：默认开启。关闭后停止最终峰值限制（含真峰值与采样峰值限制），不再应用 Ceiling 电平调整及附加延迟；压缩、Output LINK 保持有效。原设置保留，开关随工程、预置和 A/B 保存。"));
+    ceilingEnabledButton.onClick=[this]
+    {
+        beginUndoTransaction("Ceiling On / Off");
+        setChoiceParameter(qqsc::params::ceilingEnabled,processor.isCeilingEnabled() ? 0 : 1);
+        processor.notifyHostProcessingLatency();
+        updateLimiterUi();
+    };
     limiterLinkButton.getProperties().set ("qqscSmallLink",true);
     limiterButton.setTooltip (juce::String::fromUTF8 (u8"处理模式：单击在 COMPRESSOR、CLIPPER、LIMITER 之间切换，各自保存参数。Compressor 为常规压缩；Clipper 仅下压，Ratio 为 10:1 至 1000:1，使用单组立体声控制和 L/R Link，没有双压和 Ceiling；Limiter 支持单压、双压，并带有 Ceiling 最终峰值限制。Clipper 的 Output 联动默认关闭，可用 LINK 开启。"));
     truePeakButton.setComponentID("truePeakLimiting");
     truePeakButton.getProperties().set("qqscSmallLink",true);
-    truePeakButton.setTooltip(juce::String::fromUTF8 (u8"TP：点亮时启用真峰值限制；关闭时在 Ceiling 处硬削波。与压缩共用 OS 过采样设置，开启 TP 不会自动改变 OS 倍率。"));
+    truePeakButton.setTooltip(juce::String::fromUTF8 (u8"TP：点亮时启用真峰值限制；关闭时限制普通采样峰值。与压缩共用 OS 过采样设置，开启 TP 不会自动改变 OS 倍率。"));
     truePeakButton.onClick=[this]
     {
         beginUndoTransaction("True Peak Limiting");
         const bool enabling=!processor.isTruePeakSelected();
-        // Keep the stored TP-OFF quality intact. The processor promotes a stored
-        // 1x Ceiling to an effective 8x only while TP is active, so disabling TP
-        // restores the user's previous native Hard-Clip choice automatically.
+        // TP changes the peak reference; OS and recovery remain user choices.
         setChoiceParameter(qqsc::params::truePeakLimiting,enabling ? 1 : 0);
         processor.notifyHostProcessingLatency();
         updateLimiterUi();
@@ -136,10 +144,10 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     };
     tpRecoveryButton.setComponentID("tpRecoveryMode");
     tpRecoveryButton.getProperties().set("qqscSmallLink",true);
-    tpRecoveryButton.setTooltip(juce::String::fromUTF8 (u8"真峰值限制的恢复方式：TIGHT 恢复较快，便于提升响度；AUTO 自动适应信号，为默认选项；SMOOTH 恢复较慢，变化更平缓。三种方式均保留真峰值保护。"));
+    tpRecoveryButton.setTooltip(juce::String::fromUTF8 (u8"Ceiling 限制器的恢复方式：TIGHT 恢复较快，便于提升响度；AUTO 自动适应信号，为默认选项；SMOOTH 恢复较慢，变化更平缓。TP 开关两种状态均可选择。"));
     tpRecoveryButton.onClick=[this]
     {
-        beginUndoTransaction("TP Recovery");
+        beginUndoTransaction("Ceiling Recovery");
         const auto current=processor.getTpRecoveryMode();
         const auto next=current==qqsc::params::tpAuto ? qqsc::params::tpTight
             : current==qqsc::params::tpTight ? qqsc::params::tpSmooth : qqsc::params::tpAuto;
@@ -150,7 +158,7 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     unityMonitorButton.setTitle("1:1 Monitor");
     unityMonitorButton.getProperties().set("qqscSmallLink",true);
     unityMonitorButton.getProperties().set("qqscHeadphones",true);
-    unityMonitorButton.setTooltip(juce::String::fromUTF8 (u8"等音量监听：在完整 Limiter 和 Ceiling 处理后抵消 Output Gain，便于比较声音。下压 Threshold 和 Makeup 与 Output 的联动仍有效，上压阈值保持独立。可先按 Match，再用 Bypass 对比。此开关随工程保存，不随 A/B 切换。"));
+    unityMonitorButton.setTooltip(juce::String::fromUTF8 (u8"耳机监听：在 Limiter 和已开启的 Ceiling 处理后抵消 Output Gain，便于比较处理前后的声音。保留 Threshold、Ratio、Makeup 和 Mix 的处理结果；Adjust 只移动图表，不改变监听音量。开关随工程保存，不随 A/B 切换。"));
     unityMonitorButton.onClick=[this]
     {
         processor.setUnityMonitorEnabled(!processor.isUnityMonitorEnabled());
@@ -173,8 +181,6 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     contentRoot.addAndMakeVisible(ceilingPanel);
     ceilingPanel.toBack();
     ceilingPanel.setInterceptsMouseClicks(false,false);
-    configureLabel (ceilingLabel,"CEILING");
-    ceilingLabel.setFont(juce::Font(juce::FontOptions(8.0f,juce::Font::bold)));
     configureLabel(monitorCeilingLabel,{});
     monitorCeilingLabel.setFont(juce::Font(juce::FontOptions(8.0f)));
     monitorCeilingLabel.setTooltip(juce::String::fromUTF8 (u8"MON：等音量监听时的峰值上限，等于 Ceiling 减去 Output Gain。不会改写 Ceiling 数值或 TP 开关。"));
@@ -183,8 +189,8 @@ void QQSuperCompressionAudioProcessorEditor::initialiseLimiterControls()
     ceilingValue.setFont (juce::Font (juce::FontOptions (11.0f)));
     ceilingValue.setEditable (false,true,false);
     ceilingValue.setComponentID ("ceilingValue");
-    ceilingValue.setTooltip (juce::String::fromUTF8 (u8"Ceiling：最终峰值上限，范围 -24 至 0 dB，默认为 0。TP 开启时限制真峰值，关闭时硬削波；两者均使用统一的 OS 设置。MON 显示等音量监听时的峰值上限。双击输入，上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 0 dB。"));
-    for (auto* c : { static_cast<juce::Component*>(&ceilingLabel),static_cast<juce::Component*>(&ceilingValue) })
+    ceilingValue.setTooltip (juce::String::fromUTF8 (u8"Ceiling：最终峰值上限，范围 -24 至 0 dB，默认为 0。TP 开启时限制真峰值，关闭时限制采样峰值；两者均使用统一的 OS 设置。MON 显示耳机监听时的峰值上限。双击输入，上下拖动调整，Shift 微调；Alt 单击（Mac：Option）恢复为 0 dB。"));
+    for (auto* c : { static_cast<juce::Component*>(&ceilingValue) })
     { contentRoot.addAndMakeVisible (*c); registerKeyboardListener (*c); }
     // Hidden attachment target: the only visible Ceiling control is the number.
     configureKnob (ceilingSlider," dBFS");
@@ -290,14 +296,19 @@ void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
     unityMonitorButton.setVisible(processor.isLimiterMode());
     truePeakButton.setToggleState(processor.isTruePeakSelected(),juce::dontSendNotification);
     truePeakButton.setVisible(processor.isLimiterMode());
+    ceilingEnabledButton.setVisible(processor.isLimiterMode());
+    ceilingEnabledButton.setToggleState(processor.isCeilingEnabled(),juce::dontSendNotification);
+    const bool ceilingActive=processor.isCeilingActive();
+    for(auto* c : {static_cast<juce::Component*>(&ceilingValue),static_cast<juce::Component*>(&truePeakButton),static_cast<juce::Component*>(&tpRecoveryButton)})
+    { c->setEnabled(ceilingActive);c->setAlpha(ceilingActive ? 1.f : .35f); }
     const auto recovery=processor.getTpRecoveryMode();
     tpRecoveryButton.setButtonText(recovery==qqsc::params::tpTight ? "TIGHT"
         : recovery==qqsc::params::tpSmooth ? "SMOOTH" : "AUTO");
-    tpRecoveryButton.setVisible(processor.isLimiterMode() && processor.isTruePeakSelected());
-    monitorCeilingLabel.setVisible(processor.isUnityMonitorActive());
-    inputOutputLinkButton.setVisible(!limiter);
+    tpRecoveryButton.setVisible(processor.isLimiterMode());
+    monitorCeilingLabel.setVisible(processor.isUnityMonitorActive() && ceilingActive);
+    inputOutputLinkButton.setVisible(false);
     ceilingSlider.setVisible(false);
-    limiterLinkButton.setVisible(limiter); ceilingLabel.setVisible(processor.isLimiterMode()); ceilingValue.setVisible(processor.isLimiterMode());
+    limiterLinkButton.setVisible(limiter); ceilingValue.setVisible(processor.isLimiterMode());
     ceilingPanel.setVisible(processor.isLimiterMode());ceilingPanel.repaint();
     updateCeilingOversamplingUi();
     if(attachedLimiter!=processor.getProcessorMode())
@@ -315,7 +326,7 @@ void QQSuperCompressionAudioProcessorEditor::updateLimiterUi()
             attachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.getAPVTS(),id,slider);
             slider.textFromValueFunction=text;slider.valueFromTextFunction=parse;
         };
-        rebind(inputGainAttachment,inputGainSlider,qqsc::params::inputGainDb);
+        inputGainSlider.setValue(processor.getDisplayAdjustDb(),juce::dontSendNotification);
         rebind(makeupSTAttachment,makeupSTSlider,qqsc::params::makeupGainDb);
         rebind(makeupLAttachment,makeupLSlider,qqsc::params::makeupGainLDb);
         rebind(makeupRAttachment,makeupRSlider,qqsc::params::makeupGainRDb);
@@ -543,7 +554,7 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
             moveLower[size_t(d)]=true;
             const auto floor=processor.boundaryMinimumDb(false);
             const auto minimum=floor;
-            const auto maximum=juce::jmin(0.0f,limiterStartUpperThresholds[size_t(d)]);
+            const auto maximum=qqsc::params::thresholdMaximumDb;
             const auto start=limiterStartLowerThresholds[size_t(d)];
             minDelta=juce::jmax(minDelta,start-maximum);
             maxDelta=juce::jmin(maxDelta,start-minimum);
@@ -555,7 +566,7 @@ double QQSuperCompressionAudioProcessorEditor::applyLimiterOutputChange (double 
         const auto upperFloor=processor.boundaryMinimumDb(true);
         {
             const auto minimum=juce::jmax(upperFloor,limiterStartLowerThresholds[size_t(d)]);
-            const auto maximum=0.0f;
+            const auto maximum=qqsc::params::thresholdMaximumDb;
             const auto start=limiterStartUpperThresholds[size_t(d)];
             minDelta=juce::jmax(minDelta,start-maximum);
             maxDelta=juce::jmin(maxDelta,start-minimum);

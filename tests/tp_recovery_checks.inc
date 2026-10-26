@@ -3,7 +3,7 @@
         QQSuperCompressionAudioProcessor p; baseline(p);
         QQSuperCompressionAudioProcessorEditor e(p,settings(root)); sync(p,e);
         check(p.getTpRecoveryMode()==qqsc::params::tpAuto,"TP Recovery must default AUTO");
-        e.limiterButton.onClick(); sync(p,e);
+        p.enterLimiterMode(); sync(p,e);
         check(p.isTruePeakSelected(),"TP must default ON");
         check(e.tpRecoveryButton.isVisible(),"TP Recovery control hidden while TP is ON");
         check(e.tpRecoveryButton.getButtonText()=="AUTO","TP Recovery default label");
@@ -15,9 +15,9 @@
         e.tpRecoveryButton.onClick(); sync(p,e);
         check(p.getTpRecoveryMode()==qqsc::params::tpAuto && e.tpRecoveryButton.getButtonText()=="AUTO","SMOOTH -> AUTO cycle");
 
-        // TP OFF keeps the selected Recovery but hides the inactive control.
+        // TP OFF now uses the same recovery choices for sample peak limiting.
         e.truePeakButton.onClick(); sync(p,e);
-        check(!p.isTruePeakSelected() && !e.tpRecoveryButton.isVisible(),"Recovery must hide when TP is OFF");
+        check(!p.isTruePeakSelected() && e.tpRecoveryButton.isVisible() && e.tpRecoveryButton.isEnabled(),"Recovery must remain available when TP is OFF");
         set(p,qqsc::params::tpRecoveryMode,float(qqsc::params::tpSmooth));
         e.truePeakButton.onClick(); sync(p,e);
         check(p.isTruePeakSelected() && p.getTpRecoveryMode()==qqsc::params::tpSmooth && e.tpRecoveryButton.isVisible(),"Recovery selection lost across TP OFF/ON");

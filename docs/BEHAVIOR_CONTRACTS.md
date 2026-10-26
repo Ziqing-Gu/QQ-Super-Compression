@@ -51,7 +51,7 @@ cmake --build <build-directory> --config Release --target QQSCContractCheck --pa
 - 旧条件在 2026-10-01 的 1.2.41 提交 `0de6608` 已存在；现有提交粒度不足以证明最初编写的具体日期。
 - 本次证据目录：`local Limiter Link validation evidence`。保留失败复现和最终验证日志，不能用重新生成的基线掩盖回归。
 
-## THRESHOLD-001：取消 Super 的 −inf 阈值
+## THRESHOLD-001：取消 Super 的 −inf 阈值（历史，已由 THRESHOLD-002 取代）
 
 用户于 2026-10-14 要求：Super 的默认阈值为 −90 dB，并明确“不需要 −inf”。
 
@@ -242,3 +242,113 @@ cmake --build <build-directory> --config Release --target QQSCContractCheck --pa
 验证入口：tests/eco_ui_reopen_checks.inc / eco-ui-reopen，纳入 QQSCContractCheck。使用屏幕外的独立原生测试窗口，真实执行显示、隐藏、继续播放、重新显示，以及隐藏期间停播的流程，覆盖 Comp ST/LR/MS、Clipper、Limiter、ECO/FULL、Freeze 两种状态。1.4.15 修改前失败：ECO Freeze-OFF reopen retained stale Display history。
 
 1.4.17 修改前：按用户更新后的规则运行回归，1.4.16 在 ECO + Freeze ON 的保留编辑器重开场景失败：ECO reopen retained stale Display history (Freeze must not preserve a hidden gap)。
+
+
+## DYNAMICS-002：Range OFF 时保留超过 0 dB 的真实检测电平
+
+2026-10-26：用户报告 Classic 1000:1 时，Clipper 输出明显高于阈值，Transparent 开启及 100 ms Window 仍然如此。真实 1.4.17 处理器复现：阈值 −3.65 dB，输入峰值 +2 dB，输出 −1.646350 dB；正确 Classic 输出应为 −3.644350 dB。原因是检测采样与下压计算把幅度限制为 1.0。
+
+- Clipper、Limiter 以及 Comp 的 Range OFF 路径都必须保留超过 0 dB 的真实幅度。按各自 Classic / Super 公式继续处理；不得在检测器、增益计算、Display 缓存或历史重算中重新引入 0 dB 封顶。
+- 有限 Range 保留现有作用：超过 Range 不作动态处理。有限 0 dB Range 与 Range OFF 仍不同；上压、相等阈值禁用动态处理等边界规则保持。
+- Threshold / UP / DOWN 的可调范围及 Display 缩放范围不因此改变。Limiter Ceiling 保持最终独立保护；Clipper 不新增 Ceiling。
+- 原有 Window、Transparent、OS、Mix、联动、A/B 与实时参数回算继续工作。
+- tests/headroom_checks.inc 的 headroom 检查纳入 QQSCContractCheck：真实处理器、正电平 Display 与历史重算、A/B 计算路径、有限 Range 和上压边界。
+
+## CEILING-001：Limiter 独立 Ceiling 开关
+
+2026-10-26 用户要求增加 Ceiling 开关，默认开启，关闭后 Ceiling 机制不工作。
+
+- 只在 Limiter 显示 CEILING 开关；点亮开启。关闭时跳过真峰值与采样峰值限制，不应用 Ceiling 电平/历史校准偏移，不增加 Ceiling 附加延迟；核心 Lookahead、Window、OS、压缩与 Output Gain 保持工作。
+- 关闭后 Ceiling 数值、TP、恢复方式变灰并保留。重新开启恢复原设置。开关随工程、预置和 A/B 保存，不影响 Comp/Clipper 参数库。
+- 旧工程及旧 A/B 缺少此参数时按开启恢复，包括载入到原先关闭的实例。参数追加到列表末尾，不改变旧 ID 或编号。
+- Threshold、Makeup、Output 的 LINK 仍独立，仅由 LINK 开关决定。Ceiling 开关不能成为联动条件。
+- Display 回算也使用当前 Ceiling 开关；关闭后不再画出 Ceiling 的限幅。开关改变实际附加延迟，宿主按新值补偿。
+
+验证入口：ceiling-switch，包含实际音频、附加延迟、保存恢复、旧工程、A/B、界面与无条件 LINK，纳入 QQSCContractCheck。
+
+## DISPLAY-011：Input 移动压缩前曲线，刻度与阈值保持固定
+
+2026-10-26 至 27 日用户明确替代早期设计：Input 影响 Display 中压缩前曲线的位置；左侧刻度不动，阈值线不再为 Input 偏移。此次未交付的“移动左刻度”方案取消。
+
+- 白色 Input 曲线显示当前 Input Gain 后、动态压缩前的电平。调整 Input 对保留历史立即回算，不累加先前的 Input 值。
+- 蓝/绿动态曲线与白线使用相同的 Input 后基准；橙色 Output 包含 Input、Makeup、Mix、Output Gain 和当前启用的 Ceiling，各项增益只计一次。
+- 左侧刻度、Threshold/UP/DOWN/Range 的线及推子始终按相同绝对 dB 坐标；Input 不改变视图范围或参数值。缩放和平移仍只由视图操作决定。
+- EXT 波形仍表示外部侧链，不随主 Input 改变。Window/Transparent 保留对压缩结果的作用，不用检测包络替代主音频波形。Bypass 显示真实未处理输入。
+- Clipper 不显示 LUFS 响度框；Limiter 继续显示。Clipper 的 Match 功能不因此关闭。
+
+验证入口：input-display（ST/LR/MS、Clipper/Limiter、INT/EXT、保留历史重算），纳入 QQSCContractCheck。
+
+## MATCH-001：原始输入响度为参考
+
+2026-10-27 用户先要求 Input 后参考，随后明确改为 Input 前，最终确认移除 Input 音频增益并改为纯显示 Adjust。后一个决定覆盖本轮早先方案，不得恢复 Input 后匹配或为 Adjust 增加监听补偿。
+
+- Comp ST/LR/MS、Clipper、Limiter 均比较延迟对齐的原始输入与动态压缩后的单位 Makeup Wet，求绝对 Makeup 目标。
+- Adjust、Output Gain、Ceiling、耳机监听不进入 Match 统计；累计统计、重复点击不叠加、完整播放资格、ECO 隐藏 UI 不计算的规则保留。
+- Limiter/Clipper Output LINK 独立作用于 Match 引起的 Makeup 编辑，继续遵守 LINK-001。
+- 验证：input-match、cumulative-match、ECO 门禁；不允许为了兼容历史 Input 测试恢复已取消的增益。
+
+## MONITOR-001：监听抵消 Output，Adjust 不参与音频
+
+2026-10-27 最终规则：Input 音频增益已取消。耳机监听保留处理结果，在 Limiter 与开启的 Ceiling 后抵消 Output Gain；Adjust 不需要也不允许任何音频补偿。不修改 Threshold、Ratio、Makeup、Mix 的处理。
+
+验证：input-monitor，对比 Adjust、旧 Input 宿主自动化变化前后的真实音频；包括 Ceiling 开关、Ratio、Makeup、Mix。
+
+## CEILING-002：TP OFF 使用采样峰值 Limiter
+
+2026-10-27 用户明确用普通采样峰值 Limiter 取代非 TP 硬削波，并在 TP 关闭时保留 Auto、Tight、Smooth。
+
+- TP 开启：保持真峰值限制，检测重建的采样间峰值。TP 关闭：以宿主采样率下的最终采样峰值为准，使用前瞻增益衰减和恢复，不再走硬削波。
+- 两种模式共用已有恢复选择：Tight 恢复较快，Auto 自适应，Smooth 较慢。按钮均可操作；切换 TP 不重置恢复选择或 OS。原参数 ID 保留，旧项目中 TP OFF 从 1.4.19 起使用新采样峰值行为。
+- 相同 Lookahead 与 OS 下，切换 TP 不改变 Ceiling 附加延迟。主 CEILING 关闭时两种限制都停用，三个子控件保留数值并禁用。
+- Display 对两种模式均回算恢复过程；只有 TP 使用采样间峰值证据。实时仪表仍来自真实 DSP。Clipper 模式本身不受此 Ceiling 改动影响。
+
+验证入口：sample-peak-ceiling；包括实际峰值上限、峰后恢复、三种恢复差异、已知采样间超峰对照、TP OFF 控件和状态保存。修改前用例已复现硬削波无恢复；另保留当前 TP 音频前后对照证据。
+
+## CEILING-003：原生采样率 TP 最终重建保护
+
+2026-10-27：额外压力测试在 1×、44.1 kHz 发现最高约 0.033 dB 真峰值超限。用户最初选择保留 TP，随后明确追加“把 tp 那个也纳入修改”，以后一个指令为准。
+
+- 仅将原生 1× 的 TP 重建保护余量从 0.01 dB 收紧为 0.05 dB，在触发最终保护时生效，不对所有输出附加固定衰减。4×/8×/16× 的原保护余量保持 0.01 dB。
+- TP、SP 均保留 Auto/Tight/Smooth、Ceiling 开关、当前延迟、用户 OS 选择及独立 LINK。SP 仍只保护最终采样峰值，不使用 TP 余量。
+- Display 使用与 DSP 相同的当前 TP 保护余量。TP 基线“保持原算法”的旧范围决定已被用户后续追加修复取代，不可据此前决定回退修复。
+- sample-peak-ceiling 必需检查内加入两组原始失败信号、三种恢复设置的真实重建输出检查。补充 ceiling_check 原生高频扫描和全采样率/OS 压力检查。
+
+## DISPLAY-012：Adjust 替代 Input，纯显示平移
+
+2026-10-27 用户明确取消 Input 旋钮，改为 Adjust；用户同时确认“旧工程也取消 Input 增益，接受声音变化”。此条覆盖 DISPLAY-011 中 Input 移动波形并改变输入电平的设计。
+
+- ADJUST 位于原 Input 位置；默认 0，正值向上、负值向下。波形、刻度、阈值线一起平移，实际 dB 数值、压缩量、响度、音频延迟均不变。中文悬停说明保持简明。
+- Adjust 保存为工程显示状态，与现有显示缩放配合；不随处理模式或 A/B 改变。不复用旧 Input 自动化 ID，也不改其他参数的序号。
+- 图表右键恢复完整视图并将 Adjust 归 0；旋钮 Alt/Option 只将 Adjust 归 0。保留框选、普通滚轮缩放、Shift 平移、Ctrl 时间缩放、Freeze、实时曲线重算。
+- 全部模式的旧 Input 增益和 Input/Output LINK 停用，界面不再显示该 LINK；保留旧 ID 仅供工程/自动化结构兼容。任何旧状态、A/B 或宿主自动化都不得使 Input 再次进入音频。已有 Output、Makeup、阈值保持其保存值，不擅自补偿旧 Input。
+- Limiter/Clipper 的 Output LINK 保留，继续遵守 LINK-001，不和 Adjust 关联。
+- 验证：display-adjust（真实编辑器坐标/状态/缩放/复位），input-monitor（真实音频差值），input-match，QQSCContractCheck。
+
+## THRESHOLD-002：全部阈值支持 −inf，已有默认值保留
+
+2026-10-27 用户明确：Super、Classic，以及 Comp/Clipper/Limiter 的 Threshold、UP、DOWN 全部支持 −inf；已有默认值保持（−90 或 0）。本条覆盖 THRESHOLD-001。
+
+- 旧 −120 宿主坐标作为 −inf 端点保留；其他有限阈值坐标和参数 ID/序号不变。默认不改成 −inf；原来 −90 dB 和 0 dB 的工厂默认值保持。阈值 Alt/Option 仍恢复原有 −90 dB，DOWN 的 0 dB 复位保持。
+- Classic 的 −inf 下压遵守固定 dB 比例的极限：Ratio > 1 时对非零信号增益为 0，Ratio 1:1 仍直通。Super 保留其有理曲线的 −inf 形式。向上压缩取消下方门限时保留各自算法，不将 Classic 替换成 Super。
+- 有限 Range 的 −90～0 dB 范围与 OFF 保留；Range 不随本条增加 −inf。双压上下边界相等时仍不做动态处理。
+- Adjust 只改变有限阈值线的屏幕位置，不改阈值数值；−inf 无有限坐标，标在图表底边。所有显示与音频必须使用相同的实际阈值。
+- 验证入口保留 finite-threshold 名称以兼容构建脚本，用例现检查 −inf 端点、默认值、文本输入、算法切换、工程/A-B、Classic/Super 极限与有限低阈值；不能恢复旧的“−inf 必须钳制到 −90”断言。
+
+## THRESHOLD-003：Threshold、UP、DOWN、Range 上限 +24 dB
+
+2026-10-27 用户确认全部阈值允许超过 0 dB，选择 +24 dB；随后明确 Range 也允许上限 +24 dB。本条覆盖之前的 0 dB 上限约定。
+
+- Threshold / UP / DOWN 为 −inf 至 +24 dB，原 −90/0 工厂默认及 Alt 复位保持。有限 Range 为 −90 至 +24 dB，OFF 独立保留。
+- 声音处理、Display/历史投影、推子/输入、LINK、工程与 A/B 均使用相同的真实正数边界；Adjust 仍只平移显示。单压上压有限 Range / 双压 DOWN 可作为正数提升终点；Range OFF 的原 0 dB 上压终点暂保持，不随此次范围扩展重定义。
+- 参数 ID/顺序不变。工程保存绝对 dB，旧项目与 A/B 保持原数值；schema 33 起 Range OFF 改存 +25，旧 +1 OFF 迁移，不能与新有限 +1 dB 混淆。
+- 宿主 0..1 自动化映射随范围扩展而改变；插件无法迁移 DAW 独立保存的归一化自动化曲线，升级后这类已有曲线需要复核。不得声称旧归一化自动化位置完全不变。
+- 验证 positive-threshold、finite-threshold、unconditional-link 与完整 QQSCContractCheck。修改前 +24 dB 文本输入被截为 0 dB，red.log 已记录。
+
+## DISPLAY-013：Shift 滚轮直接调整 Adjust
+
+2026-10-27 用户要求 Shift + 上下滚轮与 Adjust 统一，替代旧的受 −90～0 dB 视图边界限制的平移。
+
+- Shift 滚轮修改同一个 Adjust 值并同步旋钮；向上增加、内容向上，向下相反。沿用 Adjust 的 ±90 dB 范围，不修改存储的缩放上下界、时间跨度或停播浏览位置。
+- 沿用细步幅（每单位 delta 为可见跨度的 15%），不额外增加刷新延迟。顶部和所有子图可用；Ctrl 同按仍优先时间缩放。
+- 数值、波形、刻度、阈值线一致，保存/复位沿用 Adjust。声音、阈值实际值、LINK、Window/HPF 实时响应保持。
+- display-adjust 修改前失败：Shift wheel must edit Adjust itself；display-scale / display-freeze 同步验证新规则，不恢复旧的全局视图平移限制。

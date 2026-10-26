@@ -72,6 +72,10 @@ public:
         seconds=juce::jlimit(.1f,8.f,seconds);
         displayZoom[0].store(floor);displayZoom[1].store(top);displayZoom[2].store(seconds);displayZoom[3].store(0.f);
     }
+    // Display-only offset: positive moves every trace, grid and boundary up.
+    float getDisplayAdjustDb() const noexcept { return displayAdjustDb.load(); }
+    void setDisplayAdjustDb(float value) noexcept
+    { if(std::isfinite(value)) displayAdjustDb.store(juce::jlimit(-90.f,90.f,value)); }
     bool isEcoMode() const noexcept { return ecoMode.load (std::memory_order_acquire); }
     void setEcoMode (bool eco);
     void setEditorOpen (bool open) noexcept { editorOpen.store (open, std::memory_order_release); }
@@ -117,6 +121,8 @@ public:
     void enterClipperMode() { setProcessorModeFromEditor(1); }
     // Selection is saved with the sound; the output guard only acts in Limiter.
     bool isTruePeakSelected() const noexcept { return apvts.getRawParameterValue (qqsc::params::truePeakLimiting)->load() >= 0.5f; }
+    bool isCeilingEnabled() const noexcept { return apvts.getRawParameterValue (qqsc::params::ceilingEnabled)->load() >= 0.5f; }
+    bool isCeilingActive() const noexcept { return isLimiterMode() && isCeilingEnabled(); }
     int getTpRecoveryMode() const noexcept
     {
         return juce::jlimit(int(qqsc::params::tpTight),int(qqsc::params::tpSmooth),
@@ -147,9 +153,10 @@ public:
     bool isClassicBoundary(bool upper) const noexcept
     { return readSoundParameter(qqsc::params::compressionMode)>=0.5f
         ? readSoundParameter(upper ? "downAlgorithmMode" : "upAlgorithmMode")<0.5f : isClassicAlgorithm(); }
-    float boundaryMinimumDb(bool) const noexcept
+    float boundaryMinimumDb(bool upper) const noexcept
     {
-        return qqsc::params::thresholdMinimumDb;
+        return upper && readSoundParameter(qqsc::params::compressionMode)<.5f
+            ? qqsc::params::rangeMinimumDb : qqsc::params::thresholdMinimumDb;
     }
 
 
@@ -284,11 +291,11 @@ private:
         float ratioR = 1.0f;
         float ratioM = 1.0f;
         float ratioS = 1.0f;
-        float thresholdDb = qqsc::params::thresholdMinimumDb;
-        float thresholdLDb = qqsc::params::thresholdMinimumDb;
-        float thresholdRDb = qqsc::params::thresholdMinimumDb;
-        float thresholdMDb = qqsc::params::thresholdMinimumDb;
-        float thresholdSDb = qqsc::params::thresholdMinimumDb;
+        float thresholdDb = qqsc::params::thresholdDefaultDb;
+        float thresholdLDb = qqsc::params::thresholdDefaultDb;
+        float thresholdRDb = qqsc::params::thresholdDefaultDb;
+        float thresholdMDb = qqsc::params::thresholdDefaultDb;
+        float thresholdSDb = qqsc::params::thresholdDefaultDb;
         float makeupST = 0.0f;
         float makeupL = 0.0f;
         float makeupR = 0.0f;
@@ -308,7 +315,7 @@ private:
         bool clipperMode = false, clipperLink = false;
         float clipperOutputDb = 0.0f, clipperStereoLink = 0.0f;
         bool domainLink = true, dualRatioLink = true, inputOutputLink = true;
-        bool limiterMode = false, limiterLink = true, truePeakLimiting = true;
+        bool limiterMode = false, limiterLink = true, truePeakLimiting = true, ceilingEnabled = true;
         int tpRecoveryMode = qqsc::params::tpAuto;
         int ceilingOversampling = qqsc::params::ceiling8x;
         float ceilingDb = 0.0f, limiterOutputDb = 0.0f, limiterCalibrationDb = 0.0f;
@@ -426,7 +433,7 @@ private:
     juce::AudioBuffer<float> oversamplingInputBuffer;
     juce::AudioBuffer<float> keyInputBuffer;
     // v0.9.2 keeps a host-rate copy of the untouched input so the Dynamic
-    // Display Dry/Input reference and true bypass remain pre-Input-Gain.
+    // Raw Display history and true bypass remain pre-Input; the rendered Input trace includes current Input Gain.
     juce::AudioBuffer<float> originalInputBuffer;
 
     // Internal detector/audio delay ring. Only the original L/R input is stored;
@@ -462,6 +469,7 @@ private:
     bool currentLimiterCeilingActive = false;
     int configuredMaximumBlockSize = 1;
     double currentSampleRate = 44100.0;
+    std::atomic<float> displayAdjustDb { 0.f };
     std::atomic<int> displayScaleDb { 90 }; // Legacy project view migration only.
     std::array<std::atomic<float>,4> displayZoom {{-90.f,0.f,8.f,0.f}};
     std::atomic<bool> ecoMode { false };

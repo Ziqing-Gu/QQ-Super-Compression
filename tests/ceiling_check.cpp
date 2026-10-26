@@ -4,13 +4,38 @@
 #include <random>
 #include <stdexcept>
 
-int main()
+int main(int argc,char** argv)
 {
     std::cout<<std::unitbuf;
     try
     {
+        if(argc>1 && std::string(argv[1])=="native-sweep")
+        {
+            double worst=-200;int cases=0,failures=0;
+            for(double rate:{44100.,48000.,96000.})for(int recovery=0;recovery<3;++recovery)
+            for(int f=0;f<21;++f)for(int phase=0;phase<3;++phase)
+            {
+                qqsc::OutputCeiling cap;cap.prepare(rate,true,-1.f,recovery,0);
+                const int count=int(rate*.18);juce::AudioBuffer<float> audio(2,count);
+                for(int i=0;i<count;++i)
+                {
+                    const double amp=i<count/3?.03:i<2*count/3?4.:.05;
+                    const double frequency=.40+.0049*f;
+                    const float x=float(amp*std::sin(2*juce::MathConstants<double>::pi*frequency*i+phase*.71));
+                    const auto y=cap.process(x,-x*.8f);audio.setSample(0,i,y[0]);audio.setSample(1,i,y[1]);
+                }
+                juce::dsp::Oversampling<float> meter(2,4,juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple,true,false);
+                meter.initProcessing(size_t(count));auto up=meter.processSamplesUp(juce::dsp::AudioBlock<float>(audio));
+                float peak=0;for(int ch=0;ch<2;++ch)for(int i=0;i<int(up.getNumSamples());++i)peak=std::max(peak,std::abs(up.getSample(ch,i)));
+                const double db=20*std::log10(peak);worst=std::max(worst,db);++cases;
+                if(db>-.999){++failures;std::cout<<"NATIVE FAIL rate="<<rate<<" recovery="<<recovery<<" f="<<f<<" phase="<<phase<<" TP="<<db<<"\n";}
+            }
+            std::cout<<"NATIVE SWEEP cases="<<cases<<" worstTP="<<worst<<" failures="<<failures<<"\n";
+            if(failures)throw std::runtime_error("Native near-Nyquist TP bound failed");
+            return 0;
+        }
         double worstSP=-200,worstTP=-200;int cases=0,failures=0;
-        for(int os:{qqsc::params::ceiling4x,qqsc::params::ceiling8x,qqsc::params::ceiling16x})
+        for(int os:{qqsc::params::ceilingNative,qqsc::params::ceiling4x,qqsc::params::ceiling8x,qqsc::params::ceiling16x})
         for(double rate:{44100.,48000.,96000.}) for(bool tp:{false,true})
         for(int shape=0;shape<12;++shape)
         {
@@ -76,37 +101,35 @@ int main()
         }
         std::cout<<"PASS: TP Ceiling=0 approaches 0 dBTP without the former fixed -0.10 dB reserve.\n";
 
-        // 1.2.28: TP OFF is no longer the old native sample-peak guard. Both
-        // choices see the same 8x reconstructed waveform; OFF reports Hard Clip
-        // depth, while ON reports the time-dependent TP envelope. Switching TP
-        // must be a smooth in-place algorithm change with identical latency.
+        // 1.4.19: SP uses final host samples; TP also detects intersample peaks.
+        // Both have recovery and identical latency when the peak reference changes.
         for(double rate:{44100.,48000.,96000.})
         {
-            qqsc::OutputCeiling hard,tp,switched;
-            hard.prepare(rate,true,false,0.f);
-            tp.prepare(rate,true,true,0.f);
-            switched.prepare(rate,true,false,0.f);
-            if(hard.latencySamples()!=tp.latencySamples())
-                throw std::runtime_error("Hard/TP Ceiling latency differs");
+            qqsc::OutputCeiling sp,tp,switched;
+            sp.prepare(rate,false,0.f,qqsc::params::tpAuto,0);
+            tp.prepare(rate,true,0.f,qqsc::params::tpAuto,0);
+            switched.prepare(rate,false,0.f,qqsc::params::tpAuto,0);
+            if(sp.latencySamples()!=tp.latencySamples())
+                throw std::runtime_error("SP/TP Ceiling latency differs");
             const int count=int(rate*.45);
-            float maxHardGr=0,maxTpGr=0;
+            float maxSpGr=0,maxTpGr=0;
             for(int i=0;i<count;++i)
             {
-                const float x=(i&3)<2 ? 1.f : -1.f;
-                hard.process(x,x);
+                const float x=(i&3)<2 ? .8f : -.8f;
+                sp.process(x,x);
                 tp.process(x,x);
                 if(i>int(rate*.15))
                 {
-                    maxHardGr=juce::jmax(maxHardGr,hard.gainReductionDbForDisplay());
+                    maxSpGr=juce::jmax(maxSpGr,sp.gainReductionDbForDisplay());
                     maxTpGr=juce::jmax(maxTpGr,tp.gainReductionDbForDisplay());
                 }
             }
-            if(maxHardGr<.10f || maxTpGr<.10f)
-                throw std::runtime_error("8x Ceiling telemetry missed reconstruction overshoot");
+            if(maxSpGr>.001f || maxTpGr<.10f)
+                throw std::runtime_error("SP/TP telemetry uses the wrong peak reference");
 
             for(int i=0;i<int(rate*.20);++i)
             {
-                const float x=(i&3)<2 ? 1.f : -1.f;
+                const float x=(i&3)<2 ? .8f : -.8f;
                 switched.process(x,x);
             }
             const auto latencyBefore=switched.latencySamples();
@@ -115,7 +138,7 @@ int main()
             float maxDelta=0.0f;
             for(int i=0;i<int(rate*.04);++i)
             {
-                const float x=(i&3)<2 ? 1.f : -1.f;
+                const float x=(i&3)<2 ? .8f : -.8f;
                 switched.process(x,x);
                 const auto gr=switched.gainReductionDbForDisplay();
                 if(!std::isfinite(gr) || gr<-.0001f)
@@ -126,10 +149,10 @@ int main()
                 throw std::runtime_error("TP switch changed Ceiling latency");
             if(maxDelta<.01f)
                 throw std::runtime_error("TP switch is not visible in display GR");
-            std::cout<<"DISPLAY rate="<<rate<<" hardGR="<<maxHardGr<<" tpGR="<<maxTpGr
+            std::cout<<"DISPLAY rate="<<rate<<" spGR="<<maxSpGr<<" tpGR="<<maxTpGr
                      <<" switchDelta="<<maxDelta<<" dB latency="<<latencyBefore<<'\n';
         }
-        std::cout<<"PASS: OutputCeiling exposes 8x Hard-Clip / TP attenuation and TP switching keeps fixed latency.\n";
+        std::cout<<"PASS: OutputCeiling exposes Sample-Peak / True-Peak attenuation and TP switching keeps fixed latency.\n";
 
 
         // Recovery changes only the post-hit return toward unity. All modes keep

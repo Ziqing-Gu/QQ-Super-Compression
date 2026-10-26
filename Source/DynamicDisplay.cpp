@@ -15,7 +15,7 @@ constexpr float silenceDb = -120.0f;
 float dbToDetectorLevel (float db) noexcept
 {
     return db <= silenceDb + 0.1f ? 0.0f
-                                  : juce::Decibels::decibelsToGain (juce::jmin (0.0f, db), silenceDb);
+                                  : juce::Decibels::decibelsToGain (db, silenceDb);
 }
 
 float readParameter (QQSuperCompressionAudioProcessor& processor, const char* parameterID,
@@ -137,8 +137,7 @@ ReplayHighPassCoefficients replayHighPassCoefficients (double sampleRate, float 
 
 float detectorLevelToDb (float level) noexcept
 {
-    return juce::jlimit (silenceDb, 24.0f,
-                         juce::Decibels::gainToDecibels (juce::jmax (0.0f, level), silenceDb));
+    return juce::Decibels::gainToDecibels (juce::jmax (0.0f, level), silenceDb);
 }
 }
 
@@ -212,7 +211,7 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
       replayRequestGeneration (std::make_shared<std::atomic<uint64_t>> (0))
 {
     setOpaque (true);
-    setTooltip(juce::String::fromUTF8(u8"Display：左键拖动框选放大，右键恢复全图。\n滚轮：上下缩放；Shift + 滚轮：上下平移；Ctrl + 滚轮：左右缩放。\nFREEZE 点亮时，停播后保留图表。\n缩放和平移不影响声音。"));
+    setTooltip(juce::String::fromUTF8(u8"Display：左键拖动框选放大，右键恢复全图。\n滚轮：上下缩放；Shift + 滚轮：调整 Adjust，上下平移；Ctrl + 滚轮：左右缩放。\nFREEZE 点亮时，停播后保留图表。\n缩放和平移不影响声音。"));
     freezeButton.setClickingTogglesState(true);
     freezeButton.setToggleState(processor.isDisplayFreezeOnStop(),juce::dontSendNotification);
     freezeButton.setTooltip(juce::String::fromUTF8(u8"Freeze：点亮时，播放中正常滚动，宿主停止播放后保留最后的图表；关闭时继续更新。ECO 模式重新打开界面时会清空旧图。冻结后仍可缩放、平移、调整参数并查看曲线变化，不影响声音处理和右侧电平表。首次默认打开，新开实例记住上次手动选择；各实例独立。录音、离线导出或宿主不提供播放状态时仍正常更新。"));
@@ -234,6 +233,9 @@ DynamicDisplay::DynamicDisplay (QQSuperCompressionAudioProcessor& p)
         const auto db = juce::jmap (t, silenceDb, maxDb);
         detectorLevelLut[static_cast<size_t> (i)] = dbToDetectorLevel (db);
     }
+    for (int i = 0; i < positiveDynamicsLutSize; ++i)
+        positiveDetectorLevelLut[size_t(i)] = juce::Decibels::decibelsToGain (
+            float(i) * positiveDynamicsLutMaxDb / float(positiveDynamicsLutSize - 1));
 
     for (auto* item : { &renderCaches[0], &renderCaches[1], &stereoLimiterCache })
     {
@@ -272,9 +274,18 @@ DynamicDisplay::~DynamicDisplay()
     processor.setDisplayKeyHistoryCaptureEnabled (false);
 }
 
+void DynamicDisplay::refreshView()
+{
+    refreshScale();
+    refreshRenderCaches(displayProcessingMode(processor));
+    repaint();
+}
+
 void DynamicDisplay::refreshScale()
 {
-    const auto current = processor.getDisplayZoom();
+    auto current = processor.getDisplayZoom();
+    current[0] -= processor.getDisplayAdjustDb();
+    current[1] -= processor.getDisplayAdjustDb();
     const auto endAge = processor.isDisplayTransportStopped()
         ? juce::jlimit(0.f, historyWindowSeconds - current[2], stoppedViewEndAgeSeconds) : 0.f;
     if (endAge != stoppedViewEndAgeSeconds)
@@ -548,8 +559,8 @@ void DynamicDisplay::timerCallback()
 
 void DynamicDisplay::pushHistory (HistorySet& history, HistoryPoint point)
 {
-    point.inputDb = juce::jlimit (silenceDb, 24.0f, point.inputDb);
-    point.detectorDb = juce::jlimit (silenceDb, maxDb, point.detectorDb);
+    point.inputDb = juce::jmax (silenceDb, point.inputDb);
+    point.detectorDb = juce::jmax (silenceDb, point.detectorDb);
     history.points.push_back (point);
 
     while (static_cast<int> (history.points.size()) > historyLength)
@@ -615,15 +626,13 @@ float DynamicDisplay::getBoundaryYForDomainDb (int parameterDomainIndex, float d
 {
     detectorDb = juce::jmax (processor.boundaryMinimumDb(upper), detectorDb);
     const auto plot = getBoundaryPlotForDomain (parameterDomainIndex);
-    // OFF is an unbounded Range, not a finite +1 dB threshold.
-    if (! qqsc::params::isRangeEnabled (detectorDb))
+    // OFF is an unbounded Range, not a finite dB threshold.
+    if (upper && readParameter(processor,qqsc::params::compressionMode)<.5f
+        && ! qqsc::params::isRangeEnabled (detectorDb))
         return plot.getY();
 
-    const bool externalKey = juce::roundToInt (readParameter (processor, qqsc::params::keySource))
-                             == qqsc::params::keyExternal;
-    const auto inputGainDb = readParameter (processor, qqsc::params::inputGainDb);
-    return dbToY (externalKey ? detectorDb
-                              : qqsc::params::effectiveDisplayThresholdDb (detectorDb, inputGainDb), plot);
+    if (!qqsc::params::isThresholdEnabled(detectorDb)) return plot.getBottom();
+    return dbToY (detectorDb, plot);
 }
 
 float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY, bool upper) const noexcept
@@ -634,13 +643,10 @@ float DynamicDisplay::getBoundaryDbForY (int parameterDomainIndex, float localY,
 
     const auto displayDb = juce::jmap (juce::jlimit (plot.getY(), plot.getBottom(), localY),
                                       plot.getY(), plot.getBottom(), view[1], view[0]);
-    const bool externalKey = juce::roundToInt (readParameter (processor, qqsc::params::keySource))
-                             == qqsc::params::keyExternal;
-    const auto detectorDb = externalKey ? displayDb
-                                        : displayDb + readParameter (processor, qqsc::params::inputGainDb);
+    const auto detectorDb = displayDb;
     // A drag maps finite values only. The fader explicitly chooses the OFF
-    // endpoint, keeping it distinct from a finite 0 dB upper boundary.
-    return juce::jlimit (processor.boundaryMinimumDb(upper), 0.0f, detectorDb);
+    // endpoint, keeping it distinct from a finite +24 dB upper boundary.
+    return juce::jlimit (processor.boundaryMinimumDb(upper), qqsc::params::thresholdMaximumDb, detectorDb);
 }
 
 void DynamicDisplay::updatePath (juce::Path& path,
@@ -655,7 +661,7 @@ void DynamicDisplay::updatePath (juce::Path& path,
     for (size_t i = 0; i < valueCount; ++i)
     {
         const auto x = historyXForCounter (captureCounters[i], plot);
-        const auto y = dbToY (values[i], plot);
+        const auto y = values[i] <= silenceDb ? plot.getBottom() : dbToY (values[i], plot);
 
         if (i == 0)
             path.startNewSubPath (x, y);
@@ -677,7 +683,8 @@ void DynamicDisplay::updateGainChangePaths (
     {
         return juce::Point<float> (
             historyXForCounter (projected.captureCounter[i], plot),
-            dbToY (projected.gainReductionBoundary[i], plot));
+            projected.gainReductionBoundary[i] <= silenceDb ? plot.getBottom()
+                : dbToY (projected.gainReductionBoundary[i], plot));
     };
 
     auto previous = pointAt (0);
@@ -724,8 +731,8 @@ void DynamicDisplay::updateGainReductionShadePath (
 
     for (size_t i = 0; i < valueCount; i += stride)
     {
-        const auto upperY = dbToY (upper[i], plot);
-        const auto lowerY = dbToY (lower[i], plot);
+        const auto upperY = upper[i] <= silenceDb ? plot.getBottom() : dbToY (upper[i], plot);
+        const auto lowerY = lower[i] <= silenceDb ? plot.getBottom() : dbToY (lower[i], plot);
         if (std::abs (lowerY - upperY) < 0.35f)
             continue;
 
@@ -778,6 +785,7 @@ uint64_t DynamicDisplay::dynamicsLutSignatureForDomain (int domainIndex, int mod
     };
 
     const auto domain = processorDomain (domainIndex, mode);
+
     const bool dual = readParameter (processor, qqsc::params::compressionMode) >= 0.5f;
     mixWord (static_cast<uint64_t> (processor.isMasteringMode()));
     mixWord (static_cast<uint64_t> (dual));
@@ -806,6 +814,7 @@ void DynamicDisplay::rebuildDynamicsLut (RenderCache& cache, int domainIndex, in
                                              uint64_t signature)
 {
     const auto domain = processorDomain (domainIndex, mode);
+    cache.dynamicsDomain = domain;
 
     // Snapshot all dynamics parameters once, then fill the complete dense LUT.
     // v1.2.21 called getDynamicsGainForDomain() 4097 times; during a drag that
@@ -815,10 +824,15 @@ void DynamicDisplay::rebuildDynamicsLut (RenderCache& cache, int domainIndex, in
     processor.fillDynamicsGainForDomain (
         detectorLevelLut.data(), cache.dynamicsGainLut.data(),
         static_cast<size_t> (dynamicsLutSize), domain);
+    processor.fillDynamicsGainForDomain (
+        positiveDetectorLevelLut.data(), cache.positiveDynamicsGainLut.data(),
+        static_cast<size_t> (positiveDynamicsLutSize), domain);
 
     cache.dynamicsLutUnity = std::all_of (cache.dynamicsGainLut.begin(),
                                           cache.dynamicsGainLut.end(),
-                                          [] (float gain) { return gain == 1.0f; });
+                                          [] (float gain) { return gain == 1.0f; })
+        && std::all_of (cache.positiveDynamicsGainLut.begin(), cache.positiveDynamicsGainLut.end(),
+                        [] (float gain) { return gain == 1.0f; });
     cache.dynamicsLutSignature = signature;
     cache.dynamicsLutValid = true;
 }
@@ -827,6 +841,20 @@ float DynamicDisplay::dynamicsGainFromLut (const RenderCache& cache, float detec
 {
     if (! cache.dynamicsLutValid)
         return 1.0f;
+
+    // Retain the original negative-dB LUT resolution. Positive levels have
+    // their own cache; values above that cache still use the real transfer law.
+    if (detectorDb > positiveDynamicsLutMaxDb)
+        return processor.getDynamicsGainForDomain (
+            juce::Decibels::decibelsToGain (detectorDb), cache.dynamicsDomain);
+    if (detectorDb > 0.0f)
+    {
+        const auto position = detectorDb / positiveDynamicsLutMaxDb * float (positiveDynamicsLutSize - 1);
+        const auto lo = juce::jlimit (0, positiveDynamicsLutSize - 1, int (std::floor (position)));
+        const auto hi = juce::jmin (positiveDynamicsLutSize - 1, lo + 1);
+        return juce::jmap (position - float (lo), cache.positiveDynamicsGainLut[size_t(lo)],
+                          cache.positiveDynamicsGainLut[size_t(hi)]);
+    }
 
     const auto clamped = juce::jlimit (silenceDb, maxDb, detectorDb);
     const auto position = (clamped - silenceDb) / (maxDb - silenceDb)
@@ -991,14 +1019,14 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
     const auto makeupGain = juce::Decibels::decibelsToGain (makeupDbForDomain (domainIndex, mode), -180.0f);
     const auto activeOutputGainDb = processor.getActiveOutputGainDb();
     const auto outputGain = juce::Decibels::decibelsToGain (activeOutputGainDb);
-    const bool limiter = processor.isLimiterMode();
+    const bool limiter = processor.isCeilingActive();
     const bool truePeak = limiter && processor.isTruePeakSelected();
     const auto ceilingDb = readParameter (processor, qqsc::params::ceilingDb);
     const auto tpRecovery = processor.getTpRecoveryMode();
+    const auto tpReserveDb = -qqsc::OutputCeiling::residualSafetyDbForChoice(processor.getEffectiveCeilingOversamplingChoice());
 
     // Limiter Ceiling is a post-dynamics stage. History stores only level/shape
-    // evidence; the CURRENT Hard/TP choice is replayed on every projection.
-    // TP recovery is time-dependent; Hard Clip is instantaneous.
+    // evidence; the CURRENT SP/TP choice and recovery are replayed on every projection.
     // This deliberately preserves QQ Super Compression's defining Display rule:
     // changing a current control reshapes the already-visible history.
     const float recoverySeconds = tpRecovery == qqsc::params::tpTight ? .015f
@@ -1018,7 +1046,7 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         float db=p.hasReplayedDetector ? p.replayedDetectorDb : p.detectorDb;
         db+=p.hasReplayedDetector ? (externalKey ? keyGainDb : inputGainDb)
             : externalKey ? keyGainDb-p.capturedKeyGainDb : inputGainDb-p.capturedInputGainDb;
-        return juce::jlimit(silenceDb,maxDb,db);
+        return juce::jmax(silenceDb,db);
     };
 
     for (const auto& point : histories[static_cast<size_t> (domainIndex)].points)
@@ -1036,7 +1064,7 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         else
             detectorDb += inputGainDb - point.capturedInputGainDb;
 
-        detectorDb = juce::jlimit (silenceDb, maxDb, detectorDb);
+        detectorDb = juce::jmax (silenceDb, detectorDb);
 
         // The current transfer law is cached as a dense detector-level LUT.
         // Stable playback therefore reprojects 8 seconds of history with only
@@ -1051,7 +1079,7 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
                 float db=point.hasSTReplay ? point.stReplayedDetectorDb[d] : point.stDetectorDb[d];
                 db+=point.hasSTReplay ? (externalKey ? keyGainDb : inputGainDb)
                     : externalKey ? keyGainDb-point.capturedKeyGainDb : inputGainDb-point.capturedInputGainDb;
-                g[d]=dynamicsGainFromLut(cache,juce::jlimit(silenceDb,maxDb,db));
+                g[d]=dynamicsGainFromLut(cache,juce::jmax(silenceDb,db));
                 carrier[d]=juce::Decibels::decibelsToGain(point.stInputDb[d],-120.f);
             }
             // Retrospective envelope projection: normalise both domains to the
@@ -1081,7 +1109,9 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         // levels select gain only; substituting a detector peak as the source
         // would fill input valleys and falsely imply upward compression.
         // This remains a retrospective level projection, not sample-exact audio.
-        const auto transferInputDb = point.inputDb;
+        // Keep raw history unchanged, then apply the CURRENT Input once to
+        // every main-audio trace. Thresholds and grid use fixed absolute dB.
+        const auto transferInputDb = point.inputDb + (bypassed ? 0.f : inputGainDb);
         const auto cutMixDb = bypassed ? transferInputDb
                                        : transferInputDb - dynamicsMixGrDb;
 
@@ -1095,29 +1125,25 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
         {
             const auto mixedGainWithMakeup = (1.0f - wetMix)
                                            + compressedGain * makeupGain * wetMix;
-            const auto totalGain = inputGain
-                                 * juce::jmax (0.0f, mixedGainWithMakeup)
+            const auto totalGain = juce::jmax (0.0f, mixedGainWithMakeup)
                                  * outputGain;
             projectedPreCeilingDb += juce::Decibels::gainToDecibels (
                 juce::jmax (totalGain, 1.0e-9f), -180.0f);
         }
 
-        // Re-evaluate the current Limiter Ceiling choice from level-independent
-        // 8x inter-sample evidence. TP OFF is now an 8x Hard Clipper, so it uses
-        // the same reconstructed peak evidence but has no recovery envelope.
-        // TP ON retains the established time-dependent protection/recovery. The
-        // right-side GAIN +/- meter remains the authority for real-time DSP GR.
+        // Both SP and TP replay a recovery envelope. Only TP uses reconstructed
+        // inter-sample excess. This is a level-history preview, not a sample-exact
+        // render; right-side meters report the actual DSP gain.
         float projectedCeilingGrDb = 0.0f;
         float projectedPostCeilingDb = projectedPreCeilingDb;
         if (limiter && ! bypassed)
         {
             const auto projectedPeakDb = projectedPreCeilingDb
-                + juce::jmax (0.0f, point.truePeakExcessDb);
+                + (truePeak ? juce::jmax (0.0f, point.truePeakExcessDb) : 0.f);
             const auto overshootDb = projectedPeakDb - ceilingDb;
             if (overshootDb > 0.0f)
-                projectedCeilingGrDb = overshootDb + (truePeak ? 0.01f : 0.0f);
+                projectedCeilingGrDb = overshootDb + (truePeak ? tpReserveDb : 0.0f);
 
-            if (truePeak)
             {
                 const auto targetGain = juce::Decibels::decibelsToGain (-projectedCeilingGrDb);
                 if (targetGain <= retrospectiveTpGain)
@@ -1133,9 +1159,8 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
                 const auto peerInput=peerPoint->inputDb;
                 const auto peerTotal=inputGain*((1-peerMix)+peerGain*peerMakeup*peerMix)*outputGain;
                 const auto peerPre=peerInput+juce::Decibels::gainToDecibels(juce::jmax(peerTotal,1.e-9f),-180.f);
-                const auto peerOvershoot=peerPre+juce::jmax(0.0f,peerPoint->truePeakExcessDb)-ceilingDb;
-                float peerCeilingGain=juce::Decibels::decibelsToGain(-juce::jmax(0.f,peerOvershoot+(peerOvershoot>0 && truePeak ? .01f : 0.f)));
-                if(truePeak)
+                const auto peerOvershoot=peerPre+(truePeak ? juce::jmax(0.0f,peerPoint->truePeakExcessDb) : 0.f)-ceilingDb;
+                float peerCeilingGain=juce::Decibels::decibelsToGain(-juce::jmax(0.f,peerOvershoot+(peerOvershoot>0 && truePeak ? tpReserveDb : 0.f)));
                 {
                     if(peerCeilingGain<=peerRetrospectiveTpGain) peerRetrospectiveTpGain=peerCeilingGain;
                     else peerRetrospectiveTpGain+=recoveryStep*(peerCeilingGain-peerRetrospectiveTpGain);
@@ -1152,17 +1177,16 @@ void DynamicDisplay::projectHistory (int domainIndex, int mode, bool externalKey
             break;
 
         const auto index = projected.size++;
-        projected.input[index] = point.inputDb;
+        projected.input[index] = transferInputDb;
 
         // Blue = current QQ compression transfer + current Mix + CURRENT Limiter
-        // Ceiling attenuation. TP OFF therefore shows the 8x Hard Clipper's
-        // instantaneous clip depth; TP ON shows the replayed TP envelope.
+        // Ceiling attenuation, including the selected SP/TP recovery envelope.
         const auto ceilingGrForBlue = (limiter && ! bypassed) ? projectedCeilingGrDb : 0.0f;
         projected.gainReductionBoundary[index] = cutMixDb - ceilingGrForBlue;
         projected.effectiveGainReduction[index] = dynamicsMixGrDb + ceilingGrForBlue;
 
         // Orange remains the current projected final output, including Makeup,
-        // Output Gain and the active Hard-Clip/True-Peak Ceiling stage.
+        // Output Gain and the active Sample-Peak/True-Peak Ceiling stage.
         projected.output[index] = limiter && ! bypassed
             ? projectedPostCeilingDb
             : (bypassed ? point.inputDb : projectedPreCeilingDb);
@@ -1554,9 +1578,12 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
     const auto plot = plotBoundsForPanel (panel);
 
     const auto gridStep=(view[1]-view[0])/6.f;
-    for (int tick=0; tick<=6; ++tick)
+    const float gridAnchor = view[1] + processor.getDisplayAdjustDb();
+    const int firstTick = int(std::ceil((gridAnchor-view[1])/gridStep));
+    for (int tick=firstTick; tick<=firstTick+6; ++tick)
     {
-        const float db=view[1]-float(tick)*gridStep;
+        const float db=gridAnchor-float(tick)*gridStep;
+        if(db < view[0]-.001f || db > view[1]+.001f) continue;
         const auto y = dbToY (db, plot);
         g.setColour (qqsc::ui::text().withAlpha (0.065f));
         g.drawHorizontalLine (juce::roundToInt (y), plot.getX(), plot.getRight());
@@ -1597,6 +1624,7 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
 
         const juce::String name = dual ? (upper ? "DOWN " : "UP ") : (upper ? "RANGE " : "THR ");
         const auto value = rangeOff ? juce::String ("OFF")
+                                    : !qqsc::params::isThresholdEnabled(db) ? juce::String("-inf")
                                     : juce::String (qqsc::params::clampThresholdDb (db), 1);
         constexpr float tagWidth = 112.0f;
         const auto offset = upper && tagsOverlap ? tagWidth + 3.0f : 0.0f;
@@ -1662,7 +1690,7 @@ void DynamicDisplay::drawDomainPanel (juce::Graphics& g, juce::Rectangle<float> 
 
 juce::Rectangle<float> DynamicDisplay::getLoudnessReadoutBounds() const noexcept
 {
-    if (!processor.isMasteringMode()) return {};
+    if (!processor.isLimiterMode()) return {};
     const auto mode = displayProcessingMode(processor);
     const bool split = mode != qqsc::params::stereoLinked && !processor.isMasteringMode();
     const auto plot = plotBoundsForPanel(domainPanelBounds(split ? 1 : 0, mode));
@@ -1750,7 +1778,7 @@ void DynamicDisplay::paint (juce::Graphics& g)
         drawDomainPanel (g, domainPanelBounds (1, mode), 1, "S", mode);
     }
 
-    if (processor.isMasteringMode()) drawLoudnessReadout(g);
+    if (processor.isLimiterMode()) drawLoudnessReadout(g);
     if (zoomDragActive)
     {
         g.setColour(qqsc::ui::cyanAccent().withAlpha(.14f));
@@ -1788,6 +1816,7 @@ void DynamicDisplay::resetZoom()
 {
     zoomDragActive = false;
     stoppedViewEndAgeSeconds = 0.f;
+    processor.setDisplayAdjustDb(0);
     processor.setDisplayZoom(-90,0,8,0);refreshScale();
     geometryDirty=true;refreshRenderCaches(displayProcessingMode(processor));repaint();
     processor.updateHostDisplay(juce::AudioProcessor::ChangeDetails{}.withNonParameterStateChanged(true));
@@ -1801,7 +1830,8 @@ void DynamicDisplay::zoomToSelection(juce::Rectangle<float> selected, juce::Rect
     const float seconds = view[2] * selected.getWidth() / plot.getWidth();
     // Stopped browsing shows the actual rectangle. Live playback stays at the newest edge.
     const float endAge = visibleEndAgeSeconds() + view[2] * (plot.getRight() - selected.getRight()) / plot.getWidth();
-    processor.setDisplayZoom(floor, top, seconds, 0.f);
+    const auto adjust = processor.getDisplayAdjustDb();
+    processor.setDisplayZoom(floor + adjust, top + adjust, seconds, 0.f);
     stoppedViewEndAgeSeconds = processor.isDisplayTransportStopped()
         ? juce::jlimit(0.f, historyWindowSeconds - processor.getDisplayZoom()[2], endAge) : 0.f;
     refreshScale();
@@ -1872,6 +1902,7 @@ void DynamicDisplay::mouseWheelMove(const juce::MouseEvent& event,
             && event.position.y < plot.getY();
         if (! inHeader && ! plot.contains(event.position)) continue;
         const auto old = view;
+        const auto adjust = processor.getDisplayAdjustDb();
         const float factor = std::exp2(-0.75f * juce::jlimit(-4.f, 4.f, delta));
         if (horizontal)
         {
@@ -1880,22 +1911,21 @@ void DynamicDisplay::mouseWheelMove(const juce::MouseEvent& event,
             const float anchorAge = visibleEndAgeSeconds() + (1.f - relativeX) * view[2];
             stoppedViewEndAgeSeconds = processor.isDisplayTransportStopped()
                 ? juce::jlimit(0.f, historyWindowSeconds - seconds, anchorAge - (1.f - relativeX) * seconds) : 0.f;
-            processor.setDisplayZoom(view[0], view[1], seconds, 0.f);
+            processor.setDisplayZoom(view[0] + adjust, view[1] + adjust, seconds, 0.f);
         }
         else if (event.mods.isShiftDown())
         {
-            // Pan both dB bounds together; neither scale nor the stopped time
-            // anchor changes. A typical wheel notch moves 5% of the visible span.
+            // The knob and Shift-wheel share one display-only offset. Keep
+            // zoom bounds and stopped time position untouched; positive is up.
             const float span = view[1] - view[0];
             const float offset = span * 0.15f * juce::jlimit(-4.f, 4.f, delta);
-            const float top = juce::jlimit(-90.f + span, 0.f, view[1] + offset);
-            processor.setDisplayZoom(top - span, top, view[2], 0.f);
+            processor.setDisplayAdjustDb(adjust + offset);
         }
         else
         {
             const float relativeY = juce::jlimit(0.f, 1.f, (event.position.y - plot.getY()) / plot.getHeight());
             const float oldSpan = view[1] - view[0];
-            const float anchorDb = view[1] - relativeY * oldSpan;
+            const float anchorDb = view[1] + adjust - relativeY * oldSpan;
             const float span = juce::jlimit(1.f, 90.f, oldSpan * factor);
             // Preserve the dB level beneath the pointer until a global bound
             // is reached, then shift the whole range without changing span.

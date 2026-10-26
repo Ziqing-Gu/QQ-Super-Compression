@@ -29,7 +29,7 @@
                 value("lookaheadMs",25.3f);value("oversampling",float(os));value("keyHpfHz",20);
                 value("algorithmMode",1);value("ratio",5);value("ratioL",5);value("ratioR",5);
                 value("thresholdDb",-24);value("thresholdLDb",-24);value("thresholdRDb",-24);
-                value("rangeDb",1);set(*x,"distort",0);set(*x,"truePeakLimiting",0);
+                value("rangeDb",qqsc::params::rangeOffDb);set(*x,"distort",0);set(*x,"truePeakLimiting",0);
                 if(!limiter){set(*x,"stLRLink",35);set(*x,"stMSLink",65);}
                 x->setRateAndBufferSizeDetails(48000,800);x->prepareToPlay(48000,800);
             }

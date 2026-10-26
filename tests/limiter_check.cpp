@@ -1,3 +1,4 @@
+#include <random>
 #define main HistoricalDynamicsMain
 #include "updown_processor_test.cpp"
 #undef main
@@ -197,10 +198,17 @@ struct QQSCVisualCheck
 
 struct QQSCLimiterCheck
 {
+#include "ceiling_switch_checks.inc"
+#include "input_display_match_checks.inc"
+#include "display_adjust_checks.inc"
+#include "sample_peak_ceiling_checks.inc"
+#include "headroom_checks.inc"
 #include "output_link_checks.inc"
 #include "strict_output_link_checks.inc"
 #include "limiter_unconditional_link_checks.inc"
 #include "finite_threshold_checks.inc"
+#include "positive_threshold_checks.inc"
+#include "ceiling_live_display_checks.inc"
 #include "dual_algorithm_checks.inc"
 #include "ratio_mix_checks.inc"
 #include "mode_memory_checks.inc"
@@ -251,7 +259,7 @@ struct QQSCLimiterCheck
             if(child->isVisible()) check(e.contentRoot.getLocalBounds().contains(child->getBounds()),"Visible control outside editor");
         check(e.limiterButton.getY()==e.sidechainButton.getY() && e.limiterButton.getRight()<e.sidechainButton.getX(),"Limiter must occupy the former header algorithm position");
         if(e.ceilingPanel.isVisible())
-            check(e.contentRoot.getIndexOfChildComponent(&e.ceilingLabel)>e.contentRoot.getIndexOfChildComponent(&e.ceilingPanel),"Ceiling panel occludes title");
+            check(e.contentRoot.getIndexOfChildComponent(&e.ceilingEnabledButton)>e.contentRoot.getIndexOfChildComponent(&e.ceilingPanel),"Ceiling panel occludes title");
         auto stream=file.createOutputStream();check(stream!=nullptr,"PNG stream");
         stream->setPosition(0);stream->truncate();
         check(juce::PNGImageFormat().writeImageToStream(e.createComponentSnapshot(e.getLocalBounds()),*stream),"PNG write");
@@ -261,7 +269,7 @@ struct QQSCLimiterCheck
         std::cout<<"CHECK: Limiter UI entry/restore.\n";
         for(int algo:{0,1}) for(float out:{2.0f,-3.0f,0.0f})
         {
-            QQSuperCompressionAudioProcessor p;baseline(p);set(p,"rangeDb",1);set(p,"outputGainDb",out);set(p,"algorithmMode",float(algo));
+            QQSuperCompressionAudioProcessor p;baseline(p);set(p,"rangeDb",qqsc::params::rangeOffDb);set(p,"outputGainDb",out);set(p,"algorithmMode",float(algo));
             set(p,"inputOutputLink",1);set(p,"compressionMode",1);set(p,"upThresholdDb",-36);set(p,"downThresholdDb",-12);
             (void)p.getAPVTS().copyState();
             std::array<float,35> before;
@@ -309,7 +317,7 @@ struct QQSCLimiterCheck
         }
         std::cout<<"PASS: 6 entry cases, positive/negative/zero output, Classic/Super; full restore and save/reload; I/O Link disabled including typed edits; only DOWN links both directions; Link OFF.\n";
 
-        QQSuperCompressionAudioProcessor p;baseline(p);set(p,"algorithmMode",0);set(p,"rangeDb",1);set(p,"compressionMode",1);
+        QQSuperCompressionAudioProcessor p;baseline(p);set(p,"algorithmMode",0);set(p,"rangeDb",qqsc::params::rangeOffDb);set(p,"compressionMode",1);
         QQSuperCompressionAudioProcessorEditor e(p,settings(root));sync(p,e);e.limiterButton.onClick();sync(p,e);
         check(get(p,"ceilingDb")==0,"Fresh Ceiling default must be 0 dBFS");
         // Numeric edit and the exact global keyboard handlers requested by the user.
@@ -381,7 +389,7 @@ void limiterAudioChecks()
     for(int algo:{0,1})for(int mode:{0,1,2})for(int dual:{0,1})
     {
         QQSuperCompressionAudioProcessor p;baseline(p);set(p,"algorithmMode",float(algo));set(p,"processingMode",float(mode));set(p,"compressionMode",float(dual));
-        set(p,"rangeDb",1);set(p,"rangeLDb",1);set(p,"rangeRDb",1);set(p,"rangeMDb",1);set(p,"rangeSDb",1);
+        set(p,"rangeDb",qqsc::params::rangeOffDb);set(p,"rangeLDb",qqsc::params::rangeOffDb);set(p,"rangeRDb",qqsc::params::rangeOffDb);set(p,"rangeMDb",qqsc::params::rangeOffDb);set(p,"rangeSDb",qqsc::params::rangeOffDb);
         const auto original=render(p,.12f);p.enterLimiterMode();set(p,"ceilingDb",-24);set(p,"truePeakLimiting",1);set(p,"limiterMode",0);
         const auto off=render(p,.12f);check(original.output==off.output && original.right==off.right,"Ceiling/limiter processing leaks while OFF");
         p.enterLimiterMode();set(p,"truePeakLimiting",0);set(p,"ceilingDb",0);const auto a=render(p,.12f);
@@ -398,7 +406,7 @@ void limiterAudioChecks()
     std::cout<<"PASS: 12 DSP cases, hidden Ceiling/TP OFF bit-identical; active steady-input ceiling scaling; constant reported latency below 40ms.\n";
     for(int algo:{0,1})for(float output:{0.0f,2.0f,18.0f})
     {
-        QQSuperCompressionAudioProcessor p;baseline(p);set(p,"algorithmMode",float(algo));set(p,"rangeDb",1);set(p,"ratio",100);set(p,"outputGainDb",output);
+        QQSuperCompressionAudioProcessor p;baseline(p);set(p,"algorithmMode",float(algo));set(p,"rangeDb",qqsc::params::rangeOffDb);set(p,"ratio",100);set(p,"outputGainDb",output);
         p.enterLimiterMode();const auto audio=render(p,1.0f);
         float peak=0;for(size_t i=16000;i<audio.output.size();++i)peak=std::max(peak,std::abs(audio.output[i]));
         check(20*std::log10(peak)<=.002 && 20*std::log10(peak)>-.2,"Default TP Ceiling reference calibration inaccurate");
@@ -407,7 +415,7 @@ void limiterAudioChecks()
     std::cout<<"PASS: 6 full-scale TP reference cases within reconstruction margin; 12 post-Ceiling TP scalar checks.\n";
     for(double rate:{44100.0,48000.0,96000.0})for(int block:{17,256,1024})
     {
-        QQSuperCompressionAudioProcessor p;set(p,"lookaheadMs",0);set(p,"oversampling",0);set(p,"ratio",1);set(p,"rangeDb",1);
+        QQSuperCompressionAudioProcessor p;set(p,"lookaheadMs",0);set(p,"oversampling",0);set(p,"ratio",1);set(p,"rangeDb",qqsc::params::rangeOffDb);
         p.setRateAndBufferSizeDetails(rate,block);p.prepareToPlay(rate,block);
         juce::MidiBuffer midi;int64_t offset=0;
         auto run=[&](double seconds,float amplitude)
@@ -441,6 +449,26 @@ int main(int argc,char** argv)
     try
     {
         const juce::File root(argv[1]);root.createDirectory();
+        if(argc==3 && juce::String(argv[2])=="display-adjust")
+        { QQSCLimiterCheck::displayAdjustChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="input-monitor")
+        { QQSCLimiterCheck::inputMonitorChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="sample-peak-ceiling")
+        { QQSCLimiterCheck::samplePeakCeilingChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="tp-baseline")
+        { QQSCLimiterCheck::samplePeakCeilingChecks(root,true);return 0; }
+        if(argc==3 && juce::String(argv[2])=="input-display")
+        { QQSCLimiterCheck::inputDisplayChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="input-match")
+        { QQSCLimiterCheck::inputMatchChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="ceiling-switch")
+        { QQSCLimiterCheck::ceilingSwitchChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="headroom")
+        { QQSCLimiterCheck::headroomChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="ceiling-live-display")
+        { QQSCLimiterCheck::ceilingLiveDisplayChecks(root);return 0; }
+        if(argc==3 && juce::String(argv[2])=="positive-threshold")
+        { QQSCLimiterCheck::positiveThresholdChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="finite-threshold")
         { QQSCLimiterCheck::finiteThresholdChecks(root);return 0; }
         if(argc==3 && juce::String(argv[2])=="unconditional-link")

@@ -2,6 +2,10 @@
 // common MATCH target without changing production access restrictions.
 struct QQSCReviewCheck
 {
+    static qqsc::ABTransfer currentTransfer(const QQSuperCompressionAudioProcessor& p)
+    { return QQSuperCompressionAudioProcessor::makeABTransfer(p.captureCurrentSnapshot()); }
+    static int ceilingSwitchLatency(const QQSuperCompressionAudioProcessor& p,float look,int os)
+    { return p.getCombinedLatencySamples(look,os); }
     static void sharedSnapshotMatchChecks()
     {
         QQSuperCompressionAudioProcessor p;p.enterLimiterMode();

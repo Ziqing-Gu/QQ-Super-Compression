@@ -4,8 +4,7 @@
 void QQSuperCompressionAudioProcessor::setUnityMonitorEnabled(bool enabled)
 {
     if(unityMonitor.exchange(enabled,std::memory_order_relaxed)==enabled)return;
-    matchReady.store(false,std::memory_order_relaxed);
-    resetMatchOnNextPlaybackBlock.store(true,std::memory_order_relaxed);
+    // Monitoring is downstream of the shared Match taps; retain their capture.
     resetTruePeakHold();
     updateHostDisplay(juce::AudioProcessor::ChangeDetails().withNonParameterStateChanged(true));
 }
@@ -38,6 +37,11 @@ const char* QQSuperCompressionAudioProcessor::soundParameterID (const char* id) 
 }
 float QQSuperCompressionAudioProcessor::readSoundParameter (const char* id) const noexcept
 {
+    // 1.4.19: Input is retired, including old projects and host automation.
+    // Preserve parameter IDs/order, but never let legacy values reach DSP/UI.
+    if(std::strcmp(id,"inputGainDb")==0 || std::strcmp(id,"limiterInputGainDb")==0
+        || std::strcmp(id,"clipperInputGainDb")==0 || std::strcmp(id,"inputOutputLink")==0)
+        return 0.f;
     if(isClipperMode() && std::strcmp(id,qqsc::params::compressionMode)==0) return 0.f;
     if (isMasteringMode() && std::strcmp(id,qqsc::params::processingMode)==0)
         return float(qqsc::params::leftRight);
@@ -163,8 +167,9 @@ float QQSuperCompressionAudioProcessor::getActiveOutputGainDb() const noexcept
 {
     if(isClipperMode()) return apvts.getRawParameterValue("clipperOutputDb")->load();
     return isLimiterMode()
-        ? apvts.getRawParameterValue (qqsc::params::limiterOutputDb)->load() + apvts.getRawParameterValue (qqsc::params::ceilingDb)->load()
-            + apvts.getRawParameterValue (qqsc::params::limiterCalibrationDb)->load()
+        ? apvts.getRawParameterValue (qqsc::params::limiterOutputDb)->load()
+            + (isCeilingEnabled() ? apvts.getRawParameterValue (qqsc::params::ceilingDb)->load()
+                + apvts.getRawParameterValue (qqsc::params::limiterCalibrationDb)->load() : 0.f)
         : apvts.getRawParameterValue (qqsc::params::outputGainDb)->load();
 }
 
@@ -180,10 +185,10 @@ float QQSuperCompressionAudioProcessor::getLimiterReferencePeakDb (float shift, 
         // key. No signal-dependent gain is introduced by this calculation.
         const auto floor = qqsc::params::thresholdMinimumDb;
         if (shift != 0.0f && t.dual && s.downEnabled[d])
-            t.upper[d] = qqsc::params::thresholdLinear (juce::jlimit (juce::jmax (floor,juce::jmin(0.0f,getBoundaryForDomainDb(true,false,int(d))+0.01f)), 0.0f, getBoundaryForDomainDb(true,true,int(d))+shift));
+            t.upper[d] = qqsc::params::thresholdLinear (juce::jlimit (juce::jmax (floor,juce::jmin(qqsc::params::thresholdMaximumDb,getBoundaryForDomainDb(true,false,int(d))+0.01f)), qqsc::params::thresholdMaximumDb, getBoundaryForDomainDb(true,true,int(d))+shift));
         else if (shift != 0.0f && !t.dual && t.ratio[d]>1.0f)
         {
-            t.lower[d] = qqsc::params::thresholdLinear (juce::jlimit (floor, juce::jmin (0.0f,getBoundaryForDomainDb(false,true,int(d))), getBoundaryForDomainDb(false,false,int(d))+shift));
+            t.lower[d] = qqsc::params::thresholdLinear (juce::jlimit (floor, qqsc::params::thresholdMaximumDb, getBoundaryForDomainDb(false,false,int(d))+shift));
         }
         const auto g = t.dual
             ? qqsc::StaticCompressionEngine::dualGainForLevel (1.0f,t.upRatio[d],t.downRatio[d],t.lower[d],t.upper[d],t.upAlgorithm,t.downAlgorithm)

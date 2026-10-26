@@ -21,7 +21,7 @@ struct MeterState
     std::atomic<float> outputDb0 { -120.0f };
     std::atomic<float> outputDb1 { -120.0f };
 
-    // Dynamic Display stores the pre-Input-Gain carrier plus live detector
+    // Dynamic Display retains the raw pre-Input carrier for current-Input replay, plus live detector
     // evidence. v1.1.3 additionally keeps a bounded pre-gain/pre-HPF raw key
     // ring while the editor is open: Key Gain reprojects immediately and an
     // HPF/Window gestures replay retained history on the bounded UI worker.
