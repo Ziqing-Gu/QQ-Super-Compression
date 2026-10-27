@@ -1,6 +1,61 @@
-# ⚠️ 禁止商业使用 / NO COMMERCIAL USE
+# QQ Super Compression · 超级压缩
+
+**QQ Super Compression 是 Qing Audio 为人声、乐器、总线和母带设计的动态处理插件，把压缩、细节提升、强力下压和最终峰值控制放在同一个界面里。** 它提供 Compressor、Clipper、Limiter 三种处理模式，以及 Classic、Super 两种动态曲线：你可以收住过大的起伏，也可以用向上压缩提起选定的轻声细节，或在双压模式中同时安排上压与下压。它的特别之处，是用 Lookahead 与 Window 来调整动态响应：动态核心不使用传统 Attack / Release 旋钮，Window 可以在延迟不变的情况下连续调整，让你直接听出音头、尾音和染色的变化。ST 模式同时提供 L/R Link 与 M/S Link，用一组参数就能探索左右、中侧不同的压缩关联。可实时重算的 Display、响度 Match 和 A/B 对比，则帮助你把看到的变化与听到的声音联系起来，找到适合素材的处理方式。
+
+**QQ Super Compression by Qing Audio brings compression, detail enhancement, strong downward processing and final peak control into one plug-in for vocals, instruments, buses and mastering.** Its Compressor, Clipper and Limiter modes share a choice of Classic and Super curves. Tame large level changes, lift selected quieter details with upward compression, or combine upward and downward processing in Dual mode. The dynamics core uses Lookahead and Window instead of conventional Attack and Release controls; changing Window at a fixed latency lets you compare transients, tails and coloration continuously. In ST mode, separate L/R Link and M/S Link controls explore stereo relationships with one set of parameters. A Display that recalculates retained history, loudness Match and A/B comparison help connect the changes you see with the sound you hear.
+
+![QQ Super Compression 1.4.20 — Compressor / ST](docs/manuals/source-1.4.20-zh/assets/manual-dark.png)
+
+### Classic / Super：两种曲线，上压与下压 / Two curves, two directions
+
+**Classic** 按固定的 dB 比例压缩。比如下压 4:1，稳定检测电平超出阈值 12 dB 时，压后保留超出部分的 3 dB。**Super** 使用 QQ 自有动态曲线，Ratio 调整曲线力度，可获得另一种动态变化；它的 Ratio 不代表所有电平处都具有固定的 dB 比例。
+
+**Classic** follows a fixed ratio in dB: at 4:1 downward compression, a steady detected level 12 dB above Threshold leaves 3 dB above it. **Super** uses QQ's own dynamics curve, with Ratio controlling its strength rather than imposing the same dB ratio at every level.
+
+- **下压 / Downward:** 压低超过阈值的部分，收住较响的声音。Reduce the part above Threshold to control louder material.
+- **上压 / Upward:** 在允许处理的电平范围内，较轻的声音提升得更多，低于阈值的声音保持不动。可用于提起细节，同时避开更轻的底噪或残响。Within the active level range, quieter material receives more lift while material below Threshold stays untouched, helping bring out detail without lifting everything beneath it.
+- **双压 / Dual:** 用 UP 与 DOWN 两个阈值安排不同的处理区间；上压与下压可分别开关、分别选择 Classic 或 Super。Use UP and DOWN thresholds to define separate processing regions, with independent enable switches and curve choices for each direction.
+
+### Lookahead / Window：固定延迟，连续比较声音 / Compare the sound at fixed latency
+
+**Lookahead 是提前预读多少毫秒；Window 是实际使用多少毫秒的检测范围。** 保持 Lookahead 不动、缩短 Window，就能试听更短检测长度带来的声音变化，无需反复改变宿主的延迟补偿。压缩增益逐采样更新，可以连续跟随声音变化。
+
+例如 Lookahead **50.6 ms / Window 25.3 ms** 与 Lookahead **25.3 ms / Window 25.3 ms**：其余设置相同、设置稳定并对齐延迟后，动态核心的压缩结果相同。前一种只多保留了 25.3 ms 基础延迟。这让你可以先用 Window 选声音，再决定是否缩短 Lookahead。
+
+**Lookahead sets how far ahead the plug-in can read; Window sets the detection length it actually uses.** Shorten Window while keeping Lookahead fixed to compare the sound without repeatedly changing host delay compensation. Gain is updated sample by sample. For example, **50.6 ms Lookahead / 25.3 ms Window** and **25.3 ms Lookahead / 25.3 ms Window** produce the same dynamics-core result once settings have settled and latency is aligned, with all other settings equal; the former simply retains 25.3 ms more base delay.
+
+### ST 的两个 Link：用一组旋钮调整立体声动态 / Two stereo links, one set of controls
+
+在 Compressor 的 **ST** 模式中，**L/R Link 和 M/S Link 默认都是 100%**，使用共用压缩增益。降低 L/R Link，可逐渐加入左、右独立压缩的结果；降低 M/S Link，可逐渐加入中、侧独立压缩的结果。两项都可以调，不需要先增加第二组旋钮。需要给左右或中侧设置不同的 Ratio、阈值、Makeup 与 Mix 时，再选择 **LR** 或 **MS** 模式。
+
+In Compressor **ST** mode, **L/R Link and M/S Link both default to 100%**, sharing compression gain. Lower L/R Link to introduce independent left/right processing; lower M/S Link to introduce independent mid/side processing. Both controls can be combined while retaining one set of knobs. Choose **LR** or **MS** when each side needs different Ratio, Threshold, Makeup and Mix settings.
+
+### Compressor / Clipper / Limiter：按目的选择 / Choose a mode for the job
+
+| 模式 / Mode | 用途与功能 / Purpose and features |
+| --- | --- |
+| **Compressor** | 常规动态调整与细节塑形。支持单压、上压、下压、双压，以及 ST / LR / MS。单压的 Range 可让达到或超过指定电平的部分不参与压缩。General dynamics and detail shaping, with Single/Dual, upward/downward processing and ST/LR/MS. In Single mode, Range can leave material at or above a chosen level outside compression. |
+| **Clipper** | 专注强力下压，Ratio **10:1–1000:1**，保留 Classic / Super、Window、Transparent 与 L/R Link。L/R Link 默认 **0%**；仅下压，没有双压或最终 Ceiling。适合控制峰值、探索强压缩与染色。Dedicated downward processing with a **10:1–1000:1** ratio, both curves, Window, Transparent and L/R Link. L/R Link defaults to **0%**; there is no Dual mode or final Ceiling stage. Shape peaks and explore strong compression and coloration. |
+| **Limiter** | 在动态处理之后加入最终峰值限制。Ceiling 默认开启，可独立关闭；TP 开启按真峰值控制，关闭按采样峰值控制，两者均有 **Auto / Tight / Smooth** 恢复方式。支持单压 / 双压、L/R Link、输出联动与等音量监听。Adds final peak limiting after dynamics. Ceiling defaults on and can be disabled. Select true-peak or sample-peak limiting, both with **Auto / Tight / Smooth** recovery, alongside Single/Dual, L/R Link, linked output controls and level-compensated monitoring. |
+
+三种模式分别记住各自的参数，方便来回比较。Clipper / Limiter 的 Output LINK 可联动下压阈值、Makeup 与 Output；Clipper 默认关闭。联动遵守固定的 dB 关系，Ratio 为 1:1 时也有效。
+
+Each mode remembers its own settings for comparison. Clipper/Limiter Output LINK connects downward Threshold, Makeup and Output adjustments through fixed dB relationships; it defaults off in Clipper and remains effective even at a 1:1 ratio.
+
+### 帮助你看清、听清的功能 / Tools for seeing and hearing the changes
+
+- **Transparent：比较瞬态与细节。** 改变 Window 内前后峰值的使用方式，试听音头、延音和检测稳定度，也可帮助减少快速增益变化产生的噼啪声。默认关闭，适合与 Normal 配合 Window 比较。**Compare transients and detail.** Changes how surrounding peaks are used, offering another balance of transient response, tails and detection stability; it can also reduce crackles from rapid gain changes. Defaults off.
+- **Display + Adjust：把变化看清楚。** 输入、压低、提升与输出参考曲线集中显示；调整参数后，保留的历史曲线也会重算。支持框选和滚轮缩放，Freeze 可在停播后留住图表。Adjust 上下移动波形、刻度和阈值线，便于观察，不改变声音。**Inspect the changes.** View input, cut, boost and output references, with retained history recalculated as settings change. Rectangle/wheel zoom and stop-time Freeze help inspect details; Adjust moves the plot, scale and threshold lines without changing audio.
+- **Match + Mix + A/B：比较动态，也比较响度。** Match 根据累计播放内容，将原始输入与压缩后的 Wet 响度比较并写入 Makeup；Mix 混合干湿，A/B 保存两套声音设置。Output 与最终 Ceiling 不计入 Match。**Compare dynamics at similar loudness.** Match uses accumulated playback to compare original-input loudness with processed Wet and sets Makeup. Mix blends dry/wet; A/B stores two sound settings. Output and final Ceiling are excluded from Match.
+- **内外侧链：选择由什么声音触发压缩。** 提供 Key Gain、侧链高通滤波与侧链监听，可由自身信号或宿主送来的另一条信号控制动态。**Internal/external sidechain.** Choose the signal that drives compression, with Key Gain, a sidechain high-pass filter and sidechain audition.
+- **过采样与 ECO / FULL：按用途分配资源。** OS 提供 **1x / 4x / 8x / 16x**，默认 1x，由你选择。ECO 在界面关闭后暂停显示和响度分析；FULL 保留后台分析。音频动态处理仍然工作。**Oversampling and analysis options.** Select **1x / 4x / 8x / 16x** OS, defaulting to 1x. ECO pauses display/loudness analysis while the UI is closed; FULL keeps background analysis active. Audio dynamics processing continues in either mode.
+- **清楚的电平反馈。** 提供峰值、真峰值与增益变化显示；Clipper 的压缩量柱条实时变化，数字和标记线保持最大值。Limiter 另有输出 LUFS-I 显示。**Metering.** Peak, true-peak and gain-change readings; Clipper has live reduction bars with held maximum numbers/markers. Limiter also displays output LUFS-I.
+
+完整操作、示例与各项取舍见 [中文说明书](docs/manuals/QQ-Super-Compression-1.4.20-User-Manual-Chinese.pdf) / [English manual](docs/manuals/QQ-Super-Compression-1.4.20-User-Manual-English.pdf)。两本均为 **1.4.20，49 页**。 / Both editions are **1.4.20, 49 pages**, with examples and detailed guidance.
 
 ## Qing Audio 非商业源码共享许可证 1.0
+
+**⚠️ 禁止商业使用 / NO COMMERCIAL USE**
 
 ### 本项目源码公开，但不属于 OSI 认可的开源软件
 
@@ -10,27 +65,11 @@
 >
 > 许可证政策变更与后续 AI 维护说明见 [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md)。 / See [LICENSE_POLICY_CHANGE.md](LICENSE_POLICY_CHANGE.md) for the policy record and future AI maintenance instructions.
 
-# QQ Super Compression 1.4.20 Stable
+## 最新版本下载 / Latest version downloads
 
-Qing Audio 动态处理插件，提供 Compressor、Clipper、Limiter，Classic/Super、单压/双压和内外侧链。Comp/ST 同时提供 L/R Link 与 M/S Link。Lookahead 为 0 / 25.3 / 50.6 / 76 / 100 ms，Window 在固定延迟内调节检测时长。TRANSPARENT 默认关闭，Window 或 Lookahead 为 0 时灰显。OS 为 1x/4x/8x/16x，默认 1x。
+**当前稳定版 / Current stable version: 1.4.20 Stable · 2026-10-27**
 
-Qing Audio dynamics plug-in with Compressor, Clipper, Limiter, Classic/Super, Single/Dual and internal/external sidechains. Comp/ST provides both L/R and M/S Link. Lookahead presets are 0 / 25.3 / 50.6 / 76 / 100 ms; Window changes detection length at fixed latency. TRANSPARENT defaults off and is disabled at zero Window or Lookahead. OS offers 1x/4x/8x/16x, default 1x.
-
-Display：框选放大，滚轮上下缩放，Shift＋滚轮上下平移，Ctrl＋滚轮左右缩放，右键恢复全图。FREEZE 点亮后停播才冻结；播放时跟随最新音频。Clipper 的柱条实时，数字和标记线保持最大压缩量。
-
-Display: drag a rectangle to zoom, wheel to zoom vertically, Shift+wheel to pan vertically, Ctrl+wheel to zoom horizontally, and right-click to reset. FREEZE holds history only after stopping; playback follows the live edge. Clipper bars remain live while numbers and marker lines hold maximum reduction.
-
-Adjust 只上下移动波形、刻度和阈值线，不改变声音；Shift＋滚轮直接调整同一个 Adjust。Limiter 的 CEILING 默认开启，可关闭；TP 关闭时使用采样峰值 Limiter，两种状态都支持 Auto/Tight/Smooth。Match 以原始输入对比动态 Wet，排除最终 Ceiling / Output / 监听。
-
-Adjust moves waveforms, scale and threshold lines without changing audio; Shift+wheel edits the same value. Limiter CEILING defaults on and can be disabled; TP-off uses sample-peak limiting, with Auto/Tight/Smooth in both states. Match compares original input with dynamic Wet, excluding final Ceiling / Output / monitoring.
-
-配套手册 / Included manuals: [中文 1.4.20](docs/manuals/QQ-Super-Compression-1.4.20-User-Manual-Chinese.pdf) · [English 1.4.20](docs/manuals/QQ-Super-Compression-1.4.20-User-Manual-English.pdf)。各 49 页，配色和版式沿用原版，内容与本版操作对应。 / 49 pages each, retaining the established design and updated for this version.
-
-本次覆盖 1.4.17 之后的所有真实版本 1.4.18、1.4.19、1.4.20。 / Covers every actual version since 1.4.17: 1.4.18, 1.4.19 and 1.4.20.
-
-## 下载与安装 / Download and installation
-
-**下载 1.4.20 / Download 1.4.20:** [最新 Release / Latest Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [固定版本页面 / Version page](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.20) · [历史版本 / Release history](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases)
+**下载 1.4.20 / Download 1.4.20:** [最新 Release / Latest Release](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/latest) · [固定版本页面 / Version page](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.20)
 
 按系统、宿主架构和格式选择。Mac VST3 只安装一套匹配宿主架构的包；AU 是独立格式。 / Choose by OS, host architecture and format. Install one matching Mac VST3 architecture; AU is independent.
 
@@ -49,12 +88,18 @@ Adjust moves waveforms, scale and threshold lines without changing audio; Shift+
 
 **注意 / Note:** GitHub 自动生成的 `Source code (zip)` 和 `Source code (tar.gz)` 是源码快照，不是可安装插件。 / GitHub-generated source archives are source snapshots, not installable plug-ins.
 
+<details>
+<summary>从源码构建 / Building from source</summary>
 
-## 当前稳定版 / Current stable version
+JUCE 固定为 8.0.15；CMake 3.22+。Windows 使用 VS 2022 C++ 工具与 Windows SDK，macOS 使用 Xcode Command Line Tools。macOS 最低部署版本为 11.0。详见 [复现说明 / reproduction](REPRODUCE_1.4.1.md)。
 
-**1.4.20 Stable (2026-10-27)**，由用户明确指定。Windows 使用已验证成品；Mac 从对应源码构建。 / Explicitly user-designated. Windows reuses the verified binary; Mac is built from corresponding source.
+JUCE is pinned to 8.0.15. Use CMake 3.22+, VS 2022 C++ tools and Windows SDK on Windows, or Xcode Command Line Tools on macOS. The macOS deployment target is 11.0. See [reproduction instructions](REPRODUCE_1.4.1.md).
 
-## 版本记录 / Version history
+</details>
+
+## 版本更新历史 / Version history
+
+以下保留各版本当时的变化；当前用法以 1.4.20 说明书为准。 / Entries describe changes at the time of each version; use the 1.4.20 manuals for current operation.
 
 ### 1.4.20 — 2026-10-27 — Stable
 
@@ -204,6 +249,22 @@ All versions above were delivered numeric versions, without a new user-selected 
 - 中文：更新配套中英文用户手册，各 44 页。经用户确认设为 Stable；复用已验证并安装的 Windows 成品，macOS 从相同对应源码构建。
 - English: Includes updated 44-page Chinese and English manuals. Promoted to Stable by user approval, reusing the verified installed Windows product and building macOS from the corresponding source.
 
+
+<details>
+<summary>1.3.6 历史升级说明与当时手册 / Historical migration notes and manuals</summary>
+
+Limiter 旧 ST 设置迁移为 L/R Link 100%，旧 LR/MS 为 0%；旧 L（MS 为 M）参数成为共用值。Limiter 不再使用 Range。Display Scale 不会改变阈值；Classic 最低 -90 dB，Super 最低 -inf。如果旧 1.3.4 已将阈值存为 -45 dB，本版无法恢复更早的数值。旧双组参数工程可能改变声音，请另存工程并试听。
+
+Older Limiter ST migrates to L/R Link 100%; LR/MS to 0%, with former L (M in MS) settings shared. Limiter Range is inactive. Display Scale does not change thresholds: Classic reaches -90 dB, Super -inf. If 1.3.4 already saved a clamped -45 dB value, earlier values cannot be reconstructed. Older split-channel sessions may sound different; save a session copy and audition it.
+
+Window 只改变检测时长，不改变选定延迟；SAFE 可能衰减强音前后的声音。0 ms、较低 Window（尤其低于 10 ms）和 Limiter 推荐比较过采样。切换 Limiter 仍可能因 Ceiling 额外延迟触发宿主补偿。
+
+Window changes detection duration at fixed latency. SAFE may attenuate audio around loud events. Compare OS at 0 ms, short Window (especially below 10 ms), and in Limiter. Limiter switching can still trigger host compensation because Ceiling adds latency.
+
+[1.3.6 中文手册](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-Chinese.pdf) · [1.3.6 English manual](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-English.pdf)
+
+</details>
+
 ### 1.3.5 — Stable, 2026-10-11
 
 - 中文：Display 新增 Scale 按钮，在 -30 / -60 / -90 dB 之间切换，普通模式与 Limiter 共用。图表、阈值推子和拖动精度同步刻度，保留实际阈值与声音；超出视野的阈值保留真实读数并以星号提示。取消 Limiter 固定 -45 dB 限制，继续移除其 Range。Scale 随工程保存，A/B 和 Limiter 切换保持一致。更新中英文 44 页说明书。修正复用 Windows 构建目录时版号资源未更新的问题。用户已确认并指定为 Stable；双语手册配套发行。
@@ -271,48 +332,32 @@ All versions above were delivered numeric versions, without a new user-selected 
 
 更早的详细变更记录保留于各版 `RELEASE_NOTES_*.md`。 / Earlier detailed records remain in the versioned `RELEASE_NOTES_*.md` files.
 
-## 安装与说明书 / Installation and manuals
+## 历史成品下载 / Previous release downloads
 
-Windows 10/11 x64 提供 VST3；macOS 11+ 提供 Apple Silicon VST3、Intel x86_64 VST3 与 Universal 2 AU。按宿主实际架构选一个 macOS VST3 包，AU 按宿主需要安装。升级前关闭宿主并备份工程及旧 bundle。
+下面链接直接下载已发布的历史成品；版本号可打开对应发布页，查看安装说明及当时的手册。仅列出实际发布的版本。 / Download published historical builds below. Select a version to open its release page for the accompanying guides and manuals. Only releases with published assets are listed.
 
-Windows 10/11 x64 uses VST3. macOS 11+ has Apple Silicon VST3, Intel x86_64 VST3 and Universal 2 AU. Select one macOS VST3 architecture for the host. Close the host and back up the session and old bundle before upgrading.
+| 版本 / Version | 成品下载 / Download builds |
+| --- | --- |
+| [v1.4.17](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.17) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.17/QQ.Super.Compression.1.4.17.macOS.Apple.Silicon.VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.17/QQ.Super.Compression.1.4.17.macOS.Intel.x86_64.VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.17/QQ.Super.Compression.1.4.17.macOS.Universal.2.AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.17/QQ.Super.Compression.1.4.17.Windows.x64.VST3.zip) |
+| [v1.4.14](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.14) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.macOS.Apple.Silicon.VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.macOS.Intel.x86_64.VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.macOS.Universal.2.AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.14/QQ.Super.Compression.1.4.14.Windows.x64.VST3.zip) |
+| [v1.4.10](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.10) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.macOS.Apple.Silicon.VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.macOS.Intel.x86_64.VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.macOS.Universal.2.AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.10/QQ.Super.Compression.1.4.10.Windows.x64.VST3.zip) |
+| [v1.4.1](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.4.1) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.1/QQ.Super.Compression.1.4.1.macOS.Apple.Silicon.VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.1/QQ.Super.Compression.1.4.1.macOS.Intel.x86_64.VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.1/QQ.Super.Compression.1.4.1.macOS.Universal.2.AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.4.1/QQ.Super.Compression.1.4.1.Windows.x64.VST3.zip) |
+| [v1.3.6](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.3.6) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.6/QQ.Super.Compression.1.3.6.macOS.Apple.Silicon.VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.6/QQ.Super.Compression.1.3.6.macOS.Intel.x86_64.VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.6/QQ.Super.Compression.1.3.6.macOS.Universal.2.AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.6/QQ.Super.Compression.1.3.6.Windows.x64.VST3.zip) |
+| [v1.3.5](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.3.5) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.macOS.Apple.Silicon.VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.macOS.Intel.x86_64.VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.macOS.Universal.2.AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.5/QQ.Super.Compression.1.3.5.Windows.x64.VST3.zip) |
+| [v1.3.2](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.3.2) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.macOS.Apple.Silicon.VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.macOS.Intel.x86_64.VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.macOS.Universal.2.AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.3.2/QQ.Super.Compression.1.3.2.Windows.x64.VST3.zip) |
+| [v1.2.42](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.42) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.macOS.Apple.Silicon.VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.macOS.Intel.x86_64.VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.macOS.Universal.2.AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.42/QQ.Super.Compression.1.2.42.Windows.x64.VST3.zip) |
+| [v1.2.6](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.6) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.6/QQ-Super-Compression-1.2.6-macOS-Apple-Silicon-VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.6/QQ-Super-Compression-1.2.6-macOS-Intel-VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.6/QQ-Super-Compression-1.2.6-macOS-Universal-AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.6/QQ-Super-Compression-1.2.6-Windows-x64-VST3.zip) |
+| [v1.2.3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.3) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.3/QQ-Super-Compression-1.2.3-macOS-Apple-Silicon-VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.3/QQ-Super-Compression-1.2.3-macOS-Intel-VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.3/QQ-Super-Compression-1.2.3-macOS-Universal-AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.3/QQ-Super-Compression-1.2.3-Windows-x64-VST3.zip) |
+| [v1.2.0](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.2.0) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.0/QQ-Super-Compression-1.2.0-macOS-Apple-Silicon-VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.0/QQ-Super-Compression-1.2.0-macOS-Intel-x86_64-VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.0/QQ-Super-Compression-1.2.0-macOS-Universal-2-AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.2.0/QQ-Super-Compression-1.2.0-Windows-x64-VST3.zip) |
+| [v1.1.9](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.1.9) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.9/QQ-Super-Compression-1.1.9-macOS-Apple-Silicon-VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.9/QQ-Super-Compression-1.1.9-macOS-Intel-x86_64-VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.9/QQ-Super-Compression-1.1.9-macOS-Universal-2-AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.9/QQ-Super-Compression-1.1.9-Windows-x64-VST3.zip) |
+| [v1.1.8](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.1.8) | [Mac Apple Silicon VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.8/QQ.Super.Compression.1.1.8.macOS.Apple.Silicon.VST3.zip) · [Mac Intel VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.8/QQ.Super.Compression.1.1.8.macOS.Intel.x86_64.VST3.zip) · [Mac Universal AU](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.8/QQ.Super.Compression.1.1.8.macOS.Universal.2.AU.zip) · [Windows x64 VST3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.8/QQ.Super.Compression.1.1.8.Windows.x64.VST3.zip) |
+| [v1.1.5](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.1.5) | [历史发布包 / Release package (ZIP)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.5/QQ.Super.Compression.1.1.5.zip) |
+| [v1.1.2](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.1.2) | [历史发布包 / Release package (ZIP)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.1.2/QQ.Super.Compression.1.1.2.zip) |
+| [v1.0.4](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.4) | [历史发布包 / Release package (ZIP)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.0.4/QQ.Super.Compression.1.0.4.zip) |
+| [v1.0.3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.3) | [历史发布包 / Release package (RAR)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.0.3/QQ.Super.Compression.1.0.3.Plan.D.20260830.rar) |
+| [v1.0.2](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v1.0.2) | [历史发布包 / Release package (ZIP)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v1.0.2/QQ.Super.Compression.1.0.2.zip) |
+| [v0.9.4](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.4) | [历史发布包 / Release package (ZIP)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.9.4/QQ.Super.Compression.0.9.4.Plan.D.20260828.zip) |
+| [v0.9.3](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.9.3) | [历史发布包 / Release package (ZIP)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.9.3/QQ.Super.Compression.0.9.3.Plan.D.20260827.zip) |
+| [v0.1.10](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/tag/v0.1.10) | [历史发布包 / Release package (ZIP)](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases/download/v0.1.10/QQ.Super.Compression.0.1.10.zip) |
 
-- [中文说明书，44 页](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-Chinese.pdf) / [English manual, 44 pages](docs/manuals/QQ-Super-Compression-1.3.6-User-Manual-English.pdf)
-- [中文安装指南](docs/QQ-Super-Compression-1.3.6-INSTALL-CN.txt) / [English installation guide](docs/QQ-Super-Compression-1.3.6-INSTALL-EN.txt)
-- [当前文档状态 / Current document status](docs/CURRENT_DOCUMENT_STATUS.md)
-
-## 使用要点 / Basic use
-
-Limiter 通常从 Ratio 20:1–1000:1 开始，保持 Output LINK，缓慢降低阈值。0 ms Lookahead 可配合 4x / 8x / 16x 总过采样试听响段与静段的动态对比。下压调好后，可适度加入 1:1–1:1.2 上压，并留意底鼓与军鼓延音。
-
-For Limiter, start with Ratio 20:1–1000:1, keep Output LINK on and lower Threshold gradually. Try 0 ms Lookahead with 4x / 8x / 16x overall oversampling for loud/quiet contrast. After downward compression, optional gentle 1:1–1:1.2 upward compression needs care with kick/snare sustain.
-
-## 编译 / Build
-
-JUCE 固定为 8.0.15；CMake 3.22+。Windows 使用 VS 2022 C++ 工具与 Windows SDK，macOS 使用 Xcode Command Line Tools。macOS 最低部署版本为 11.0。详见 [复现说明 / reproduction](REPRODUCE_1.4.1.md)。Windows Actions 仅手动触发，本次交付复用已验证 Windows 成品。
-
-JUCE is pinned to 8.0.15. Use CMake 3.22+, VS 2022 C++ tools and Windows SDK on Windows, or Xcode Command Line Tools on macOS. The macOS deployment target is 11.0. See [reproduction instructions](REPRODUCE_1.4.1.md). Windows Actions remains manual; this release reuses its verified Windows build.
-
-## 已知限制 / Known limits
-
-Safe 的较长 Window 会提前压及峰后压；较短窗口可能增加染色或噼啪声。统一过采样减少混叠但不保证所有素材无失真。旧工程升级后请核对 OS 和延迟补偿。
-
-Longer Safe windows can cause pre/post-attenuation. Shorter windows can increase coloration or crackles. Unified oversampling reduces aliasing but does not guarantee distortion-free processing. Check OS and host latency compensation after migrating old sessions.
-
-FULL may stay awake at extreme gain or with active input/selected sidechain. ECO cuts tails when the host reports Stop. Plugin CPU timings cannot be translated to an ASIO-Guard percentage; DAW scheduling and buffer conditions matter. macOS artifacts are ad-hoc signed and may require trusted-source quarantine handling as described in the installation guides. Commercial use is prohibited; redistributed binaries require free complete corresponding source and the required notices.
-
-## 1.3.6 历史升级说明 / Historical upgrade notes
-
-Limiter 旧 ST 设置迁移为 L/R Link 100%，旧 LR/MS 为 0%；旧 L（MS 为 M）参数成为共用值。Limiter 不再使用 Range。Display Scale 不会改变阈值；Classic 最低 -90 dB，Super 最低 -inf。如果旧 1.3.4 已将阈值存为 -45 dB，本版无法恢复更早的数值。旧双组参数工程可能改变声音，请另存工程并试听。
-
-Older Limiter ST migrates to L/R Link 100%; LR/MS to 0%, with former L (M in MS) settings shared. Limiter Range is inactive. Display Scale does not change thresholds: Classic reaches -90 dB, Super -inf. If 1.3.4 already saved a clamped -45 dB value, earlier values cannot be reconstructed. Older split-channel sessions may sound different; save a session copy and audition it.
-
-Window 只改变检测时长，不改变选定延迟；SAFE 可能衰减强音前后的声音。0 ms、较低 Window（尤其低于 10 ms）和 Limiter 推荐比较过采样。切换 Limiter 仍可能因 Ceiling 额外延迟触发宿主补偿。
-
-Window changes detection duration at fixed latency. SAFE may attenuate audio around loud events. Compare OS at 0 ms, short Window (especially below 10 ms), and in Limiter. Limiter switching can still trigger host compensation because Ceiling adds latency.
-
-当前构建说明 / Current build instructions: [REPRODUCE_1.4.1.md](REPRODUCE_1.4.1.md).
-
-新实例 OS 默认 1x，由用户按声音和 CPU 选择；已保存工程不会被强制改为 1x。悬停帮助现为中文，英文操作说明见随附英文手册。
-
-New instances start at 1x OS; choose the factor to suit the sound and CPU budget. Existing saved projects are not forced to 1x. Hover help is now Chinese; the included English manual explains all controls in English.
+[查看全部历史发布 / Browse all releases](https://github.com/Ziqing-Gu/QQ-Super-Compression/releases)

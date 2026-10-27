@@ -23,7 +23,7 @@ This change applies to copies supplied with the current license. It does not rew
 ## 给后续 AI 和维护者的强制说明 / Instructions for future AI and maintainers
 
 1. 以根目录 `LICENSE` 为当前完整许可条款，不得自行改回 MIT、GPL、AGPL，也不得把本项目描述为 OSI 认可的开源软件，除非版权所有者明确要求。
-2. 保留 README 顶部醒目的“禁止商业使用”提示，以及发布时公开完整源码、注明出处和修改内容、沿用同一许可证的要求。
+2. 按用户于 2026-10-27 指定的顺序维护 README：产品介绍 → 许可证 → 最新版本下载 → 版本更新历史 → 历史成品下载。许可证作为第二部分，保留醒目的“禁止商业使用”提示，以及发布时公开完整源码、注明出处和修改内容、沿用同一许可证的要求。此前“README 顶部”的位置要求由本条替代，许可条款不变。 / Follow the owner-requested README order: product introduction, license, latest downloads, version history, then historical build downloads. Keep the prominent no-commercial-use notice in the second section; the license terms are unchanged.
 3. 不得修改第三方依赖的许可证。无法判断某段代码归属时，应先停止并向版权所有者确认。
 4. 制作后续版本、发布说明或源码包时，应同步保留根 `LICENSE`、README 许可提示和本说明文件。
 
